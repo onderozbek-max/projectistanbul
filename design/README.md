@@ -32,5 +32,5 @@ screens like a prototype.
 | Phase | Deliverable | Status |
 |---|---|---|
 | **A** | Low-fi design package (this folder) | **Done** (2026-11-08) |
-| **C** | Foundation code: Godot 4 skeleton, SoA swarm + benchmark, core rules + tests (`/game`) | Next |
-| **B** | Playable browser prototype of Level 1 (`/prototype`) | After C |
+| **C** | Foundation code: Godot 4 skeleton, SoA swarm + benchmark, core rules + tests (`/game`) | Done except on-device runs (see `reviews/REVIEW-M0.md`) |
+| **B** | Playable browser prototype of Level 1 (`/prototype`) | **Done** (2026-11-08), see `prototype/README.md` |
