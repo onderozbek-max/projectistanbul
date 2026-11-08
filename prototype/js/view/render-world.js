@@ -47,11 +47,22 @@ P.RenderWorld = (function () {
       c.strokeStyle = '#3E4148'; c.lineWidth = Math.max(3, 0.12 * R.ppm); c.beginPath(); c.moveTo(R.X(rx), R.Y(ya)); c.lineTo(R.X(rx), R.Y(yb)); c.stroke();
       c.strokeStyle = '#B9BEC6'; c.lineWidth = Math.max(1, 0.04 * R.ppm); c.stroke();
     });
-    rect(R, cor.xMin, ya, cor.xMin + 0.5, yb, '#5A5D64'); rect(R, cor.xMax - 0.5, ya, cor.xMax, yb, '#5A5D64');
+    [-1, 1].forEach(function (sd) {
+      var a0 = sd > 0 ? 4.6 : -7, a1 = sd > 0 ? 7 : -4.6;
+      rect(R, a0, ya, a1, yb, '#4B4A50');
+      c.strokeStyle = 'rgba(20,21,31,0.55)'; c.lineWidth = 1;
+      c.beginPath();
+      for (var sy = Math.ceil(ya / 1.2) * 1.2; sy < yb; sy += 1.2) { c.moveTo(R.X(a0), R.Y(sy)); c.lineTo(R.X(a1), R.Y(sy)); }
+      c.moveTo(R.X((a0 + a1) / 2), R.Y(ya)); c.lineTo(R.X((a0 + a1) / 2), R.Y(yb));
+      c.stroke();
+      var cx = sd > 0 ? 4.6 : -4.6;
+      c.strokeStyle = '#8A8F98'; c.lineWidth = Math.max(3, 0.12 * R.ppm); c.beginPath(); c.moveTo(R.X(cx), R.Y(ya)); c.lineTo(R.X(cx), R.Y(yb)); c.stroke();
+      c.strokeStyle = '#14151F'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(R.X(cx - sd * 0.08), R.Y(ya)); c.lineTo(R.X(cx - sd * 0.08), R.Y(yb)); c.stroke();
+    });
     for (var ly = Math.floor(ya); ly < yb; ly++) {
       var hv = hash(ly);
       if (hv < 0.06) {
-        c.fillStyle = 'rgba(70,10,16,0.5)'; c.beginPath(); c.ellipse(R.X(-4 + hash(ly + 9) * 8), R.Y(ly), (0.4 + hash(ly + 3)) * R.ppm, 0.25 * R.ppm, hash(ly + 5) * 3, 0, Math.PI * 2); c.fill();
+        c.fillStyle = 'rgba(' + P.goreRGB(0) + ',0.45)'; c.beginPath(); c.ellipse(R.X(-4 + hash(ly + 9) * 8), R.Y(ly), (0.4 + hash(ly + 3)) * R.ppm, 0.25 * R.ppm, hash(ly + 5) * 3, 0, Math.PI * 2); c.fill();
       }
       if (hv > 0.7) {
         var lx = -6 + hash(ly + 0.5) * 12;
@@ -62,7 +73,7 @@ P.RenderWorld = (function () {
     for (i = -1; i <= 1; i += 2) drawFacade(R, i, y0, y1);
     P.World.doors().forEach(function (d) { if (d.y > y0 - 2 && d.y < y1 + 2) drawDoor(R, d); });
     drawShutter(R, s);
-    for (var py = Math.ceil(y0 / 12) * 12; py < y1; py += 12) if (py > 4 && py < 228) { lamp(R, -5.9, py); lamp(R, 5.9, py + 6); }
+    for (var py = Math.ceil(y0 / 12) * 12; py < y1; py += 12) if (py > 4 && py < 228) { lamp(R, -4.85, py); lamp(R, 4.85, py + 6); }
   };
 
   function lamp(R, x, y) {
@@ -78,7 +89,7 @@ P.RenderWorld = (function () {
     c.save(); c.globalCompositeOperation = 'lighter';
     for (var py = Math.ceil((y0 - 6) / 12) * 12; py < y1 + 6; py += 12) {
       if (py <= 4 || py >= 228) continue;
-      [[-5.9, py], [5.9, py + 6]].forEach(function (l) {
+      [[-4.85, py], [4.85, py + 6]].forEach(function (l) {
         var X = R.X(l[0]), Y = R.Y(l[1] + 0.6), g = c.createRadialGradient(X, Y, 0, X, Y, 3.6 * u);
         g.addColorStop(0, 'rgba(255,180,100,0.34)'); g.addColorStop(0.5, 'rgba(255,160,80,0.10)'); g.addColorStop(1, 'rgba(255,190,110,0)');
         c.fillStyle = g; c.fillRect(X - 3.6 * u, Y - 3.6 * u, 7.2 * u, 7.2 * u);
@@ -90,10 +101,10 @@ P.RenderWorld = (function () {
   var AWN = [['#C0392B', '#F4EBDD'], ['#1B4965', '#F4EBDD'], ['#2E7D4F', '#F4EBDD'], ['#E9A23B', '#3A2A1E'], ['#7A4F8C', '#F4EBDD']];
   function drawFacade(R, side, y0, y1) {
     var c = R.ctx, u = R.ppm, x0 = side > 0 ? 7 : -9.6, x1 = side > 0 ? 9.6 : -7, ys = Math.max(-0.2, y0), ye = Math.min(232, y1);
-    rect(R, x0, ys, x1, ye, '#3A3436');
+    rect(R, x0, ys, x1, ye, '#4A3E3A');
     for (var y = Math.max(6, Math.floor(ys / 6) * 6); y < ye; y += 6) {
       var h = hash(y * side + 3), aw = AWN[Math.floor(h * AWN.length)];
-      rect(R, side > 0 ? 7.9 : -9.6, y + 0.3, side > 0 ? 9.6 : -7.9, y + 5.7, h > 0.5 ? '#4A3F3C' : '#3F4048', '#14151F', 2);
+      rect(R, side > 0 ? 7.9 : -9.6, y + 0.3, side > 0 ? 9.6 : -7.9, y + 5.7, ['#8E7258', '#80605F', '#64788A', '#6E7F67', '#9C8A6E'][Math.floor(hash(y * 7 + side) * 5)], '#14151F', 2);
       var lit = hash(y + side * 11) > 0.35;
       rect(R, side > 0 ? 7.15 : -7.9, y + 0.8, side > 0 ? 7.9 : -7.15, y + 5.2, lit ? 'rgba(255,200,120,0.55)' : 'rgba(40,46,60,0.9)', '#14151F', 2);
       if (lit) rect(R, side > 0 ? 7.15 : -7.9, y + 3.6, side > 0 ? 7.9 : -7.15, y + 5.2, 'rgba(255,240,200,0.25)');

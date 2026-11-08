@@ -1,4 +1,8 @@
-# prototype/: Playable browser prototype of Level 1 (Phase B, v0.2)
+# prototype/: Playable browser prototype of Level 1 (Phase B, v0.3)
+
+> **v0.3 (2026-11-08):** distinct animation per weapon (`js/view/weapons-fx.js`), İstiklal street life
+> (`js/view/istanbul.js`), Elite + Mini Chest set piece, level-up shockwave, kill combos, blood/ink setting,
+> XP curve 1.6. See `reviews/AUDIT-2-2026-11-08.md` and decisions D-022 to D-026.
 
 > **v0.2 (2026-11-08):** rebuilt after the owner playtest and `reviews/AUDIT-2026-11-08.md`. New weapon kit,
 > sprite characters, night street, comic-ink UI, 28 s cold open, real climax. Proposed decisions D-017 to D-021
@@ -41,8 +45,8 @@ flow, pacing, tutorial order, readability and UI layout. Numbers live in `js/con
 ## Balance check (headless bot)
 `node prototype/tools/bot.js --seeds=50` runs the same simulation code without graphics.
 
-Latest v0.2 (30 seeds): kiting bot clears **30/30**, **26/30** without dying · naive straight-line bot **26/30**, **11/30**
-without dying · first level-up **7.5 s** into A · level-ups **11** · peak alive **100** · kills ~526 · run ~2:37.
+Latest v0.3 (30 seeds): kiting bot clears **30/30**, **26/30** without dying · naive straight-line bot **27/30**, **14/30**
+without dying · first level-up **7.5 s** into A · level-ups **9** + **2 chests** · peak alive **~100** · kills ~536 · run ~2:38.
 
 ## Decisions I made where the docs were silent or conflicting (please confirm)
 1. **Top-down camera**, 10 m wide (12 m in D; D-021), camera x-clamp ±1 m so walls/facades show at the edges (LD's ±7 m clamp would show void).

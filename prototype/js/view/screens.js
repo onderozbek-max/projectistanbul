@@ -1,7 +1,7 @@
 // Menu screens: level-up cards (05), pause (07), settings (16 subset), down (09), results (08), title (01).
 P.Screens = (function () {
   var S = {}, $ = function (id) { return document.getElementById(id); };
-  var ALL = ['scr-title', 'scr-cold', 'scr-cards', 'scr-pause', 'scr-settings', 'scr-down', 'scr-slam', 'scr-results'];
+  var ALL = ['scr-title', 'scr-cold', 'scr-cards', 'scr-chest', 'scr-pause', 'scr-settings', 'scr-down', 'scr-slam', 'scr-results'];
 
   S.show = function (id) { ALL.forEach(function (x) { $(x).classList.toggle('hidden', x !== id); }); };
   S.hideAll = function () { S.show(null); };
@@ -119,6 +119,7 @@ P.Screens = (function () {
     row(P.t('ui.set.subs'), toggle('subs'));
     row(P.t('ui.set.reduceMotion'), toggle('reduceMotion'));
     row(P.t('ui.set.dmgNumbers'), toggle('dmgNumbers'));
+    row(P.t('ui.set.blood'), toggle('blood'));
     $('btn-settings-back').onclick = onBack;
     S.show('scr-settings');
   };
@@ -180,6 +181,73 @@ P.Screens = (function () {
     var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = P.t('ui.cards.ad') + ' · ' + P.t('ui.res.notInProto'); db.appendChild(tg);
     db.classList.toggle('hidden', !r.win);
     S.show('scr-results');
+  };
+
+  // Mini Chest: wooden crate with brass bands (canvas). lid 0..1 = closed..open.
+  S.chestShape = function (c, X, Y, s, lid) {
+    var INK = '#14151F';
+    c.save(); c.translate(X, Y);
+    c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(0, 0.05 * s, 0.75 * s, 0.18 * s, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#8B4A22'; c.strokeStyle = INK; c.lineWidth = Math.max(2, s * 0.06);
+    c.beginPath(); c.rect(-0.6 * s, -0.7 * s, 1.2 * s, 0.7 * s); c.fill(); c.stroke();
+    c.fillStyle = '#E9A23B'; c.fillRect(-0.6 * s, -0.42 * s, 1.2 * s, 0.1 * s); c.strokeRect(-0.6 * s, -0.42 * s, 1.2 * s, 0.1 * s);
+    c.fillRect(-0.12 * s, -0.5 * s, 0.24 * s, 0.24 * s); c.strokeRect(-0.12 * s, -0.5 * s, 0.24 * s, 0.24 * s);
+    c.save(); c.translate(0, -0.7 * s); c.rotate(-lid * 1.9 * 0.5); c.translate(0, -lid * 0.25 * s);
+    c.fillStyle = '#A65A2A'; c.beginPath(); c.moveTo(-0.62 * s, 0); c.lineTo(-0.62 * s, -0.22 * s); c.quadraticCurveTo(0, -0.5 * s, 0.62 * s, -0.22 * s); c.lineTo(0.62 * s, 0); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#E9A23B'; c.fillRect(-0.08 * s, -0.36 * s, 0.16 * s, 0.36 * s); c.strokeRect(-0.08 * s, -0.36 * s, 0.16 * s, 0.36 * s);
+    c.restore();
+    c.fillStyle = 'rgba(255,255,255,0.3)'; c.fillRect(-0.5 * s, -0.62 * s, 0.08 * s, 0.5 * s);
+    c.restore();
+  };
+
+  // Chest opening (wow beat): drop, 3 shakes, burst of rays, item rises, stats, tap to continue.
+  S.showChest = function (s, card, onDone) {
+    var scr = $('scr-chest'), cv = $('chest-canvas'), info = $('chest-info'), c = cv.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), W = 390, H = 520, t0 = performance.now(), done = false, sh = 0;
+    cv.width = W * dpr; cv.height = H * dpr;
+    info.classList.remove('in');
+    $('chest-icon').className = 'icon kind-' + (P.Progression.isWeapon(card.item) ? 'w' : card.id[0] === 'f' ? 'f' : 'p');
+    $('chest-icon').innerHTML = P.Icons.svg(card.item, 72);
+    $('chest-name').textContent = P.t('item.' + card.item);
+    $('chest-level').textContent = card.next ? P.t('chest.level', { n: card.next }) : '';
+    var st = $('chest-stats'); st.innerHTML = '';
+    P.Progression.statLines(card).forEach(function (l) {
+      var r = document.createElement('span'); r.className = 'stat';
+      r.innerHTML = '<em></em>' + (l.a !== null ? '<s></s><i>→</i>' : '') + '<b></b>';
+      r.querySelector('em').textContent = P.t(l.k); if (l.a !== null) r.querySelector('s').textContent = l.a; r.querySelector('b').textContent = l.b;
+      st.appendChild(r);
+    });
+    var rm = P.Settings.reduceMotion, OPEN = rm ? 0.1 : 1.5;
+    S.show('scr-chest'); P.Sfx.play('chestDrop');
+    function frame(now) {
+      if (done) return;
+      var t = (now - t0) / 1000;
+      c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+      var cx = W / 2, cy = 475, drop = Math.min(1, t / 0.35), bounce = drop < 1 ? -300 * (1 - drop) * (1 - drop) : 0;
+      var shake = 0;
+      if (t > 0.45 && t < OPEN) { var k = Math.floor((t - 0.45) / 0.33); if (k !== sh) { sh = k; P.Sfx.play('chestShake'); } shake = Math.sin(t * 60) * (4 + k * 3); }
+      var open = t >= OPEN ? Math.min(1, (t - OPEN) / 0.25) : 0;
+      if (open > 0) {
+        if (!S._opened) { S._opened = true; P.Sfx.play('chestOpen'); setTimeout(function () { info.classList.add('in'); }, rm ? 0 : 250); }
+        c.save(); c.translate(cx, cy - 60); c.rotate(t * 0.6); c.globalCompositeOperation = 'lighter';
+        for (var i = 0; i < 14; i++) {
+          c.rotate(Math.PI * 2 / 14); var g = c.createLinearGradient(0, 0, 0, -330);
+          g.addColorStop(0, 'rgba(255,209,102,' + (0.55 * open) + ')'); g.addColorStop(1, 'rgba(255,209,102,0)');
+          c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.lineTo(-26, -330); c.lineTo(26, -330); c.closePath(); c.fill();
+        }
+        c.restore();
+        var rg = c.createRadialGradient(cx, cy - 60, 0, cx, cy - 60, 140); rg.addColorStop(0, 'rgba(255,250,220,' + (0.9 * open) + ')'); rg.addColorStop(1, 'rgba(255,200,80,0)');
+        c.fillStyle = rg; c.fillRect(0, 0, W, H);
+      }
+      S.chestShape(c, cx + shake, cy + bounce, 110, open);
+      requestAnimationFrame(frame);
+    }
+    S._opened = false;
+    requestAnimationFrame(frame);
+    scr.onclick = function () {
+      if ((performance.now() - t0) / 1000 < OPEN + 0.5 || done) return;
+      done = true; scr.onclick = null; P.Sfx.play('pick'); onDone(card);
+    };
   };
 
   S.drawKeyArt = function (canvas) {

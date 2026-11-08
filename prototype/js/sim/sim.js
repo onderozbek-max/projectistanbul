@@ -14,7 +14,7 @@ P.createSim = function (seed) {
     props: P.World.createProps(),
     xp: 0, level: 1, pendingLevels: 0, cardPicks: 0, rerolls: C.cards.freeRerolls, levelUps: [],
     kills: 0, jeton: 0, xpPicked: 0, swings: 0, peakAlive: 0,
-    reviveUsed: false, secondWindUsed: false, deathCause: null, dinersSpawned: false,
+    reviveUsed: false, secondWindUsed: false, deathCause: null, dinersSpawned: false, pendingChests: 0, chestsOpened: 0,
   };
   s.dir = P.Director.create();
   L.diners.forEach(function (d, i) {
@@ -65,7 +65,7 @@ function stepHero(s, dt, input) {
 }
 
 P.stepSim = function (s, dt, input) {
-  if (s.mode !== 'play' || s.pendingLevels > 0) return;
+  if (s.mode !== 'play' || s.pendingLevels > 0 || s.pendingChests > 0) return;
   s.t += dt; s.runT += dt;
   stepHero(s, dt, input);
   P.Director.step(s, dt);

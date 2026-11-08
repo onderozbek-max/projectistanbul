@@ -69,6 +69,8 @@
         case 'kill': P.Sfx.play('splat', 45); break;
         case 'hit': if (ev.src === 'chain') P.Sfx.play('chain', 60); break;
         case 'pickup': P.Sfx.play(ev.kind === 'xp' ? 'tink' : 'click', 30); break;
+        case 'shockwave': P.Sfx.play('shock'); break;
+        case 'eliteSpawn': P.Sfx.play('elite'); P.Tel.log('elite_spawn', { t_s: +sim.runT.toFixed(1) }); break;
         case 'explode': P.Sfx.play('boom'); break;
         case 'heroHit':
           P.Sfx.play('hurt', 120);
@@ -108,7 +110,22 @@
     P.Progression.choose(sim, card);
     handleEvents();
     if (sim.pendingLevels > 0) { openCards(); return; }
+    if (sim.pendingChests > 0) { openChest(); return; }
     P.Screens.hideAll(); state = 'play'; P.Input.enabled = true;
+  }
+
+  // ---------- mini chest ----------
+  function openChest() {
+    state = 'chest'; P.Input.reset(); P.Input.enabled = false;
+    var card = P.Progression.chestReward(sim);
+    P.Screens.showChest(sim, card, function (c) {
+      P.Progression.openChest(sim, c);
+      P.Tel.log('chest_opened', { item: c.id, level: c.next, t_s: +sim.runT.toFixed(1) });
+      handleEvents();
+      if (sim.pendingChests > 0) { openChest(); return; }
+      if (sim.pendingLevels > 0) { openCards(); return; }
+      P.Screens.hideAll(); state = 'play'; P.Input.enabled = true;
+    });
   }
   function reroll() {
     if (sim.rerolls <= 0) return;
@@ -196,6 +213,7 @@
   }
 
   function stepPlay(dt) {
+    if (sim.pendingChests > 0 && slowMo < 0 && sim.pendingLevels === 0) { openChest(); return; }
     if (slowMo >= 0) {
       slowMo += dt;
       var T = P.Settings.reduceMotion ? 0 : P.CFG.feel.levelUpSlowMo;
@@ -222,7 +240,7 @@
     if (state === 'play') stepPlay(dt);
     if (state === 'exit') updateExit(dt);
     if (sim && state !== 'title' && state !== 'results') {
-      P.Fx.update(sim, state === 'paused' || state === 'cards' || state === 'down' ? 0 : dt);
+      P.Fx.update(sim, state === 'paused' || state === 'cards' || state === 'down' || state === 'chest' ? 0 : dt);
       P.Render.frame(sim, P.ColdOpen.draw);
       if (state === 'play' || state === 'exit') P.UI.update(sim); else document.getElementById('prompt').classList.add('hidden');
     }

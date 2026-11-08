@@ -46,6 +46,13 @@ P.Sfx = (function () {
     blast: function () { noise(0.35, 0.4, 220, 0.6); tone('sine', 140, 40, 0.3, 0.3); },
     lob: function () { tone('sine', 300, 520, 0.12, 0.05); },
     chain: function () { noise(0.04, 0.12, 6000, 6); },
+    combo: function () { [660, 880, 1320].forEach(function (f, i) { setTimeout(function () { ctx && tone('square', f, f * 1.02, 0.09, 0.07); }, i * 70); }); },
+    shock: function () { tone('sine', 220, 880, 0.25, 0.12); noise(0.25, 0.12, 900, 0.7); },
+    chestDrop: function () { tone('sine', 180, 90, 0.2, 0.25); noise(0.12, 0.2, 400, 1); },
+    chestShake: function () { noise(0.06, 0.2, 600, 2); tone('square', 300, 280, 0.05, 0.05); },
+    chestOpen: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { setTimeout(function () { ctx && tone('triangle', f, f, 0.3, 0.12); }, i * 60); }); noise(0.4, 0.1, 6000, 1); },
+    elite: function () { tone('sawtooth', 110, 70, 0.6, 0.12); },
+    gull: function () { tone('triangle', 1700, 1100, 0.18, 0.05); setTimeout(function () { ctx && tone('triangle', 1600, 1000, 0.22, 0.05); }, 220); },
     splat: function () { noise(0.07, 0.18, 700, 1.2); },
   };
   return {

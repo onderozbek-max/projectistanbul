@@ -112,7 +112,7 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .hud-mid { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 #timer { font-size: 18px; padding: 2px 12px; }
 
-.subs { position: absolute; left: 20px; right: 20px; top: 136px; text-align: center; color: #fff; font-size: 15px; font-weight: 600;
+.subs { position: absolute; left: 20px; right: 20px; top: 188px; text-align: center; color: #fff; font-size: 15px; font-weight: 600;
   background: rgba(20,21,31,.85); border: 2px solid var(--ink); border-radius: 12px; padding: 7px 12px; pointer-events: none; }
 .subs b { color: var(--heal); margin-right: 6px; }
 .prompt { position: absolute; transform: translate(-50%, -100%); background: #fff; color: var(--ink); font: italic 900 18px var(--display);
@@ -240,3 +240,20 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 #scr-cards .slot svg { width: 20px; height: 20px; }
 #scr-cards .slot small { min-width: 12px; height: 12px; font-size: 9px; line-height: 12px; right: -3px; bottom: -3px; }
 #btn-reroll, #btn-reroll-ad { white-space: nowrap; font-size: 14px; min-height: 44px; }
+
+/* ---------- mini chest ---------- */
+.screen.chest { justify-content: flex-start; padding-top: 70px; text-align: center; background: radial-gradient(circle at 50% 45%, rgba(60,30,80,.85), rgba(8,8,14,.92)); }
+.chest .display { font-size: 60px; color: #FFD166; text-shadow: 0 5px 0 #000; animation: slam .4s cubic-bezier(.2,1.8,.4,1); }
+#chest-canvas { position: absolute; left: 0; top: 120px; width: 390px; height: 520px; pointer-events: none; }
+.chest-info { position: absolute; left: 24px; right: 24px; top: 190px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  opacity: 0; transform: translateY(60px) scale(.6); transition: opacity .25s, transform .45s cubic-bezier(.2,1.6,.4,1); }
+.chest-info.in { opacity: 1; transform: none; }
+.chest-info .icon { width: 108px; height: 108px; border-radius: 26px; border: 4px solid var(--ink); display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 40%, #FFF9EE, var(--paper-d)); box-shadow: 0 6px 0 #000, 0 0 50px rgba(255,209,102,.8); }
+.chest-info .icon.kind-w { background: radial-gradient(circle at 50% 40%, #FFE3D6, #F2A483); }
+.chest-info .icon.kind-p { background: radial-gradient(circle at 50% 40%, #E3F9FF, #8ED8EE); }
+.chest-info .name { font: italic 900 34px/1 var(--display); text-transform: uppercase; color: #fff; text-shadow: 0 4px 0 #000; margin-top: 8px; }
+.chest-level { font: 800 16px var(--display); color: var(--simit-gold); letter-spacing: 1px; text-transform: uppercase; }
+.chest-info .stats { justify-content: center; }
+.chest-info .stat { --kc: var(--simit-gold); }
+.chest-info .caption { margin-top: 225px; color: #fff; font-weight: 700; animation: blink 1s steps(2) infinite; }

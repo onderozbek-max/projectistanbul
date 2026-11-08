@@ -6,13 +6,14 @@ P.Fx = (function () {
     var w = P.CFG.view.widthM;
     F.cam = { x: -6, y: s.hero.y, w: w, trauma: 0, punchT: 0, ox: 0, oy: 0, rot: 0, zoom: 1 };
     F.cam.y = targetY(s, w);
-    F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = [];
+    F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = []; F.flash = 0;
+    P.WFx.reset();
   };
 
   function targetX(s, w) {
     var h = s.hero, look = h.moving ? h.fx * P.CFG.view.lookAhead : 0;
     if (h.y < 0) return -6;
-    var lim = Math.max(0, 7 - w / 2);
+    var lim = Math.max(0, 7 - w / 2) + 1.2;
     return Math.min(lim, Math.max(-lim, h.x + look));
   }
   function targetY(s, w) {
@@ -39,6 +40,7 @@ P.Fx = (function () {
     if (c.punchT > 0) c.punchT = Math.max(0, c.punchT - dt);
     var pp = c.punchT > 0 ? Math.sin((1 - c.punchT / (fe.punchTime * 2)) * Math.PI) : 0;
     c.zoom = 1 + (rm ? 0 : fe.punchZoom * pp);
+    F.flash = Math.max(0, (F.flash || 0) - dt * 3); P.WFx.update(dt, s);
     ageList(F.nums, dt); ageList(F.swings, dt); ageList(F.rings, dt); ageList(F.bursts, dt); ageList(F.letters, dt);
     F.parts.forEach(function (p) { p.t -= dt; p.x += (p.vx || 0) * dt; p.y += (p.vy || 0) * dt; });
     F.parts = F.parts.filter(function (p) { return p.t > 0; });
@@ -64,7 +66,10 @@ P.Fx = (function () {
   };
 
   F.onEvent = function (ev, s) {
+    P.WFx.onEvent(ev, s);
     switch (ev.type) {
+      case 'shockwave': F.flash = P.Settings.reduceMotion ? 0 : 0.35; F.punch(); break;
+      case 'eliteSpawn': F.bursts.push({ x: ev.x, y: ev.y, t: 0.5, T: 0.5 }); break;
       case 'hit':
         F.number(ev.id, ev.x, ev.y, ev.dmg, ev.crit);
         for (var h = 0; h < 3; h++) {
@@ -74,7 +79,9 @@ P.Fx = (function () {
         break;
       case 'kill':
         F.parts.push({ kind: 'splat', x: ev.x + (ev.dx || 0) * 0.3, y: ev.y + (ev.dy || 0) * 0.3, r: 0.4 + Math.random() * 0.25, t: 10, T: 10, a: Math.random() * 6, seed: Math.random() });
-        F.parts.push({ kind: 'corpse', x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: ev.enemy || 'walker', variant: ev.variant || 0, t: 0.55, T: 0.55 });
+        var fl = ev.src === 'canister';
+        F.parts.push({ kind: 'corpse', x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: ev.enemy || 'walker', variant: ev.variant || 0, fling: fl, t: fl ? 0.7 : 0.55, T: fl ? 0.7 : 0.55 });
+        if (ev.elite) { F.addTrauma(0.35); F.letter(ev.x, ev.y + 1.6, P.lang === 'tr' ? 'GÜM!' : 'THUD!'); }
         for (var g = 0; g < 6; g++) {
           var ga = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 2.2, gs = 2 + Math.random() * 5;
           F.parts.push({ kind: 'gib', x: ev.x, y: ev.y, vx: Math.cos(ga) * gs, vy: Math.sin(ga) * gs, t: 0.35 + Math.random() * 0.2, T: 0.5 });

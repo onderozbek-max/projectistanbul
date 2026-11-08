@@ -28,8 +28,10 @@ P.CFG = {
     crawler: { hp: 14, speed: 1.0, contact: 6, radius: 0.42, xp: 4, kbResist: 0.5 },  // V2 hp/xp
     diner:   { hp: 6,  speed: 1.0, contact: 4, radius: 0.35, xp: 4, kbResist: 0 },    // V2 xp
   },
+  elite: { hpMult: 4, dmgMult: 1.5, scale: 1.15, xpMult: 5, kbResist: 0.6 },     // CC 5 elite variant (V3: previewed in L1)
+  levelUpShock: { radius: 3.0, knockback: 1.2 },                        // V3: level-up pushes the horde back (PROTO)
   separation: { strength: 2.0, maxNeighbors: 4 },                         // CODE swarm_default.tres
-  xp: { base: 5, mult: 5, exp: 1.4, magnetSpeed: 8, collectDist: 0.5 },   // GD 4.5
+  xp: { base: 5, mult: 5, exp: 1.6, magnetSpeed: 8, collectDist: 0.5 },   // GD 4.5 (V3 exp 1.4 -> 1.6: 9 cards + 2 chests)
   drops: { jetonChance: 0.05, jetonMin: 1, jetonMax: 5, simitChance: 0.005, simitHeal: 25 }, // CC 8-9
   // V2 Level 1 kit (owner feedback: "ayran, tereyağ, çatal are meaningless"). Every weapon is a distinct verb.
   weapons: {
@@ -116,6 +118,7 @@ P.CFG = {
     diners: [ { x: -4.6, y: -4.4, delay: 0 }, { x: -8.8, y: -8.6, delay: 2.5 } ],  // V2 delay 4 -> 2.5
     simitCart: { x: 5, y: 70 }, chestnutCart: { x: -4, y: 80 },
     canisters: [ { x: 4, y: 100 }, { x: -5, y: 210 }, { x: 3, y: 218 } ],
+    elites: { firstY: 140, firstX: 3.5, holdT: 28 },                     // V3: one elite in C, one mid-hold, each drops a Mini Chest
     cat: { x: -6.5, y: 170 }, manhole: { x: -3, y: 176 }, catTriggerY: 165, crawlerTelegraph: 1.0,
     civilians: { groups: 4, perGroup: 3, fleeSpeed: 4.2, life: 7 },      // V2: fewer, real people (no "rain")
     grabY: 30, clusterY: 90, clusterDoorY: 105, clusterCount: 10,
@@ -126,7 +129,7 @@ P.CFG = {
       A: { initial: 4, rate: 1.0, total: 30, packEvery: 0 },
       B: { rate: 1.6, total: 44 },
       C: { initialRunners: 3, rate: 2.2, total: 56, runnerShare: 0.25, behind: true },
-      D: { phases: [ { until: 15, rate: 4.0, runner: 0.15 }, { until: 35, rate: 7.0, runner: 0.3 },
+      D: { phases: [ { until: 15, rate: 4.0, runner: 0.15 }, { until: 35, rate: 7.5, runner: 0.3 },
                      { until: 56, rate: 10.0, runner: 0.35 } ], visibleDoorShare: 0.5 },
       maxAheadM: 16, maxBehindM: 12, globalCap: 300,                     // GD 6
     },

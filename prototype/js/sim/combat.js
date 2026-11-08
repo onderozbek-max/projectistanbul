@@ -11,6 +11,12 @@ P.Combat.spawnEnemy = function (s, type, x, y, opts) {
     burn: [], dotTick: 0, dotAcc: 0, dead: false, door: opts && opts.door, vx: 0, vy: 0, walk: 0,
     variant: s.rng.ai.int(0, 7), age: 0,
   };
+  if (opts && opts.elite) {
+    var el = P.CFG.elite;
+    e.elite = true; e.hp *= el.hpMult; e.maxHp = e.hp; e.contact *= el.dmgMult; e.r *= el.scale; e.xp *= el.xpMult;
+    e.kbResist = Math.max(e.kbResist, el.kbResist);
+    s.events.push({ type: 'eliteSpawn', x: x, y: y });
+  }
   s.enemies.push(e);
   s.peakAlive = Math.max(s.peakAlive, s.enemies.length);
   return e;
@@ -29,18 +35,20 @@ P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
     e.kbx = dirx * 2 * k / T; e.kby = diry * 2 * k / T; e.kbT = T;
   }
   s.events.push({ type: 'hit', id: e.id, x: e.x, y: e.y, dmg: dmg, crit: crit, src: src, dx: dirx, dy: diry });
-  if (e.hp <= 0) P.Combat.killEnemy(s, e, crit);
+  if (e.hp <= 0) P.Combat.killEnemy(s, e, crit, src);
 };
 
-P.Combat.killEnemy = function (s, e, crit) {
+P.Combat.killEnemy = function (s, e, crit, src) {
   e.dead = true;
   s.kills++;
-  s.events.push({ type: 'kill', id: e.id, enemy: e.type, x: e.x, y: e.y, crit: crit, variant: e.variant, dx: e.kbx, dy: e.kby });
+  s.events.push({ type: 'kill', id: e.id, enemy: e.type, x: e.x, y: e.y, crit: crit, variant: e.variant, dx: e.kbx, dy: e.kby, src: src || 'dot', elite: !!e.elite });
+  if (e.elite) s.drops.push({ kind: 'chest', value: 1, x: e.x, y: e.y, mag: true, pop: 0.7 });
   var a = s.rng.loot.range(0, Math.PI * 2);
   s.drops.push({ kind: 'xp', value: e.xp, x: e.x + Math.cos(a) * 0.3, y: e.y + Math.sin(a) * 0.3, mag: false, pop: 0.25 });
   var dr = P.CFG.drops;
   if (s.rng.loot.chance(dr.jetonChance)) s.drops.push({ kind: 'jeton', value: s.rng.loot.int(dr.jetonMin, dr.jetonMax), x: e.x - 0.2, y: e.y, mag: false, pop: 0.25 });
   if (s.rng.loot.chance(dr.simitChance)) s.drops.push({ kind: 'simit', value: dr.simitHeal, x: e.x + 0.2, y: e.y, mag: false, pop: 0.25 });
+  for (var di = s.drops.length - 4 < 0 ? 0 : s.drops.length - 4; di < s.drops.length; di++) P.World.clampWalk(s.drops[di], 0.25, s.props);
   if (crit) s.events.push({ type: 'critKill' });
 };
 
@@ -194,7 +202,7 @@ P.Combat.updateDrops = function (s, dt) {
     var d = s.drops[i];
     if (d.pop > 0) { d.pop -= dt; continue; }
     var dx = h.x - d.x, dy = h.y - d.y, dist = Math.hypot(dx, dy);
-    if (!d.mag && dist < pr) d.mag = true;
+    if (!d.mag && (dist < pr || (d.kind === 'chest' && dist < 6))) d.mag = true;
     if (d.mag) {
       var step = Math.min(dist, (xc.magnetSpeed + P.Hero.speed(s)) * dt);
       d.x += dx / (dist || 1) * step; d.y += dy / (dist || 1) * step;
@@ -204,6 +212,7 @@ P.Combat.updateDrops = function (s, dt) {
     s.drops.splice(i, 1);
     if (d.kind === 'xp') { s.xpPicked++; P.Progression.addXp(s, d.value); }
     else if (d.kind === 'jeton') s.jeton += d.value;
+    else if (d.kind === 'chest') s.pendingChests++;
     else h.hp = Math.min(h.maxHp, h.hp + d.value);
     s.events.push({ type: 'pickup', kind: d.kind, value: d.value });
   }

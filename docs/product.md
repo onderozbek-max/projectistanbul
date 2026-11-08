@@ -295,6 +295,11 @@ no gacha, no custom backend, no more than 3 quality tiers. Each one needs data t
 | D-019 | 2026-11-08 | Cold open cut from 70 s to about 28 s; no manual stab beat (Arda grabs the cook's knife, the knife auto-swings) | Doc rule says ≤45 s; a manual stab teaches the wrong verb for an auto-attack game | **Proposed** |
 | D-020 | 2026-11-08 | Level 1 climax (Segment D hold) is a real threat: spawn rate 4 → 7 → 10/s, peak 100 alive | v0.1 hold was a timer with no pressure; bot: autopilot 26/30 hitless clears, naive straight-line 11/30 | **Proposed** (numbers in prototype/js/config.js) |
 | D-021 | 2026-11-08 | Camera width 10 m in route levels, 12 m in holds (GD said 12 / 13.5) | Characters were unreadable dots at 12 m on a phone | **Proposed** (re-check in Godot at device scale) |
+| D-022 | 2026-11-08 | Preview one Elite in L1 Segment C and one mid-hold, each dropping a Mini Chest with an opening set piece (CC says first elite at L7) | First session needs reward spikes, not only level-up cards (reviews/AUDIT-2-2026-11-08.md G1) | **Proposed** |
+| D-023 | 2026-11-08 | Level-up triggers a shockwave that shoves nearby enemies (no damage) | Power beat plus a breather; reads as a wow moment | **Proposed** |
+| D-024 | 2026-11-08 | Gore colour default: red blood or DS "ink splats" (setting exists either way) | Drives the age rating (12+ vs 17+) and store creative | **Open** (lead recommends ink by default) |
+| D-025 | 2026-11-08 | XP curve exponent 1.4 → 1.6 | 11 card stops per L1 run was too many; now 9 cards + 2 chests | **Proposed** |
+| D-026 | 2026-11-08 | Camera may pan 1.2 m beyond the walkable edge; decorative sidewalk band with street life | The street never looked like İstiklal because facades sat off-screen | **Proposed** |
 
 ## 18. Open Questions
 

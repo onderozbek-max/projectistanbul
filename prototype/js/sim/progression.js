@@ -14,6 +14,7 @@ P.Progression.addXp = function (s, v) {
     s.pendingLevels++;
     s.levelUps.push(s.runT);
     s.events.push({ type: 'levelup', level: s.level });
+    P.Progression.shock(s);
   }
 };
 
@@ -124,6 +125,35 @@ P.Progression.statLines = function (card) {
 
 P.Progression.describe = function (card) {
   return P.t('desc.' + card.item + (card.next <= 1 || card.id[0] !== 'w' ? '' : '.up'));
+};
+
+// Level-up shockwave: shove nearby enemies away from the hero (no damage).
+P.Progression.shock = function (s) {
+  var h = s.hero, c = P.CFG.levelUpShock, T = P.CFG.knockbackTime;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active') return;
+    var dx = e.x - h.x, dy = e.y - h.y, d = Math.hypot(dx, dy) || 1;
+    if (d > c.radius) return;
+    var k = c.knockback * (1 - d / c.radius * 0.5) * (1 - e.kbResist);
+    e.kbx = dx / d * 2 * k / T; e.kby = dy / d * 2 * k / T; e.kbT = T;
+  });
+  s.events.push({ type: 'shockwave', x: h.x, y: h.y, r: c.radius });
+};
+
+// Mini Chest (CC 8): one free upgrade, owned items first; falls back to any candidate, then a simit.
+P.Progression.chestReward = function (s) {
+  var all = P.Progression.candidates(s), up = all.filter(function (c) { return c.next > 1; });
+  var pool = up.length ? up : all;
+  if (!pool.length) return { id: 'f:simit', item: 'simit', next: 0 };
+  return pool[s.rng.cards.int(0, pool.length - 1)];
+};
+
+P.Progression.openChest = function (s, card) {
+  s.pendingLevels++;
+  P.Progression.choose(s, card);
+  s.cardPicks--;
+  s.pendingChests--; s.chestsOpened++;
+  s.events.push({ type: 'chestOpened', item: card.item, level: card.next });
 };
 
 P.Progression.isWeapon = isWeapon;

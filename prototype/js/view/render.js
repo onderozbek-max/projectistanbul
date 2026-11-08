@@ -39,27 +39,9 @@ P.Render = (function () {
     c.strokeStyle = '#3DDCFF'; c.lineWidth = 3; c.stroke();
     if (h.regenOn) { c.strokeStyle = 'rgba(91,209,110,' + (0.5 + 0.3 * Math.sin(t / 150)) + ')'; c.lineWidth = 2; c.beginPath(); c.ellipse(X, Y, (ring + 0.12) * u, (ring + 0.12) * 0.4 * u, 0, 0, Math.PI * 2); c.stroke(); }
     c.globalAlpha = h.invuln > 0 && Math.floor(t / 70) % 2 ? 0.45 : 1;
-    P.Sprites.person(c, X, Y, { u: u * 1.22, face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
+    P.Sprites.person(c, X, Y, { u: u * 1.22, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
       arms: P.ColdOpen.hasKnife() ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving, flash: h.hitFlash || 0 });
     c.globalAlpha = 1;
-  }
-
-  function drawChain(s) {
-    var h = s.hero, lvl = h.weapons.chain;
-    if (!lvl) return;
-    var c = R.ctx, lv = P.CFG.weapons.chain.levels[lvl - 1], u = R.ppm;
-    for (var b = 0; b < lv.blades; b++) {
-      var a0 = h.chainA + b * Math.PI * 2 / lv.blades;
-      c.strokeStyle = 'rgba(200,210,220,0.18)'; c.lineWidth = 0.5 * u; c.lineCap = 'round';
-      c.beginPath(); c.arc(R.X(h.x), R.Y(h.y), lv.radius * u, -a0 + 0.9, -a0, true); c.stroke();
-      for (var k = 0; k < 7; k++) {
-        var a = a0 - k * 0.11, x = h.x + Math.cos(a) * lv.radius, y = h.y + Math.sin(a) * lv.radius;
-        c.save(); c.translate(R.X(x), R.Y(y)); c.rotate(-a);
-        c.fillStyle = k === 0 ? '#E9A23B' : '#B8C0CA'; c.strokeStyle = '#14151F'; c.lineWidth = 1.6;
-        c.beginPath(); c.ellipse(0, 0, (k === 0 ? 0.13 : 0.07) * u, (k === 0 ? 0.13 : 0.11) * u, 0, 0, Math.PI * 2); c.fill(); c.stroke();
-        c.restore();
-      }
-    }
   }
 
   function drawDrops(s) {
@@ -75,32 +57,15 @@ P.Render = (function () {
         var sx = Math.abs(Math.cos(t * 5 + i));
         c.fillStyle = '#E9A23B'; c.strokeStyle = '#14151F'; c.lineWidth = 1.5;
         c.beginPath(); c.ellipse(X, Y, 0.15 * u * Math.max(0.2, sx), 0.15 * u, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+      } else if (d.kind === 'chest') {
+        c.save(); c.globalCompositeOperation = 'lighter';
+        var bg = c.createLinearGradient(X, Y, X, Y - 3 * u); bg.addColorStop(0, 'rgba(255,209,102,0.55)'); bg.addColorStop(1, 'rgba(255,209,102,0)');
+        c.fillStyle = bg; c.fillRect(X - 0.35 * u, Y - 3 * u, 0.7 * u, 3 * u); c.restore();
+        P.Screens.chestShape(c, X, Y - 0.1 * u, 0.55 * u, 0);
       } else {
         c.strokeStyle = '#14151F'; c.lineWidth = 0.14 * u; c.beginPath(); c.arc(X, Y, 0.2 * u, 0, Math.PI * 2); c.stroke();
         c.strokeStyle = '#D9A050'; c.lineWidth = 0.09 * u; c.stroke();
       }
-    });
-  }
-
-  function drawProjectiles(s) {
-    var c = R.ctx, u = R.ppm;
-    s.nails.forEach(function (n) {
-      var sp = Math.hypot(n.vx, n.vy), dx = n.vx / sp, dy = n.vy / sp;
-      c.strokeStyle = 'rgba(255,220,140,0.5)'; c.lineWidth = 3; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(R.X(n.x - dx * 0.8), R.Y(n.y - dy * 0.8)); c.lineTo(R.X(n.x), R.Y(n.y)); c.stroke();
-      c.strokeStyle = '#14151F'; c.lineWidth = 4; c.beginPath(); c.moveTo(R.X(n.x - dx * 0.25), R.Y(n.y - dy * 0.25)); c.lineTo(R.X(n.x), R.Y(n.y)); c.stroke();
-      c.strokeStyle = '#E6EBF0'; c.lineWidth = 2; c.stroke();
-    });
-    s.projs.forEach(function (p) {
-      var f = p.t / p.T, x = p.x0 + (p.x1 - p.x0) * f, y = p.y0 + (p.y1 - p.y0) * f, z = 4 * 1.6 * f * (1 - f);
-      circle(x, y, 0.16, 'rgba(0,0,0,0.3)');
-      c.setLineDash([4, 5]); circle(p.x1, p.y1, p.lv.blast, null, 'rgba(255,201,60,' + (0.25 + 0.5 * f) + ')', 2); c.setLineDash([]);
-      c.save(); c.translate(R.X(x), R.Y(y + z)); c.rotate(p.spin + f * 9);
-      c.fillStyle = '#1B4965'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
-      c.beginPath(); if (c.roundRect) c.roundRect(-0.13 * u, -0.2 * u, 0.26 * u, 0.4 * u, 0.08 * u); else c.rect(-0.13 * u, -0.2 * u, 0.26 * u, 0.4 * u); c.fill(); c.stroke();
-      c.fillStyle = '#D7263D'; c.fillRect(-0.13 * u, -0.04 * u, 0.26 * u, 0.08 * u);
-      c.fillStyle = '#E9A23B'; c.fillRect(-0.05 * u, -0.28 * u, 0.1 * u, 0.08 * u);
-      c.restore();
     });
   }
 
@@ -133,7 +98,7 @@ P.Render = (function () {
     P.Fx.parts.forEach(function (p) {
       var a = Math.min(1, p.t / p.T * 3);
       if (p.kind === 'splat') {
-        c.fillStyle = 'rgba(86,14,20,' + (0.6 * a) + ')';
+        c.fillStyle = 'rgba(' + P.goreRGB(0) + ',' + (0.6 * a) + ')';
         var X = R.X(p.x), Y = R.Y(p.y);
         c.beginPath(); c.ellipse(X, Y, p.r * u, p.r * 0.55 * u, p.a, 0, Math.PI * 2); c.fill();
         c.beginPath(); c.arc(X + Math.cos(p.a) * p.r * 1.3 * u, Y + Math.sin(p.a) * p.r * 0.6 * u, p.r * 0.25 * u, 0, Math.PI * 2); c.fill();
@@ -146,8 +111,8 @@ P.Render = (function () {
     F.parts.forEach(function (p) {
       var a = p.t / p.T;
       if (p.kind === 'corpse') P.Sprites.corpse(R, p);
-      else if (p.kind === 'gib') circle(p.x, p.y, 0.07, 'rgba(120,20,28,' + a + ')', '#14151F', 1);
-      else if (p.kind === 'blood') circle(p.x, p.y, 0.05, 'rgba(160,24,36,' + a + ')');
+      else if (p.kind === 'gib') circle(p.x, p.y, 0.07, 'rgba(' + P.goreRGB(1) + ',' + a + ')', '#14151F', 1);
+      else if (p.kind === 'blood') circle(p.x, p.y, 0.05, 'rgba(' + P.goreRGB(2) + ',' + a + ')');
       else if (p.kind === 'spark' || p.kind === 'ember') circle(p.x, p.y, 0.07, p.kind === 'spark' ? 'rgba(255,201,60,' + a + ')' : 'rgba(255,110,30,' + a + ')');
       else if (p.kind === 'shard') circle(p.x, p.y, 0.06, 'rgba(244,235,221,' + a + ')');
       else if (p.kind === 'dust') circle(p.x, p.y, 0.5 * (1.5 - a), 'rgba(184,184,184,' + (0.5 * a) + ')');
@@ -156,11 +121,21 @@ P.Render = (function () {
     });
     F.swings.forEach(function (w) {
       var a = Math.atan2(-w.ay, w.ax), half = w.arc * Math.PI / 360, p = 1 - w.t / w.T, X = R.X(w.x), Y = R.Y(w.y);
-      var sweep = Math.min(1, p * 1.6), s0 = a + w.dir * half, s1 = a + w.dir * (half - 2 * half * sweep);
-      var lo = Math.min(s0, s1), hi = Math.max(s0, s1), r = w.range * u, alpha = 1 - Math.max(0, p - 0.5) * 2;
-      c.fillStyle = 'rgba(255,255,255,' + (0.55 * alpha) + ')';
-      c.beginPath(); c.arc(X, Y, r, lo, hi); c.arc(X, Y, r * 0.55, hi, lo, true); c.closePath(); c.fill();
-      c.strokeStyle = 'rgba(255,240,200,' + alpha + ')'; c.lineWidth = 3; c.beginPath(); c.arc(X, Y, r, lo, hi); c.stroke();
+      var sweep = Math.min(1, p * 1.7), s0 = a + w.dir * half, s1 = a + w.dir * (half - 2 * half * sweep);
+      var lo = Math.min(s0, s1), hi = Math.max(s0, s1), r = w.range * u, alpha = 1 - Math.max(0, p - 0.45) / 0.55;
+      var lead = w.dir > 0 ? Math.min(hi, lo + 1.2) : Math.max(lo, hi - 1.2);
+      c.save();
+      c.globalCompositeOperation = 'lighter';
+      for (var k = 0; k < 3; k++) {
+        var rin = r * (0.45 + k * 0.12);
+        c.fillStyle = 'rgba(' + (k === 2 ? '255,255,255' : '190,230,255') + ',' + (alpha * (0.16 + k * 0.14)).toFixed(3) + ')';
+        c.beginPath(); c.arc(X, Y, r * (1 - k * 0.04), lo, hi); c.arc(X, Y, rin, hi, lo, true); c.closePath(); c.fill();
+      }
+      c.restore();
+      c.strokeStyle = 'rgba(255,255,255,' + alpha + ')'; c.lineWidth = 4; c.lineCap = 'round';
+      c.beginPath(); c.arc(X, Y, r, w.dir > 0 ? lo : lead, w.dir > 0 ? lead : hi); c.stroke();
+      c.strokeStyle = 'rgba(20,21,31,' + (0.5 * alpha) + ')'; c.lineWidth = 1.5;
+      c.beginPath(); c.arc(X, Y, r + 3, lo, hi); c.stroke();
     });
     F.rings.forEach(function (g) {
       var f = 1 - g.t / g.T;
@@ -179,6 +154,7 @@ P.Render = (function () {
     var half = P.viewHalfH(cam.w) + 3, y0 = cam.y - half, y1 = cam.y + half;
     P.RenderWorld.drawGround(R, s, y0, y1);
     if (y0 < 1) P.RenderWorld.drawRestaurant(R, s);
+    P.Decor.drawStreet(R, s, y0, y1);
     P.RenderWorld.drawProps(R, s);
     drawGround();
     drawZonesAndTelegraphs(s);
@@ -189,12 +165,14 @@ P.Render = (function () {
     actors.forEach(function (e) { P.Sprites.enemy(R, e, s.hero); });
     if (extraDraw) extraDraw(R, s);
     drawFx();
+    P.WFx.drawParts(R);
     drawHero(s);
-    drawChain(s);
-    drawProjectiles(s);
+    P.WFx.drawChain(R, s);
+    P.WFx.drawProjectiles(R, s);
     if (y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);
     if (y1 > 222) P.RenderWorld.drawScaffold(R, s);
     P.RenderWorld.drawLights(R, s, y0, y1);
+    P.Decor.drawOverhead(R, s, y0, y1);
     P.RenderOverlay.worldText(R, s);
     c.restore();
     P.RenderOverlay.screen(R, s);
@@ -273,6 +251,7 @@ P.RenderOverlay = (function () {
 
   O.screen = function (R, s) {
     var c = R.ctx, W = R.W, H = R.H, l = light(s.hero.y);
+    if (P.Fx.flash > 0) { c.fillStyle = 'rgba(255,240,200,' + P.Fx.flash.toFixed(3) + ')'; c.fillRect(0, 0, W, H); }
     c.fillStyle = 'rgba(' + Math.round(l[0]) + ',' + Math.round(l[1]) + ',' + Math.round(l[2]) + ',' + l[3].toFixed(3) + ')';
     c.fillRect(0, 0, W, H);
     var g = c.createRadialGradient(W / 2, H * 0.65, 0, W / 2, H * 0.65, H * 0.75);
@@ -284,6 +263,7 @@ P.RenderOverlay = (function () {
       g2.addColorStop(0, 'rgba(215,38,61,0)'); g2.addColorStop(1, 'rgba(215,38,61,' + p.toFixed(3) + ')');
       c.fillStyle = g2; c.fillRect(0, 0, W, H);
     }
+    if (s.mode === 'play') P.WFx.drawCombo(R);
   };
   return O;
 })();

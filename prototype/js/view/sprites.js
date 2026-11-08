@@ -43,15 +43,15 @@ P.Sprites = (function () {
     else if (arms === 'pump') { ha = { x: back.x + sw * 0.18 * u * f, y: back.y + 0.24 * u }; hb = { x: front.x - sw * 0.18 * u * f, y: front.y + 0.24 * u }; }
     else if (arms === 'flail') { ha = { x: back.x - 0.1 * u * f, y: back.y - 0.3 * u - sw * 0.06 * u }; hb = { x: front.x + 0.1 * u * f, y: front.y - 0.3 * u + sw * 0.06 * u }; }
     else { ha = { x: back.x - 0.02 * u * f + sw * 0.05 * u * f, y: back.y + 0.30 * u }; hb = { x: front.x + 0.02 * u * f - sw * 0.05 * u * f, y: front.y + 0.30 * u }; }
-    limb(c, back.x, back.y, ha.x, ha.y, shirt, armW);
+    if (!o.backHand) limb(c, back.x, back.y, ha.x, ha.y, shirt, armW);
     torso(c, X, top, 0.40 * u, 0.44 * u - hunch, shirt, lean);
     if (o.blood && !white) {
-      c.fillStyle = 'rgba(110,18,24,0.75)';
+      c.fillStyle = 'rgba(' + P.goreRGB(1) + ',0.75)';
       c.beginPath(); c.ellipse(X + lean + 0.06 * u * (o.blood - 2), top - 0.2 * u, 0.09 * u, 0.12 * u, 0.5, 0, Math.PI * 2); c.fill();
     }
     if (arms === 'knife') { S.knifeArm(c, front, u, f, o.knifeA, skin, shirt); }
     else limb(c, front.x, front.y, hb.x, hb.y, shirt, armW);
-    if (arms !== 'knife') { blob(c, ha.x, ha.y, 0.055 * u, 0.055 * u, skin); blob(c, hb.x, hb.y, 0.055 * u, 0.055 * u, skin); }
+    if (arms !== 'knife') { if (!o.backHand) blob(c, ha.x, ha.y, 0.055 * u, 0.055 * u, skin); blob(c, hb.x, hb.y, 0.055 * u, 0.055 * u, skin); }
     var hx = X + lean + 0.04 * u * f + (o.hunch ? 0.1 * u * f : 0), hy = shY - 0.17 * u;
     blob(c, hx, hy, 0.2 * u, 0.2 * u, skin);
     if (!white) {
@@ -63,6 +63,7 @@ P.Sprites = (function () {
     } else if (!white) {
       c.fillStyle = INK; c.beginPath(); c.arc(hx + 0.1 * u * f, hy + 0.01 * u, 0.025 * u, 0, Math.PI * 2); c.fill();
     }
+    if (o.backHand) o.backHand(c, back, u, f, skin, shirt);
     if (o.zombie && !white) {
       c.strokeStyle = 'rgba(20,21,31,0.5)'; c.lineWidth = 1.5;
       c.beginPath(); c.moveTo(hx + 0.05 * u * f, hy + 0.1 * u); c.lineTo(hx + 0.15 * u * f, hy + 0.08 * u); c.stroke();
@@ -102,8 +103,14 @@ P.Sprites = (function () {
     if (e.state === 'turning') X += (Math.random() - 0.5) * 3;
     c.save();
     if (emerge < 1) { c.globalAlpha = emerge; c.translate(X, Y); c.scale(0.7 + 0.3 * emerge, 0.7 + 0.3 * emerge); c.translate(-X, -Y); }
+    if (e.elite) {
+      var pt = performance.now() / 1000;
+      c.fillStyle = 'rgba(224,64,251,' + (0.25 + 0.12 * Math.sin(pt * 6)) + ')';
+      c.beginPath(); c.ellipse(X, Y, 0.7 * u, 0.28 * u, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#E040FB'; c.lineWidth = 3; c.stroke();
+    }
     S.shadow(c, X, Y, u * (e.type === 'crawler' ? 1.5 : 1.15));
-    var o = { u: u * (e.type === 'runner' ? 1.08 : 1.14), face: face, phase: (e.walk || 0) * 5.5, zombie: !human, skin: pal.skin, shirt: pal.shirt,
+    var o = { u: u * (e.type === 'runner' ? 1.08 : 1.14) * (e.elite ? 1.45 : 1), face: face, phase: (e.walk || 0) * 5.5, zombie: !human, skin: pal.skin, shirt: pal.shirt,
               pants: pal.pants, hair: pal.hair, flash: e.flash, blood: human ? 0 : 1 + (e.variant % 3) };
     if (e.type === 'crawler') S.crawler(c, X, Y, o);
     else {
@@ -114,6 +121,7 @@ P.Sprites = (function () {
       if (e.type === 'runner' && !human) o.phase *= 1.3;
       S.person(c, X, Y, o);
     }
+    if (e.elite) eliteMarks(c, X, Y, o.u, e);
     if (e.burn && e.burn.length) {
       var t = performance.now() / 90;
       c.fillStyle = 'rgba(255,140,40,0.75)';
@@ -122,11 +130,26 @@ P.Sprites = (function () {
     c.restore();
   };
 
+  function eliteMarks(c, X, Y, u, e) {
+    var top = Y - 1.42 * u;
+    c.fillStyle = '#E040FB'; c.strokeStyle = INK; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(X - 0.18 * u, top); c.lineTo(X - 0.18 * u, top - 0.16 * u); c.lineTo(X - 0.09 * u, top - 0.07 * u);
+    c.lineTo(X, top - 0.2 * u); c.lineTo(X + 0.09 * u, top - 0.07 * u); c.lineTo(X + 0.18 * u, top - 0.16 * u); c.lineTo(X + 0.18 * u, top); c.closePath(); c.fill(); c.stroke();
+    var w = 0.9 * u, f = Math.max(0, e.hp / e.maxHp);
+    c.fillStyle = INK; c.fillRect(X - w / 2 - 2, top + 4, w + 4, 8);
+    c.fillStyle = '#E040FB'; c.fillRect(X - w / 2, top + 6, w * f, 4);
+  }
+
   S.corpse = function (R, p) {
     var c = R.ctx, u = R.ppm, X = R.X(p.x), Y = R.Y(p.y - 0.2), k = 1 - p.t / p.T, fall = Math.min(1, k / 0.45), face = p.dx >= 0 ? 1 : -1;
     var pal = S.palette(p.variant, true);
     c.save(); c.globalAlpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
-    c.translate(X + face * fall * 0.25 * u, Y); c.rotate(face * fall * Math.PI / 2 * 0.95); c.translate(-X, -Y);
+    if (p.fling) {
+      var el = k * p.T, zz = Math.max(0, 6 * el - 10 * el * el);
+      X += p.dx * el * 0.25 * u; Y -= zz * u;
+      pal = { skin: '#3A3833', shirt: '#26262B', pants: '#1A1A1E', hair: '#111' };
+      c.translate(X, Y); c.rotate(face * el * 9); c.translate(-X, -Y);
+    } else { c.translate(X + face * fall * 0.25 * u, Y); c.rotate(face * fall * Math.PI / 2 * 0.95); c.translate(-X, -Y); }
     S.person(c, X, Y, { u: u, face: face, phase: 0, zombie: true, skin: pal.skin, shirt: pal.shirt, pants: pal.pants, hair: pal.hair, arms: 'flail', still: true, blood: 2 });
     c.restore();
   };

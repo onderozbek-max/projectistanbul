@@ -168,6 +168,12 @@ function scripted(s, dt) {
     d.telegraphs.push({ x: L.manhole.x, y: L.manhole.y, r: 0.8, t: 0, T: L.crawlerTelegraph, then: 'crawler' });
     s.events.push({ type: 'catHiss' });
   }
+  var EL = L.elites;
+  if (!f.elite1 && h.y >= EL.firstY - 11) {
+    f.elite1 = true;
+    P.Combat.spawnEnemy(s, 'walker', EL.firstX, EL.firstY, { elite: true });
+    P.Director.bark(s, 'barkElite');
+  }
   if (!d.hold.active && h.y >= L.holdTriggerY) startHold(s);
   if (d.hold.active) updateHold(s, dt);
 }
@@ -186,6 +192,10 @@ function startHold(s) {
 function updateHold(s, dt) {
   var d = s.dir, L = P.CFG.level;
   d.hold.t += dt;
+  if (!d.flags.elite2 && d.hold.t >= L.elites.holdT) {
+    d.flags.elite2 = true;
+    P.Combat.spawnEnemy(s, 'walker', Math.max(-5.5, Math.min(5.5, s.hero.x + 3)), s.hero.y > 216 ? s.hero.y - 7 : s.hero.y + 7, { elite: true });
+  }
   s.props.shutter = Math.min(1, d.hold.t / L.holdTime);
   if (s.props.shutter >= 1 && !s.props.shutterOpen) {
     s.props.shutterOpen = true;

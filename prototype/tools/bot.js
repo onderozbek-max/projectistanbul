@@ -27,10 +27,12 @@ function botInput(s, st) {
     while (st.wp < PATH.length - 1 && Math.hypot(PATH[st.wp][0] - h.x, PATH[st.wp][1] - h.y) < 1.2) st.wp++;
     [tx, ty] = PATH[st.wp];
   }
-  const near = s.drops.filter(x => Math.hypot(x.x - h.x, x.y - h.y) < 5 && x.y > h.y - 4)
+  const tr = P.CFG.level.tram, inTram = x => x.x > tr.xMin - 0.5 && x.x < tr.xMax + 0.5 && x.y > tr.yMin - 0.5 && x.y < tr.yMax + 0.5;
+  const near = s.drops.filter(x => Math.hypot(x.x - h.x, x.y - h.y) < 5 && x.y > h.y - 4 && !inTram(x))
     .sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y))[0];
   const threat = s.enemies.some(e => e.state === 'active' && Math.hypot(e.x - h.x, e.y - h.y) < 2.5);
   if (near && !threat && !s.props.shutterOpen) { tx = near.x; ty = near.y; }
+  if (h.y > tr.yMin - 0.6 && h.y < tr.yMax + 0.6 && Math.abs(h.x) > 1 && Math.sign(tx) !== Math.sign(h.x)) { tx = h.x; ty = tr.yMax + 1.2; }
   let vx = tx - h.x, vy = ty - h.y;
   const d = Math.hypot(vx, vy) || 1;
   vx /= d; vy /= d;
@@ -53,6 +55,7 @@ function run(seed, firstRun) {
   const st = { wp: 0, ang: 0 }, dt = 1 / 60, segT = {}, deaths = [];
   let result = 'timeout';
   while (s.runT < 600) {
+    while (s.pendingChests > 0) P.Progression.openChest(s, P.Progression.chestReward(s));
     if (s.pendingLevels > 0) {
       const offer = P.Progression.makeOffer(s);
       P.Progression.choose(s, offer.cards[0]);
@@ -69,7 +72,7 @@ function run(seed, firstRun) {
     if (s.mode === 'won') { result = 'win'; break; }
   }
   const firstLvInA = s.levelUps.length && segT.A !== undefined ? s.levelUps[0] - segT.A : null;
-  return { seed, result, t: s.runT, kills: s.kills, level: s.level, levelUps: s.levelUps.length,
+  return { seed, result, t: s.runT, chests: s.chestsOpened, kills: s.kills, level: s.level, levelUps: s.levelUps.length,
     firstLvInA, peak: s.peakAlive, hp: Math.round(s.hero.hp), deaths, segT,
     build: Object.assign({}, s.hero.weapons, s.hero.passives) };
 }
@@ -81,7 +84,7 @@ const wins = runs.filter(r => r.result === 'win');
 const noDeath = runs.filter(r => r.deaths.length === 0);
 console.log(`policy=${POLICY} seeds=${SEEDS}`);
 console.log(`clear: ${wins.length}/${SEEDS}  clear without dying: ${noDeath.length}/${SEEDS}`);
-console.log(`median time ${med(runs.map(r => r.t)).toFixed(1)} s · kills ${med(runs.map(r => r.kills))} · level-ups ${med(runs.map(r => r.levelUps))} · peak alive ${med(runs.map(r => r.peak))} · end HP ${med(runs.map(r => r.hp))}`);
+console.log(`median time ${med(runs.map(r => r.t)).toFixed(1)} s · kills ${med(runs.map(r => r.kills))} · level-ups ${med(runs.map(r => r.levelUps))} · peak alive ${med(runs.map(r => r.peak))} · end HP ${med(runs.map(r => r.hp))} · chests ${med(runs.map(r => r.chests))}`);
 const fl = runs.map(r => r.firstLvInA).filter(x => x !== null);
 console.log(`first level-up into A: median ${med(fl).toFixed(1)} s (target ≤15 s)`);
 const segs = ['A', 'B', 'C', 'D'];
