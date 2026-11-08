@@ -1,0 +1,17 @@
+[config]
+
+name="SDLStubs"
+binary="SDLStubs.a"
+initialization="sdl_stubs_init"
+deinitialization="sdl_stubs_deinit"
+
+[dependencies]
+
+linked=[]
+embedded=[]
+system=["UIKit.framework"]
+capabilities=[]
+files=[]
+linker_flags=[]
+
+[plist]

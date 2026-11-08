@@ -7,6 +7,9 @@ extends Resource
 @export var cell_size: float = 1.5
 ## Neighbors considered for soft separation per enemy per tick (cost cap).
 @export var max_separation_neighbors: int = 4
+## Each enemy recomputes separation every N ticks and reuses its cached push in between
+## (architecture.md §4.2 staggering). 2 = 30 Hz separation at a 60 Hz sim; 1 = every tick.
+@export var separation_stagger: int = 2
 ## Separation push strength in m/s at full overlap.
 @export var separation_strength: float = 2.0
 ## Hard population cap (game-design.md: global cap 300 in play; benchmark uses 500).

@@ -24,7 +24,7 @@ zombie-overrun Istanbul. Portrait, one-thumb, Godot 4, **iOS first** (Android la
   `docs/product.md` §17 and ask the lead in your packet. Don't treat it as decided.
 
 ## Tech
-- Engine: **Godot 4.x stable.** Pinned version: `TBD at M0-T1` (record it here).
+- Engine: **Godot 4.x stable.** Pinned version: **4.7.2-stable** (official, `ed1daf0bf`; pinned at M0-T1).
 - Language: GDScript with **static typing everywhere**. GDExtension (C++) only if M0 says so.
 - Tests: GUT. Command: `tools/test.sh` (created in M0-T2).
 - Balance: `godot --headless --path game --script res://tools/bot_sim.gd -- --level=<ID> --seeds=50`.

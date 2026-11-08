@@ -8,6 +8,7 @@ config_version=5
 config/name="Project Istanbul"
 config/description="Story-driven survivor-like set in Istanbul."
 config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.png"
 run/main_scene="res://tools/benchmark/benchmark.tscn"
 
 [autoload]
@@ -37,3 +38,4 @@ common/max_physics_steps_per_frame=4
 
 renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true

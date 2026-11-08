@@ -62,9 +62,15 @@ func query(center: Vector2, radius: float, out: PackedInt32Array, max_results: i
 	var found: int = 0
 	var visited_count: int = 0
 	for cy: int in range(min_y, max_y + 1):
+		var row_hash: int = cy * 19349663
 		for cx: int in range(min_x, max_x + 1):
-			var key: int = _key(cx, cy)
-			if _was_visited(key, visited_count):
+			var key: int = ((cx * 73856093) ^ row_hash) & _mask  # inlined _key(): hot loop
+			var seen: bool = false
+			for v: int in visited_count:
+				if _visited[v] == key:
+					seen = true
+					break
+			if seen:
 				continue  # two cells hashed to the same key: scan it once
 			if visited_count < MAX_QUERY_KEYS:
 				_visited[visited_count] = key
@@ -79,10 +85,3 @@ func query(center: Vector2, radius: float, out: PackedInt32Array, max_results: i
 
 func _key(cx: int, cy: int) -> int:
 	return ((cx * 73856093) ^ (cy * 19349663)) & _mask
-
-
-func _was_visited(key: int, visited_count: int) -> bool:
-	for k: int in visited_count:
-		if _visited[k] == key:
-			return true
-	return false

@@ -21,7 +21,7 @@ static func summarize(samples: PackedFloat32Array) -> Dictionary:
 
 
 ## Common header for every results file, so files from different devices compare cleanly.
-static func header(kind: String) -> Dictionary:
+static func header(kind: String, seconds: float = BenchWorld.DURATION_S) -> Dictionary:
 	return {
 		"kind": kind,
 		"engine": Engine.get_version_info().string,
@@ -30,7 +30,7 @@ static func header(kind: String) -> Dictionary:
 		"processor": OS.get_processor_name(),
 		"date": Time.get_datetime_string_from_system(true),
 		"scenario": {"enemies": BenchWorld.ENEMIES, "projectiles": BenchWorld.PROJECTILES,
-			"droplets": BenchWorld.DROPLETS, "seconds": BenchWorld.DURATION_S},
+			"droplets": BenchWorld.DROPLETS, "seconds": seconds},
 		"budget_sim_ms_per_tick": 4.0,
 	}
 

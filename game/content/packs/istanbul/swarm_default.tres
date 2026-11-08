@@ -6,6 +6,7 @@
 script = ExtResource("1_cfg")
 cell_size = 1.5
 max_separation_neighbors = 4
+separation_stagger = 2
 separation_strength = 2.0
 capacity = 500
 hash_table_size = 1024

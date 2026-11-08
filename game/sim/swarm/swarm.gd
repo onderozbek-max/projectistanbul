@@ -19,6 +19,8 @@ var type_ids: PackedInt32Array
 var state: PackedInt32Array  # bit flags (elite, stunned, burning...) for M1+
 var contact_timers: PackedFloat32Array
 var anim_frame: PackedFloat32Array
+## Cached separation push, refreshed every `config.separation_stagger` ticks per enemy.
+var separation_push: PackedVector2Array
 
 # --- per-type tables (index = type id), filled from EnemyDefs ---
 var defs: Array[EnemyDef] = []
@@ -32,6 +34,7 @@ var death_positions: PackedVector2Array
 var death_types: PackedInt32Array
 
 var _neighbors: PackedInt32Array
+var _tick_index: int = 0
 
 
 func _init(p_config: SwarmConfig) -> void:
@@ -46,9 +49,10 @@ func _init(p_config: SwarmConfig) -> void:
 	state.resize(capacity)
 	contact_timers.resize(capacity)
 	anim_frame.resize(capacity)
+	separation_push.resize(capacity)
 	death_positions.resize(capacity)
 	death_types.resize(capacity)
-	_neighbors.resize(p_config.max_separation_neighbors * 4 + 1)
+	_neighbors.resize(p_config.max_separation_neighbors * 2 + 1)
 
 
 ## Registers an enemy type and returns its id for spawn().
@@ -73,6 +77,7 @@ func spawn(type_id: int, position: Vector2, hp_multiplier: float = 1.0) -> int:
 	state[i] = 0
 	contact_timers[i] = 0.0
 	anim_frame[i] = 0.0
+	separation_push[i] = Vector2.ZERO
 	count += 1
 	return i
 
@@ -91,6 +96,8 @@ func tick(dt: float, target: Vector2) -> void:
 	hash.rebuild(positions, count)
 	var max_n: int = config.max_separation_neighbors
 	var strength: float = config.separation_strength
+	var stagger: int = maxi(1, config.separation_stagger)
+	_tick_index += 1
 	for i: int in count:
 		var p: Vector2 = positions[i]
 		prev_positions[i] = p
@@ -100,7 +107,9 @@ func tick(dt: float, target: Vector2) -> void:
 		var velocity: Vector2 = Vector2.ZERO
 		if dist > 0.001:
 			velocity = to_target * (_type_speed[t] / dist)
-		velocity += _separation(i, p, _type_radius[t], max_n) * strength
+		if (i + _tick_index) % stagger == 0:
+			separation_push[i] = _separation(i, p, _type_radius[t], max_n) * strength
+		velocity += separation_push[i]
 		velocities[i] = velocity
 		positions[i] = p + velocity * dt
 		contact_timers[i] = maxf(0.0, contact_timers[i] - dt)
@@ -151,6 +160,7 @@ func _swap_remove(i: int) -> void:
 		state[i] = state[last]
 		contact_timers[i] = contact_timers[last]
 		anim_frame[i] = anim_frame[last]
+		separation_push[i] = separation_push[last]
 	count = last
 
 
