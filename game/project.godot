@@ -1,0 +1,39 @@
+; Project Istanbul: Godot project settings.
+; Engine pinned to Godot 4.7.x (see AGENTS.md). Edit through the editor when possible.
+
+config_version=5
+
+[application]
+
+config/name="Project Istanbul"
+config/description="Story-driven survivor-like set in Istanbul."
+config/features=PackedStringArray("4.7", "Mobile")
+run/main_scene="res://tools/benchmark/benchmark.tscn"
+
+[autoload]
+
+EventBus="*res://autoload/event_bus.gd"
+Services="*res://autoload/services.gd"
+SceneRouter="*res://autoload/scene_router.gd"
+
+[display]
+
+window/size/viewport_width=390
+window/size/viewport_height=844
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[physics]
+
+common/physics_ticks_per_second=60
+common/max_physics_steps_per_frame=4
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"

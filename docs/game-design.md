@@ -79,6 +79,9 @@ final = (base + sum(flat)) * (1 + sum(add_pct)) * product(1 + mult_pct)
 - `flat`: e.g., Puffer Jacket +1 armor.
 - `add_pct`: most passives and gear (they add together).
 - `mult_pct`: rare, explicitly labelled "multiplicative" (evolutions, ultimates).
+- **Percentage stats with a 0 base** (`might`, `area`, `cooldown_reduction`, `duration`, `luck`,
+  `xp_gain`, `crit_chance`) are stored as fractions and granted with **`flat`** modifiers
+  (Butter +10% might = `flat 0.10`); `add_pct` on a zero base would do nothing.
 - Recompute only when a modifier changes (dirty flag), never per frame.
 
 ### 4.3 Damage
@@ -107,7 +110,7 @@ xp_to_next(level) = round(5 + 5 * level^1.4)
 ```
 | Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| XP to next | 10 | 18 | 28 | 40 | 53 | 66 | 81 | 97 | 113 | 131 | 227 | 337 | 458 | 589 |
+| XP to next | 10 | 18 | 28 | 40 | 53 | 66 | 81 | 97 | 113 | 131 | 227 | 336 | 458 | 590 |
 
 **Pacing targets:** first level-up at **~15 s**; a level-up every **20–30 s** in early levels;
 **6–8 level-ups in L1**, **20–25 in an 8-minute run** at L20+.

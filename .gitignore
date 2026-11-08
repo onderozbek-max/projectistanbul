@@ -25,3 +25,10 @@ reports/**
 # Review videos are shared separately (screenshots are committed)
 reviews/media/**/*.mp4
 reviews/media/**/*.mov
+# Godot
+game/.godot/
+game/**/*.translation
+# exports
+game/export/
+*.ipa
+*.xcarchive
