@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SwarmConfig" format=3]
+
+[ext_resource type="Script" path="res://content/defs/swarm_config.gd" id="1_cfg"]
+
+[resource]
+script = ExtResource("1_cfg")
+cell_size = 1.5
+max_separation_neighbors = 4
+separation_strength = 2.0
+capacity = 500
+hash_table_size = 1024

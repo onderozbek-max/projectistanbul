@@ -12,4 +12,4 @@ extends Resource
 ## Hard population cap (game-design.md: global cap 300 in play; benchmark uses 500).
 @export var capacity: int = 500
 ## Hash table size (power of two). Bigger = fewer collisions, more memory.
-@export var hash_table_size: int = 4096
+@export var hash_table_size: int = 1024
