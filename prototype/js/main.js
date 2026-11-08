@@ -44,9 +44,11 @@
   function jumpTo(seg) {
     var y0 = { A: 1, B: 63, C: 125, D: 195 }[seg];
     if (y0 === undefined) return;
-    var builds = { A: [{}, {}, 1], B: [{ fork: 1, tea: 1 }, {}, 3], C: [{ fork: 2, tea: 2 }, { sneakers: 1 }, 5], D: [{ fork: 2, tea: 2 }, { sneakers: 1, ayran: 1 }, 6] }[seg];
+    var builds = { A: [{ knife: 1 }, {}, 1], B: [{ knife: 1, nailgun: 2 }, { shoes: 1 }, 4],
+                   C: [{ knife: 2, nailgun: 3, canister: 1 }, { shoes: 1, gloves: 1 }, 8],
+                   D: [{ knife: 3, nailgun: 3, canister: 2, chain: 1 }, { shoes: 2, gloves: 1, jacket: 1 }, 12] }[seg];
     sim.enemies = []; sim.props.doorOpen = true; sim.hero.x = 0; sim.hero.y = y0;
-    sim.hero.weapons = builds[0].fork ? builds[0] : { fork: 1 }; sim.hero.passives = builds[1]; sim.level = builds[2];
+    sim.hero.weapons = builds[0]; sim.hero.passives = builds[1]; sim.level = builds[2];
     sim.cardPicks = builds[2] - 1;
     ['t_move', 't_attack', 't_xp', 't_card', 't_env'].forEach(function (id) { sim.dir.tut.done[id] = true; });
     sim.dir.tut.active = null; sim.dir.tut.queue = [];
@@ -60,9 +62,12 @@
     P.drainEvents(sim).forEach(function (ev) {
       P.Fx.onEvent(ev, sim);
       switch (ev.type) {
-        case 'swing': P.Sfx.play('stab', 90); break;
-        case 'teaThrow': break;
-        case 'teaLand': P.Sfx.play('glass', 60); break;
+        case 'swing': P.Sfx.play('swish', 90); break;
+        case 'nailFire': P.Sfx.play('nail', 70); break;
+        case 'canisterThrow': P.Sfx.play('lob', 100); break;
+        case 'blast': P.Sfx.play('blast', 80); break;
+        case 'kill': P.Sfx.play('splat', 45); break;
+        case 'hit': if (ev.src === 'chain') P.Sfx.play('chain', 60); break;
         case 'pickup': P.Sfx.play(ev.kind === 'xp' ? 'tink' : 'click', 30); break;
         case 'explode': P.Sfx.play('boom'); break;
         case 'heroHit':
@@ -230,6 +235,7 @@
   P.Render.init($('game')); P.UI.init(); fit(); window.addEventListener('resize', fit);
   P.Input.init(phone, toLocal); P.Input.onPause = pause;
   P.UI.applyI18n(); P.Screens.drawKeyArt($('keyart'));
+  $('btn-title-settings').innerHTML = P.Icons.svg('gear', 30);
   document.querySelectorAll('[data-lang]').forEach(function (b) {
     b.addEventListener('click', function () { P.lang = P.Settings.lang = b.getAttribute('data-lang'); P.saveSettings(); P.UI.applyI18n(); });
   });

@@ -1,7 +1,7 @@
 // XP, run levels and level-up card offers (GD 4.5, 5.3; mirrors game/core/card_offer.gd weights).
 P.Hero = {};
 P.Hero.speed = function (s) {
-  return P.CFG.hero.speed * (1 + (s.hero.passives.sneakers || 0) * P.CFG.passives.sneakers.movePct);
+  return P.CFG.hero.speed * (1 + (s.hero.passives.shoes || 0) * P.CFG.passives.shoes.movePct);
 };
 
 P.Progression = {};
@@ -63,19 +63,67 @@ P.Progression.cardFor = function (s, id) {
 };
 
 P.Progression.choose = function (s, card) {
-  var h = s.hero, parts = card.id.split(':');
-  if (parts[0] === 'w') { h.weapons[card.item] = card.next; if (card.item === 'tea' && card.next === 1) h.cds.tea = 0.3; }
-  else if (parts[0] === 'p') h.passives[card.item] = card.next;
+  var h = s.hero, parts = card.id.split(':'), pc = P.CFG.passives;
+  if (parts[0] === 'w') { h.weapons[card.item] = card.next; if (card.next === 1) P.Weapons.onAcquire(s, card.item); }
+  else if (parts[0] === 'p') {
+    h.passives[card.item] = card.next;
+    if (card.item === 'medkit') h.hp = Math.min(h.maxHp, h.hp + pc.medkit.healOnPick);
+    if (card.item === 'jacket' && card.next >= 4) { h.maxHp += pc.jacket.hpFromLevel4; h.hp += pc.jacket.hpFromLevel4; }
+  }
   else if (card.item === 'simit') h.hp = Math.min(h.maxHp, h.hp + P.CFG.cards.fillerSimitHeal);
   else s.jeton += P.CFG.cards.fillerJeton;
   s.cardPicks++;
   s.pendingLevels--;
-  s.events.push({ type: 'cardChosen', id: card.id, level: card.next });
+  s.events.push({ type: 'cardChosen', id: card.id, item: card.item, level: card.next });
+};
+
+// Before -> after stat lines for a card: [{ k: labelKey, a: before|null, b: after }].
+var pct = function (v) { return Math.round(v * 100) + '%'; };
+var STATS = {
+  knife: [['stat.dmg', 'dmg'], ['stat.range', 'range', function (v) { return v + ' m'; }], ['stat.arc', 'arcDeg', function (v) { return v + '°'; }], ['stat.back', 'back', 'bool']],
+  nailgun: [['stat.dmg', 'dmg'], ['stat.shots', 'shots'], ['stat.pierce', 'pierce'], ['stat.rate', 'cdMult', function (v) { return '×' + (1 / v).toFixed(1); }]],
+  canister: [['stat.dmg', 'dmg'], ['stat.proj', 'proj'], ['stat.blast', 'blast', function (v) { return v + ' m'; }], ['stat.fire', 'fire', 'bool']],
+  chain: [['stat.dmg', 'dmg'], ['stat.blades', 'blades'], ['stat.radius', 'radius', function (v) { return v + ' m'; }], ['stat.spin', 'speed', function (v) { return '×' + (v / 3.4).toFixed(1); }]],
+};
+function passiveStats(item, lv) {
+  var pc = P.CFG.passives;
+  if (lv === 0) return [];
+  switch (item) {
+    case 'shoes': return [['stat.speed', '+' + pct(lv * pc.shoes.movePct)]];
+    case 'jacket': return [['stat.armor', '-' + Math.min(pc.jacket.armorCap, lv * pc.jacket.armorPerLevel)], ['stat.maxHp', '+' + Math.max(0, lv - 3) * pc.jacket.hpFromLevel4]];
+    case 'gloves': return [['stat.dmg', '+' + pct(lv * pc.gloves.might)], ['stat.kb', '+' + pct(lv * pc.gloves.knockbackPct)]];
+    case 'energy': return [['stat.cd', '-' + pct(lv * pc.energy.cdr)]];
+    case 'medkit': return [['stat.regen', (lv * pc.medkit.regenPerLevel).toFixed(1) + '/s'], ['stat.heal', '+' + pc.medkit.healOnPick]];
+  }
+  return [];
+}
+
+P.Progression.statLines = function (card) {
+  var out = [], item = card.item, n = card.next;
+  if (card.id[0] === 'f') return out;
+  if (card.id[0] === 'w') {
+    var L = P.CFG.weapons[item].levels, a = n > 1 ? L[n - 2] : null, b = L[n - 1];
+    STATS[item].forEach(function (st) {
+      var key = st[1], fmt = st[2], va = a ? a[key] : null, vb = b[key];
+      if (a && va === vb) return;
+      if (!a && (fmt === 'bool' && !vb)) return;
+      if (!a && key === 'cdMult') return;
+      var f = fmt === 'bool' ? function (v) { return v ? '✓' : '–'; } : (fmt || String);
+      out.push({ k: st[0], a: a ? f(va) : null, b: f(vb) });
+    });
+    return out.slice(0, 3);
+  }
+  var A = passiveStats(item, n - 1), B = passiveStats(item, n);
+  B.forEach(function (row, i) {
+    if (A[i] && A[i][1] === row[1]) return;
+    if (row[1] === '+0') return;
+    out.push({ k: row[0], a: A[i] ? A[i][1] : null, b: row[1] });
+  });
+  return out;
 };
 
 P.Progression.describe = function (card) {
-  if (card.item === 'fork' || card.item === 'tea') return P.t('desc.' + card.item + '.' + card.next);
-  return P.t('desc.' + card.item);
+  return P.t('desc.' + card.item + (card.next <= 1 || card.id[0] !== 'w' ? '' : '.up'));
 };
 
 P.Progression.isWeapon = isWeapon;

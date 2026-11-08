@@ -8,16 +8,17 @@ P.Combat.spawnEnemy = function (s, type, x, y, opts) {
     id: s.nextId++, type: type, x: x, y: y, r: d.radius, hp: hp, maxHp: hp, speed: d.speed,
     contact: d.contact, xp: d.xp, kbResist: d.kbResist, kbx: 0, kby: 0, kbT: 0, flash: 0,
     contactCd: 0, state: (opts && opts.state) || 'active', stateT: (opts && opts.stateT) || 0,
-    burn: [], dotTick: 0, dotAcc: 0, dead: false, door: opts && opts.door,
+    burn: [], dotTick: 0, dotAcc: 0, dead: false, door: opts && opts.door, vx: 0, vy: 0, walk: 0,
+    variant: s.rng.ai.int(0, 7), age: 0,
   };
   s.enemies.push(e);
   s.peakAlive = Math.max(s.peakAlive, s.enemies.length);
   return e;
 };
 
-P.Combat.might = function (s) { return (s.hero.passives.butter || 0) * P.CFG.passives.butter.might; };
+P.Combat.might = function (s) { return (s.hero.passives.gloves || 0) * P.CFG.passives.gloves.might; };
 
-P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit) {
+P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
   if (e.dead || e.state === 'dormant') return;
   var crit = canCrit && s.rng.combat.chance(P.CFG.hero.critChance);
   var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1);
@@ -27,14 +28,14 @@ P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit) {
     var k = kb * (1 - e.kbResist), T = P.CFG.knockbackTime;
     e.kbx = dirx * 2 * k / T; e.kby = diry * 2 * k / T; e.kbT = T;
   }
-  s.events.push({ type: 'hit', id: e.id, x: e.x, y: e.y, dmg: dmg, crit: crit });
+  s.events.push({ type: 'hit', id: e.id, x: e.x, y: e.y, dmg: dmg, crit: crit, src: src, dx: dirx, dy: diry });
   if (e.hp <= 0) P.Combat.killEnemy(s, e, crit);
 };
 
 P.Combat.killEnemy = function (s, e, crit) {
   e.dead = true;
   s.kills++;
-  s.events.push({ type: 'kill', id: e.id, enemy: e.type, x: e.x, y: e.y, crit: crit });
+  s.events.push({ type: 'kill', id: e.id, enemy: e.type, x: e.x, y: e.y, crit: crit, variant: e.variant, dx: e.kbx, dy: e.kby });
   var a = s.rng.loot.range(0, Math.PI * 2);
   s.drops.push({ kind: 'xp', value: e.xp, x: e.x + Math.cos(a) * 0.3, y: e.y + Math.sin(a) * 0.3, mag: false, pop: 0.25 });
   var dr = P.CFG.drops;
@@ -47,6 +48,7 @@ P.Combat.updateEnemies = function (s, dt) {
   var h = s.hero, sep = P.CFG.separation, list = s.enemies, n = list.length;
   for (var i = 0; i < n; i++) {
     var e = list[i];
+    e.age += dt;
     e.flash = Math.max(0, e.flash - dt);
     e.contactCd = Math.max(0, e.contactCd - dt);
     if (e.state !== 'active') {
@@ -69,118 +71,9 @@ P.Combat.updateEnemies = function (s, dt) {
       var f = e.kbT / P.CFG.knockbackTime;
       vx += e.kbx * f; vy += e.kby * f; e.kbT -= dt;
     }
+    e.vx = vx; e.vy = vy; e.walk = (e.walk || 0) + Math.hypot(vx, vy) * dt;
     e.x += vx * dt; e.y += vy * dt;
     P.World.clampWalk(e, e.r, s.props);
-  }
-};
-
-function nearestEnemy(s, x, y, maxD) {
-  var best = null, bd = maxD;
-  for (var i = 0; i < s.enemies.length; i++) {
-    var e = s.enemies[i];
-    if (e.dead || e.state !== 'active') continue;
-    var d = Math.hypot(e.x - x, e.y - y) - e.r;
-    if (d < bd) { bd = d; best = e; }
-  }
-  return best;
-}
-
-function inArc(hx, hy, ax, ay, tx, ty, tr, range, cosHalf) {
-  var dx = tx - hx, dy = ty - hy, d = Math.hypot(dx, dy);
-  if (d - tr > range) return false;
-  if (d < 0.05) return true;
-  return (dx * ax + dy * ay) / d >= cosHalf;
-}
-
-P.Combat.fireFork = function (s, dt) {
-  var h = s.hero, cfg = P.CFG.weapons.fork, lv = cfg.levels[h.weapons.fork - 1];
-  h.cds.fork -= dt;
-  if (h.cds.fork > 0) return;
-  var target = nearestEnemy(s, h.x, h.y, lv.range), tx, ty;
-  if (target) { tx = target.x; ty = target.y; } else {
-    var prop = P.Combat.nearestProp(s, lv.range);
-    if (!prop) return;
-    tx = prop.x; ty = prop.y;
-  }
-  var ax = tx - h.x, ay = ty - h.y, al = Math.hypot(ax, ay) || 1;
-  ax /= al; ay /= al;
-  h.cds.fork = cfg.cooldown;
-  var dirs = [[ax, ay]];
-  if (lv.back) dirs.push([-ax, -ay]);
-  var cosHalf = Math.cos(lv.arcDeg * Math.PI / 360);
-  dirs.forEach(function (dv) {
-    s.events.push({ type: 'swing', x: h.x, y: h.y, ax: dv[0], ay: dv[1], range: lv.range, arcDeg: lv.arcDeg });
-    for (var i = 0; i < s.enemies.length; i++) {
-      var e = s.enemies[i];
-      if (e.dead || e.state === 'dormant') continue;
-      if (inArc(h.x, h.y, dv[0], dv[1], e.x, e.y, e.r, lv.range, cosHalf)) {
-        P.Combat.damageEnemy(s, e, lv.dmg, dv[0], dv[1], cfg.knockback, true);
-      }
-    }
-    P.Combat.forEachProp(s, function (p) {
-      if (inArc(h.x, h.y, dv[0], dv[1], p.x, p.y, p.r, lv.range, cosHalf)) P.Combat.damageProp(s, p, lv.dmg);
-    });
-  });
-};
-
-function densestTarget(s, range, splash, exclude) {
-  var h = s.hero, best = null, bestN = -1;
-  for (var i = 0; i < s.enemies.length; i++) {
-    var e = s.enemies[i];
-    if (e.dead || e.state !== 'active' || Math.hypot(e.x - h.x, e.y - h.y) > range) continue;
-    var skip = false;
-    for (var k = 0; k < exclude.length; k++) if (Math.hypot(e.x - exclude[k].x, e.y - exclude[k].y) < splash) skip = true;
-    if (skip) continue;
-    var count = 0;
-    for (var j = 0; j < s.enemies.length; j++) {
-      var o = s.enemies[j];
-      if (!o.dead && Math.hypot(o.x - e.x, o.y - e.y) < splash) count++;
-    }
-    if (count > bestN) { bestN = count; best = e; }
-  }
-  return best;
-}
-
-P.Combat.fireTea = function (s, dt) {
-  var h = s.hero, cfg = P.CFG.weapons.tea, lvl = h.weapons.tea;
-  if (!lvl) return;
-  var lv = cfg.levels[lvl - 1];
-  h.cds.tea -= dt;
-  if (h.cds.tea > 0) return;
-  var chosen = [];
-  for (var p = 0; p < lv.proj; p++) {
-    var t = densestTarget(s, cfg.seekRange, lv.splash, chosen);
-    if (!t) break;
-    chosen.push({ x: t.x, y: t.y });
-  }
-  if (!chosen.length) return;
-  h.cds.tea = cfg.cooldown;
-  chosen.forEach(function (c) {
-    s.projs.push({ x0: h.x, y0: h.y, x1: c.x, y1: c.y, t: 0, T: cfg.flightTime, lv: lv });
-  });
-  s.events.push({ type: 'teaThrow' });
-};
-
-P.Combat.updateProjectiles = function (s, dt) {
-  var cfg = P.CFG.weapons.tea;
-  for (var i = s.projs.length - 1; i >= 0; i--) {
-    var p = s.projs[i];
-    p.t += dt;
-    if (p.t < p.T) continue;
-    s.projs.splice(i, 1);
-    var lv = p.lv;
-    for (var j = 0; j < s.enemies.length; j++) {
-      var e = s.enemies[j];
-      var dx = e.x - p.x1, dy = e.y - p.y1, d = Math.hypot(dx, dy);
-      if (d - e.r > lv.splash) continue;
-      P.Combat.damageEnemy(s, e, lv.dmg, dx / (d || 1), dy / (d || 1), cfg.knockback, true);
-      if (lv.scald) P.Combat.addBurn(e);
-    }
-    P.Combat.forEachProp(s, function (pr) {
-      if (Math.hypot(pr.x - p.x1, pr.y - p.y1) - pr.r <= lv.splash) P.Combat.damageProp(s, pr, lv.dmg);
-    });
-    if (lv.scald) s.zones.push({ kind: 'scald', x: p.x1, y: p.y1, r: lv.splash, t: cfg.scaldTime, T: cfg.scaldTime, hit: {} });
-    s.events.push({ type: 'teaLand', x: p.x1, y: p.y1, r: lv.splash });
   }
 };
 
@@ -267,8 +160,10 @@ P.Combat.explodeCanister = function (s, c) {
 P.Combat.damageHero = function (s, raw, cause) {
   var h = s.hero, hc = P.CFG.hero;
   if (h.invuln > 0 || s.mode !== 'play') return;
-  var dmg = Math.max(1, raw);
+  var jc = P.CFG.passives.jacket, armor = Math.min(jc.armorCap, (h.passives.jacket || 0) * jc.armorPerLevel);
+  var dmg = Math.max(1, raw - armor);
   h.hp -= dmg;
+  h.sinceHit = 0;
   if (dmg >= hc.iframeHitFrac * h.maxHp) h.invuln = hc.iframeTime;
   s.events.push({ type: 'heroHit', dmg: dmg, cause: cause, hp: Math.max(0, h.hp) });
   if (h.hp <= 0) {

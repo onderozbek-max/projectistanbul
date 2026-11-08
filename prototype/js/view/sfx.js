@@ -40,6 +40,13 @@ P.Sfx = (function () {
     stab: function () { noise(0.05, 0.4, 1800, 1.5); tone('square', 300, 120, 0.08, 0.2); },
     nosignal: function () { tone('sine', 480, 480, 0.25, 0.08); setTimeout(function () { ctx && tone('sine', 380, 380, 0.4, 0.08); }, 300); },
     click: function () { tone('square', 800, 600, 0.03, 0.05); },
+    pick: function () { tone('triangle', 520, 1040, 0.12, 0.14); setTimeout(function () { ctx && tone('square', 1040, 1560, 0.08, 0.06); }, 60); },
+    swish: function () { noise(0.09, 0.22, 3200, 0.8); },
+    nail: function () { noise(0.03, 0.3, 2400, 2); tone('square', 1400, 700, 0.03, 0.05); },
+    blast: function () { noise(0.35, 0.4, 220, 0.6); tone('sine', 140, 40, 0.3, 0.3); },
+    lob: function () { tone('sine', 300, 520, 0.12, 0.05); },
+    chain: function () { noise(0.04, 0.12, 6000, 6); },
+    splat: function () { noise(0.07, 0.18, 700, 1.2); },
   };
   return {
     unlock: function () { var c = ensure(); if (c && c.state === 'suspended') c.resume(); },

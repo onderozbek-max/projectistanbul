@@ -65,13 +65,33 @@ P.Fx = (function () {
 
   F.onEvent = function (ev, s) {
     switch (ev.type) {
-      case 'hit': F.number(ev.id, ev.x, ev.y, ev.dmg, ev.crit); break;
-      case 'kill':
-        F.parts.push({ kind: 'splat', x: ev.x, y: ev.y, r: 0.35 + Math.random() * 0.2, t: 8, T: 8, a: Math.random() * 6 });
-        F.parts.push({ kind: 'ash', x: ev.x, y: ev.y, t: 0.3, T: 0.3, r: 0.4 });
+      case 'hit':
+        F.number(ev.id, ev.x, ev.y, ev.dmg, ev.crit);
+        for (var h = 0; h < 3; h++) {
+          var ha = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 1.6, hs = 3 + Math.random() * 4;
+          F.parts.push({ kind: 'blood', x: ev.x, y: ev.y, vx: Math.cos(ha) * hs, vy: Math.sin(ha) * hs, t: 0.25, T: 0.25 });
+        }
         break;
-      case 'swing': F.swings.push({ x: ev.x, y: ev.y, ax: ev.ax, ay: ev.ay, range: ev.range, arc: ev.arcDeg, t: 0.12, T: 0.12 }); break;
-      case 'teaLand': F.rings.push({ x: ev.x, y: ev.y, r: ev.r, t: 0.3, T: 0.3, color: '#B5651D' }); break;
+      case 'kill':
+        F.parts.push({ kind: 'splat', x: ev.x + (ev.dx || 0) * 0.3, y: ev.y + (ev.dy || 0) * 0.3, r: 0.4 + Math.random() * 0.25, t: 10, T: 10, a: Math.random() * 6, seed: Math.random() });
+        F.parts.push({ kind: 'corpse', x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: ev.enemy || 'walker', variant: ev.variant || 0, t: 0.55, T: 0.55 });
+        for (var g = 0; g < 6; g++) {
+          var ga = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 2.2, gs = 2 + Math.random() * 5;
+          F.parts.push({ kind: 'gib', x: ev.x, y: ev.y, vx: Math.cos(ga) * gs, vy: Math.sin(ga) * gs, t: 0.35 + Math.random() * 0.2, T: 0.5 });
+        }
+        break;
+      case 'swing': F.swings.push({ x: ev.x, y: ev.y, ax: ev.ax, ay: ev.ay, range: ev.range, arc: ev.arcDeg, dir: ev.dir || 1, t: 0.16, T: 0.16 }); break;
+      case 'nailFire': F.parts.push({ kind: 'muzzle', x: ev.x + Math.cos(ev.a) * 0.5, y: ev.y + Math.sin(ev.a) * 0.5, t: 0.06, T: 0.06 }); break;
+      case 'blast':
+        F.rings.push({ x: ev.x, y: ev.y, r: ev.r, t: 0.35, T: 0.35, color: '#FFC93C' });
+        F.parts.push({ kind: 'flash', x: ev.x, y: ev.y, r: ev.r, t: 0.12, T: 0.12 });
+        F.parts.push({ kind: 'scorch', x: ev.x, y: ev.y, r: ev.r * 0.7, t: 6, T: 6 });
+        for (var b = 0; b < 10; b++) {
+          var ba = Math.random() * Math.PI * 2, bs = 2 + Math.random() * 4;
+          F.parts.push({ kind: 'spark', x: ev.x, y: ev.y, vx: Math.cos(ba) * bs, vy: Math.sin(ba) * bs, t: 0.35, T: 0.35 });
+        }
+        F.addTrauma(0.08);
+        break;
       case 'explode':
         F.rings.push({ x: ev.x, y: ev.y, r: ev.r, t: 0.45, T: 0.45, color: '#FF4D2E' });
         for (var i = 0; i < 14; i++) {

@@ -7,10 +7,10 @@ P.createSim = function (seed) {
     seed: seed, rng: P.makeStreams(seed), t: 0, runT: 0, mode: 'cutscene',
     hero: {
       x: L.heroStart.x, y: L.heroStart.y, hp: C.hero.maxHp, maxHp: C.hero.maxHp, fx: 0, fy: 1,
-      moved: 0, invuln: 0, pickupRadius: C.hero.pickupRadius, weapons: { fork: 1 }, passives: {},
-      cds: { fork: 0, tea: 0 }, moving: false,
+      moved: 0, invuln: 0, pickupRadius: C.hero.pickupRadius, weapons: { knife: 1 }, passives: {},
+      cds: { knife: 0, nailgun: 0, canister: 0 }, moving: false, sinceHit: 99, chainA: 0, swingDir: 1,
     },
-    enemies: [], nextId: 1, drops: [], projs: [], zones: [], events: [],
+    enemies: [], nextId: 1, drops: [], projs: [], nails: [], zones: [], events: [],
     props: P.World.createProps(),
     xp: 0, level: 1, pendingLevels: 0, cardPicks: 0, rerolls: C.cards.freeRerolls, levelUps: [],
     kills: 0, jeton: 0, xpPicked: 0, swings: 0, peakAlive: 0,
@@ -58,8 +58,10 @@ function stepHero(s, dt, input) {
     h.moved += Math.hypot(h.x - ox, h.y - oy);
   }
   h.invuln = Math.max(0, h.invuln - dt);
-  var regen = (h.passives.ayran || 0) * P.CFG.passives.ayran.regen;
-  if (regen > 0) h.hp = Math.min(h.maxHp, h.hp + regen * dt);
+  h.sinceHit += dt;
+  var mk = P.CFG.passives.medkit, lv = h.passives.medkit || 0;
+  h.regenOn = lv > 0 && h.sinceHit >= mk.regenDelay && h.hp < h.maxHp;
+  if (h.regenOn) h.hp = Math.min(h.maxHp, h.hp + lv * mk.regenPerLevel * dt);
 }
 
 P.stepSim = function (s, dt, input) {
@@ -69,11 +71,7 @@ P.stepSim = function (s, dt, input) {
   P.Director.step(s, dt);
   if (s.mode !== 'play') return;
   P.Combat.updateEnemies(s, dt);
-  var before = s.events.length;
-  P.Combat.fireFork(s, dt);
-  for (var i = before; i < s.events.length; i++) if (s.events[i].type === 'swing') { s.swings++; break; }
-  P.Combat.fireTea(s, dt);
-  P.Combat.updateProjectiles(s, dt);
+  P.Weapons.step(s, dt);
   P.Combat.contact(s);
   P.Combat.updateBurnAndZones(s, dt);
   P.Combat.removeDead(s);

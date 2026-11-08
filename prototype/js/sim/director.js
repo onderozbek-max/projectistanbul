@@ -114,8 +114,14 @@ function enterSegment(s, id) {
   d.reached[id] = true; d.seg = id; d.acc = 0;
   s.events.push({ type: 'segment', id: id });
   if (id === 'A') {
-    for (i = 0; i < L.civilians.count; i++) {
-      d.civilians.push({ x: s.rng.ai.range(-6, 6), y: s.rng.ai.range(6, 40), life: L.civilians.life, sp: L.civilians.fleeSpeed * s.rng.ai.range(0.8, 1.2) });
+    var cv = L.civilians;
+    for (var g = 0; g < cv.groups; g++) {
+      var gx = s.rng.ai.range(-5, 5), gy = 9 + g * 5, delay = g * 0.9;
+      for (i = 0; i < cv.perGroup; i++) {
+        d.civilians.push({ x: gx + s.rng.ai.range(-1, 1), y: gy + s.rng.ai.range(-0.8, 0.8), life: cv.life + delay, delay: delay,
+          sp: cv.fleeSpeed * s.rng.ai.range(0.85, 1.15), drift: s.rng.ai.range(-1.2, 1.2), variant: s.rng.ai.int(0, 7),
+          walk: s.rng.ai.range(0, 3), scream: i === 0 ? 1.6 : 0 });
+      }
     }
     for (i = 0; i < sp.A.initial; i++) if (spawnAt(s, 'walker', { allowVisible: true })) d.spawned.A++;
   } else if (id === 'B') {
@@ -217,7 +223,14 @@ function tutorialChecks(s) {
 
 function updateDecor(s, dt) {
   var d = s.dir;
-  d.civilians.forEach(function (c) { c.y -= c.sp * dt; c.life -= dt; });
+  d.civilians.forEach(function (c) {
+    c.life -= dt;
+    if (c.delay > 0) { c.delay -= dt; c.scared = false; return; }
+    c.scared = true;
+    var away = c.x - s.hero.x, push = Math.abs(away) < 2.2 && Math.abs(c.y - s.hero.y) < 3 ? Math.sign(away || 1) * 3 : 0;
+    c.x = Math.max(-6.6, Math.min(6.6, c.x + (c.drift + push) * dt)); c.y -= c.sp * dt; c.walk += c.sp * dt;
+    c.scream = Math.max(0, c.scream - dt);
+  });
   d.civilians = d.civilians.filter(function (c) { return c.life > 0 && c.y > -0.5; });
   d.bubbles.forEach(function (b) { b.t -= dt; });
   d.bubbles = d.bubbles.filter(function (b) { return b.t > 0; });

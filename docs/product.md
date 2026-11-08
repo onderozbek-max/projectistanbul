@@ -290,6 +290,11 @@ no gacha, no custom backend, no more than 3 quality tiers. Each one needs data t
 | D-014 | 2026-11-08 | iOS first; Android port before any big Turkish growth push | Owner hardware and accounts, higher spend per player; Turkey is Android-heavy | Adopted |
 | D-015 | 2026-11-08 | Onder picks the executor model directly (bake-off dropped); the lead checks execution-plan.md §2 criteria in every review | Owner's call; swapping models is cheap because context lives in the repo | Adopted (revised) |
 | D-016 | 2026-11-08 | Monetization designed into game systems: deterministic purchases, Monthly Card, Road Pass, Bazaar, rewarded ads only (business-plan.md) | Fair PvE monetization that funds the game without hurting retention or trust | Adopted |
+| D-017 | 2026-11-08 | Level 1 kit replaced: Döner Knife (arc), Nail Gun (auto-aim pierce), Gas Canister (lob AoE), Bike Chain (orbit); passives Running Shoes, Leather Jacket (flat armor), Work Gloves, Energy Drink, First Aid Kit. Drops Fork / Tea Glass / Ayran / Butter / Sneakers | Owner feedback: "ayran, tereyağ, çatal are meaningless". Every item is a distinct verb or a behavior change, grounded but credible as weapons (reviews/AUDIT-2026-11-08.md P0-1) | **Owner-directed, proposed details** (prototype v0.2; 29 doc references to the fork still to update once confirmed) |
+| D-018 | 2026-11-08 | Arda's signature weapon is the Döner Knife (was the Fork). Nail Gun replaces the Slingshot to avoid colliding with Ada's Chapter 2 signature | Knife reads as a weapon and keeps the döner-shop origin; slingshot collision found in the audit | **Proposed** |
+| D-019 | 2026-11-08 | Cold open cut from 70 s to about 28 s; no manual stab beat (Arda grabs the cook's knife, the knife auto-swings) | Doc rule says ≤45 s; a manual stab teaches the wrong verb for an auto-attack game | **Proposed** |
+| D-020 | 2026-11-08 | Level 1 climax (Segment D hold) is a real threat: spawn rate 4 → 7 → 10/s, peak 100 alive | v0.1 hold was a timer with no pressure; bot: autopilot 26/30 hitless clears, naive straight-line 11/30 | **Proposed** (numbers in prototype/js/config.js) |
+| D-021 | 2026-11-08 | Camera width 10 m in route levels, 12 m in holds (GD said 12 / 13.5) | Characters were unreadable dots at 12 m on a phone | **Proposed** (re-check in Godot at device scale) |
 
 ## 18. Open Questions
 

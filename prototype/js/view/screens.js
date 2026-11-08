@@ -1,7 +1,6 @@
 // Menu screens: level-up cards (05), pause (07), settings (16 subset), down (09), results (08), title (01).
 P.Screens = (function () {
   var S = {}, $ = function (id) { return document.getElementById(id); };
-  var ICON = { fork: '#3A3A3A', tea: '#B5651D', sneakers: '#3D8BFF', ayran: '#8A8F98', butter: '#E9A23B', simit: '#C98A3A', jeton: '#E9A23B' };
   var ALL = ['scr-title', 'scr-cold', 'scr-cards', 'scr-pause', 'scr-settings', 'scr-down', 'scr-slam', 'scr-results'];
 
   S.show = function (id) { ALL.forEach(function (x) { $(x).classList.toggle('hidden', x !== id); }); };
@@ -9,8 +8,8 @@ P.Screens = (function () {
 
   function iconBox(item, cls) {
     var d = document.createElement('div');
-    d.className = cls; d.style.background = ICON[item] || '#6E6E6E';
-    d.textContent = P.t('icon.' + item);
+    d.className = cls + ' kind-' + (P.Progression.isWeapon(item) ? 'w' : (item === 'simit' || item === 'jeton') ? 'f' : 'p');
+    d.innerHTML = P.Icons.svg(item, cls === 'icon' ? 56 : 30);
     return d;
   }
 
@@ -25,7 +24,11 @@ P.Screens = (function () {
     container.innerHTML = '';
     var h = s.hero, add = function (item, lv) {
       var d = document.createElement('div'); d.className = 'slot' + (item ? ' filled' : '');
-      if (item) { d.textContent = P.t('icon.' + item); var sm = document.createElement('small'); sm.textContent = 'L' + lv; d.appendChild(sm); }
+      if (item) {
+        d.classList.add(P.Progression.isWeapon(item) ? 'kind-w' : 'kind-p'); d.innerHTML = P.Icons.svg(item, 28);
+        d.title = P.t('item.' + item);
+        var sm = document.createElement('small'); sm.textContent = lv; d.appendChild(sm);
+      }
       container.appendChild(d);
     };
     var ws = Object.keys(h.weapons), ps = Object.keys(h.passives);
@@ -43,16 +46,37 @@ P.Screens = (function () {
     $('cards-tut').classList.toggle('hidden', !offer.scripted);
     var box = $('cards'); box.innerHTML = '';
     offer.cards.forEach(function (c, i) {
-      var b = document.createElement('button'); b.className = 'card' + (offer.scripted && i === 0 ? ' highlight' : '');
-      if (c.next === 1 && c.id[0] !== 'f') { var bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = P.t('ui.cards.new'); b.appendChild(bd); }
-      b.appendChild(iconBox(c.item, 'icon'));
-      var nm = document.createElement('div'); nm.className = 'name'; nm.textContent = P.t('item.' + c.item); b.appendChild(nm);
-      if (c.id[0] !== 'f') b.appendChild(pips(c.next - 1, c.next));
+      var kind = c.id[0], b = document.createElement('button');
+      b.className = 'card kind-' + kind + (offer.scripted && i === 0 ? ' highlight' : '');
+      b.style.animationDelay = (P.Settings.reduceMotion ? 0 : i * 70) + 'ms';
+      var top = document.createElement('div'); top.className = 'card-top';
+      top.appendChild(iconBox(c.item, 'icon'));
+      var head = document.createElement('div'); head.className = 'card-head';
+      var tp = document.createElement('span'); tp.className = 'type';
+      tp.textContent = P.t(kind === 'w' ? 'type.weapon' : kind === 'p' ? 'type.passive' : 'type.filler');
+      head.appendChild(tp);
+      if (c.next === 1 && kind !== 'f') { var bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = P.t('ui.cards.new'); head.appendChild(bd); }
+      var nm = document.createElement('div'); nm.className = 'name'; nm.textContent = P.t('item.' + c.item); head.appendChild(nm);
+      if (kind !== 'f') head.appendChild(pips(c.next - 1, c.next));
+      top.appendChild(head); b.appendChild(top);
       var ds = document.createElement('div'); ds.className = 'desc'; ds.textContent = P.Progression.describe(c); b.appendChild(ds);
+      var lines = P.Progression.statLines(c);
+      if (lines.length) {
+        var st = document.createElement('div'); st.className = 'stats';
+        lines.forEach(function (l) {
+          var r = document.createElement('span'); r.className = 'stat';
+          r.innerHTML = '<em></em>' + (l.a !== null ? '<s></s><i>→</i>' : '') + '<b></b>';
+          r.querySelector('em').textContent = P.t(l.k);
+          if (l.a !== null) r.querySelector('s').textContent = l.a;
+          r.querySelector('b').textContent = l.b;
+          st.appendChild(r);
+        });
+        b.appendChild(st);
+      }
       b.addEventListener('click', function () {
         if (box.dataset.locked) return;
-        box.dataset.locked = '1'; b.classList.add('picked'); P.Sfx.play('click');
-        setTimeout(function () { delete box.dataset.locked; onPick(c); }, P.Settings.reduceMotion ? 0 : 250);
+        box.dataset.locked = '1'; b.classList.add('picked'); box.classList.add('has-pick'); P.Sfx.play('pick');
+        setTimeout(function () { delete box.dataset.locked; box.classList.remove('has-pick'); onPick(c); }, P.Settings.reduceMotion ? 0 : 320);
       });
       box.appendChild(b);
     });
@@ -102,7 +126,7 @@ P.Screens = (function () {
   S.showDown = function (s, keepJeton, handlers) {
     $('down-survived').textContent = P.t('ui.down.survived', { t: P.UI.fmt(s.runT) });
     var cause = s.deathCause || 'walker';
-    var ic = $('down-icon'); ic.textContent = P.upper(P.t('cause.' + cause)).slice(0, 6);
+    $('down-icon').innerHTML = P.Icons.svg('skull', 44);
     $('down-cause').textContent = P.t('cause.' + cause);
     $('down-tip').textContent = P.t('tip.' + cause);
     function label(btn, key, tag) {
@@ -159,25 +183,39 @@ P.Screens = (function () {
   };
 
   S.drawKeyArt = function (canvas) {
-    var dpr = Math.min(window.devicePixelRatio || 1, 2), w = 358, h = 472, c = canvas.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), w = 358, h = 472, c = canvas.getContext('2d'), sp = P.Sprites;
     canvas.width = w * dpr; canvas.height = h * dpr; c.scale(dpr, dpr);
-    var g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#1B4965'); g.addColorStop(0.55, '#B5651D'); g.addColorStop(1, '#14151F');
+    var g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#1B2A4A'); g.addColorStop(0.42, '#C2512E'); g.addColorStop(0.62, '#3A2033'); g.addColorStop(1, '#14151F');
     c.fillStyle = g; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(255,209,102,0.9)'; c.beginPath(); c.arc(250, 150, 34, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#1A1424';
+    c.beginPath(); c.moveTo(0, 230);
+    [[30, 220], [60, 228], [80, 200], [96, 200], [110, 150], [118, 120], [126, 150], [140, 200], [170, 210], [200, 185], [230, 200], [260, 192], [300, 210], [330, 196], [358, 205], [358, 300], [0, 300]].forEach(function (p) { c.lineTo(p[0], p[1]); });
+    c.fill();
     c.fillStyle = '#14151F';
-    for (var x = 0; x < w; x += 46) { var bh = 150 + ((x * 37) % 90); c.fillRect(x, h - bh - 120, 44, bh); }
-    c.fillStyle = 'rgba(233,162,59,0.7)';
-    for (var y = 0; y < 6; y++) for (var x2 = 6; x2 < w; x2 += 46) if ((x2 + y * 3) % 4) c.fillRect(x2 + 6, h - 250 + y * 22, 8, 10);
-    c.fillStyle = '#8A8F98'; c.fillRect(0, h - 120, w, 120);
-    c.fillStyle = '#C0392B'; c.fillRect(214, h - 205, 120, 70); c.fillStyle = '#F4EBDD'; c.fillRect(222, h - 196, 104, 22);
-    c.fillStyle = '#14151F'; c.fillRect(214, h - 140, 120, 6);
-    for (var i = 0; i < 26; i++) {
-      var zx = (i * 53) % w, zy = h - 110 + (i * 29) % 90;
-      c.fillStyle = '#4E5A44'; c.strokeStyle = '#20251C'; c.lineWidth = 2;
-      c.beginPath(); c.arc(zx, zy, 9, 0, Math.PI * 2); c.fill(); c.stroke();
-    }
-    c.strokeStyle = '#3DDCFF'; c.lineWidth = 3.5; c.beginPath(); c.ellipse(179, h - 52, 24, 10, 0, 0, Math.PI * 2); c.stroke();
-    c.fillStyle = '#D7263D'; c.strokeStyle = '#14151F'; c.lineWidth = 3; c.beginPath(); c.arc(179, h - 62, 13, 0, Math.PI * 2); c.fill(); c.stroke();
-    c.fillStyle = '#F4EBDD'; c.beginPath(); c.arc(179, h - 78, 8, 0, Math.PI * 2); c.fill(); c.stroke();
+    for (var x = -10; x < w; x += 52) { var bh = 120 + ((x * 37) % 70); c.fillRect(x, h - bh - 150, 50, bh + 20); }
+    c.fillStyle = 'rgba(255,190,110,0.75)';
+    for (var y = 0; y < 5; y++) for (var x2 = -4; x2 < w; x2 += 52) if (((x2 + 8) * 7 + y * 13) % 5 > 1) c.fillRect(x2 + 10 + (y % 2) * 16, h - 255 + y * 22, 8, 11);
+    c.fillStyle = '#2A2C35'; c.fillRect(0, h - 150, w, 150);
+    c.strokeStyle = '#8A8F98'; c.lineWidth = 2; c.beginPath(); c.moveTo(150, h - 150); c.lineTo(110, h); c.moveTo(208, h - 150); c.lineTo(248, h); c.stroke();
+    c.fillStyle = '#D7263D'; c.strokeStyle = '#14151F'; c.lineWidth = 3;
+    c.fillRect(150, h - 228, 120, 70); c.strokeRect(150, h - 228, 120, 70);
+    c.fillStyle = '#FFE2A8'; for (var k = 0; k < 4; k++) c.fillRect(158 + k * 28, h - 218, 20, 22);
+    c.fillStyle = '#14151F'; c.fillRect(150, h - 162, 120, 6);
+    var horde = [];
+    for (var i = 0; i < 22; i++) horde.push({ x: 20 + ((i * 71) % 320), y: h - 150 + 10 + ((i * 29) % 70), v: i % 8 });
+    horde.sort(function (a, b) { return a.y - b.y; });
+    horde.forEach(function (z, i) {
+      var u = 26 + (z.y - (h - 150)) * 0.25, pal = sp.palette(z.v, true);
+      sp.shadow(c, z.x, z.y, u);
+      sp.person(c, z.x, z.y, { u: u, face: z.x < 179 ? 1 : -1, phase: i, zombie: true, skin: pal.skin, shirt: pal.shirt, pants: pal.pants, hair: pal.hair, arms: 'reach', eyes: i % 5 ? '#DDF5D0' : '#FF5A3D', blood: 1 + i % 3 });
+    });
+    var hg = c.createRadialGradient(179, h - 40, 0, 179, h - 40, 90); hg.addColorStop(0, 'rgba(61,220,255,0.25)'); hg.addColorStop(1, 'rgba(61,220,255,0)');
+    c.fillStyle = hg; c.fillRect(80, h - 140, 200, 140);
+    c.strokeStyle = '#3DDCFF'; c.lineWidth = 3.5; c.beginPath(); c.ellipse(179, h - 22, 26, 10, 0, 0, Math.PI * 2); c.stroke();
+    sp.person(c, 179, h - 22, { u: 62, face: 1, phase: 0.6, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712', arms: 'knife', knifeA: -0.5 });
+    var v = c.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.75); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)');
+    c.fillStyle = v; c.fillRect(0, 0, w, h);
   };
 
   return S;
