@@ -3,7 +3,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-['js/config.js', 'js/strings.js', 'js/sim/rng.js', 'js/sim/world.js', 'js/sim/combat.js', 'js/sim/weapons.js',
+['js/config.js', 'js/strings.js', 'js/journey.js', 'js/sim/rng.js', 'js/sim/world.js', 'js/sim/combat.js', 'js/sim/weapons.js',
  'js/sim/progression.js', 'js/sim/director.js', 'js/sim/sim.js'].forEach(function (f) {
   vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f });
 });

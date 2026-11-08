@@ -143,6 +143,10 @@ P.Render = (function () {
     });
   }
 
+  // Optional module hooks (workstreams E/F): obj[fn](R, s) if present.
+  function hook(obj, fn, s) { if (obj && obj[fn]) obj[fn](R, s); }
+  R.hook = hook;
+
   R.frame = function (s, extraDraw) {
     var c = R.ctx, cam = P.Fx.cam;
     R.cam = cam;
@@ -153,11 +157,13 @@ P.Render = (function () {
     c.translate(R.W / 2 + cam.ox, R.H / 2 + cam.oy); c.rotate(cam.rot);
     var half = P.viewHalfH(cam.w) + 3, y0 = cam.y - half, y1 = cam.y + half;
     P.RenderWorld.drawGround(R, s, y0, y1);
-    if (y0 < 1) P.RenderWorld.drawRestaurant(R, s);
+    var L1 = !s.levelIndex || s.levelIndex === 1;
+    if (L1 && y0 < 1) P.RenderWorld.drawRestaurant(R, s);
     P.Decor.drawStreet(R, s, y0, y1);
     P.RenderWorld.drawProps(R, s);
     drawGround();
     drawZonesAndTelegraphs(s);
+    hook(P.WFx2, 'drawGround', s);
     drawDrops(s);
     var actors = s.enemies.filter(function (e) { return Math.abs(e.y - cam.y) < half; });
     actors.sort(function (a, b) { return b.y - a.y; });
@@ -166,11 +172,14 @@ P.Render = (function () {
     if (extraDraw) extraDraw(R, s);
     drawFx();
     P.WFx.drawParts(R);
+    hook(P.SkillsFx, 'drawUnder', s);
     drawHero(s);
     P.WFx.drawChain(R, s);
     P.WFx.drawProjectiles(R, s);
-    if (y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);
-    if (y1 > 222) P.RenderWorld.drawScaffold(R, s);
+    hook(P.WFx2, 'drawAir', s);
+    hook(P.SkillsFx, 'drawOver', s);
+    if (L1 && y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);
+    if (L1 && y1 > 222) P.RenderWorld.drawScaffold(R, s);
     P.RenderWorld.drawLights(R, s, y0, y1);
     P.Decor.drawOverhead(R, s, y0, y1);
     P.RenderOverlay.worldText(R, s);
@@ -250,7 +259,8 @@ P.RenderOverlay = (function () {
   }
 
   O.screen = function (R, s) {
-    var c = R.ctx, W = R.W, H = R.H, l = light(s.hero.y);
+    var c = R.ctx, W = R.W, H = R.H;
+    var l = (s.levelIndex > 1 && P.RenderWorld.screenLight) ? P.RenderWorld.screenLight(s) : light(s.hero.y);
     if (P.Fx.flash > 0) { c.fillStyle = 'rgba(255,240,200,' + P.Fx.flash.toFixed(3) + ')'; c.fillRect(0, 0, W, H); }
     c.fillStyle = 'rgba(' + Math.round(l[0]) + ',' + Math.round(l[1]) + ',' + Math.round(l[2]) + ',' + l[3].toFixed(3) + ')';
     c.fillRect(0, 0, W, H);
@@ -264,6 +274,7 @@ P.RenderOverlay = (function () {
       c.fillStyle = g2; c.fillRect(0, 0, W, H);
     }
     if (s.mode === 'play') P.WFx.drawCombo(R);
+    if (P.SkillsFx && P.SkillsFx.screen) P.SkillsFx.screen(R, s);
   };
   return O;
 })();
