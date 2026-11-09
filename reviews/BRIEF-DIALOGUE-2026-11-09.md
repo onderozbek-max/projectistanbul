@@ -1,6 +1,7 @@
 # BRIEF: Dialogue overhaul: two native scripts, one dialogue system (end to end)
 
-**For:** the implementation agent. **From:** lead, 2026-11-09. **Baseline:** prototype v0.7 (`cda14b3`). The build is moving
+**For:** the implementation agent. **From:** lead, 2026-11-09. **Baseline:** prototype v0.8 (`7e89a19`, facts in §2 verified
+there). The build is moving
 in parallel (D-049 character bible, D-050 animation pass were added today), so **re-verify every file:line and count in §2 at
 the current HEAD before Phase 1**, and report any differences.
 **Read with:** `AGENTS.md`, `docs/narrative.md` (Tone, Characters, Writer Guardrails), `docs/hoods-bible.md`,
@@ -21,7 +22,7 @@ Voice text runs through **four stacked mechanisms**, so the truth for any line i
 
 | Mechanism | Where | Size | Problem |
 |---|---|---|---|
-| `P.LINES` paired `id: [speaker, TR, EN]` | `story/strings-story.js` (story pages, pops, Mom's calls, captions), `story/strings-barks.js` (legacy barks), `strings.js` (L1) | 262 + 493 + 26 entries | One line per beat in both languages; EN is forced into TR's beat and length |
+| `P.LINES` paired `id: [speaker, TR, EN]` | `story/strings-story.js` (story pages, pops, Mom's calls, captions), `story/strings-barks.js` (legacy barks), `strings.js` (L1) | 262 + 495 + 26 entries | One line per beat in both languages; EN is forced into TR's beat and length |
 | `P.LangText[lang][id]` patch layer | `story/story-lang-tr.js`, `story-lang-en.js`, applied by `story/lang-apply.js` | 11 TR, 39 EN | Overwrites P.LINES columns at load; only the "worst" lines were rewritten |
 | `P.BarkPools[lang][poolKey]` native pools | `story/strings-barks-tr.js` / `-en.js`, read by `story/barks.js` | 856 TR, 850 EN lines | Good model, but files are about 1,425 lines (over the 600 rule); **missing pools silently fall back to paired P.LINES** (`barks.js:2-3, 95-107`) |
 | `P.FinaleLang[lang]` | `story/finale-lang-tr.js` / `-en.js` + `finale-data.js` | 14 + 14 | Native, but a fourth format, and still paired by id |
