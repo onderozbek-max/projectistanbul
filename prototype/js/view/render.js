@@ -165,6 +165,7 @@ P.Render = (function () {
     drawZonesAndTelegraphs(s);
     hook(P.WFx2, 'drawGround', s);
     hook(P.EnemyFx, 'drawGround', s);
+    hook(P.EventsFx, 'drawGround', s);
     drawDrops(s);
     var actors = s.enemies.filter(function (e) { return Math.abs(e.y - cam.y) < half; });
     actors.sort(function (a, b) { return b.y - a.y; });
@@ -179,12 +180,14 @@ P.Render = (function () {
     P.WFx.drawProjectiles(R, s);
     hook(P.WFx2, 'drawAir', s);
     hook(P.EnemyFx, 'drawAir', s);
+    hook(P.EventsFx, 'drawAir', s);
     hook(P.SkillsFx, 'drawOver', s);
     if (L1 && y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);
     if (L1 && y1 > 222) P.RenderWorld.drawScaffold(R, s);
     P.RenderWorld.drawLights(R, s, y0, y1);
     P.Decor.drawOverhead(R, s, y0, y1);
     P.RenderOverlay.worldText(R, s);
+    hook(P.Barks, 'draw', s);
     c.restore();
     P.RenderOverlay.screen(R, s);
   };
@@ -279,6 +282,7 @@ P.RenderOverlay = (function () {
     }
     if (s.mode === 'play') P.WFx.drawCombo(R);
     if (P.EnemyFx && P.EnemyFx.screen) P.EnemyFx.screen(R, s);
+    if (P.EventsFx && P.EventsFx.screen) P.EventsFx.screen(R, s);
     if (P.SkillsFx && P.SkillsFx.screen) P.SkillsFx.screen(R, s);
   };
   return O;
