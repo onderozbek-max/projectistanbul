@@ -3,7 +3,8 @@
 // weapon files stay untouched. (1) A molotov landing in a gas cloud ignites it: a fireball, 40 burn per enemy, and any
 // canister in the cloud blows at once. (2) A chain or sawblade crossing a wet tile arcs 6 damage to the three nearest
 // enemies every 0.3 s. (3) A canister landing next to an explosive car lights its fuse. Every rule emits envHit
-// {rule} so weapon evolutions (W1) can react. Numbers: P.CFG.env.rules.
+// {kind: gas | wet, w: weapon, tag, rule} in the shape weapons6.js terrainHit uses, so weapon evolutions (W1) can react.
+// Numbers: P.CFG.env.rules.
 P.EnvRules = {};
 
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -40,27 +41,27 @@ P.EnvRules.ignite = function (s, x, y) {
   s.zones.push({ kind: 'fire', x: x, y: y, r: R.r, t: R.T, T: R.T, dps: C.blast.fireDps });
   for (i = 0; i < s.enemies.length; i++) {
     e = s.enemies[i];
-    if (e.dead || e.state !== 'active' || dist(e, { x: x, y: y }) - e.r > R.r) continue;
+    if (!P.Env.foe(e) || dist(e, { x: x, y: y }) - e.r > R.r) continue;
     e.dotAcc += R.burn; n++;
   }
   P.Env.chainAt(s, x, y, R.r, 'ignite', C.fuse.ignite);
   s.env.stats.ignites++;
   s.events.push({ type: 'envIgnite', x: x, y: y, r: R.r, n: n });
-  s.events.push({ type: 'envHit', rule: 'ignite', x: x, y: y });
+  s.events.push({ type: 'envHit', kind: 'gas', w: 'molotov', tag: 'fire', rule: 'ignite', x: x, y: y });
 };
 
 // A canister lands (weapon 'blast' event, small). Explosive cars within reach light their fuse; gas canisters in the
 // landing burst catch fire from the blast (short chain fuse).
 P.EnvRules.lob = function (s, e) {
   var R = P.CFG.env.rules.lob, C = P.CFG.env, reach = (e.r || 0) + R.r, n = 0, recs = s.env.recs, i, r;
-  if (R.ids.indexOf(e.id) < 0) return;
+  if (R.ids.indexOf(e.id) < 0 && P.Env.tagOf(e) !== 'gas') return;   // a gas-tagged landing counts as a canister
   for (i = 0; i < recs.length; i++) {
     r = recs[i];
     if (!r.alive || dist(r, e) - r.r > reach) continue;
     if (r.bomb && r.fuseT <= 0 && P.Env.fuse(s, r, 'canister', C.fuse.car)) n++;
     else if (r.kind === 'gascan' && P.Env.fuse(s, r, 'canister', C.fuse.chain)) n++;
   }
-  if (n) s.events.push({ type: 'envHit', rule: 'lob', x: e.x, y: e.y, n: n });
+  if (n) s.events.push({ type: 'envHit', kind: 'gas', w: 'canister', tag: 'gas', rule: 'lob', x: e.x, y: e.y, n: n });
 };
 
 // Blade points that can cross a puddle: the chain orbit (from hero.chainA and the owned level) and sawblades in flight.
@@ -89,7 +90,7 @@ function nearest(s, p, n, range) {
   var list = [], i, e, d;
   for (i = 0; i < s.enemies.length; i++) {
     e = s.enemies[i];
-    if (e.dead || e.state !== 'active') continue;
+    if (!P.Env.foe(e)) continue;
     d = dist(e, p);
     if (d - e.r <= range) list.push({ e: e, d: d });
   }
@@ -116,7 +117,7 @@ P.EnvRules.arcs = function (s, dt) {
     }
     E.stats.arcs++;
     s.events.push({ type: 'envArc', x: p.x, y: p.y, n: targets.length, src: p.src });
-    s.events.push({ type: 'envHit', rule: 'arc', x: p.x, y: p.y, n: targets.length });
+    s.events.push({ type: 'envHit', kind: 'wet', w: p.src, tag: p.src === 'chain' ? 'electric' : 'blade', rule: 'arc', x: p.x, y: p.y, n: targets.length });
   }
 };
 })();

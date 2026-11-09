@@ -1244,3 +1244,178 @@ P.BarkPools.en['BK.hd20.5'] = [
   { t: "Courtyard, morning. I really don't want to do this." },
   { t: "Ahmet Abi. I'm not going before you say 'take your bread.'" }
 ];
+// Lane A environment barks (AUDIT-6 A2, A4, A5): native English, plain first, jokes rare. Keys come from view/env-fx.js.
+P.BarkPools.en['BK.env.explode'] = [
+  { t: 'Down! Get down!' },
+  { t: 'Ears ringing. Still breathing. Good.' },
+  { t: 'Car is gone. The insurance man will hate me.', j: 1 },
+  { t: 'Who parks next to a gas canister?' }
+];
+P.BarkPools.en['BK.env.chain'] = [
+  { t: 'Chain reaction. Stay back.' },
+  { t: 'One goes, then the next one goes.' },
+  { t: 'Like dominoes, but with propane.', j: 1 },
+  { t: 'How many of these things are on this street?' }
+];
+P.BarkPools.en['BK.env.fuse'] = [
+  { t: 'The car is burning. Move!' },
+  { t: 'Count to two, then run.' },
+  { t: 'That thing is about to go up.' }
+];
+P.BarkPools.en['BK.env.shock'] = [
+  { t: 'Live wire! Get out of the water.' },
+  { t: 'My feet are tingling. Not in a good way.' },
+  { t: 'Water and a live cable. Lesson learned.', j: 1 },
+  { t: 'Do not stand in the puddle. Do not.' }
+];
+P.BarkPools.en['BK.env.door'] = [
+  { t: 'A door opening. Get ready.' },
+  { t: 'Someone is at the window.' },
+  { t: 'The manhole cover is moving.' },
+  { t: 'This building is out to get me.', j: 1 }
+];
+P.BarkPools.en['BK.env.extinguish'] = [
+  { t: 'Out. Give me a second to breathe.' },
+  { t: 'Foam on the fire. Good.' },
+  { t: 'The extinguisher finally did something.', j: 1 }
+];
+
+// v0.7 wave 2 (lane C): first-kill barks for the new common enemies (kurye, copci). barks.js H.kill plays BK.fk.<type> on the
+// first kill of each type. Written natively in English.
+P.BarkPools.en['BK.fk.kurye'] = [
+  { t: "Scooter zombie. Delivery's late, and it's aiming at me.", j: 1 },
+  { t: 'Fast, and it came apart like a cheap umbrella.' },
+  { t: "Courier's down. Somebody's dinner is going cold." }
+];
+P.BarkPools.en['BK.fk.copci'] = [
+  { t: 'Broom guy, and a bin he wanted to ram me with.' },
+  { t: 'Bin is rolling! Get off the line!' },
+  { t: 'Trash everywhere now. Watch your feet.', j: 1 }
+];
+
+// v0.7 wave 3 (lane W): evolution barks for the new weapon evolutions, plus the two active skills (Simit Kalkanı, Çay Molası).
+// Written natively in English. barks.js has no skill hook yet, so the BK.skill.* pools wait for one.
+P.BarkPools.en['BK.evo.blacksmith'] = [
+  { t: "Blacksmith's Swing! Every hit gives a little life back." },
+  { t: 'Each swing patches me up a bit. Slow, heavy, and fair.' },
+  { t: 'Each hit patches me up. Cheaper than a clinic, too.', j: 1 }
+];
+P.BarkPools.en['BK.evo.stormshield'] = [
+  { t: "Storm Shield! Lightning circles me and zaps what's close." },
+  { t: 'Dodge, and it zaps anyway. Even the shield is stubborn.' },
+  { t: "The shield crackles. Nobody's getting a hug today.", j: 1 }
+];
+P.BarkPools.en['BK.evo.foamstorm'] = [
+  { t: 'Foam Storm! A wider cone, and the foam sticks better.' },
+  { t: 'The foam catches the spit mid-air. Clean.' },
+  { t: 'Foam on the road, on them, and a bit on me.', j: 1 }
+];
+P.BarkPools.en['BK.evo.netspear'] = [
+  { t: 'Net Spear! Everything I pinned is roped together now.' },
+  { t: 'Roped in a line. Now I can deal with them in one go.' },
+  { t: 'All tied up in a line, like a school trip gone wrong.', j: 1 }
+];
+P.BarkPools.en['BK.evo.lake'] = [
+  { t: 'Fire Lake. The burning puddles have joined up.' },
+  { t: 'The flames have met in the middle. No walking round that.' },
+  { t: "A lake of fire. Nobody's going swimming in this one.", j: 1 }
+];
+P.BarkPools.en['BK.evo.twinsaw'] = [
+  { t: 'Twin Saw! Two discs flying side by side.' },
+  { t: 'Two discs, one left and one right. Clean and simple.' },
+  { t: 'They fly in step. I just have to keep up.' }
+];
+P.BarkPools.en['BK.evo.fireball'] = [
+  { t: 'Fireball! Gassed bottles turn into fireballs now.' },
+  { t: 'The bottle hits, then rolls on, still burning.' },
+  { t: 'Molotov turned fireball. That went further than planned.', j: 1 }
+];
+P.BarkPools.en['BK.evo.arcchain'] = [
+  { t: 'Arc Chain! It jumps from one to the next.' },
+  { t: 'Wet ground carries the chain further. Watch your feet.' },
+  { t: 'It hops from one to the next. Keep your distance.' }
+];
+P.BarkPools.en['BK.evo.carbomb'] = [
+  { t: 'Car Bomb Tour! The canister by the parked car blows bigger.' },
+  { t: 'That bang woke up the whole street. Sorry, neighbours.' },
+  { t: 'The parked car went up too. Not much of a tour.', j: 1 }
+];
+P.BarkPools.en['BK.evo.forge'] = [
+  { t: 'Forge Mouth! Hotter flame, and it leaves scorch marks.' },
+  { t: 'The ground is black where it burned. Nobody walks here.' },
+  { t: "Hotter than my mum's cooker. Don't tell her.", j: 1 }
+];
+P.BarkPools.en['BK.evo.grinder'] = [
+  { t: 'Grinder! The chainsaw never stalls now.' },
+  { t: 'No stalling, no stopping. Every touch builds grind.' },
+  { t: 'The engine never chokes. Unlike me on a Monday.', j: 1 }
+];
+P.BarkPools.en['BK.evo.hookpull'] = [
+  { t: 'Hook Pull! Anything near the hook gets dragged in.' },
+  { t: 'The hook catches, and the rest come to me.' },
+  { t: 'The rope pulls tight and the crowd lurches my way.' }
+];
+P.BarkPools.en['BK.evo.minibus'] = [
+  { t: 'Minibus Door! It slams down on anything close by.' },
+  { t: 'The door slams shut. Whoever was near is dazed.' },
+  { t: 'Slammed it like a full minibus at rush hour.', j: 1 }
+];
+P.BarkPools.en['BK.skill.shield'] = [
+  { t: 'Simit Shield! The tray takes one hit for three seconds.' },
+  { t: 'Tray up, eyes shut. Let it take the hit.' },
+  { t: 'The baker is going to want that tray back.', j: 1 }
+];
+P.BarkPools.en['BK.skill.tea'] = [
+  { t: 'Tea break. One sip, a little breath, a little health.' },
+  { t: "Tea's poured and the crowd slows right down." },
+  { t: 'Tea break. Even the zombies could use a sit-down.', j: 1 }
+];
+// v0.7 wave 2 (W2-EN): env breaks, side objectives, boss phases. Native lines; one joke in four or fewer.
+P.BarkPools.en['BK.env.break'] = [
+  { t: 'Glass everywhere. Watch your feet.' },
+  { t: 'Wood gave way. Good to know for later.' },
+  { t: 'Something broke. Keep moving before anyone looks.' },
+  { t: 'That was a shop window. Sorry, shop owner.', j: 1 }
+];
+P.BarkPools.en['BK.obj.start'] = [
+  { t: 'Side job on the list. I can keep an eye on it.' },
+  { t: 'Bonus on offer if I pull this off. Worth a look.' },
+  { t: 'Extra task. Nobody asked, but it pays.', j: 1 },
+  { t: 'Something else to do on the way. Head up.' }
+];
+P.BarkPools.en['BK.obj.done'] = [
+  { t: 'Done. One bonus in the bag.' },
+  { t: 'Got it, quick and clean.' },
+  { t: 'Side job done. Nobody clapped. I clapped.', j: 1 },
+  { t: "That's the side job. Back to the street." }
+];
+P.BarkPools.en['BK.obj.fail'] = [
+  { t: 'Missed it. Forget it, keep going.' },
+  { t: 'Lost it. Next time, faster.' },
+  { t: "Gone, and the bonus with it. I'll sulk later.", j: 1 }
+];
+P.BarkPools.en['BK.boss.phase'] = [
+  { t: "It's changing. Stay sharp, it's not finished." },
+  { t: 'Second wind. Brilliant. Exactly what I needed.' },
+  { t: 'Round two. Nobody told me there was a round two.', j: 1 }
+];
+P.BarkPools.en['BK.ev.chest'] = [
+  { t: "A chest! Somebody's stash, and now it's mine." },
+  { t: 'Supply chest on the street. Grab it before the crowd does.' },
+  { t: 'Chest on the pavement. Who leaves a chest on the pavement?', j: 1 }
+];
+P.BarkPools.en['BK.evend.chest'] = [
+  { t: "Chest's open. Mostly good stuff." },
+  { t: 'Got what was in it. Moving on.' },
+  { t: 'Two socks and a torch. Still counts.', j: 1 }
+];
+P.BarkPools.en['BK.ev.pier'] = [
+  { t: "The ferry's in. Everyone off the pier at once." },
+  { t: "Ferry's here, and those people are coming straight at me." },
+  { t: "Ferry's in. Nobody told the zombies about the queue.", j: 1 }
+];
+P.BarkPools.en['BK.evend.pier'] = [
+  { t: "Ferry's clear. Back to the street." },
+  { t: 'The pier is quiet again. For now.' },
+  { t: "Ferry's gone. Did the captain see any of that?", j: 1 }
+];

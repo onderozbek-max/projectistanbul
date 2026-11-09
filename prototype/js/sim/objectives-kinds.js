@@ -16,15 +16,30 @@ P.ObjKinds = (function () {
     return n;
   }
 
-  // A spot off the side blocks: tries small sideways nudges, else the spot as given.
+  // A spot off the blocks (side AABBs and layout walls): the first free point of a small grid around (x, y), else the
+  // spot as given. The grid offsets come from config-objectives.js (spot).
   function freeSpot(s, x, y) {
-    var nudge = [0, 1.5, -1.5, 3, -3], i;
-    for (i = 0; i < nudge.length; i++) {
-      if (!P.Events.blocked(s, x + nudge[i], y)) return { x: clampX(s, x + nudge[i]), y: y };
+    var G = P.CFG.objectives.spot, i, j, px, py;
+    for (i = 0; i < G.dy.length; i++) {
+      for (j = 0; j < G.dx.length; j++) {
+        px = clampX(s, x + G.dx[j]); py = y + G.dy[i];
+        if (!P.Events.blocked(s, px, py)) return { x: px, y: py };
+      }
     }
     return { x: clampX(s, x), y: y };
   }
   function clampX(s, x) { return Math.max(s.geo.xMin + 1, Math.min(s.geo.xMax - 1, x)); }
+
+  // Nearest layout chokepoint ahead of the hero (s.layout.chokes from layouts.js), as a bot waypoint, or null. A chicane
+  // wall has its gap on the far side, so a route that heads straight for the centre line stalls against the wall.
+  function nextChoke(s) {
+    var h = s.hero, best = null, bd = Infinity, maxW = P.CFG.layouts.maxChoke;
+    ((s.layout && s.layout.chokes) || []).forEach(function (c) {
+      var d = c.y - h.y;
+      if (c.w <= maxW && d > 0.5 && d < bd) { bd = d; best = c; }
+    });
+    return best ? [best.x, best.y] : null;
+  }
 
   // Reach the gate within the par time (bonus for speed). Judged at the win.
   K.reach = {
@@ -53,7 +68,8 @@ P.ObjKinds = (function () {
   // Supply crates spread along the route. Walk over each to take it.
   K.collect = {
     init: function (s, o) {
-      var C = T().collect, rng = s.rng.level, lo = s.hero.y + C.minY, hi = s.geo.exitY - C.minY, i, y, p;
+      // Crates sit before the hold (holdY), so the route can still reach them: the hold and the gate end the chase.
+      var C = T().collect, rng = s.rng.level, lo = s.hero.y + C.minY, hi = (s.geo.holdY || s.geo.exitY) - C.minY, i, y, p;
       o.items = [];
       for (i = 0; i < C.n; i++) {
         y = lo + (hi - lo) * (i + 0.5) / C.n;
@@ -107,7 +123,7 @@ P.ObjKinds = (function () {
       return { line: o.civ.alive ? 'obj.escort.line' : 'obj.escort.lost', vars: {}, frac: o.civ.hp / o.civ.max, hp: o.civ.hp / o.civ.max };
     },
     items: function (s, o) { return [{ x: o.civ.x, y: o.civ.y, kind: 'civ', done: !o.civ.alive, frac: o.civ.hp / o.civ.max }]; },
-    target: noTarget,
+    target: function (s) { return nextChoke(s); },   // bot: through the next gap, so she can follow
   };
 
   // Signal booster: stand within reach while Mom's message uploads. Zombies near it wear it down.
@@ -139,7 +155,8 @@ P.ObjKinds = (function () {
     },
   };
 
-  // Hack the terminals ahead. The hack system (sim/hack.js) does the work; this counts the finished ones.
+  // Hack the terminals ahead. The hack system (sim/hack.js) does the work; this counts the finished ones. An idle
+  // terminal the hero has walked more than `behind` m past is moved ahead again, so no terminal is left behind the route.
   K.hack = {
     init: function (s, o) {
       var C = T().hack, rng = s.rng.level, i, y, p;
@@ -152,6 +169,12 @@ P.ObjKinds = (function () {
       o.n = C.n;
     },
     step: function (s, o) {
+      var C = T().hack, h = s.hero, lim = s.geo.exitY - 4, moved = 0;
+      o.hacks.forEach(function (H) {
+        if (H.state !== 'idle' || h.y - H.y <= C.behind || h.y >= lim) return;
+        var p = freeSpot(s, H.x, Math.min(lim, h.y + C.ahead + moved * C.gap));
+        H.x = p.x; H.y = p.y; moved++;
+      });
       o.prog = o.hacks.filter(function (H) { return H.state === 'done'; }).length;
       if (o.prog >= o.n) P.Objectives.resolve(s, o, true);
     },
@@ -160,12 +183,16 @@ P.ObjKinds = (function () {
     items: function (s, o) {
       return o.hacks.map(function (H) { return { x: H.x, y: H.y, kind: 'terminal', done: H.state === 'done', frac: H.prog }; });
     },
+    // Nearest unfinished terminal ahead of the hero (or level with him); a terminal just behind is the fallback.
     target: function (s, o) {
-      var h = s.hero, best = null, bd = Infinity;
+      var h = s.hero, ahead = null, ad = Infinity, back = null, bd = Infinity;
       o.hacks.forEach(function (H) {
         var d = dist(H, h);
-        if (H.state !== 'done' && d < bd) { bd = d; best = H; }
+        if (H.state === 'done') return;
+        if (H.y >= h.y - 1) { if (d < ad) { ad = d; ahead = H; } }
+        else if (d < bd) { bd = d; back = H; }
       });
+      var best = ahead || back;
       return best ? [best.x, best.y] : null;
     },
   };

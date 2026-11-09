@@ -9,11 +9,12 @@ P.EnemyFx = (function () {
 
   EF.reset = function () {
     EF.rings = []; EF.puffs = []; EF.splats = []; EF.banner = null;
-    EF.hitX = {}; EF.hitN = 0; EF.letterT = -1e9;
+    EF.hitX = {}; EF.hitAt = {}; EF.hitN = 0; EF.letterT = -1e9; EF.nowT = 0;
     if (P.EnemiesFx2 && P.EnemiesFx2.reset) P.EnemiesFx2.reset();
   };
-  // Last hit's x direction per enemy id (flinch lean, art-enemies4.js). Capped so it never grows with the run.
-  EF.hitX = {}; EF.hitN = 0; EF.letterT = -1e9;
+  // Last hit's x direction and sim time per enemy id (flinch and stagger, art-enemies4.js). Capped so it never grows
+  // with the run. nowT is the sim time of the frame being drawn (set in drawGround), so the flinch freezes on pause.
+  EF.hitX = {}; EF.hitAt = {}; EF.hitN = 0; EF.letterT = -1e9; EF.nowT = 0;
 
   function age(item, s) { return s.t - item.t0; }
   function prune(list, s) { for (var i = list.length - 1; i >= 0; i--) if (age(list[i], s) > list[i].dur) list.splice(i, 1); }
@@ -31,6 +32,7 @@ P.EnemyFx = (function () {
   // ---------- world-space ground: under enemies ----------
   EF.drawGround = function (R, s) {
     var t = performance.now() / 1000;
+    EF.nowT = s.t;
     s.zones.forEach(function (z) {
       if (z.kind === 'toxic') drawToxic(R, z, t);
       else if (z.kind === 'acid') drawAcid(R, z, t);
@@ -184,9 +186,10 @@ P.EnemyFx = (function () {
   }
 
   // ---------- screen space: boss banner and boss bar ----------
+  // AUDIT-6 F7: the boss bar is a DOM bar under the XP row (ui.js, #boss-bar). The canvas bar is gone, so it cannot
+  // read as a second XP bar. The banner stays here.
   EF.screen = function (R, s) {
     drawBanner(R, s);
-    drawBossBar(R, s);
   };
 
   var BANNER_T = 1.5;
@@ -208,21 +211,6 @@ P.EnemyFx = (function () {
     c.scale(fit, fit); c.lineWidth = 9; c.strokeText(b.name, 0, 0);
     c.fillStyle = '#F4EBDD'; c.fillText(b.name, 0, 0);
     c.restore();
-  }
-
-  function drawBossBar(R, s) {
-    var boss = null;
-    for (var i = 0; i < s.enemies.length; i++) if (s.enemies[i].boss && !s.enemies[i].dead) { boss = s.enemies[i]; break; }
-    if (!boss) return;
-    var c = R.ctx, x0 = 42, w = 306, y0 = 132, bh = 12, f = clamp01(boss.hp / boss.maxHp), name = nameOf(boss.nameKey);
-    c.font = 'italic 900 15px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.lineWidth = 3; c.strokeStyle = '#14151F'; c.fillStyle = '#F4EBDD';
-    c.strokeText(name, R.W / 2, y0 - 10); c.fillText(name, R.W / 2, y0 - 10);
-    c.fillStyle = '#14151F'; c.fillRect(x0 - 2, y0 - 2, w + 4, bh + 4);
-    var g = c.createLinearGradient(x0, 0, x0 + w, 0); g.addColorStop(0, DANGER); g.addColorStop(1, '#FFC93C');
-    c.fillStyle = g; c.fillRect(x0, y0, w * f, bh);
-    c.fillStyle = '#F4EBDD'; c.fillRect(x0 + w * 0.5 - 1, y0 - 3, 2, bh + 6);
-    if (boss.ai && boss.ai.rageOn) { c.strokeStyle = 'rgba(255,77,46,' + (0.5 + 0.4 * Math.sin(performance.now() / 120)) + ')'; c.lineWidth = 3; c.strokeRect(x0 - 3, y0 - 3, w + 6, bh + 6); }
   }
 
   // ---------- events -> visuals and cues ----------
@@ -262,7 +250,10 @@ P.EnemyFx = (function () {
         if (P.EnemiesFx2) P.EnemiesFx2.onKill(s, ev);      // v0.7: death pose and the 6 s corpse
         break;
       case 'hit':
-        if (ev.id !== undefined) { if (++EF.hitN > 600) { EF.hitX = {}; EF.hitN = 0; } EF.hitX[ev.id] = ev.dx || 0; }
+        if (ev.id !== undefined) {
+          if (++EF.hitN > 600) { EF.hitX = {}; EF.hitAt = {}; EF.hitN = 0; }
+          EF.hitX[ev.id] = ev.dx || 0; EF.hitAt[ev.id] = s.t;
+        }
         break;
       // v0.7 (lane C): spawn entrances, kurye and copci, boss phases, weak spots and attack cues.
       case 'enemyEnter': entranceFx(s, ev); break;

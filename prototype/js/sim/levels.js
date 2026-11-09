@@ -44,6 +44,7 @@ P.Levels.build = function (s, index) {
   s.layout = P.Layouts.plan(s, info, rng, geo);   // zone and centre landmarks first: street blocks keep clear of them
   layBlocks(geo, rng);
   P.Layouts.slots(s);
+  P.Layouts.spawns(s);                               // door, window and manhole spawn points (Lane A portals)
   s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY), P.Layouts.marks(s.layout))
     .sort(function (a, b) { return a.y - b.y; });
   civilians(s);

@@ -20,6 +20,9 @@ function newState(s) {
 function isCar(kind) { return kind === 'car' || kind === 'taxi' || kind === 'dolmus'; }
 P.Env.isCar = isCar;
 
+// Can an env rule hit or slow this enemy? Alive and not dormant. Enemies rising from an opening (lane C) count.
+P.Env.foe = function (e) { return !e.dead && e.state !== 'dormant'; };
+
 // Attach a breakable record to an existing block (levels.js kinds with hp). Cars have a share of bombs.
 function adopt(s, b, kind) {
   var E = s.env, C = P.CFG.env, hp = C.hp[kind];
@@ -109,6 +112,28 @@ P.Env.eachProp = function (s, fn) {
 // Hero speed multiplier from wet tiles (read by stepHero before the env step, so last tick's value).
 P.Env.heroMul = function (s) { return s.env ? s.env.heroMul : 1; };
 
+// Terrain kinds at a point, read by weapons6.js terrainAt (W lane evolutions): 'wet' in a puddle, 'gas' in a cloud.
+P.Env.kindsAt = function (s, x, y) {
+  var out = [], Z = s.env ? s.env.zones : [], i, z, k;
+  for (i = 0; i < Z.length; i++) {
+    z = Z[i];
+    if (Math.hypot(z.x - x, z.y - y) > z.r) continue;
+    k = z.kind === 'puddle' ? 'wet' : z.gas ? 'gas' : null;
+    if (k && out.indexOf(k) < 0) out.push(k);
+  }
+  return out;
+};
+
+// Damage tag of an event or a hit source: ev.tag (W lane) wins, else the weapon id, else the event type. A plain string
+// is either a tag name or a weapon id. Returns null when nothing matches.
+P.Env.tagOf = function (ev) {
+  var C = P.CFG.env;
+  if (!ev) return null;
+  if (typeof ev === 'string') return C.tags.indexOf(ev) >= 0 ? ev : (C.tagById[ev] || null);
+  if (ev.tag) return ev.tag;
+  return C.tagById[ev.id || ev.w || ev.src] || C.tagByType[ev.type] || null;
+};
+
 // Event scan: rules react to this tick's events (molotov landings, canister blasts). Each event is handled once.
 function scan(s) {
   var ev = s.events, i, e;
@@ -154,7 +179,7 @@ function stepDash(s) {
     if (!r.alive || r.fuseT > 0 || r.dashed === dash) continue;
     if (Math.hypot(r.x - h.x, r.y - h.y) - r.r > P.CFG.hero.radius) continue;
     r.dashed = dash;
-    P.Env.hitProp(s, r, P.CFG.env.dashDmg);
+    P.Env.hitProp(s, r, P.CFG.env.dashDmg, 'dash');
   }
 }
 

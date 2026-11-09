@@ -31,7 +31,7 @@ P.Progress.unlockPreview = function (levelIndex) {
   P.Progress.rosterOf(nx).forEach(function (t) {
     if (before.indexOf(t) < 0) out.push({ kind: 'enemy', id: t, name: 'cause.' + t, desc: null });
   });
-  if (nx.boss) out.push({ kind: 'boss', id: nx.hood.id, name: 'boss.' + nx.hood.id, desc: null });
+  if (nx.boss) out.push({ kind: 'boss', id: nx.hood.id, name: 'spk.b.' + nx.hood.id, desc: null });   // boss names: story strings
   if (nx.hoodIndex !== cur.hoodIndex) out.push({ kind: 'hood', id: nx.hood.id, raw: nx.hood.name, desc: null });
   ob = P.Objectives && P.Objectives.forLevel(nx);
   if (ob) out.push({ kind: 'objective', id: ob, name: 'obj.' + ob + '.title', desc: null });

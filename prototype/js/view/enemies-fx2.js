@@ -1,5 +1,5 @@
 // v0.7 enemy world FX (lane C, view only): the 6 s corpse list (death poses, art-enemies5.js), spawn-entrance props
-// (manhole cover, window, balcony slab, tram door), the crawler's manhole, rolling wheelie bins, the flying cleaver,
+// (manhole cover, window, A5 door, balcony slab, tram door), the crawler's manhole, rolling wheelie bins and crates, the flying cleaver,
 // electric sparks and the death puffs. Hooks: P.EnemiesFx2.drawUnder (ground, under enemies) and drawOver (air).
 // Sim state read: s.e3 (bins, blades), s.enemies (entrance), s.dir.telegraphs (crawler emerge), s.t (sim time).
 P.EnemiesFx2 = (function () {
@@ -106,6 +106,12 @@ P.EnemiesFx2 = (function () {
       rectW(R, e.x - 1.3, by - 0.2, e.x + 1.3, by + 1.1, WALL, '#14151F');
       rectW(R, e.x - 1.4, by - 0.22, e.x + 1.4, by + 0.02, '#6B6F7B', '#14151F');
       for (var b = -1.2; b <= 1.21; b += 0.4) rectW(R, e.x + b - 0.03, by + 0.02, e.x + b + 0.03, by + 0.5, '#8A8F98');
+    } else if (E.kind === 'door') {
+      // A5 door (env-portal.js): a doorway in the wall; the leaf swings open as the enemy steps out.
+      var sw = e.x >= 0 ? 1 : -1, leaf = e.x + sw * (0.5 - 0.35 * p);
+      rectW(R, e.x - 0.9, e.y - 1.0, e.x + 0.9, e.y + 1.0, WALL, '#14151F');
+      rectW(R, e.x - 0.5, e.y - 0.9, e.x + 0.5, e.y + 0.95, WINDOW);
+      rectW(R, Math.min(leaf, e.x + sw * 0.5), e.y - 0.9, Math.max(leaf, e.x + sw * 0.5), e.y + 0.95, '#6B4A2E', '#14151F');
     } else if (E.kind === 'tram') {
       var inner = side * 3.4, outer = side * 5.6, x0 = Math.min(inner, outer), x1 = Math.max(inner, outer);
       rectW(R, x0, e.y - 3, x1, e.y + 3, TRAM, '#14151F');
@@ -119,6 +125,7 @@ P.EnemiesFx2 = (function () {
 
   // Rolling wheelie bin (copci): a green bin on two wheels, a lid line, sway with the roll.
   function drawBin(R, b) {
+    if (b.kind === 'crate') return drawCrate(R, b);
     var c = R.ctx, u = R.ppm, X = R.X(b.x), Y = R.Y(b.y), w = 0.7 * u, h = 0.95 * u, sw = Math.sin(b.t * 14) * 0.04 * u;
     c.save(); c.translate(X + sw, Y); c.rotate(Math.sin(b.t * 9) * 0.06);
     c.fillStyle = '#2F7D4F'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
@@ -126,6 +133,18 @@ P.EnemiesFx2 = (function () {
     c.fillStyle = '#25613D'; c.fillRect(-w / 2, -h, w, 0.14 * u);
     c.fillStyle = '#14151F'; c.beginPath(); c.arc(-w / 3, 0.02 * u, 0.07 * u, 0, Math.PI * 2); c.fill();
     c.beginPath(); c.arc(w / 3, 0.02 * u, 0.07 * u, 0, Math.PI * 2); c.fill();
+    c.restore();
+  }
+
+  // Crate (copci, every second push): a wooden box, two planks and a nail, tumbling a little as it rolls.
+  function drawCrate(R, b) {
+    var c = R.ctx, u = R.ppm, X = R.X(b.x), Y = R.Y(b.y), w = 0.8 * u, h = 0.8 * u, sw = Math.sin(b.t * 11) * 0.03 * u;
+    c.save(); c.translate(X + sw, Y - h / 2); c.rotate(Math.sin(b.t * 7) * 0.09);
+    c.fillStyle = '#8B6B3E'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
+    c.fillRect(-w / 2, -h / 2, w, h); c.strokeRect(-w / 2, -h / 2, w, h);
+    c.strokeStyle = '#5E4628'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(-w / 2, -h / 6); c.lineTo(w / 2, -h / 6); c.moveTo(-w / 2, h / 6); c.lineTo(w / 2, h / 6); c.stroke();
+    c.beginPath(); c.moveTo(-w / 2, -h / 2); c.lineTo(w / 2, h / 2); c.stroke();
     c.restore();
   }
 

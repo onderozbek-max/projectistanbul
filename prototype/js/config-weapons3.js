@@ -12,7 +12,8 @@
   // Evolutions carry their own tag (a combo reads by its element): blacksmith blunt, stormshield electric, foamstorm water,
   // netspear blade, lake fire, twinsaw blade, fireball fire, arcchain electric, carbomb gas.
   Object.assign(C.tags, { blacksmith: 'blunt', stormshield: 'electric', foamstorm: 'water', netspear: 'blade', lake: 'fire',
-    twinsaw: 'blade', fireball: 'fire', arcchain: 'electric', carbomb: 'gas' });
+    twinsaw: 'blade', fireball: 'fire', arcchain: 'electric', carbomb: 'gas', forge: 'fire', grinder: 'blade', hookpull: 'blade',
+    minibus: 'blunt' });
 
   function evo(id, from, over) {
     var b = C.weapons[from], o = {}, k;
@@ -67,8 +68,31 @@
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.blast', 'blast', 'm'], ['stat.carBlast', 'carMul', 'n']],
   });
 
+  // ---------- batch 3 (depth pass): one evolution each for the improvised kit that had none. Passive pairs reuse the
+  // passives that the first batch left open (a passive may serve more than one evolution). ----------
+  evo('forge', 'torch', {                        // Ocak Ağzı: a hotter jet; with two stains a second scorch sits part way along
+    levels: [{ dmg: 12, range: 3.5, arcDeg: 100, cdMult: 0.9, stains: 2, extraAt: 0.3, extraR: 0.8 }],
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.range', 'range', 'm'], ['stat.stains', 'stains', 'n'], ['stat.rate', 'cdMult', 'rate']],
+  });
+  evo('grinder', 'chainsaw', {                   // Öğütücü: the blade never stalls; each bite on the same target adds a grind stack
+    levels: [{ dmg: 9, arcDeg: 120, revT: 1.4, tickGap: 0.12, cdMult: 0.9, noStall: true, stackStep: 0.15, stackMax: 3 }],
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.arc', 'arcDeg', 'deg'], ['stat.stacks', 'stackMax', 'n'], ['stat.rate', 'cdMult', 'rate']],
+  });
+  evo('hookpull', 'olta', {                      // Çeki Halatı: a set hook hauls the enemies near its catch toward it and stuns them
+    levels: [{ dmg: 16, reel: 2.4, cdMult: 0.9, haulR: 2.4, haulM: 0.8, haulStun: 0.3 }],
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.reel', 'reel', 'm'], ['stat.haul', 'haulR', 'm'], ['stat.rate', 'cdMult', 'rate']],
+  });
+  evo('minibus', 'cardoor', {                    // Minibüs Kapısı: when the door drops it slams the ground and stuns what is close
+    levels: [{ dmg: 14, radius: 1.7, arcDeg: 140, openT: 1.0, cdMult: 0.9, slamR: 1.8, slamMul: 0.6, slamStun: 0.5, slamKb: 0.6 }],
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.slam', 'slamR', 'm'], ['stat.stun', 'slamStun', 's'], ['stat.rate', 'cdMult', 'rate']],
+  });
+
   C.evolutions = C.evolutions || {};
   Object.assign(C.evolutions, {
+    forge: { from: 'torch', passive: 'energy', name: 'forge' },
+    grinder: { from: 'chainsaw', passive: 'gloves', name: 'grinder' },
+    hookpull: { from: 'olta', passive: 'magnet', name: 'hookpull' },
+    minibus: { from: 'cardoor', passive: 'kask', name: 'minibus' },
     blacksmith: { from: 'sledge', passive: 'medkit', name: 'blacksmith' },
     stormshield: { from: 'cable', passive: 'nazar', name: 'stormshield' },
     foamstorm: { from: 'extinguisher', passive: 'medkit', name: 'foamstorm' },
@@ -98,6 +122,7 @@
   };
   C.skills.activeList = ['shield', 'tea'];
   C.skills.activeDefault = 'shield';
+  C.skills.unlockAt = { shield: 1, tea: 6 };   // journey level that unlocks each active skill (meta arsenal picks one)
   // W3: flick guard. A flick dashes only when the stick was near rest where the swipe started.
   C.skills.dash.flickRestM = 0.2;   // stick offset (fraction of the stick radius) that still counts as rest
   C.skills.dash.handedZone = 0.55;  // joystick zone for the chosen side (fraction of the screen width)

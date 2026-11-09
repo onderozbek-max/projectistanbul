@@ -1,7 +1,8 @@
 // v0.7 enemy art and motion (lane C, view only). Bodies and motion for kurye (courier on a scooter with a delivery box),
 // copci (street sweeper with a broom), taksici (taxi driver over a yellow car) and kasapBoss (the butcher, bigger). Wraps
 // P.Sprites.enemy (sprites.js; art-enemies3 wraps it too) for: hit flinch, wind-up lean, idle head twitch, shamble,
-// scale-in for ordinary spawns, and the entrance transforms (manhole, window, balcony, tram). Numbers: P.CFG.enemies3.feel.
+// scale-in for ordinary spawns, and the entrance transforms (manhole, window, door, balcony, tram). Numbers: P.CFG.enemies3.feel.
+// Wave 2: the flinch is a stagger of feel.flinchT seconds (sim time, enemies-fx.js hitAt), not a 60 ms blip.
 (function () {
   var EN = P.ArtEnemies, R = P.ArtRig, CH = P.ArtChars;
   if (!EN || !R || !CH || !P.Sprites || !EN.DEFS.kasap) return;
@@ -16,10 +17,13 @@
     sway: 0.02, eyes: '#FFD27A', brow: 'angry', torn: true, wounds: 2, car: true };
   EN.DEFS.kasapBoss = Object.assign({}, EN.DEFS.kasap, { scale: 1.6, eyes: '#FF3B2E' });
 
-  // Hit direction (x sign of the last hit, from enemies-fx.js) and the flash fraction give the flinch.
+  // Hit flinch (stagger): the last hit's direction (enemies-fx.js hitX) leans the figure away from the blow, decaying over
+  // feel.flinchT seconds of sim time (hitAt, read at EF.nowT). Bosses lean 35%. Sim time, so a pause freezes it.
   function flinchOf(e) {
-    var dx = P.EnemyFx && P.EnemyFx.hitX ? (P.EnemyFx.hitX[e.id] || 0) : 0, f = clamp01((e.flash || 0) / P.CFG.feel.hitFlash);
-    return dx === 0 ? 0 : (dx > 0 ? 1 : -1) * FL.flinchLean * f * (e.boss ? 0.35 : 1);
+    var EF = P.EnemyFx, dx = EF && EF.hitX ? (EF.hitX[e.id] || 0) : 0, at = EF && EF.hitAt ? EF.hitAt[e.id] : undefined;
+    if (dx === 0 || at === undefined) return 0;
+    var f = clamp01(1 - (EF.nowT - at) / FL.flinchT);
+    return (dx > 0 ? 1 : -1) * FL.flinchLean * f * (e.boss ? 0.35 : 1);
   }
 
   // Scale for the figure: the same unit S.enemy uses (scale, elite, boss).
@@ -59,6 +63,9 @@
     } else if (E.kind === 'balcony') {
       c.globalAlpha = clamp01(p / 0.15);
       c.translate(0, -(E.drop || 2) * u * k * k);
+    } else if (E.kind === 'door') {                           // A5 door: steps out of the doorway toward the street
+      c.globalAlpha = clamp01(p / 0.3);
+      c.translate((e.x >= 0 ? 1 : -1) * k * 0.8 * u, 0);
     } else if (E.kind === 'tram') {
       c.globalAlpha = clamp01(p / 0.3);
       c.translate(-(e.x >= 0 ? 1 : -1) * k * 0.8 * u, 0);

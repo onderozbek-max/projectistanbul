@@ -23,7 +23,7 @@ P.Fx = (function () {
   // Generated levels clamp the camera to the corridor (s.geo); L1 keeps its street walls and the restaurant.
   function targetX(s, w) {
     var h = s.hero, look = h.moving ? h.fx * P.CFG.view.lookAhead : 0;
-    // G1: generated levels keep the camera centred. The hero clamp (|x| <= view.geoHeroHalfX) keeps him in the frame.
+    // G1: generated levels keep the camera centred. The hero clamp (|x| <= view.heroClampX) keeps him in the frame.
     if (s.geo) return 0;
     if (h.y < 0) return -6;
     var lim = Math.max(0, 7 - w / 2) + 1.2;
@@ -85,7 +85,9 @@ P.Fx = (function () {
     c.x += (tx - c.x) * k;
     c.y += (ty - c.y) * k;
     c.trauma = Math.max(0, c.trauma - fe.traumaDecay * dt);
-    var sh = rm ? 0 : c.trauma * c.trauma;
+    // AUDIT-6 F5: the shake setting (0, 50, 100%) scales the view shake only. The sim never reads it.
+    var shk = P.Settings && P.Settings.shake != null ? P.Settings.shake / 100 : 1;
+    var sh = rm ? 0 : c.trauma * c.trauma * shk;
     c.ox = fe.maxShakePx * sh * (Math.random() * 2 - 1);
     c.oy = fe.maxShakePx * sh * (Math.random() * 2 - 1);
     c.rot = fe.maxShakeDeg * Math.PI / 180 * sh * (Math.random() * 2 - 1);

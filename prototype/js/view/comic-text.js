@@ -11,34 +11,26 @@ P.ComicText = (function () {
   function width(c, s) { return c.measureText(s).width; }
   function clampN(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-  // A word wider than maxW is broken between characters (hyphen-free last resort; Turkish words can be long).
-  function breakWord(c, w, maxW) {
-    var out = [], cur = '', i, t;
-    for (i = 0; i < w.length; i++) {
-      t = cur + w.charAt(i);
-      if (cur && width(c, t) > maxW) { out.push(cur); cur = w.charAt(i); } else cur = t;
-    }
-    if (cur) out.push(cur);
-    return out;
-  }
   // Greedy word wrap at maxW with the context's current font. Returns lines; never drops text.
+  // AUDIT-6 F10: a word is never split. A word wider than maxW sits whole on its own line and lines.wide is set, so
+  // the caller widens the balloon or steps the type down (no Turkish word breaks mid-word, e.g. "KUZEYDEK / İ").
   T.wrap = function (c, text, maxW) {
     var out = [], line = '';
+    out.wide = false;
     String(text).split(/\s+/).forEach(function (w) {
-      var pieces, test;
+      var test;
       if (!w) return;
-      if (width(c, w) > maxW) {
-        if (line) out.push(line);
-        pieces = breakWord(c, w, maxW);
-        out.push.apply(out, pieces.slice(0, -1));
-        line = pieces[pieces.length - 1];
-        return;
-      }
+      if (width(c, w) > maxW) { out.wide = true; if (line) out.push(line); out.push(w); line = ''; return; }
       test = line ? line + ' ' + w : w;
       if (!line || width(c, test) <= maxW) line = test; else { out.push(line); line = w; }
     });
     if (line) out.push(line);
     return out;
+  };
+  // Widest single word of text at the current font (for widening a balloon so no word has to break).
+  T.longest = function (c, text, kind, px) {
+    A.setFont(c, kind, px);
+    return String(text).split(/\s+/).reduce(function (m, w) { return Math.max(m, w ? width(c, w) : 0); }, 0);
   };
   // Wraps at one size. Sets the font itself, so the context is always in step with the measurement.
   T.measure = function (c, text, maxW, kind, px) {
@@ -50,7 +42,7 @@ P.ComicText = (function () {
     var f = null, i;
     for (i = 0; i < pxs.length; i++) {
       f = T.measure(c, text, maxW, kind, pxs[i]);
-      f.ok = f.lines.length * f.lh <= maxH;
+      f.ok = f.lines.length * f.lh <= maxH && !f.lines.wide;
       if (f.ok) break;
     }
     return f;

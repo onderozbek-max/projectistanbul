@@ -1243,4 +1243,187 @@ P.BarkPools.tr = P.BarkPools.tr || {};
     { t: 'Ahmet Abi, bu ben, Arda.' },
     { t: 'Ahmet Abi... Ekmeği hâlâ sıcak mı?' },
   ];
+  // Lane A environment barks (AUDIT-6 A2, A4, A5): native Turkish, plain first, jokes rare. Keys come from view/env-fx.js.
+  T['BK.env.explode'] = [
+    { t: 'Yere! Yere!' },
+    { t: 'Kulaklarım çınlıyor ama hâlâ ayaktayım.' },
+    { t: 'Araba gitti. Sigortacı bu akşam benimle konuşmak isteyecek.', j: 1 },
+    { t: 'Bu sokağa kim tüp koymuş ya?' },
+  ];
+  T['BK.env.chain'] = [
+    { t: 'Zincirleme! Biri bitince öteki başlıyor.' },
+    { t: 'Domino gibi. Ama içinde gaz var.', j: 1 },
+    { t: 'Bu sokakta kaç tane tüp var be?' },
+    { t: 'Uzak dur, Arda. Uzak dur.' },
+  ];
+  T['BK.env.fuse'] = [
+    { t: 'Araba yanıyor! Uzaklaş!' },
+    { t: 'İki say, sonra koş.' },
+    { t: 'Bu araba patlamaya hazırlanıyor.' },
+  ];
+  T['BK.env.shock'] = [
+    { t: 'Kablo canlı! Suya basma.' },
+    { t: 'Ayaklarım karıncalandı.' },
+    { t: 'Su ile elektrik. Lise fiziği haklıymış.', j: 1 },
+    { t: 'Islak zeminde durma. Durma!' },
+  ];
+  T['BK.env.door'] = [
+    { t: 'Kapı açılıyor. Hazır ol.' },
+    { t: 'Pencerede biri var.' },
+    { t: 'Rögar kapağı kalkıyor.' },
+    { t: 'Bu bina bana kin besliyor galiba.', j: 1 },
+  ];
+  T['BK.env.extinguish'] = [
+    { t: 'Söndü. Bir saniye nefes alayım.' },
+    { t: 'Köpük ateşi bastırdı.' },
+    { t: 'Yangın tüpü bir kere işe yaradı.', j: 1 },
+  ];
+})(P.BarkPools.tr);
+
+// v0.7 wave 2 (lane C): first-kill barks for the new common enemies (kurye, copci). barks.js H.kill plays BK.fk.<type> on the
+// first kill of each type. Written natively in Turkish.
+(function (T) {
+  T['BK.fk.kurye'] = [
+    { t: 'Scooter\'lı zombi! Siparişi bana getirdi sanki.', j: 1 },
+    { t: 'Hızlıydı ama kâğıt gibi yırtıldı.' },
+    { t: 'Kurye düştü. Bu akşam yemek soğuk kalacak.' },
+  ];
+  T['BK.fk.copci'] = [
+    { t: 'Süpürgeli adam çöp kutusunu bana sürüyor!' },
+    { t: 'Kutu yuvarlanıyor! Yoldan çekil!' },
+    { t: 'Yere döküldü, sokak çöpe döndü.', j: 1 },
+  ];
+})(P.BarkPools.tr);
+
+// v0.7 wave 3 (lane W): evolution barks for the new weapon evolutions, plus the two active skills (Simit Kalkanı, Çay Molası).
+// Written natively in Turkish. barks.js has no skill hook yet, so the BK.skill.* pools wait for one.
+(function (T) {
+  // ---------- evolutions (new) ----------
+  T['BK.evo.blacksmith'] = [
+    { t: 'Demirci vuruşu! Her darbede biraz kendime geliyorum.' },
+    { t: 'Her vuruşta bir parça can geri geliyor. Sabır işi bu.' },
+    { t: 'Çekiç her inişte biraz can veriyor. Sağlık sigortası gibi.', j: 1 },
+  ];
+  T['BK.evo.stormshield'] = [
+    { t: 'Şimşek kalkanı! Etrafımda dönüyor, yaklaşana çarpıyor.' },
+    { t: 'Kaçarken bile çakıyor. Kalkan da benim gibi inatçı.' },
+    { t: 'Kalkan elektrik gibi. Dokunmak için ayrı bir cesaret lazım.', j: 1 },
+  ];
+  T['BK.evo.foamstorm'] = [
+    { t: 'Köpük fırtınası! Daha geniş, daha yapışkan bir koni.' },
+    { t: 'Tükürük köpüğe takılıp düştü. Susturdum onu.' },
+    { t: 'Köpük her yere yapıştı. Yaratıklar da, ben de.', j: 1 },
+  ];
+  T['BK.evo.netspear'] = [
+    { t: 'Zıpkın ağı! Sabitlediklerim birbirine bağlandı.' },
+    { t: 'Halatla bağladım. Şimdi tek tek değil, toplu uğraşırım.' },
+    { t: 'Ağ çekildi, hepsi tek ipte. Okul gezisi gibi.', j: 1 },
+  ];
+  T['BK.evo.lake'] = [
+    { t: 'Ateş gölü! Yanan birikintiler birleşti.' },
+    { t: 'Alevler birbirine ulaştı. Artık yürüyerek geçemezsin.' },
+    { t: 'Ateşten göl. Yüzme dersi için hiç uygun değil.', j: 1 },
+  ];
+  T['BK.evo.twinsaw'] = [
+    { t: 'İkiz disk! İkisi yan yana uçuyor.' },
+    { t: 'İki disk, yan yana. Biri sağa, biri sola.' },
+    { t: 'İkisi aynı yolu açıyor. Ben de peşlerinden gidiyorum.' },
+  ];
+  T['BK.evo.fireball'] = [
+    { t: 'Ateş topu! Gaz sonrası şişe artık topa dönüşüyor.' },
+    { t: 'Şişe çarptı, sonra yuvarlandı. Hâlâ yanıyor.' },
+    { t: 'Benzin şişesi bu kadar ciddi olmamalıydı.', j: 1 },
+  ];
+  T['BK.evo.arcchain'] = [
+    { t: 'Elektrik zinciri! Zıplıyor, sıçrıyor, bulduğunu vuruyor.' },
+    { t: 'Islak zeminde zincir daha uzağa gider. Ayaklarıma bak.' },
+    { t: 'Zincir suya değince büyüyor. Basmadan önce iki kere bak.' },
+  ];
+  T['BK.evo.carbomb'] = [
+    { t: 'Araba turu! Arabanın yanındaki tüp bu sefer büyük patladı.' },
+    { t: 'Tüpten gelen ses bütün mahalleyi uyandırdı.' },
+    { t: 'Park halindeki araba da havaya uçtu. Hafif bir tur olmadı.', j: 1 },
+  ];
+  T['BK.evo.forge'] = [
+    { t: 'Ocak ağzı! Alev daha sıcak, yere de iz bırakıyor.' },
+    { t: 'Yerde kara izler kaldı. Bu sokağı artık kimse kullanmaz.' },
+    { t: 'Bu alev annemin ocağından daha sıcak. Ona söylemeyeceğim.', j: 1 },
+  ];
+  T['BK.evo.grinder'] = [
+    { t: 'Öğütücü! Motor hiç durmuyor, dişler dönüyor.' },
+    { t: 'Testere boğulmuyor artık. Her dokunuşta öğütme birikiyor.' },
+    { t: 'Motor boğulmadı. Benim nefesim boğuldu, ama devam.', j: 1 },
+  ];
+  T['BK.evo.hookpull'] = [
+    { t: 'Çeki halatı! Kanca tutunca yakındakiler de geliyor.' },
+    { t: 'Kanca yapıştı. Gelsinler bakalım, hepsi bana.' },
+    { t: 'Halat gerildi, yakındakiler bana doğru savruluyor.' },
+  ];
+  T['BK.evo.minibus'] = [
+    { t: 'Minibüs kapısı! Kapanınca yakındakiler sersemliyor.' },
+    { t: 'Kapı sertçe kapandı, yanımdakiler sersemledi.' },
+    { t: 'Kapıyı çarptım. Dolmuşta olsa "Sıkıştık!" derlerdi.', j: 1 },
+  ];
+
+  // ---------- active skills (new) ----------
+  T['BK.skill.shield'] = [
+    { t: 'Simit tepsisi kalkan oldu. Üç saniye, bir darbe.' },
+    { t: 'Tepsiyi kaldırdım. Darbe tepsiye geldi, bana değil.' },
+    { t: 'Tepsiyi sıkı tut Arda. Üç saniye, sonra iner.' },
+  ];
+  T['BK.skill.tea'] = [
+    { t: 'Çay molası. Bir yudum, biraz nefes, biraz can.' },
+    { t: 'İnce belli bardak elimde. Kalabalık da yavaşladı.' },
+    { t: 'Çay molası. Zombiler de biraz dinlendi, değil mi?', j: 1 },
+  ];
+
+  // ---------- v0.7 wave 2 (native): env breaks, side objectives, boss phases ----------
+  T['BK.env.break'] = [
+    { t: 'Cam kırıldı. Ayağına batmasın Arda.' },
+    { t: 'Tahta çatladı. Yeni bir kısayol açıldı.' },
+    { t: 'Ses geldi. Bakalım kim duydu.' },
+    { t: 'Vitrin kırıldı. Bakkal bu akşam bana küsecek.', j: 1 },
+  ];
+  T['BK.obj.start'] = [
+    { t: 'Yan görev de var. Koşarken bakarım.' },
+    { t: 'Bunu da yaparsam bonus çıkar. Atlamayayım.' },
+    { t: 'Ek iş çıktı. Kimse sormadı ama para veriyor.', j: 1 },
+    { t: 'Yolda bir iş daha. Başım dik, gözüm açık.' },
+  ];
+  T['BK.obj.done'] = [
+    { t: 'Oldu. Bonus cebimde.' },
+    { t: 'Tamam, temiz ve hızlı.' },
+    { t: 'Görev bitti. Kimse alkışlamadı. Ben alkışladım.', j: 1 },
+    { t: 'Yan iş bitti. Şimdi sokağa dönüyorum.' },
+  ];
+  T['BK.obj.fail'] = [
+    { t: 'Olmadı. Şimdi düşünme, koş.' },
+    { t: 'Kaçtı. Bir dahakine daha hızlı.' },
+    { t: 'Gitti, bonus da onunla. Sonra somurtacağım.', j: 1 },
+  ];
+  T['BK.boss.phase'] = [
+    { t: 'Değişiyor! Dikkatli ol Arda, bitmedi.' },
+    { t: 'İkinci nefes. Tam da ihtiyacım olan şeydi.' },
+    { t: 'İkinci raund. Bana kimse söylememişti.', j: 1 },
+  ];
+  T['BK.ev.chest'] = [
+    { t: 'Sandık! Sokağın ortasında duruyor. Kapmalıyım.' },
+    { t: 'Yardım sandığı! Kalabalık gelmeden alayım.' },
+    { t: 'Kaldırımda sandık mı olur? İstanbul\'da olur.', j: 1 },
+  ];
+  T['BK.evend.chest'] = [
+    { t: 'Sandık açıldı. Fena değil.' },
+    { t: 'İçindekini aldım. Yola devam.' },
+    { t: 'İçinden bir çorap ve bir fener çıktı. Yine de sayılır.', j: 1 },
+  ];
+  T['BK.ev.pier'] = [
+    { t: 'Vapur yanaştı. Herkes iskeleye birden koşuyor.' },
+    { t: 'Vapur geldi. Bunlar doğrudan bize geliyor.' },
+    { t: 'Sıraya girmediler. Zombiler sıra bilmez, belli ki.', j: 1 },
+  ];
+  T['BK.evend.pier'] = [
+    { t: 'Vapur gitti. İskele yine sakin.' },
+    { t: 'İskele boşaldı. Şimdilik.' },
+    { t: 'Vapur kalkıyor. Kaptan bizi görmüş mü acaba?', j: 1 },
+  ];
 })(P.BarkPools.tr);

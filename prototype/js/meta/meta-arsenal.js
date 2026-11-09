@@ -2,7 +2,7 @@
 // Mastery rank comes from A's P.Mastery.rank (guarded: rank 0 when missing). Ults come from P.CFG.ults.
 P.Meta = P.Meta || {};
 (function (M) {
-  var Ars = M.Arsenal = {}, root = null, grid = null, ultBox = null, title = null, onBack = null;
+  var Ars = M.Arsenal = {}, root = null, grid = null, ultBox = null, activeBox = null, title = null, onBack = null;
   function el(tag, cls, parent) {
     var e = document.createElement(tag); if (cls) e.className = cls; if (parent) parent.appendChild(e); return e;
   }
@@ -70,7 +70,20 @@ P.Meta = P.Meta || {};
     ultBox.innerHTML = '';
     M.ults().forEach(ultCard);
   }
-  function renderAll() { renderGrid(); renderUlts(); }
+  // Active skill row (one per loadout): a locked skill shows its journey level, the equipped one is marked.
+  function activeCard(id) {
+    var on = M.activeId() === id, ok = M.activeUnlocked(id), lv = ((P.CFG.skills || {}).unlockAt || {})[id] || 1;
+    var b = el('button', 'meta-ars-ult' + (ok ? '' : ' is-locked') + (on ? ' is-on' : ''), activeBox);
+    b.disabled = !ok;
+    el('div', 'meta-ars-name', b).textContent = nameOf('skill.', id);
+    el('div', 'meta-ars-kills', b).textContent = !ok ? t('ars.unlockAt', { n: lv }) : on ? t('ars.activeOn') : t('ars.ultOn');
+    b.addEventListener('click', function () { if (M.setActive(id)) { sfx('uiTap'); renderAll(); } });
+  }
+  function renderActives() {
+    activeBox.innerHTML = '';
+    M.activeIds().forEach(activeCard);
+  }
+  function renderAll() { renderGrid(); renderUlts(); renderActives(); }
   function build(host, opts) {
     if (root) return;
     onBack = opts && opts.onBack || null;
@@ -83,6 +96,8 @@ P.Meta = P.Meta || {};
     grid = el('div', 'meta-ars-grid', root);
     el('div', 'meta-ars-ulthead', root).textContent = t('ars.ultHead');
     ultBox = el('div', 'meta-ars-ults', root);
+    el('div', 'meta-ars-ulthead', root).textContent = t('ars.activeHead');
+    activeBox = el('div', 'meta-ars-ults', root);
   }
   Ars.build = build;
   Ars.show = function () { if (root) { root.classList.remove('meta-hidden'); renderAll(); } };

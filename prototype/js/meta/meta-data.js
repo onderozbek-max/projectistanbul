@@ -219,6 +219,19 @@ P.Meta = P.Meta || {};
     return true;
   };
 
+  // ---- Active skill (one per loadout; the sim reads loadout.active). Unlock levels: P.CFG.skills.unlockAt ----
+  M.activeIds = function () { return ((P.CFG.skills && P.CFG.skills.activeList) || ['shield']).slice(); };
+  M.activeUnlocked = function (id) { return M.unlockedLevel() >= (((P.CFG.skills || {}).unlockAt || {})[id] || 1); };
+  M.activeId = function () {
+    var id = load().heroes.arda.active, def = (P.CFG.skills && P.CFG.skills.activeDefault) || 'shield';
+    return M.activeIds().indexOf(id) >= 0 && M.activeUnlocked(id) ? id : def;
+  };
+  M.setActive = function (id) {
+    if (M.activeIds().indexOf(id) < 0 || !M.activeUnlocked(id)) return false;
+    var s = load(); s.heroes.arda.active = id; save();
+    return true;
+  };
+
   // ---- Stats (attribute levels, training and allocation) ----
   M.heroStats = function (hero) { return load().heroes[hero || 'arda'].stats; };
   M.allocate = function (draft, hero) {
@@ -250,7 +263,7 @@ P.Meta = P.Meta || {};
     var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
     lo = { gear: gearSum(s), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
-      mastery: masteryRanks(s), ult: ult, hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
+      mastery: masteryRanks(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
     if (o.daily) { lo.modifiers = (o.modifiers || []).map(function (m) { return Object.assign({}, m); }); lo.seed = o.seed | 0; lo.daily = true; }
     return lo;
   };

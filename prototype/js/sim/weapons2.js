@@ -61,7 +61,8 @@ function impactSlam(s, sl) {
     h.hp = Math.min(h.maxHp, h.hp + heal);
     s.events.push({ type: 'healPulse', x: h.x, y: h.y, amount: heal });
   }
-  s.events.push({ type: 'sledgeSlam', x: sl.x, y: sl.y, r: r, stun: stun, hits: Math.max(0, hits), n: sl.left, heavy: true });
+  s.events.push({ type: 'sledgeSlam', x: sl.x, y: sl.y, r: r, stun: stun, hits: Math.max(0, hits), n: sl.left, heavy: true,
+    tag: P.Weapons.tagOf(sl.src || 'sledge') });
   if (sl.first) P.Mods.announce(s, A, sl.x, sl.y, r);
   if (sl.left > 1) {
     var nt = P.Weapons.densest(s, cfg.range, cfg.clusterR, []) || { x: sl.x, y: sl.y };
@@ -107,7 +108,8 @@ function shatter(s, f) {
   if (lv.burn) P.Weapons6.burnAround(s, f.x1, f.y1, rr, lv.burn);
   var life = (isLake ? lv.lakeLife : lv.life) * A.M.life * (sig && sig.life ? sig.life : 1);
   P.Weapons.state(s).pools.push({ x: f.x1, y: f.y1, r: lv.r * A.area, t: life, T: life, tick: cfg.burnTick, A: A, lv: isLake ? lv : null });
-  s.events.push({ type: 'flaskShatter', x: f.x1, y: f.y1, r: lv.r * A.area, life: life, spin: f.spin, lake: isLake });
+  s.events.push({ type: 'flaskShatter', x: f.x1, y: f.y1, r: lv.r * A.area, life: life, spin: f.spin, lake: isLake,
+    tag: P.Weapons.tagOf(f.src || 'molotov') });
   if (f.first) P.Mods.announce(s, A, f.x1, f.y1, lv.r * A.area);
 }
 
@@ -138,7 +140,7 @@ function updatePools(s, dt) {
       P.Combat.addBurn(e); n++;
       for (var k = 0; k < extra; k++) P.Combat.addBurn(e);
     });
-    if (n > 0) s.events.push({ type: 'poolBurn', x: p.x, y: p.y, n: n });
+    if (n > 0) s.events.push({ type: 'poolBurn', x: p.x, y: p.y, n: n, tag: 'fire' });
   }
 }
 
@@ -200,7 +202,7 @@ function updateRockets(s, dt) {
     list.splice(i, 1);
     P.Mods.blast(s, r.x, r.y, r.r, r.dmg, 0.5, 'fireworks', r.A);
     if (r.first) P.Mods.announce(s, r.A, r.x, r.y, r.r);
-    s.events.push({ type: 'rocketBurst', x: r.x, y: r.y, r: r.r, col: r.col, big: false });
+    s.events.push({ type: 'rocketBurst', x: r.x, y: r.y, r: r.r, col: r.col, big: false, tag: 'fire' });
   }
 }
 
@@ -235,7 +237,7 @@ function updateFinale(s, dt) {
     if (f.t < f.T) continue;
     list.splice(i, 1);
     P.Mods.blast(s, f.x, f.y, f.r, f.dmg, 0.6, 'finale', f.A);
-    s.events.push({ type: 'rocketBurst', x: f.x, y: f.y, r: f.r, col: f.col, big: true, heavy: true });
+    s.events.push({ type: 'rocketBurst', x: f.x, y: f.y, r: f.r, col: f.col, big: true, heavy: true, tag: 'fire' });
   }
 }
 

@@ -59,9 +59,12 @@ P.ComicLayout = (function () {
   };
   // Busts: ch = [who, mood, x (0..1), flip, scale]. Base sits near the bottom; k scales them (crowns drop).
   function layoutBusts(p, k) {
+    // AUDIT-6 F10: a single-panel page (the whole page) draws its busts 30% larger, so the page is not half empty.
+    // The layout search still steps them down when the balloons need the room.
+    var fill = p.h > AREA.h * 0.9 ? 1.3 : 1;
     p.busts = (p.data.ch || []).map(function (ch) {
       return { who: ch[0], mood: ch[1] || 'neutral', x: clamp(ch[2], 0, 1) * p.w, base: p.h * 0.97,
-               h: p.h * (ch[4] || 0.6) * k, flip: !!ch[3] };
+               h: Math.min(p.h * 0.92, p.h * (ch[4] || 0.6) * k * fill), flip: !!ch[3] };
     });
   }
   function bustFor(p, who) {
@@ -81,7 +84,10 @@ P.ComicLayout = (function () {
     var s = L.resolve(d[1]); if (!s) return null;
     var k = d[0] === 's' ? 'shout' : d[0] === 't' ? 'thought' : 'speech', side = d[2] || s.side;
     var bw = p.w < 220 ? p.w * 0.8 : Math.min(p.w * (g.wide ? 0.8 : 0.62), g.wide ? 300 : 240);
-    var f = T.measure(p.c, s.caps, bw - 2 * T.insets(k, s.tag).x, 'speech', g.px), h = T.boxH(f.lines, f.lh, s.tag, k);
+    // AUDIT-6 F10: words never break. A balloon too narrow for its longest word widens to fit it (up to the panel).
+    var ins = T.insets(k, s.tag).x, need = T.longest(p.c, s.caps, 'speech', g.px) + 2 * ins;
+    if (need > bw) bw = Math.min(p.w * 0.96, need);
+    var f = T.measure(p.c, s.caps, bw - 2 * ins, 'speech', g.px), h = T.boxH(f.lines, f.lh, s.tag, k);
     var bx = side === 'l' ? p.w * 0.03 : p.w - bw - p.w * 0.03, bust = bustFor(p, s.who);
     var tx = bust ? bust.x : p.w / 2, ty = bust ? bust.base - bust.h * 0.86 : p.h * 0.9;
     return { kind: 'bubble', shape: k, who: s.who, caps: s.caps, len: s.caps.length, lines: f.lines, px: f.px, lh: f.lh,

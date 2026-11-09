@@ -291,7 +291,9 @@
 
   function endRun(win) {
     var C = P.CFG.rewards, h = sim.hero, L = sim.levelInfo;
-    var stars = win ? [true, !sim.reviveUsed, h.hp / h.maxHp >= 0.5] : [false, false, false];
+    // Star goals (lane P, objectives.js): clear, no revive, objective bonus. A loss earns no stars; the labels stay.
+    var goals = P.Objectives && P.Objectives.goals ? P.Objectives.goals(sim, win).map(function (g) { return Object.assign({}, g, { on: win && g.on }); }) : null;
+    var stars = goals ? goals.map(function (g) { return g.on; }) : win ? [true, !sim.reviveUsed, h.hp / h.maxHp >= 0.5] : [false, false, false];
     var nStars = stars.filter(Boolean).length, first = win && !P.Settings.l1Cleared && levelIndex === 1;
     var jeton = win ? (C.jetonBase + C.jetonPerLevel * levelIndex) * (first ? C.firstClearMult : 1) + sim.jeton : Math.floor(sim.jeton * C.loseKeep);
     var km = 0;
@@ -301,7 +303,7 @@
       if (pend && pend.reward) { jeton = pend.reward.total; first = pend.reward.first; }
       km = P.Meta.progress().kmWalked;
     }
-    var r = { win: win, stars: stars, jeton: jeton, hurda: C.hurdaBase * (first ? C.firstClearMult : 1), kills: sim.kills, firstClear: first,
+    var r = { win: win, stars: stars, goals: goals, jeton: jeton, hurda: C.hurdaBase * (first ? C.firstClearMult : 1), kills: sim.kills, firstClear: first,
               time: sim.runT, level: sim.level, hpPct: Math.round(h.hp / h.maxHp * 100),
               hood: L.hood.name, hoodN: L.hoodIndex + 1, stage: L.stage, km: (+km || 0).toFixed(1), hasNext: levelIndex < P.Journey.count() };
     P.Tel.log('level_end', { result: win ? 'win' : 'lose', level_id: L.id, t_s: +sim.runT.toFixed(1), stars: nStars, kills: sim.kills, rewards: { jeton: jeton, hurda: win ? r.hurda : 0 } });

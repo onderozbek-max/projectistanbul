@@ -18,9 +18,12 @@ P.Barks = (function () {
     ttl: { 1: 4, 2: 6, 3: 10 },                      // a queued candidate expires after this long (s), by priority
     waitMax: 1.6,                                    // a placed-out bubble is dropped after this long without a slot (s)
     jokeMin: 25, jokeMax: 40,                        // joke budget: one joke line per 25-40 s of play
+    envNear: 8,                                      // an env event (B.say) gets a bark only within this many m of Arda
+    sightR: 7,                                       // first sighting: an active enemy of a new type within this many m
     // Cooldowns (s) per category, +30% on v0.5 values (act 18, dash 20, near 15, close 20, still 25, idle 25, self 22,
-    // zq 25, elite 20, low 60, ult 12).
-    cool: { act: 23.4, dash: 26, near: 19.5, close: 26, still: 32.5, idle: 32.5, self: 28.6, zq: 32.5, elite: 26, low: 78, ult: 15.6 }
+    // zq 25, elite 20, low 60, ult 12); env and skill are new in v0.7.
+    cool: { act: 23.4, dash: 26, near: 19.5, close: 26, still: 32.5, idle: 32.5, self: 28.6, zq: 32.5, elite: 26, low: 78, ult: 15.6,
+      env: 20, skill: 26 }
   };
   var AMBIENT = { close: 1, zq: 1, still: 1, idle: 1, self: 1 };
   // Pools: id prefixes in P.LINES. A prefix matches ids whose rest has no dot ('BK.fk.walker.' matches 'BK.fk.walker.2').
@@ -29,7 +32,10 @@ P.Barks = (function () {
     evo: 'BK.evo.', ult: 'BK.ult.', ultr: 'BK.ultr.', dash: 'BK.dash.', near: 'BK.near.', nazar: 'BK.nazar.',
     frenzy: 'BK.frenzy.', hack: 'BK.hack.', ev: 'BK.ev.', evend: 'BK.evend.', rescue: 'BK.rescue.',
     sig: ['BK.sig.lost.', 'BK.sig.back.'], act: 'BK.act.', idle: 'BK.idle.', still: 'BK.still.', close: 'BK.close.',
-    zq: 'BK.zq.', zr: 'BK.zr.', zreact: 'BK.zreact.', self: 'BK.self.', mom: 'BK.mom.', dad: 'BK.dad.', hood: 'BK.hd' };
+    zq: 'BK.zq.', zr: 'BK.zr.', zreact: 'BK.zreact.', self: 'BK.self.', mom: 'BK.mom.', dad: 'BK.dad.', hood: 'BK.hd',
+    skill: 'BK.skill.', obj: 'BK.obj.', bossPhase: 'BK.boss.phase.', env: 'BK.env.' };
+  // Pools named after a sim kind when the kind has another name: hacks (cell, car) and events (loot, hazard).
+  var HACK_POOL = { cell: 'booster', car: 'alarm' }, EV_POOL = { loot: 'lootRunner', hazard: 'burningCar' };
 
   // ---------- state and helpers ----------
   function mulberry(seed) {
@@ -43,7 +49,7 @@ P.Barks = (function () {
   function newState(seed, on) {
     return { on: on, rng: mulberry(seed), clock: 0, gap: 3, ambient: 6, q: [], act: null, bub: null, cool: {}, used: {},
              last: null, seen: {}, streak: 0, lastKillT: -99, armed: true, still: 0, lastLevel: -1, sigUntil: 0,
-             forced: null, evT: {}, starts: [], jokeGate: 12 };
+             forced: null, evT: {}, starts: [], jokeGate: 12, met: {}, hero: null };
   }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function easeOutBack(x) { var c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
@@ -218,6 +224,19 @@ P.Barks = (function () {
     if (S.rng() < 0.45) steps.push({ who: 'zombie', prefix: B.pools.zr, at: 1.4, z: z, pin: pin }, { who: 'arda', prefix: B.pools.zreact, at: 3.0, pin: pin });
     queue(1, 'zq', steps);
   }
+  // First sighting of an enemy type this run: the first active one within CFG.sightR m of Arda (entrances the event
+  // covers too; S.met keeps each type to one line). One new type per frame.
+  function scanSightings(s) {
+    var h = s.hero, list = s.enemies || [], i, e;
+    if (!h) return;
+    for (i = 0; i < list.length; i++) {
+      e = list[i];
+      if (e.dead || e.boss || e.state !== 'active' || S.met[e.type]) continue;
+      if (Math.hypot(e.x - h.x, e.y - h.y) > CFG.sightR) continue;
+      S.met[e.type] = true; want(2, null, B.pools.fk + e.type + '.');
+      return;
+    }
+  }
   function selfTalk() {
     var r = S.rng();
     want(1, 'self', r < 0.6 ? B.pools.self : r < 0.8 ? B.pools.mom : B.pools.dad);
@@ -281,11 +300,20 @@ P.Barks = (function () {
   ['bruteRoar', 'bruteCharge', 'spit', 'bloaterSwell', 'summon', 'bossSlam'].forEach(function (t) {
     H[t] = function () { want(1, 'act', B.pools.act + t + '.'); };
   });
-  H.hackStart = function (ev) { want(2, null, B.pools.hack + ev.kind + '.start.'); };
-  H.hackDone = function (ev) { want(2, null, B.pools.hack + ev.kind + '.done.'); };
-  H.hackFail = function (ev) { want(2, null, B.pools.hack + ev.kind + '.fail.'); };
-  H.eventStart = function (ev) { want(2, null, B.pools.ev + ev.kind + '.'); };
-  H.eventEnd = function (ev) { want(1, 'evend', B.pools.evend + ev.kind + '.'); };
+  function hackPool(kind) { return B.pools.hack + (HACK_POOL[kind] || kind) + '.'; }
+  H.hackStart = function (ev) { want(2, null, hackPool(ev.kind) + 'start.'); };
+  H.hackDone = function (ev) { want(2, null, hackPool(ev.kind) + 'done.'); };
+  H.hackFail = function (ev) { want(2, null, hackPool(ev.kind) + 'fail.'); };
+  H.eventStart = function (ev) { want(2, null, B.pools.ev + (EV_POOL[ev.kind] || ev.kind) + '.'); };
+  H.eventEnd = function (ev) { want(1, 'evend', B.pools.evend + (EV_POOL[ev.kind] || ev.kind) + '.'); };
+  // Active skills (sim skillUsed, id = shield | tea), the first sighting of each enemy type in a run (the fk pool's lines
+  // read as encounters), objectives, and boss phase changes.
+  H.skillUsed = function (ev) { want(2, 'skill', B.pools.skill + ev.id + '.'); };
+  H.enemyEnter = function (ev) { if (ev.enemy && !S.met[ev.enemy]) { S.met[ev.enemy] = true; want(2, null, B.pools.fk + ev.enemy + '.'); } };
+  H.objStart = function () { want(1, null, B.pools.obj + 'start.'); };
+  H.objDone = function () { want(2, null, B.pools.obj + 'done.'); };
+  H.objFail = function () { want(2, null, B.pools.obj + 'fail.'); };
+  H.bossPhase = function () { want(2, null, B.pools.bossPhase); };
   H.rescueStart = function () { if (dedupe('rescue', 3)) want(3, null, B.pools.rescue); };
   H.rescue = H.rescueStart;
   H.rescueDone = H.rescueStart;
@@ -295,10 +323,17 @@ P.Barks = (function () {
   H.death = function () { B.clear(); };
   H.win = H.death;
 
-  // Every sim event goes here (the lead calls this for each one). Unknown types are ignored.
+  // Every sim event goes here (main.js calls this for each one). Unknown types are ignored.
   B.onEvent = function (ev, s) {
     if (!S || !S.on || !ev || !H[ev.type]) return;
     H[ev.type](ev, s || {});
+  };
+  // Env events (view/env-fx.js, guarded call): one line from a pool prefix at priority pri, category cat. With x and y,
+  // only when the event is within CFG.envNear m of Arda (a blast across the street is not his to comment on).
+  B.say = function (prefix, pri, cat, x, y) {
+    if (!S || !S.on || !S.hero) return;
+    if (x != null && Math.hypot(x - S.hero.x, y - S.hero.y) > CFG.envNear) return;
+    want(pri, cat || null, prefix);
   };
 
   // ---------- frame ----------
@@ -306,12 +341,14 @@ P.Barks = (function () {
     if (!S || !S.on || !s) return;
     dt = clamp(dt, 0, 0.1);
     S.clock += dt;
+    S.hero = s.hero || null;
     S.still = s.hero && s.hero.moving ? 0 : S.still + dt;
     S.gap = Math.max(0, S.gap - dt);
     onLevel(s);
     ambientTick(dt, s);
     ageQueue(dt);
     if (blocked(s)) { B.clear(); return; }
+    scanSightings(s);
     if (S.bub) {
       if (S.bub.placed) S.bub.age += dt; else S.bub.wait += dt;
       if (S.bub.wait > CFG.waitMax) { S.bub = null; if (P.Speech) P.Speech.noteDrop(); }

@@ -26,13 +26,13 @@ function fireCable(s, dt) {
     taken.push(target);
     var dx = target.x - cur.x, dy = target.y - cur.y, d = Math.hypot(dx, dy) || 1;
     P.Weapons.state(s).bolts.push({ x0: cur.x, y0: cur.y, x1: target.x, y1: target.y, t: 0, T: cfg.boltLife, seed: s.rng.combat.range(0, 1000) });
-    s.events.push({ type: 'cableArc', x0: cur.x, y0: cur.y, x1: target.x, y1: target.y, n: j });
+    s.events.push({ type: 'cableArc', x0: cur.x, y0: cur.y, x1: target.x, y1: target.y, n: j, tag: 'electric' });
     P.Mods.hit(s, target, dmg, dx / d, dy / d, 0.2 * P.Weapons.kbMult(s), 'cable', A);
     if (!target.dead) P.Status.apply(target, 'stun', lv.stun, 1);
     cur = target;
     target = P.Weapons2.nearestFree(s, cur.x, cur.y, jumpR, taken);
   }
-  s.events.push({ type: 'cableZap', x: h.x, y: h.y, n: taken.length });
+  s.events.push({ type: 'cableZap', x: h.x, y: h.y, n: taken.length, tag: 'electric' });
   P.Weapons.fired(s, 'cable', Math.atan2(first.y - h.y, first.x - h.x), taken.length);
   P.Mods.announce(s, A, h.x, h.y, reach);
 }
@@ -67,7 +67,7 @@ function spearHitCheck(s, sp) {
     if (segDist(e.x, e.y, sp.px, sp.py, sp.x, sp.y) > e.r + cfg.hitR) continue;
     sp.hits.push(e); sp.last = e; sp.left--;
     P.Mods.hit(s, e, sp.dmg, sp.dx, sp.dy, 0.2, 'speargun', sp.A);
-    s.events.push({ type: 'spearHit', x: e.x, y: e.y, n: sp.hits.length });
+    s.events.push({ type: 'spearHit', x: e.x, y: e.y, n: sp.hits.length, tag: 'blade' });
   }
 }
 
@@ -119,7 +119,7 @@ function fireExtinguisher(s, dt) {
   spray(s, a, lv, A, range, arc, 0);
   if (M.echo) spray(s, a, lv, A, range, arc, M.echo.delay);
   if (lv.spitBlock) P.Weapons6.foamWall(s, a, arc, range, lv.spitBlock);
-  s.events.push({ type: 'extSpray', x: h.x, y: h.y, a: a, range: range, arc: arc, n: cfg.ticks });
+  s.events.push({ type: 'extSpray', x: h.x, y: h.y, a: a, range: range, arc: arc, n: cfg.ticks, tag: P.Weapons.tagOf(id) });
   P.Weapons.fired(s, 'extinguisher', a, 1, id);
   P.Mods.announce(s, A, h.x, h.y, range);
 }
@@ -146,7 +146,7 @@ function sprayTick(s, sp) {
     P.Status.apply(e, 'foam', cfg.foamT, 1);
   });
   if (sp.A.M.douse) P.Mods.douse(s, h.x + ax * sp.range * 0.5, h.y + ay * sp.range * 0.5, sp.range * 0.5);
-  s.events.push({ type: 'extTick', x: h.x, y: h.y, a: sp.a, range: sp.range, arc: sp.arc });
+  s.events.push({ type: 'extTick', x: h.x, y: h.y, a: sp.a, range: sp.range, arc: sp.arc, tag: 'water' });
 }
 
 function updateSprays(s, dt) {
@@ -190,7 +190,7 @@ function updateCleaver(s, dt) {
     e.cleaT = s.t;
     var ex = e.x - tx, ey = e.y - ty, el = Math.hypot(ex, ey) || 1;
     P.Mods.hit(s, e, dmg, ex / el, ey / el, kb, 'cleaver', A);
-    s.events.push({ type: 'cleaverChop', x: e.x, y: e.y, a: Math.atan2(ey, ex) });
+    s.events.push({ type: 'cleaverChop', x: e.x, y: e.y, a: Math.atan2(ey, ex), tag: 'blade' });
   }
 }
 
@@ -202,7 +202,7 @@ function updateCyclone(s, dt) {
   var M = P.Mods.of(s, 'chain'), boost = W.chainBoostT > 0 ? P.CFG.sig.chain.spin : 1;
   h.cycA = prev + lv.speed * (2 - P.Weapons.cdMult(s)) * M.spin * boost * dt;
   if (Math.floor(h.cycA / (Math.PI * 2)) > Math.floor(prev / (Math.PI * 2))) {
-    s.events.push({ type: 'cyclone', x: h.x, y: h.y });
+    s.events.push({ type: 'cyclone', x: h.x, y: h.y, tag: P.Weapons.tagOf('cyclone') });
     P.Weapons.fired(s, 'chain', h.cycA, 1, 'cyclone');
     P.Weapons.spinTurn(s);
   }

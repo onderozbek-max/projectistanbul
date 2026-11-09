@@ -1,6 +1,6 @@
 // v0.7 enemies (lane C, AUDIT-6 C2/C3) and view feel numbers. Extends P.CFG. Sim reads P.CFG.enemies (kurye, copci) and
 // P.CFG.enemies3 (behaviour); view reads P.CFG.enemies3.feel and P.CFG.enemies3.deathPose.
-// Roster: P.CFG.enemyRosterAdds lists the new types each hood gets from stage enemyRosterFrom (read by enemies3.js).
+// Roster adds (P.CFG.enemyRosterAdds) and the wave 2 numbers (crates, telegraph floor) are in config-enemies4.js.
 (function (C) {
   // Kurye (scooter courier): fragile and quick. Every few seconds it telegraphs a diagonal lane across the street, then dashes.
   C.enemies.kurye = { hp: 4, speed: 2.5, contact: 6, radius: 0.36, xp: 2, kbResist: 0, budget: 2.0 };
@@ -10,7 +10,7 @@
 
   C.enemies3 = {
     kurye: { sense: 9, minDash: 2.5, cd: 4.0, firstCd: 1.5, tele: 0.8, dashLen: 6, dashSpeed: 7, cross: 1.0, forward: 0.7, laneW: 0.9 },
-    copci: { sense: 12, minDist: 2.6, pushCd: 6, firstCd: 2.5, pushWindup: 0.7, reach: 1.8, binR: 0.45,
+    copci: { sense: 12, minDist: 2.6, pushCd: 6, firstCd: 2.5, pushWindup: 0.8, reach: 1.8, binR: 0.45,
       binSpeed: 1.6, binLife: 2.5, binDmg: 8, binKb: 1.0, binShove: 1.2, binHitCd: 0.6,
       trash: { r: 1.1, t: 6, dps: 2, heroDps: 3 } },
     // Spawn entrances (generated levels only). A spawn that lands off-screen (ahead or at a side wall) may move to an
@@ -44,12 +44,4 @@
     },
   };
 
-  // Hood id -> new enemy types added to its roster (generated levels, from stage enemyRosterFrom on).
-  C.enemyRosterFrom = 2;
-  C.enemyRosterAdds = {
-    bridge: ['copci'], eminonu: ['kurye'], sirkeci: ['kurye'], kapalicarsi: ['copci', 'kurye'], beyazit: ['kurye'],
-    laleli: ['copci'], aksaray: ['kurye'], kumkapi: ['copci'], yenikapi: ['kurye', 'copci'], samatya: ['copci'],
-    yedikule: ['kurye'], zeytinburnu: ['copci'], kazlicesme: ['kurye'], bakirkoy: ['copci', 'kurye'],
-    bakirkoysahil: ['kurye'], atakoysahil: ['copci'], atakoy: ['kurye', 'copci'],
-  };
 })(P.CFG);

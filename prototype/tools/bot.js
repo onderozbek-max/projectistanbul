@@ -127,7 +127,12 @@ function targetOf(s, st) {
   }
   if (s.dir.hold.active) { st.ang += 0.01; return [Math.cos(st.ang) * 3, G.exitY - 4 + Math.sin(st.ang) * 2.5]; }
   if (s.props.shutterOpen) return [0, G.exitY + 2.5];
+  // The objective waypoint (crate, terminal, booster) wins when it is ahead and nearer than the next chokepoint. Otherwise
+  // a gap on the route would pull the bot past an unfinished terminal, and it would never come back for it (L12 stall).
   const ob = P.Objectives.botTarget(s);            // lane P: crate, terminal or booster waypoint (objectives.js)
+  const lt = P.Layouts && P.Layouts.botTarget ? P.Layouts.botTarget(s) : null;   // lane B: next chokepoint (layouts.js)
+  if (ob && ob[1] > h.y - 1 && (!lt || ob[1] <= lt[1])) return ob;
+  if (lt) return lt;
   if (ob) return ob;
   return [0, Math.min(G.holdY + 1.5, h.y + 8)];
 }
@@ -171,12 +176,18 @@ function repulsion(s, h) {
   return acc;
 }
 
+// A point inside a solid (its rect grown by the hero's radius): the hero is pushed out, so it cannot reach it.
+function inBlock(s, p) {
+  const r = P.CFG.hero.radius;
+  return s.geo.blocks.some(b => p.x > b.rc.xMin - r && p.x < b.rc.xMax + r && p.y > b.rc.yMin - r && p.y < b.rc.yMax + r);
+}
+
 // Nearest drop worth a detour (none while the gate is open, the boss is near, or enemies are close).
 function dropTarget(s, st, h, bossAlive) {
   if (s.props.shutterOpen || st.threat <= 2.2 || (bossAlive && st.threat <= 4)) return null;
   let best = null, bd = 4.5;
   for (const d of s.drops) {
-    if (st.skip.has(d) || !DROP_KINDS.includes(d.kind)) continue;
+    if (st.skip.has(d) || !DROP_KINDS.includes(d.kind) || inBlock(s, d)) continue;
     const dd = Math.hypot(d.x - h.x, d.y - h.y);
     if (dd < bd && d.y > h.y - 2 && d.y < s.geo.exitY) { bd = dd; best = d; }
   }

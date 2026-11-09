@@ -5,7 +5,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-layouts.js', 'js/config-enemies3.js', 'js/config-bosses.js', 'js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js', 'js/config-env.js',
+const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-layouts.js', 'js/config-enemies3.js', 'js/config-bosses.js', 'js/config-enemies4.js', 'js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js', 'js/config-env.js',
   'js/config-objectives.js', 'js/config-modifiers.js',
   'js/strings.js', 'js/strings-progress.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/strings-weapons3.js', 'js/sim/rng.js', 'js/sim/world.js',
   'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
@@ -16,7 +16,8 @@ const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'j
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const VIEW = ['js/view/icons.js', 'js/view/icons-evo.js', 'js/view/weapons-fx.js', 'js/view/weapons-fx2.js', 'js/view/weapons-fx3.js',
   'js/view/weapons-fx4.js', 'js/view/fire-anim-prim.js', 'js/view/fire-anim-held.js', 'js/view/fire-anim-held2.js', 'js/view/fire-anim-held3.js',
-  'js/view/fire-anim-fx.js', 'js/view/fire-anim-fx2.js', 'js/view/fire-anim-fx3.js', 'js/view/fire-anim.js', 'js/view/skills-fx.js', 'js/view/skill-button.js', 'js/view/input.js'];
+  'js/view/fire-anim-held4.js', 'js/view/fire-anim-fx.js', 'js/view/fire-anim-fx2.js', 'js/view/fire-anim-fx3.js', 'js/view/fire-anim-fx4.js',
+  'js/view/fire-anim.js', 'js/view/skills-fx.js', 'js/view/skill-button.js', 'js/view/input.js'];
 VIEW.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const P = globalThis.P;
 if (!P.Enemies || !P.Enemies.frame) P.Enemies = { frame: function () {} };   // E2 stub fallback (test-only)
@@ -35,12 +36,15 @@ const med = a => { const b = a.slice().sort((x, y) => x - y); return b[Math.floo
 const ALL_PASS = { shoes: 5, jacket: 5, gloves: 5, energy: 5, medkit: 5, nazar: 5, magnet: 5, kolonya: 5, cay: 5, lokum: 5, powerbank: 5, kask: 5 };
 const ALL_W = P.CFG.arsenal.weapons.slice();
 const ALL_W_L5 = Object.fromEntries(ALL_W.map(id => [id, 5]));
-const EVOS = { cleaver: 1, nailstorm: 1, cluster: 1, cyclone: 1, finale: 1 };
+// One evolution per base weapon in EVOS (scenario B). The terrain evolutions share bases with EVOS, so they run in TERRAIN_EVOS.
+const EVOS = { cleaver: 1, nailstorm: 1, cluster: 1, cyclone: 1, finale: 1, blacksmith: 1, stormshield: 1, foamstorm: 1,
+  netspear: 1, lake: 1, twinsaw: 1, forge: 1, grinder: 1, hookpull: 1, minibus: 1 };
+const TERRAIN_EVOS = { fireball: 1, arcchain: 1, carbomb: 1 };
 // Weapon ids for the fire-animation draw smoke (new names, workstream A renames; old names alias in fire-anim.js).
 const FIRE_IDS = ['knife', 'nailgun', 'canister', 'chain', 'sledge', 'molotov', 'fireworks', 'cable', 'speargun', 'extinguisher',
   'sawblade', 'manhole', 'torch', 'olta', 'cardoor', 'slingshot', 'chainsaw',
   'blacksmith', 'stormshield', 'foamstorm', 'netspear', 'lake', 'twinsaw', 'fireball', 'arcchain', 'carbomb',
-  'skill_shield', 'skill_tea'];
+  'skill_shield', 'skill_tea', 'forge', 'grinder', 'hookpull', 'minibus'];
 
 function newSim(seed, levelIndex, loadout) {
   const s = P.createSim(seed, { levelIndex: levelIndex || 1, loadout: loadout || null });
@@ -273,6 +277,9 @@ function weaponUnits() {
     check(shots.every(x => [x.x, x.y, x.ang].every(Number.isFinite) && x.lv >= 1 && x.n >= 1), 'malformed wfire from ' + id);
   });
 }
+
+// W lane tests (AUDIT-6 W1-W3, depth pass) live in test-arsenal-w.js.
+const W = require('./test-arsenal-w.js')({ P, newSim, step, feed, check, notes, DT, ALL_W, ALL_W_L5, ALL_PASS, modPaths });
 
 // Ults chosen in meta: locked ults fall back to Nazar; convoy and horn fire and emit ids.
 function ultUnits() {
@@ -550,17 +557,27 @@ function drawSmoke(label, grant, frames, opts) {
   if (P.FireAnim) notes.push(label + ' fire anim draw: ' + (fireMs / frames).toFixed(3) + ' ms/frame (held + fx, stub canvas)');
 }
 
-const EVOLVED_GRANT = { weapons: Object.assign({ sledge: 5, molotov: 5, cable: 5, speargun: 5, extinguisher: 5 }, EVOS), passives: ALL_PASS };
+// Bases at L5 with their evolutions (each base appears once). Terrain grant: the three terrain evolutions, one per base.
+const EVOLVED_GRANT = { weapons: Object.assign({ sledge: 5, molotov: 5, cable: 5, speargun: 5, extinguisher: 5, torch: 5, chainsaw: 5,
+  olta: 5, cardoor: 5, sawblade: 5 }, EVOS), passives: ALL_PASS };
+const TERRAIN_GRANT = { weapons: Object.assign({ molotov: 5, chain: 5, canister: 5 }, TERRAIN_EVOS), passives: ALL_PASS };
 const MODS_L3A = Object.fromEntries(ALL_W.map(f => [f, modPaths(f)[modPaths(f).length - 1]]));
 unitTests();
 weaponUnits();
+W.terrainUnits();
+W.depthUnits();
+W.skillUnits();
+W.inputUnits();
+W.tagUnits();
 coverage();
 variety();
 pathRuns();
 stress('scenario A (all 17 weapons at L5, mods on)', { weapons: ALL_W_L5, passives: ALL_PASS, mods: MODS_L3A });
 stress('scenario B (all evolutions + evolvable base weapons)', EVOLVED_GRANT);
+stress('scenario C (terrain evolutions)', TERRAIN_GRANT);
 drawSmoke('draw A', { weapons: ALL_W_L5, passives: ALL_PASS, mods: MODS_L3A }, 900);
 drawSmoke('draw B', EVOLVED_GRANT, 900);
+drawSmoke('draw E (terrain evolutions)', TERRAIN_GRANT, 600);
 drawSmoke('draw C (convoy ult)', { weapons: ALL_W_L5, passives: ALL_PASS, mods: MODS_L3A }, 600, { ult: 'convoy', levelIndex: 11 });
 drawSmoke('draw D (horn ult)', { weapons: ALL_W_L5, passives: ALL_PASS, mods: MODS_L3A }, 600, { ult: 'horn', levelIndex: 11 });
 console.log(notes.join('\n'));

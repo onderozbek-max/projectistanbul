@@ -44,7 +44,7 @@ function zap(s, c) {
     found = true; z.live = C.show;
     for (j = 0; j < s.enemies.length; j++) {
       e = s.enemies[j];
-      if (e.dead || e.state !== 'active' || dist(e, z) > z.r + e.r) continue;
+      if (!P.Env.foe(e) || dist(e, z) > z.r + e.r) continue;
       P.Combat.damageEnemy(s, e, C.dmg, 0, 0, 0, false, 'shock');
       P.Status.apply(e, 'stun', C.stun, 1);
       hits++;
@@ -99,7 +99,7 @@ function slowEnemies(s) {
   if (!any) return;
   for (j = 0; j < s.enemies.length; j++) {
     e = s.enemies[j];
-    if (e.dead || e.state !== 'active') continue;
+    if (!P.Env.foe(e)) continue;
     for (i = 0; i < Z.length; i++) {
       z = Z[i];
       if (z.slow > 0 && dist(e, z) <= z.r + e.r) P.Status.apply(e, 'slow', hold, z.slow);

@@ -142,6 +142,11 @@ P.Screens = (function () {
     var ds = mk('div', 'desc');
     ds.textContent = (c.evo ? P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + ' · ' : '') + P.Progression.describe(c);
     b.appendChild(ds);
+    // Evolution hint (lane W hook, guarded): what this weapon's evolution still needs, one line per evolution.
+    var eh = kind === 'w' && !c.evo && P.Weapons && P.Weapons.evoHint ? P.Weapons.evoHint(c.item, s) : null;
+    // evoHint (weapons6.js) returns the hint line as a string; accept an array too.
+    var ehText = Array.isArray(eh) ? eh.join(' · ') : eh;
+    if (ehText) b.appendChild(mk('div', 'evo-hint', ehText));
     var lines = P.Progression.statLines(c);
     if (lines.length) b.appendChild(fillStats(mk('div', 'stats'), lines));
     if (c.fork && c.mods && c.mods.length) {
@@ -254,6 +259,7 @@ P.Screens = (function () {
   function killerArt(box, cause) {
     box.innerHTML = '';
     var sp = P.Sprites, v = KILLER_VARIANT[cause];
+    if (v === undefined && cause !== 'canister') v = 0;   // any other zombie kind reads as a walker; a blast keeps the skull
     if (v === undefined || !sp || !sp.person || !sp.palette) { box.innerHTML = P.Icons.svg('skull', 44); return; }
     var dpr = Math.min(window.devicePixelRatio || 1, 2), cv = document.createElement('canvas'), c, pal = sp.palette(v, true);
     cv.width = 72 * dpr; cv.height = 72 * dpr; cv.style.width = '72px'; cv.style.height = '72px';
@@ -269,7 +275,9 @@ P.Screens = (function () {
     var cause = s.deathCause || 'walker';
     killerArt($('down-icon'), cause);
     $('down-cause').textContent = P.t('cause.' + cause);
-    $('down-tip').textContent = P.t('tip.' + cause);
+    // A cause with no tip string falls back to the generic tip (never a raw key on screen).
+    var tipKey = 'tip.' + cause, tip = P.t(tipKey);
+    $('down-tip').textContent = tip !== tipKey ? tip : P.t('ui.down.tipGeneric');
     $('btn-revive-ad').textContent = P.t('ui.down.reviveAd');
     $('btn-revive-gold').textContent = P.t('ui.down.reviveGold');
     $('down-note').textContent = P.t('ui.down.note');
@@ -300,11 +308,14 @@ P.Screens = (function () {
       setTimeout(function () { sv.classList.add('in'); }, P.Settings.reduceMotion ? 0 : 250 + i * 300);
     });
     var crit = $('res-criteria'); crit.innerHTML = '';
-    [['ui.res.starClear', r.stars[0]], ['ui.res.starNoRevive', r.stars[1]], ['ui.res.starHp', r.stars[2]]].forEach(function (c, i) {
-      var sp = document.createElement(c[1] ? 'span' : 's'); sp.textContent = P.t(c[0]);
+    // Star goals come from P.Objectives.goals (lane P) when the run passes them; the old three-goal list is the fallback.
+    var goals = r.goals || [{ key: 'ui.res.starClear', on: r.stars[0] }, { key: 'ui.res.starNoRevive', on: r.stars[1] },
+      { key: 'ui.res.starHp', on: r.stars[2], hp: true }];
+    goals.forEach(function (g, i) {
+      var sp = document.createElement(g.on ? 'span' : 's'); sp.textContent = P.t(g.key, g.vars);
       crit.appendChild(sp);
-      if (i === 2 && !c[1] && r.win) crit.appendChild(document.createTextNode(' ' + P.t('ui.res.endedAt', { n: r.hpPct })));
-      if (i < 2) crit.appendChild(document.createTextNode(' · '));
+      if (g.hp && !g.on && r.win) crit.appendChild(document.createTextNode(' ' + P.t('ui.res.endedAt', { n: r.hpPct })));
+      if (i < goals.length - 1) crit.appendChild(document.createTextNode(' · '));
     });
     var rw = $('res-rewards'); rw.innerHTML = '';
     function kv(parent, k, v) { var d = document.createElement('div'); d.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b = document.createElement('span'); b.textContent = v; d.appendChild(a); d.appendChild(b); parent.appendChild(d); }

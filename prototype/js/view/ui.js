@@ -51,7 +51,12 @@ P.UI = (function () {
     hudOn = !!on; applyVis();
     if (!on) { el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); el.streak.classList.add('hidden'); lastSub = null; lastN = 0; }
   };
-  U.setOverlay = function (on) { overlayUp = !!on; applyVis(); };
+  // The overlay flag also goes on #phone (css: story pops and the call card hide, and comic.js freezes their timers).
+  U.setOverlay = function (on) {
+    overlayUp = !!on; applyVis();
+    var ph = document.getElementById('phone'); if (ph) ph.classList.toggle('overlay-up', overlayUp);
+  };
+  U.isOverlay = function () { return overlayUp; };
   function applyVis() {
     var show = hudOn && !overlayUp;
     el.hud.classList.toggle('hidden', !show); el.skills.classList.toggle('hidden', !show);

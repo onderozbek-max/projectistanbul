@@ -61,7 +61,7 @@
     },
     bloater: {                                                           // toxic pools, mini bloaters, belly slam
       hp: 1300, speed: 0.55, contact: 18, radius: 0.9, xp: 80, kbResist: 0.9,
-      pools: { n: 3, r: 2.0, windup: 1.0, t: 6, dps: 4, span: 6 }, minis: { n: 3, windup: 0.9, r: 2.2 },
+      pools: { n: 3, r: 2.0, windup: 1.0, t: 6, dps: 3, span: 6 }, minis: { n: 3, windup: 0.9, r: 2.2 },   // pool dps 3 (was 4)
       slam: { r: 3.5, windup: 1.1, dmg: 20, shove: 2.5 }, burst: { r: 4.0, enemyDmg: 60, heroDmg: 22, cloudT: 4 },
       gap: 0.8, rageGap: 0.5, pause: 1.0, rageAt: 0.5,
     },

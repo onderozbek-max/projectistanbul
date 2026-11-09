@@ -1,4 +1,13 @@
-# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.6)
+# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.7)
+
+> **v0.7 (2026-11-08):** owner feedback + AUDIT-6 player review. Comic busts redrawn with real proportions and
+> moods; humour written natively per language (`strings-barks-tr/en.js`, `story-lang-tr/en.js`, joke budget);
+> `P.Speech` stops bubble overlap; no gulls/rain indoors; random zoom/flash/speed lines removed, replaced by
+> cause-tied moments (finisher kill-cam, chain reactions, last stand, streak meter). Arena interactions (breakable
+> cover, explosive cars and gas, cable + water, wet tiles, door/window spawns; `tools/test-env.js`), 6 layout
+> templates with a landmark per hood, death poses by damage type, spawn entrances, 2 new enemies and 2 new bosses,
+> 7 terrain/weapon evolutions, active skills (Simit Kalkanı, Çay Molası), 7 objective types with stars and unlock
+> previews, run modifiers, UI fixes (overlay stack, boss bar, down screen, settings).
 
 > **v0.6 (2026-11-08):** forced Turkish-object weapons replaced with credible improvised ones: Testere
 > Diski (saw blade boomerang), Rögar Kapağı (manhole cover), Pürmüz (blowtorch), Araba Kapısı (car-door

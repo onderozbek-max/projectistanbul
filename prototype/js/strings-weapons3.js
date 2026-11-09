@@ -22,6 +22,11 @@ Object.assign(P.STR.tr, {
   'shield.block': 'BLOK!', 'ui.hud.skill': 'Beceri', 'ui.hud.skill.ready': 'Hazır',
   'stat.zaps': 'Zap sayısı', 'stat.every': 'Aralık', 'stat.block': 'Tükürük engeli', 'stat.netShare': 'Ağa pay',
   'stat.burn': 'Yanma', 'stat.arcs': 'Ark sayısı', 'stat.carBlast': 'Araba çarpanı',
+  'item.forge': 'Ocak Ağzı', 'desc.forge': 'Pürmüz alevi sertleşir; yolun ortasına ikinci bir yanık izi bırakır.',
+  'item.grinder': 'Öğütücü', 'desc.grinder': 'Motorlu testere hiç tutukluk yapmaz; aynı düşmana her dişte biraz daha sert vurur.',
+  'item.hookpull': 'Çeki Halatı', 'desc.hookpull': 'Olta takılınca yakındaki düşmanları kendine çeker ve sersemletir.',
+  'item.minibus': 'Minibüs Kapısı', 'desc.minibus': 'Kapı yere inince yakındakileri sarsar ve sersemletir.',
+  'stat.stains': 'Yanık izi', 'stat.stacks': 'Öğütme yığını', 'stat.haul': 'Çekme alanı', 'stat.slam': 'Çarpma alanı',
 });
 Object.assign(P.STR.en, {
   'item.blacksmith': "Blacksmith's Blow", 'desc.blacksmith': 'Each slam heals a little for every enemy it hits.',
@@ -42,4 +47,9 @@ Object.assign(P.STR.en, {
   'shield.block': 'BLOCK!', 'ui.hud.skill': 'Skill', 'ui.hud.skill.ready': 'Ready',
   'stat.zaps': 'Zaps', 'stat.every': 'Every', 'stat.block': 'Spit block', 'stat.netShare': 'Share to net',
   'stat.burn': 'Burn', 'stat.arcs': 'Arcs', 'stat.carBlast': 'Car blast x',
+  'item.forge': 'Forge Mouth', 'desc.forge': 'The blowtorch jet runs hotter and leaves a second scorch part way along.',
+  'item.grinder': 'Grinder', 'desc.grinder': 'The chainsaw never stalls, and each bite on the same target hits a little harder.',
+  'item.hookpull': 'Hook Haul', 'desc.hookpull': 'When the hook sets, it hauls nearby enemies in and stuns them.',
+  'item.minibus': 'Minibus Door', 'desc.minibus': 'When the door comes down it shakes the ground and stuns what is close.',
+  'stat.stains': 'Scorch patches', 'stat.stacks': 'Grind stacks', 'stat.haul': 'Haul reach', 'stat.slam': 'Slam reach',
 });

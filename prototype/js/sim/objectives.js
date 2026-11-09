@@ -78,6 +78,24 @@ P.Objectives.results = function (s) {
   return { id: st.id, state: state, done: state === 'done', title: st.title, line: st.line, vars: st.vars, bonus: st.bonus };
 };
 
+// Star goals (owner ask: clear, no revive, objective bonus). Each goal is { key, vars, on, hp }: string keys only, so the
+// sim stays text-free. Star 3 is the objective when the level has one; level 1 has none and keeps the HP goal (hp: true
+// lets the results screen add "ended at N%"). main.js passes these to P.Meta (stars) and to the results screen.
+P.Objectives.goals = function (s, won) {
+  var st = P.Objectives.results(s), o = s.obj, third;
+  if (st) third = { key: 'obj.goal.' + st.id, vars: { par: P.Objectives.clock(o && o.par ? o.par : 0) }, on: !!st.done, hp: false };
+  else third = { key: 'ui.res.starHp', vars: {}, on: s.hero.hp / s.hero.maxHp >= P.CFG.objectives.stars.hp, hp: true };
+  return [
+    { key: 'ui.res.starClear', vars: {}, on: !!won, hp: false },
+    { key: 'ui.res.starNoRevive', vars: {}, on: !!won && !s.reviveUsed, hp: false },
+    third,
+  ];
+};
+
+P.Objectives.stars = function (s, won) {
+  return P.Objectives.goals(s, won).map(function (g) { return g.on; });
+};
+
 // Bot waypoint [x, y] for the objective, or null (the bot keeps its route).
 P.Objectives.botTarget = function (s) {
   var o = s && s.obj, K;

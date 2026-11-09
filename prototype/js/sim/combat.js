@@ -193,8 +193,8 @@ P.Combat.nearestProp = function (s, range) {
   return best;
 };
 
-P.Combat.damageProp = function (s, p, dmg) {
-  if (p.env) return P.Env.hitProp(s, p, dmg);
+P.Combat.damageProp = function (s, p, dmg, src) {   // src: optional damage tag or weapon id (lane A cover reads it)
+  if (p.env) return P.Env.hitProp(s, p, dmg, src);
   if (!p.alive) return;
   p.hp -= dmg; p.flash = P.CFG.feel.hitFlash;
   if (p.hp > 0) return;

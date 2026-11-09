@@ -6,6 +6,11 @@ Object.assign(P.STR.tr, {
   'ui.set.music': 'Müzik', 'ui.set.haptics': 'Titreşim', 'ui.set.joy': 'Joystick yönü',
   'ui.set.joyL': 'Sol', 'ui.set.joyR': 'Sağ', 'ui.set.shake': 'Ekran sarsıntısı',
   'ui.set.reduceFlash': 'Yanıp sönme azalt', 'ui.set.note': 'Bu ayarlar yalnızca görüntüyü ve dokunmayı etkiler; oyunu değiştirmez.',
+  'ui.down.tipGeneric': 'İpucu: Durma. Hareket et, sonra vur.',
+  'tip.bloater': 'İpucu: Şişman zombi patlayınca zehirli bulut bırakır. Uzak dur.',
+  'tip.brute': 'İpucu: İri zombi yüklenir ve yere vurur. Yan adım at, sonra vur.',
+  'tip.spitter': 'İpucu: Tükürükçü uzaktan vurur. Asit birikintisinden kaç.',
+  'tip.screamer': 'İpucu: Çığlıkçı sürüyü çağırır. Önce onu vur.',
   'meta.doneHead': 'Yolculuk',
 });
 Object.assign(P.STR.en, {
@@ -13,5 +18,10 @@ Object.assign(P.STR.en, {
   'ui.set.music': 'Music', 'ui.set.haptics': 'Haptics', 'ui.set.joy': 'Joystick side',
   'ui.set.joyL': 'Left', 'ui.set.joyR': 'Right', 'ui.set.shake': 'Screen shake',
   'ui.set.reduceFlash': 'Reduce flashing', 'ui.set.note': 'These settings change the view and touch only; they never change the game.',
+  'ui.down.tipGeneric': 'Tip: keep moving, then strike.',
+  'tip.bloater': 'Tip: a fat zombie bursts into a toxic cloud. Keep your distance.',
+  'tip.brute': 'Tip: the big zombie charges and stomps. Sidestep, then strike.',
+  'tip.spitter': 'Tip: the spitter shoots from range. Get out of the acid pools.',
+  'tip.screamer': 'Tip: the screamer calls the horde. Take it out first.',
   'meta.doneHead': 'Journey',
 });

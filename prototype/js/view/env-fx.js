@@ -199,10 +199,15 @@
   var GAP = { envChain: 120, envArc: 200, envShock: 300, envPortal: 200, envSpawn: 150, envIgnite: 200, envExtinguish: 300 };
   var LABEL = { envChain: 'env.chain', envIgnite: 'env.ignite', envExtinguish: 'env.extinguish' };
 
+  // Env events that get a bark (native pools BK.env.* in strings-barks-tr/en.js). P.Barks.say checks the distance to Arda.
+  var BARK = { envExplode: 'BK.env.explode', envChain: 'BK.env.chain', envShock: 'BK.env.shock', envSpawn: 'BK.env.door',
+    envExtinguish: 'BK.env.extinguish', envFuse: 'BK.env.fuse', envBreak: 'BK.env.break' };
+
   F.onEvent = function (ev) {
+    if (BARK[ev.type] && P.Barks && P.Barks.say && (ev.type !== 'envFuse' || ev.kind === 'car')) P.Barks.say(BARK[ev.type], 1, 'env', ev.x, ev.y);
     if (!P.Fx || !P.Sfx) return;
     if (ev.type === 'envBreak') {
-      shards(ev.x, ev.y, ev.mat === 'glass' ? 'glass' : 'wood', 8);
+      shards(ev.x, ev.y, ev.mat === 'glass' ? 'glass' : 'wood', ev.tag === 'blunt' ? 12 : 8);
       P.Sfx.play(ev.mat === 'glass' ? 'glass' : 'click', 60);
       if (ev.mat === 'glass') P.Fx.letter(ev.x, ev.y + 1, P.t('env.break'));
       return;

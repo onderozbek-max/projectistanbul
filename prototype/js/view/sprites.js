@@ -3,6 +3,8 @@
 // crawler, knifeArm, palette, shadow. Figures are pre-rendered per recipe, layer and pose, then drawImage'd.
 // G lane (render and feel): soft contact shadows from one cached radial sprite, walk-cycle bob and squash from
 // view.anim, a gold outline on elites, coloured base rings on spitters and bloaters, and view.spriteScale.
+// Ground layer: groundEnemy / groundCivilian draw shadows and rings. render.js calls them before the depth pass and
+// passes a view with noGround set to the figure draws, so no shadow lands on a neighbour's legs.
 P.Sprites = (function () {
   var S = {}, R = P.ArtRig, CH = P.ArtChars, EN = P.ArtEnemies, TAU = R.TAU, INK = R.INK;
   var SKIN = ['#F1C9A5', '#E0AC80', '#C68B5E', '#9C6B47'];
@@ -135,8 +137,8 @@ P.Sprites = (function () {
   function drawFigure(c, X, Y, u, f, rc, o, t) {
     var U = R.bucket(u * devScale(c)), moving = !rc.still, pose = poseOf(rc, o, moving, t), J = R.solve(rc.B, pose);
     var refJ = R.solve(rc.B, { lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch, arms: 'idle' });
-    var hit = clamp((o.flash || 0) / 0.06, 0, 1), sq = squash(pose, moving, hit), ox = (o.recoil || 0) * hit * u, oy = 0;
-    var white = (o.flash || 0) > 0, low, high, dx, dy, ow = o.outline ? P.CFG.view.eliteOutline.units : 0;
+    var hit = clamp((o.flash || 0) / P.CFG.feel.hitFlash, 0, 1), sq = squash(pose, moving, hit), ox = (o.recoil || 0) * hit * u, oy = 0;
+    var white = (o.flash || 0) > 0 && !o.noWhite, low, high, dx, dy, ow = o.outline ? P.CFG.view.eliteOutline.units : 0;
     rc.U = U;
     if (rc.custom) {
       low = R.bake(rc.key + '|C' + pose.key, U, EN.CRAWL_BOX, function (g) { bakeGlow(g, rc, U); EN.crawlerDraw(g, rc, pose.walk); bakeGlow(g, {}, U); });
@@ -179,26 +181,51 @@ P.Sprites = (function () {
     drawFigure(c, X, Y, o.u, f, rc, o, performance.now());
   };
 
-  // Enemy at world pos; Rd is P.Render (X/Y/ppm/ctx). Handles emerge, turning, elite, boss, crawler.
-  // Draw scale = rig scale x view.spriteScale (G2); collision radii are never read from the view.
+  // Figure draw scale = rig scale x view.spriteScale (G2); collision radii are never read from the view.
+  function figUnit(Rd, e) {
+    var V = P.CFG.view, def = EN.def(e.type);
+    return Rd.ppm * def.scale * (V.spriteScale[e.type] || 1) * (e.boss ? 2.2 : 1) * (e.elite ? V.spriteScale.elite : 1);
+  }
+  // Ground layer for one enemy, drawn under every figure: elite and boss auras, a soft contact shadow sized to the body
+  // (G4: alpha 0.22, radius 0.9 x body) and a base ring on spitters and bloaters. Same feet anchor as the figure.
+  S.groundEnemy = function (Rd, e) {
+    var c = Rd.ctx, u = Rd.ppm, V = P.CFG.view, er = e.r || 0.35, X = Rd.X(e.x), Y = Rd.Y(e.y - er * 0.6);
+    var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1, def = EN.def(e.type), cs = V.contactShadow;
+    c.save(); c.globalAlpha *= emerge;
+    if (e.elite) eliteAura(c, X, Y, u, e);
+    if (e.boss) bossAura(c, X, Y, figUnit(Rd, e));
+    S.contact(c, X, Y, cs.radius * er * u, cs.alpha * (e.type === 'crawler' ? 1.3 : 1), cs.aspect);
+    var ring = def.ring || V.crowdRing[e.type];
+    if (ring) S.ring(c, X, Y, V.ringRadius * er * u, ring);
+    c.restore();
+  };
+  // Guardrail (no flashes faster than 3 per second): one white hit flash per enemy per feel.enemyFlashGap. A hit that
+  // lands during an allowed flash keeps it; a suppressed flash stays suppressed until it ends. Squash plays on every hit.
+  var flashSt = {}, flashCalls = 0;
+  function enemyFlashOk(e, now) {
+    var k = e.id, st = flashSt[k], hit = (e.flash || 0) > 0;
+    if (!st) st = flashSt[k] = { on: false, ok: false, at: -1e9, seen: now };
+    if (now - st.seen > 0.2) st.on = false;             // not drawn for a while (off screen): the next hit is a new flash
+    st.seen = now;
+    if (!hit) { st.on = false; st.ok = false; }
+    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap; if (st.ok) st.at = now; }
+    if (++flashCalls % 600 === 0) Object.keys(flashSt).forEach(function (q) { if (now - flashSt[q].seen > 2) delete flashSt[q]; });
+    return hit && st.ok;
+  }
+  // Enemy at world pos; Rd is P.Render (X/Y/ppm/ctx), or a view with noGround set when render.js already drew the ground.
+  // Handles emerge, turning, elite, boss, crawler.
   S.enemy = function (Rd, e, hero) {
-    var c = Rd.ctx, u = Rd.ppm, V = P.CFG.view, X = Rd.X(e.x), Y = Rd.Y(e.y - e.r * 0.6), f = hero.x >= e.x ? 1 : -1;
+    var c = Rd.ctx, u = Rd.ppm, V = P.CFG.view, X = Rd.X(e.x), Y = Rd.Y(e.y - (e.r || 0.35) * 0.6), f = hero.x >= e.x ? 1 : -1;
     var human = e.state === 'dormant' || ((e.civ || e.type === 'diner') && e.state === 'turning');
-    var def = EN.def(e.type), uf = u * def.scale * (V.spriteScale[e.type] || 1) * (e.boss ? 2.2 : 1) * (e.elite ? V.spriteScale.elite : 1);
-    var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1, er = e.r || 0.35;
+    var def = EN.def(e.type), uf = figUnit(Rd, e);
+    var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1;
+    if (!Rd.noGround) S.groundEnemy(Rd, e);
     if (e.state === 'turning') X += (Math.random() - 0.5) * 3;
     c.save();
     if (emerge < 1) { c.globalAlpha = emerge; c.translate(X, Y); c.scale(0.7 + 0.3 * emerge, 0.7 + 0.3 * emerge); c.translate(-X, -Y); }
-    if (e.elite) eliteAura(c, X, Y, u, e);
-    if (e.boss) bossAura(c, X, Y, uf);
-    // G4: soft ground shadow sized to the body (alpha 0.22, radius 0.9 x body) and a base ring on spitters and bloaters.
-    var cs = V.contactShadow;
-    S.contact(c, X, Y, cs.radius * er * u, cs.alpha * (e.type === 'crawler' ? 1.3 : 1), cs.aspect);
-    var ring = def.ring || V.crowdRing[e.type];
-    if (ring) S.ring(c, X, Y, 1.1 * er * u, ring);
     var rc = def.custom ? crawlerRc(e) : zombieRc(e, def, human, f);
     var o = { flash: e.flash, phase: (e.walk || 0) * 5.5, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
-      outline: e.elite ? V.eliteOutline.color : null };
+      outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000) };
     drawFigure(c, X, Y, uf, f, rc, o, performance.now());
     if (e.elite) eliteMarks(c, X, Y, uf, e);
     if (e.boss) bossMark(c, X, Y, uf);
@@ -234,9 +261,11 @@ P.Sprites = (function () {
   }
 
   // Civilians fleeing: varied living humans, arms up, running. v = {x, y, drift, walk, scream, variant, skin?}.
+  // Ground shadow of a civilian (ground layer; the figure view has noGround set, see groundEnemy).
+  S.groundCivilian = function (Rd, v) { S.shadow(Rd.ctx, Rd.X(v.x), Rd.Y(v.y), Rd.ppm); };
   S.civilian = function (Rd, v) {
     var c = Rd.ctx, u = Rd.ppm, X = Rd.X(v.x), Y = Rd.Y(v.y), vv = (v.variant | 0) & 7, id = v.skin || EN.CIV[vv], O = CH.outfit(id);
-    S.shadow(c, X, Y, u);
+    if (!Rd.noGround) S.shadow(c, X, Y, u);
     var rc = buildRc({ tag: 'h', oid: id, bname: 'human', B: CH.body('human'), O: O, skin: SKIN[vv & 3], shirt: O.top === 'overall' ? O.base : O.col,
       pants: O.pants, hair: O.hc || HAIR[1], shoe: O.shoe || '#2A2A2A', face: { mouth: v.scream > 0 ? 'scream' : 'open', brow: 'worried', blush: false },
       arms: 'panic', still: false, seed: (v.x * 0.37) % 4, mot: { gait: 'walk', strideK: 1.4, liftK: 1.3, sway: 0.02 }, hook: EN.accent });

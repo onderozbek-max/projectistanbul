@@ -413,7 +413,7 @@ P.Landmarks = (function () {
 
   L.draw = function (R, s, y0, y1) {
     if (isL1(s)) { washL1(R, y0, y1); drawItems(R, L1_ITEMS, y0, y1, s); return; }
-    if (P.LayoutsFx) P.LayoutsFx.ground(R, s, y0, y1);   // layout zone floors (AUDIT-6 B2), under the street items
+    if (P.LayoutFx) P.LayoutFx.floor(R, s, y0, y1);      // layout zone floors (AUDIT-6 B2), under the street items
     drawItems(R, planFor(s).items, y0, y1, s);
   };
   // Weather for generated levels: rain streaks, brazier fire glow on the sidewalks, fog bands.

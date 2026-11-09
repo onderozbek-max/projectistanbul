@@ -59,7 +59,7 @@ P.Meta = P.Meta || {};
     var out = {};
     M.Save.HEROES.forEach(function (h) {
       var raw = (src.heroes && src.heroes[h]) || {}, ult = raw.ult || 'nazar';
-      out[h] = { stats: P.Stats.normalize(raw.stats), ult: String(ult) };
+      out[h] = { stats: P.Stats.normalize(raw.stats), ult: String(ult), active: String(raw.active || P.CFG.skills.activeDefault || 'shield') };
     });
     return out;
   }

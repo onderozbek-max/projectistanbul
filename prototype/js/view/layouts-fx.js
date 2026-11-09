@@ -1,12 +1,30 @@
-// Layout zones for generated levels (AUDIT-6 B2): zone floors and the lx_* block painters. The sim decides where they
-// go (js/sim/layouts.js, numbers in js/config-layouts.js). P.LayoutsFx.ground runs from istanbul-landmarks.js L.draw,
-// after the street ground, so each zone floor covers the corridor; solids are drawn by the props pass as usual.
+// Layout zones for generated levels (AUDIT-6 B2): zone floors, the lx_* block painters and the door, window and manhole
+// marks at the spawn points. The sim decides where things go (js/sim/layouts.js, numbers in js/config-layouts.js).
+// Two entry points: P.LayoutFx.floor runs from istanbul-landmarks.js L.draw (under the street items, so arches and
+// billboards in a zone still show); P.LayoutFx.drawGround is the render hook (render.js, over the street, under decals).
+// Floors take a tint from the hood's theme, so a plaza in Samatya reads differently from one in Laleli.
 // Painters register into P.Props (kinds lx_*); contract as istanbul-props.js: fn(c, X, Y, s, o), s = px per metre.
-P.LayoutsFx = (function () {
+P.LayoutFx = (function () {
   var H = P.Props.h, INK = '#14151F', LINE = 'rgba(0,0,0,0.13)';
   var FLOOR = { plaza: '#CDBFA6', market: '#B59A78', chicane: '#A39C8F', waterfront: '#B8AD96', bridge: '#8D877C', arena: '#7C7467' };
   var STEP = { plaza: 3, market: 2, chicane: 2.5, waterfront: 6, bridge: 1.5, arena: 4 };
   var AWN = ['#B5401D', '#2E6E8E', '#C9A227', '#2E7D4F'];
+  var TINT = 0.45;                                   // share of the hood's walk colour in a zone floor
+  var MARK = { doorW: 0.9, doorD: 0.4, winW: 1.2, winD: 0.35, manholeR: 0.45 };   // spawn marks (m)
+  var cache = {};
+
+  function rgb(hex) { var n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  function hex(v) { return '#' + v.map(function (k) { return ('0' + Math.round(k).toString(16)).slice(-2); }).join(''); }
+  // Floor colour for a zone kind in a hood: the kind's paving mixed with the hood's walk colour.
+  function floorOf(kind, theme) {
+    var key = kind + '|' + theme;
+    if (!cache[key]) {
+      var th = P.Themes.get(theme), base = rgb(FLOOR[kind] || FLOOR.plaza), wc = rgb(th.wc || FLOOR[kind] || '#8A8A8A');
+      cache[key] = hex(base.map(function (v, i) { return v * (1 - TINT) + wc[i] * TINT; }));
+    }
+    return cache[key];
+  }
+  function themeOf(s) { return (s.levelInfo && s.levelInfo.hood && s.levelInfo.hood.theme) || s.theme || 'istiklal'; }
 
   // Paving lines across a zone: plaza and arena grids, market and chicane cobbles, bridge planks, waterfront quay joints.
   function lines(R, z, a, b, x0, x1) {
@@ -21,20 +39,54 @@ P.LayoutsFx = (function () {
     }
   }
 
-  // Floor for every zone that overlaps the visible window [y0, y1].
-  function ground(R, s, y0, y1) {
-    var G = s && s.geo, c = R.ctx;
+  // Zone floors for every zone that overlaps the visible window [y0, y1]. Under the street items (L.draw).
+  function floor(R, s, y0, y1) {
+    var G = s && s.geo, c = R.ctx, theme = themeOf(s);
     if (!G || !G.zones) return;
     G.zones.forEach(function (z) {
       if (z.y1 < y0 || z.y0 > y1) return;
       var a = Math.max(z.y0, y0), b = Math.min(z.y1, y1), x0 = G.xMin, x1 = G.xMax;
-      c.fillStyle = FLOOR[z.kind] || FLOOR.plaza;
+      c.fillStyle = floorOf(z.kind, theme);
       c.fillRect(R.X(x0), R.Y(b), (x1 - x0) * R.ppm, (b - a) * R.ppm);
       lines(R, z, a, b, x0, x1);
     });
   }
 
-  // lx_pillar: stone column with a capital (plaza, arena cover).
+  // Spawn marks: a door (dark wood with a threshold), a window (pale glass with a sill) and a manhole (iron grate).
+  // Drawn at the facade line the sim published (s.layout.spawns), so the player can see where zombies come from.
+  function mark(c, R, p) {
+    var X = R.X(p.x), Y = R.Y(p.y), u = R.ppm, w, d;
+    if (p.kind === 'manhole') {
+      c.fillStyle = '#2A2C31'; c.beginPath(); c.arc(X, Y, MARK.manholeR * u, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#6E7078'; c.lineWidth = Math.max(1, 0.06 * u); c.stroke();
+      return;
+    }
+    w = (p.kind === 'door' ? MARK.doorW : MARK.winW) * u; d = (p.kind === 'door' ? MARK.doorD : MARK.winD) * u;
+    if (p.kind === 'door') {
+      H.rc(c, X, Y, d, w, '#5A3B25', 1.2);
+      H.rc(c, X, Y, d * 0.5, w * 0.8, '#2B1C12', 0);
+    } else {
+      H.rc(c, X, Y, d, w, '#9FC6D6', 1.2);
+      H.ln(c, X - d * 0.5, Y, X + d * 0.5, Y, '#3A3E45', Math.max(1, 0.08 * u));
+    }
+  }
+  function marks(R, s, y0, y1) {
+    var L = s && s.layout, c = R.ctx;
+    if (!L || !L.spawns) return;
+    L.spawns.forEach(function (p) {
+      if (p.y < y0 - 1 || p.y > y1 + 1) return;
+      mark(c, R, p);
+    });
+  }
+  // Render hook: the spawn marks over the street (the floors were laid in L.draw, under the items).
+  function drawGround(R, s) {
+    var cam = R.cam, half, y0, y1;
+    if (!s || !s.layout || !cam) return;
+    half = P.viewHalfH(cam.w) + 3; y0 = cam.y - half; y1 = cam.y + half;
+    marks(R, s, y0, y1);
+  }
+
+  // lx_pillar: stone column with a capital (plaza, arena cover, chicane pier).
   function pillar(c, X, Y, s, o) {
     var w = (o.w || 1.2) * s, d = (o.h || 1.2) * s, hg = 1.0 * s;
     H.shadow(c, X, Y, w * 0.7, d * 0.5);
@@ -95,5 +147,5 @@ P.LayoutsFx = (function () {
   P.Props.reg('lx_sea', sea);
   P.Props.reg('lx_truck', truck);
   P.Props.reg('lx_boat', boat);
-  return { ground: ground };
+  return { floor: floor, drawGround: drawGround, floorOf: floorOf };
 })();

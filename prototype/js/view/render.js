@@ -36,12 +36,17 @@ P.Render = (function () {
     return mid + amp * Math.sin(t / 1000 * Math.PI * 2 * V.blinkHz);
   }
 
+  // Hero contact shadow. It is drawn on the ground layer (frame), before any figure, never over a neighbour.
+  function drawHeroShadow(s) {
+    var h = s.hero, V = P.CFG.view;
+    P.Sprites.contact(R.ctx, R.X(h.x), R.Y(h.y - 0.25), V.heroShadow.radius * R.ppm, V.heroShadow.alpha, V.heroShadow.aspect);
+  }
+
   function drawHero(s) {
     var h = s.hero, c = R.ctx, u = R.ppm, t = performance.now(), V = P.CFG.view;
     heroAnim.walk += Math.hypot(h.x - heroAnim.x, h.y - heroAnim.y); heroAnim.x = h.x; heroAnim.y = h.y;
     var X = R.X(h.x), Y = R.Y(h.y - 0.25), face = h.fx >= 0 ? 1 : -1;
     c.setLineDash([3, 6]); circle(h.x, h.y, h.pickupRadius, null, 'rgba(61,220,255,0.45)', 1.2); c.setLineDash([]);
-    P.Sprites.contact(c, X, Y, V.heroShadow.radius * u, V.heroShadow.alpha, V.heroShadow.aspect);   // soft shadow under the feet
     var ring = 0.5 + 0.03 * Math.sin(t / 300);
     c.strokeStyle = '#14151F'; c.lineWidth = 6; c.beginPath(); c.ellipse(X, Y, ring * u, ring * 0.4 * u, 0, 0, Math.PI * 2); c.stroke();
     c.strokeStyle = '#3DDCFF'; c.lineWidth = 3; c.stroke();
@@ -180,6 +185,7 @@ P.Render = (function () {
     var L1 = !s.levelIndex || s.levelIndex === 1;
     if (L1 && y0 < 1) P.RenderWorld.drawRestaurant(R, s);
     P.Decor.drawStreet(R, s, y0, y1);
+    hook(P.LayoutFx, 'drawGround', s);           // lane B: layout zone floors (plaza, market, bridge), over the street, under decals
     hook(P.EnvFx, 'drawGround', s);              // lane A: floor decals (puddles, glass, debris), after the floor, before shadows
     P.RenderWorld.drawShadows(R, s, y0, y1);      // ground ambient occlusion under carts, canisters and blocks
     drawGround();
@@ -187,15 +193,21 @@ P.Render = (function () {
     hook(P.WFx2, 'drawGround', s);
     hook(P.EnemyFx, 'drawGround', s);
     hook(P.EventsFx, 'drawGround', s);
+    // Ground layer for actors: contact shadows, base rings and auras sit under every figure, so no shadow lands on a
+    // neighbour's legs (G4). Figures then draw through RF, which skips their ground.
+    var actors = s.enemies.filter(function (e) { return Math.abs(e.y - cam.y) < half; }), RF = Object.create(R);
+    RF.noGround = true;
+    actors.forEach(function (e) { P.Sprites.groundEnemy(R, e); });
+    s.dir.civilians.forEach(function (v) { P.Sprites.groundCivilian(R, v); });
+    drawHeroShadow(s);
     drawDrops(s);
     hook(P.EnemiesFx2, 'drawUnder', s);           // lane C: decals under the crowd
     // Depth pass: props, actors and civilians queue themselves, then flush far to near (see R.depth).
     depthQ.length = 0;
     hook(P.EnvFx, 'drawProps', s);                // lane A: props (call R.depth(y, fn) to sort them with the actors)
     P.RenderWorld.drawProps(R, s);
-    var actors = s.enemies.filter(function (e) { return Math.abs(e.y - cam.y) < half; });
-    s.dir.civilians.forEach(function (v) { R.depth(v.y, function () { P.Sprites.civilian(R, v); }, false); });
-    actors.forEach(function (e) { R.depth(e.y, function () { P.Sprites.enemy(R, e, s.hero); }, false); });
+    s.dir.civilians.forEach(function (v) { R.depth(v.y, function () { P.Sprites.civilian(RF, v); }, false); });
+    actors.forEach(function (e) { R.depth(e.y, function () { P.Sprites.enemy(RF, e, s.hero); }, false); });
     var hy = s.hero.y, pre = [], post = [];
     depthQ.forEach(function (d) { (d.occ && d.y <= hy ? post : pre).push(d); });   // props in front of the hero come after him
     pre.sort(byDepth); post.sort(byDepth);

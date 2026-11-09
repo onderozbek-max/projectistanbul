@@ -27,6 +27,7 @@ function mk(seed, idx) { return P.createSim(seed, { levelIndex: idx }); }
 function clean(s, hy) {
   s.geo.blocks.length = 0; s.enemies.length = 0; s.zones.length = 0; s.events.length = 0;
   s.env.recs.length = 0; s.env.zones.length = 0; s.env.portals.length = 0; s.env.cables.length = 0; s.env.arcs.length = 0;
+  s.env.heroMul = 1;   // a wet tile from an earlier scenario must not slow this one
   s.hero.x = 0; s.hero.y = hy || 30; s.hero.invuln = 0; s.hero.hp = s.hero.maxHp; s.hero.iframes = 0;
   s.mode = 'play';   // damageHero and stepSim only act in play
 }
@@ -42,7 +43,7 @@ function walker(s, x, y) { return P.Combat.spawnEnemy(s, 'walker', x, y, { door:
 function ring(s, cx, cy, r, n) { var out = []; for (var i = 0; i < n; i++) { var a = i / n * Math.PI * 2; out.push(walker(s, cx + Math.cos(a) * r, cy + Math.sin(a) * r)); } return out; }
 function run(s, secs) {
   var n = Math.round(secs / DT);
-  for (var i = 0; i < n; i++) { P.Env.step(s, DT); P.Combat.updateBurnAndZones(s, DT); P.Combat.removeDead(s); }
+  for (var i = 0; i < n; i++) { P.Env.step(s, DT); P.Status.step(s, DT); P.Combat.updateBurnAndZones(s, DT); P.Combat.removeDead(s); }
 }
 const count = (s, type) => s.events.filter(e => e.type === type).length;
 const alive = list => list.filter(e => !e.dead).length;
@@ -262,6 +263,56 @@ const alive = list => list.filter(e => !e.dead).length;
   check(far === 0, 'portal: no spawn further than 1 m from its opening (' + far + ' too far)');
   check(spawnsEv === s.env.portals.length, 'portal: one envSpawn per opening');
   notes.push('portals: ' + s.env.portals.length + ', spawned ' + total + ', telegraphs ' + tele);
+})();
+
+// ---------- A5 in play: the hero walks 60 s up a generated level; every portal spawn lands within 1 m of its opening ----------
+(function () {
+  var s = mk(11, 2), orig = P.Combat.spawnEnemy, n = 0, worst = 0, steps = Math.round(60 / DT), i;
+  P.Combat.spawnEnemy = function () {
+    var e = orig.apply(this, arguments), o = arguments[4];
+    if (o && o.door && o.door.kind) { n++; worst = Math.max(worst, dist(e, o.door)); }
+    return e;
+  };
+  try {
+    s.mode = 'play';
+    for (i = 0; i < steps && s.mode === 'play'; i++) {
+      s.hero.hp = s.hero.maxHp; s.hero.invuln = 0.5;
+      P.stepSim(s, DT, { x: 0, y: 1 });
+    }
+  } finally { P.Combat.spawnEnemy = orig; }
+  check(n > 0, 'portal in play: openings spawned enemies during 60 s (' + n + ')');
+  check(worst <= 1, 'portal in play: every spawn within 1 m of its opening (worst ' + worst.toFixed(2) + ' m)');
+  notes.push('portal in play: ' + n + ' spawns in ' + (i * DT).toFixed(0) + ' s, worst ' + worst.toFixed(2) + ' m');
+})();
+
+// ---------- W seam and tags: kindsAt feeds weapons6 terrainAt; tags come from ev.tag, else the weapon id; a blunt hit
+// throws wider debris; a fire hit leaves a burning patch; a chain of canisters never blasts faster than 3 per second ----------
+(function () {
+  var s = mk(29, 2); clean(s, 20);
+  P.EnvZones.add(s, 'puddle', 4, 40, 1.2, 12, 0.25);
+  check(P.Env.kindsAt(s, 4, 40).indexOf('wet') >= 0 && P.Env.kindsAt(s, 9, 40).length === 0, 'seam: kindsAt reports wet inside a puddle only');
+  check(P.Weapons6.terrainAt(s, 4, 40).indexOf('wet') >= 0, 'seam: weapons6 terrainAt sees the puddle as wet');
+  check(P.Env.tagOf({ tag: 'fire', id: 'knife' }) === 'fire' && P.Env.tagOf({ id: 'sledge' }) === 'blunt' &&
+    P.Env.tagOf({ type: 'flaskShatter' }) === 'fire' && P.Env.tagOf('sledge') === 'blunt' && P.Env.tagOf(null) === null, 'tags: ev.tag wins, then weapon id, then type');
+  clean(s, 20);
+  var b1 = addBlock(s, 'crates', 0, 40, 1, 1), b2 = addBlock(s, 'crates', 3, 40, 1, 1), b3 = addBlock(s, 'crates', -3, 40, 1, 1);
+  P.Env.hitProp(s, b1, 100, 'sledge');
+  P.Env.hitProp(s, b2, 100, 'torch');
+  P.Env.hitProp(s, b3, 100);
+  var zb = s.env.zones.filter(z => z.kind === 'debris'), spreads = zb.map(z => +z.r.toFixed(2));
+  check(zb.length === 3 && spreads.indexOf(+(P.CFG.env.debris.r * P.CFG.env.tagDebris.blunt).toFixed(2)) >= 0, 'tags: a blunt break throws wider debris (' + spreads.join('/') + ')');
+  check(s.zones.some(z => z.kind === 'fire' && Math.abs(z.x - 3) < 1e-6), 'tags: a fire break leaves a burning patch');
+  check(!s.zones.some(z => z.kind === 'fire' && Math.abs(z.x) < 1e-6), 'tags: a blunt break leaves no fire');
+  clean(s, 20);
+  var A = addBlock(s, 'gascan', 2, 50, 0.7, 0.7), B = addBlock(s, 'gascan', 2, 52.5, 0.7, 0.7), C = addBlock(s, 'gascan', 2, 55, 0.7, 0.7);
+  P.Env.hitProp(s, A, 99);
+  var blastAt = [];
+  for (var i = 0; i < 60 * 3; i++) {
+    P.Env.step(s, DT);
+    s.events.forEach(function (e) { if (e.type === 'envExplode' && !e.seen) { e.seen = true; blastAt.push(i * DT); } });
+  }
+  var perSec = 0; blastAt.forEach(function (t) { if (blastAt.some(u => u >= t && u < t + 1)) perSec = Math.max(perSec, blastAt.filter(u => u >= t && u < t + 1).length); });
+  check(blastAt.length === 3 && perSec <= 3, 'chain: three linked canisters blast in order at most 3 per second (' + blastAt.map(t => t.toFixed(2)).join(', ') + ')');
 })();
 
 // ---------- sim isolation and lint ----------

@@ -15,6 +15,10 @@ var SEQ = {
 
 function def(e) { return P.CFG.bosses[e.type]; }
 
+// Telegraph floor (AUDIT-6 C4, DS 6): every boss attack's windup is at least config-enemies4 telegraphMin, after the phase
+// multiplier. Shorter windups (phase 2-3 mults, the kasap's quick swings, the brute's rage windup) stop at the floor.
+function tele(W) { var m = P.CFG.enemies4 ? P.CFG.enemies4.telegraphMin : 0; return m > W ? m : W; }
+
 // Archetype for a hood: the bossByHood table wins over the hood's own boss type (journey.js).
 P.Bosses.archetype = function (hoodId, type) {
   var t = P.CFG.bossByHood && hoodId ? P.CFG.bossByHood[hoodId] : null;
@@ -120,54 +124,54 @@ function start(s, e, name) {
   a.m = 'windup'; a.t = 0; a.act = name; e.dvx = 0; e.dvy = 0;
   a.dir = P.Enemies.unit(h.x - e.x, h.y - e.y);
   if (name === 'charge') {
-    W = (rage ? B.rageWindup : B.windup) * a.wm;
+    W = tele((rage ? B.rageWindup : B.windup) * a.wm);
     a.W = W; a.len = B.laneLen; a.spd = B.chargeSpeed * a.spdMul; a.dmg = P.Enemies.dmgOf(s, e, B.chargeDmg); a.kb = B.chargeKb; a.shove = P.CFG.enemies.brute.shove;
     P.Enemies.lane(s, e.x, e.y, a.dir.x, a.dir.y, B.laneLen, B.laneW, W).owner = e.id;
     s.events.push({ type: 'bruteRoar', x: e.x, y: e.y, boss: true });
   } else if (name === 'stomp') {
-    a.W = B.stomp.windup;
+    a.W = tele(B.stomp.windup);
     addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: B.stomp.r, T: a.W, then: 'stomp', dmg: P.Enemies.dmgOf(s, e, B.stomp.dmg), kb: 2.5 });
   } else if (name === 'summon') {
-    a.W = B.summon.windup;
+    a.W = tele(B.summon.windup);
     addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: B.summon.r, T: a.W, then: 'summon', n: B.summon.n, kind2: 'walker', skin: e.skin, col: 'summon' });
   } else if (name === 'pools') {
-    a.W = B.pools.windup;
+    a.W = tele(B.pools.windup);
     for (var i = 0; i < B.pools.n; i++) {
       var p = spot(s, h, B.pools.span);
       addTele(s, e, { kind: 'ring', x: p.x, y: p.y, r: B.pools.r, T: a.W, then: 'toxic', T2: B.pools.t, dps: B.pools.dps, col: 'toxic' });
     }
   } else if (name === 'minis') {
-    a.W = B.minis.windup;
+    a.W = tele(B.minis.windup);
     addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: B.minis.r, T: a.W, then: 'summon', n: B.minis.n, kind2: 'bloater', mini: true, skin: e.skin, col: 'toxic' });
   } else if (name === 'slam') {
-    a.W = B.slam.windup;
+    a.W = tele(B.slam.windup);
     addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: B.slam.r, T: a.W, then: 'slam', dmg: P.Enemies.dmgOf(s, e, B.slam.dmg), shove: B.slam.shove, col: 'slam' });
   } else if (name === 'fan') {
-    a.W = B.fan.windup;
+    a.W = tele(B.fan.windup);
     fanTargets(s, e, B.fan).forEach(function (t) {
       addTele(s, e, { kind: 'ring', x: t.x, y: t.y, r: B.fan.r, T: a.W, then: 'glob', src: e, o: B.fan, flight: B.fan.flight,
         dmg: P.Enemies.dmgOf(s, e, B.fan.dmg), cause: 'spitter', col: 'acid' });
     });
   } else if (name === 'rain') {
-    a.W = B.rain.windup;
+    a.W = tele(B.rain.windup);
     for (var k = 0; k < B.rain.n; k++) {
       var q = spot(s, h, B.rain.span);
       addTele(s, e, { kind: 'ring', x: q.x, y: q.y, r: B.rain.r, T: a.W, then: 'puddle', T2: B.rain.t, dps: B.rain.dps, col: 'acid' });
     }
   } else if (name === 'smash') {                       // taksici: hood smash on the spot ahead of the car
-    a.W = B.smash.windup * a.wm;
+    a.W = tele(B.smash.windup * a.wm);
     addTele(s, e, { kind: 'ring', x: e.x + a.dir.x * B.smash.reach, y: e.y + a.dir.y * B.smash.reach, r: B.smash.r, T: a.W,
       then: 'smash', dmg: P.Enemies.dmgOf(s, e, B.smash.dmg), kb: B.smash.shove, cause: e.type, col: 'slam' });
   } else if (name === 'combo') {                       // kasapBoss: three swings, one after another
     a.combo = 3; startSwing(s, e, a, B);
   } else if (name === 'throw') {                       // kasapBoss: the cleaver lands on the hero's spot
-    a.W = B.throw.windup * a.wm;
+    a.W = tele(B.throw.windup * a.wm);
     addTele(s, e, { kind: 'ring', x: h.x, y: h.y, r: B.throw.r, T: a.W, then: 'swing', dmg: P.Enemies.dmgOf(s, e, B.throw.dmg),
       kb: 0.6, cause: e.type, col: 'danger' });
     P.Enemies3.launchBlade(s, e.x, e.y, h.x, h.y, a.W);
     s.events.push({ type: 'bossWindup', id: e.id, x: e.x, y: e.y, boss: e.type });
   } else if (name === 'frenzy') {                      // kasapBoss: four small swings on the hero's area
-    a.W = B.frenzy.windup * a.wm;
+    a.W = tele(B.frenzy.windup * a.wm);
     for (var n = 0; n < B.frenzy.n; n++) {
       var f = spot(s, h, B.frenzy.span);
       addTele(s, e, { kind: 'ring', x: f.x, y: f.y, r: B.frenzy.r, T: a.W, then: 'swing', dmg: P.Enemies.dmgOf(s, e, B.frenzy.dmg),
@@ -178,7 +182,7 @@ function start(s, e, name) {
 
 // One swing of the kasapBoss combo: a ring on the spot in front of the boss. Swings chain from the recover state.
 function startSwing(s, e, a, B) {
-  var i = 3 - a.combo, h = s.hero, W = B.swing.windup[i] * a.wm, dir = P.Enemies.unit(h.x - e.x, h.y - e.y);
+  var i = 3 - a.combo, h = s.hero, W = tele(B.swing.windup[i] * a.wm), dir = P.Enemies.unit(h.x - e.x, h.y - e.y);
   a.combo--; a.m = 'windup'; a.t = 0; a.W = W; a.act = 'combo'; a.dir = dir; e.dvx = 0; e.dvy = 0;
   addTele(s, e, { kind: 'ring', x: e.x + dir.x * B.swing.reach, y: e.y + dir.y * B.swing.reach, r: B.swing.r, T: W,
     then: 'swing', dmg: P.Enemies.dmgOf(s, e, B.swing.dmg), kb: B.swing.kb, cause: e.type, col: 'slam' });

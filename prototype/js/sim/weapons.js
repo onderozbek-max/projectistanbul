@@ -139,7 +139,7 @@ function fireKnife(s, dt) {
   P.Weapons.fired(s, 'knife', Math.atan2(ay, ax), dirs.length);
   dirs.forEach(function (dv, k) {
     s.events.push({ type: 'swing', x: h.x, y: h.y, ax: dv[0], ay: dv[1], range: range, arcDeg: lv.arcDeg,
-      dir: h.swingDir, back: k > 0, variant: variant, sig: !!A.sig });
+      dir: h.swingDir, back: k > 0, variant: variant, sig: !!A.sig, tag: P.Weapons.tagOf('knife') });
     for (var i = 0; i < s.enemies.length; i++) {
       var e = s.enemies[i];
       if (e.dead || e.state === 'dormant') continue;
@@ -167,7 +167,7 @@ P.Weapons.nailVolley = function (s, id, cfg, lv, target, A) {
     s.nails.push({ x: h.x + Math.cos(a) * 0.4, y: h.y + Math.sin(a) * 0.4, vx: Math.cos(a) * cfg.speed, vy: Math.sin(a) * cfg.speed,
       t: cfg.life, dmg: dmg, pierce: lv.pierce + M.pierce, hit: {}, kb: kb, id: id, A: A });
   }
-  s.events.push({ type: 'nailFire', x: h.x, y: h.y, a: base, id: id, n: n });
+  s.events.push({ type: 'nailFire', x: h.x, y: h.y, a: base, id: id, n: n, tag: P.Weapons.tagOf(id) });
   P.Weapons.fired(s, 'nailgun', base, n, id);
 };
 
@@ -209,7 +209,7 @@ P.Weapons.throwLobs = function (s, id, cfg, lv, chosen, flight, kb, A) {
     s.projs.push({ id: id, x0: h.x, y0: h.y, x1: c.x, y1: c.y, t: 0, T: flight, lv: lv, kb: kb, A: A, first: i === 0,
       spin: s.rng.combat.range(0, 6) });
   });
-  s.events.push({ type: 'canisterThrow', id: id, n: chosen.length, x: h.x, y: h.y });
+  s.events.push({ type: 'canisterThrow', id: id, n: chosen.length, x: h.x, y: h.y, tag: P.Weapons.tagOf(id) });
 };
 
 function fireCanister(s, dt) {
@@ -236,7 +236,7 @@ function landLob(s, p) {
   if (A.sig && A.sig.extra === 'ring' && p.first) for (var k = 0; k < 8; k++) fireZone(s, p.x1 + Math.cos(k * Math.PI / 4) * r * 0.7, p.y1 + Math.sin(k * Math.PI / 4) * r * 0.7, r * 0.3);
   if (p.first) P.Mods.announce(s, A, p.x1, p.y1, r);
   if (lv.subs && !stuck) P.Weapons.split(s, p);
-  s.events.push({ type: 'blast', x: p.x1, y: p.y1, r: r, small: true, id: p.id, src: p.id, stuck: stuck });
+  s.events.push({ type: 'blast', x: p.x1, y: p.y1, r: r, small: true, id: p.id, src: p.id, stuck: stuck, tag: P.Weapons.tagOf(p.id) });
 }
 
 function fireZone(s, x, y, r) {
@@ -247,7 +247,7 @@ function fireZone(s, x, y, r) {
 // Cluster bomb: three secondary hops that burst around the landing point.
 P.Weapons.split = function (s, p) {
   var lv = p.lv, sub = { blast: lv.subBlast, dmg: lv.subDmg, subs: 0, fire: false };
-  s.events.push({ type: 'clusterSplit', x: p.x1, y: p.y1, n: lv.subs });
+  s.events.push({ type: 'clusterSplit', x: p.x1, y: p.y1, n: lv.subs, tag: P.Weapons.tagOf(p.id) });
   for (var k = 0; k < lv.subs; k++) {
     var a = k * Math.PI * 2 / lv.subs + p.spin;
     s.projs.push({ id: p.id, x0: p.x1, y0: p.y1, x1: p.x1 + Math.cos(a) * P.CFG.weapons.cluster.subR,
@@ -290,7 +290,9 @@ P.Weapons.bladeHits = function (s, lv, angle, gap, kb, src, field, A) {
       if (e[field] && s.t - e[field] < gap) continue;
       e[field] = s.t;
       P.Mods.hit(s, e, dmg, -Math.sin(a), Math.cos(a), kb, src, A);
-      if (lv.arcN) P.Weapons6.arcFrom(s, e, lv, src, !!lv.wetArcs && P.Weapons6.terrainHit(s, 'chain', 'electric', e.x, e.y).indexOf('wet') >= 0);
+      // Every blade hit records its terrain (so the base chain can unlock Elektrik Zinciri on wet ground), then arcs if owned.
+      var wet = P.Weapons6.terrainHit(s, 'chain', 'electric', e.x, e.y).indexOf('wet') >= 0;
+      if (lv.arcN) P.Weapons6.arcFrom(s, e, lv, src, !!lv.wetArcs && wet);
     }
   }
 };

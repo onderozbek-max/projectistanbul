@@ -12,31 +12,35 @@ function removeBlock(s, r) {
 
 // Hit: a lit fuse ignores hits (the blast is coming). A burning car (bomb) lights on its first hit, so the telegraph
 // reads at once; hp still counts. Breaking runs the kind's behaviour (a lit car is not broken, it blows on its fuse).
-P.Env.hitProp = function (s, r, dmg) {
+// src: a damage tag or weapon id (W lane passes it through combat.js damageProp); missing means a plain hit.
+P.Env.hitProp = function (s, r, dmg, src) {
   if (!r.alive || r.fuseT > 0) return;
   r.hp -= dmg; r.flash = P.CFG.feel.hitFlash;
   if (r.bomb) P.Env.fuse(s, r, 'hit', P.CFG.env.fuse.car);
-  if (r.hp <= 0) P.Env.broke(s, r);
+  if (r.hp <= 0) P.Env.broke(s, r, P.Env.tagOf(src));
 };
 
-P.Env.broke = function (s, r) {
+P.Env.broke = function (s, r, tag) {
   if (r.bomb || r.kind === 'gascan') { P.Env.fuse(s, r, 'hit', P.CFG.env.fuse[r.kind === 'gascan' ? 'gas' : 'car']); return; }
-  if (r.kind === 'extinguisher') { spray(s, r); breakCover(s, r); return; }
-  breakCover(s, r);
+  if (r.kind === 'extinguisher') { spray(s, r); breakCover(s, r, tag); return; }
+  breakCover(s, r, tag);
 };
 
-// Cover: leaves a slowing debris zone, drops loot, and comes out of the geometry (the hack.js splice).
-function breakCover(s, r) {
+// Cover: leaves a slowing debris zone, drops loot, and comes out of the geometry (the hack.js splice). A blunt hit throws
+// the debris wider; a fire hit leaves a small burning patch (it can light a canister next to it).
+function breakCover(s, r, tag) {
   var C = P.CFG.env, E = s.env, L = C.loot, glass = C.glassKinds.indexOf(r.kind) >= 0 ? 'glass' : 'debris', drop = 'none';
+  var spread = C.tagDebris[tag] || 1;
   r.alive = false; removeBlock(s, r); E.stats.breaks++;
-  if (glass === 'glass') P.EnvZones.add(s, 'glass', r.x, r.y, C.glass.r, C.glass.T, C.glass.slow);
-  else P.EnvZones.add(s, 'debris', r.x, r.y, C.debris.r, C.debris.T, C.debris.slow);
+  if (glass === 'glass') P.EnvZones.add(s, 'glass', r.x, r.y, C.glass.r * spread, C.glass.T, C.glass.slow);
+  else P.EnvZones.add(s, 'debris', r.x, r.y, C.debris.r * spread, C.debris.T, C.debris.slow);
+  if (tag === 'fire') s.zones.push({ kind: 'fire', x: r.x, y: r.y, r: C.burn.r, t: C.burn.T, T: C.burn.T, dps: C.burn.dps });
   if (E.rng.chance(L.simitChance)) { drop = 'simit'; P.Events.drop(s, 'simit', r.x, r.y, P.CFG.drops.simitHeal); }
   else if (E.rng.chance(L.jetonChance)) {
     drop = 'jeton';
     P.Events.drop(s, 'jeton', r.x, r.y, Math.round(E.rng.range(L.jetonMin, L.jetonMax) * (1 + s.fx.coinPct)));
   }
-  s.events.push({ type: 'envBreak', kind: r.kind, x: r.x, y: r.y, mat: glass, drop: drop });
+  s.events.push({ type: 'envBreak', kind: r.kind, x: r.x, y: r.y, mat: glass, drop: drop, tag: tag || null, spread: spread });
 }
 
 // Fuse: the shorter of the running and the new timer wins. Gas starts a hiss cloud (the telegraph and the molotov

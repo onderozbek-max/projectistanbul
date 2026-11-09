@@ -1,19 +1,22 @@
 // Level layouts for generated levels 2..100 (workstream B, AUDIT-6 B2-B4). Pure sim: no DOM, no Math.random.
 // Each generated level has one layout zone, chosen by its stage (journey.js `layouts`; stage 5 is the boss arena).
-// Templates: plaza (open square, centre landmark, pillars), market (stall rows, alley chokepoints), chicane (shop walls
-// with 2.6 m gaps), waterfront (sea on one side), bridge (narrow deck over water), arena (boss cover per boss type).
-// Route parts outside a zone are the street: the hood's block kit (levels.js layBlocks) and centre landmarks every 30 m.
-// Numbers live in config-layouts.js (P.CFG.layouts).
+// Templates: plaza (open square, centre landmark, pillars), market (stall rows, alley chokepoints), chicane (shop wall
+// and pier with a 2.6 m gap, alternating sides), waterfront (sea on one side), bridge (narrow deck over water), arena
+// (boss cover per boss type). Route parts outside a zone are the street: the hood's block kit (levels.js layBlocks) and
+// centre landmarks every 30 m. Numbers live in config-layouts.js (P.CFG.layouts).
 //
 // s.layout contract (set by P.Levels.build; undefined on L1):
-//   zones:  [{ kind, stage, y0, y1, len }]   kind: plaza | market | chicane | waterfront | bridge | arena
+//   walk:   { x0, x1, y0, y1 }                hero walkable rect: |x| <= view.geoHeroHalfX (G1), from 0 to the exit gate
+//   zones:  [{ kind, stage, y0, y1, len }]    kind: plaza | market | chicane | waterfront | bridge | arena
 //   chokes: [{ x, y, w, zone }]               gaps of w <= layouts.maxChoke m; route zones have >= layouts.minChokes
 //   centre: [{ x, y, kind, recipe, ev }]      3 x 3 m centre landmarks, kind 'cm_*' (view: layouts-centre.js);
 //                                             ev = ambush | loot | hack, fired by P.Layouts.trigger from a 'landmark' mark
 //   slots:  [{ x, y, zone }]                  free floor spots for env props (Lane A); zone = index in zones, -1 = street
+//   spawns: [{ x, y, side, kind }]            door | window | manhole spawn points (Lane A portals); side = -1 | 1
 //   boss:   { type, cover } | null            arena cover for the boss stage (cover = piece kind)
 // Solids are AABBs in geo.blocks: { kind, x, y, w, h, rc }. kind is lx_* (view: layouts-fx.js), cm_* (layouts-centre.js),
 // bollard or tables (existing P.Props kinds). geo.zones = zones, geo.landmarks = centre.
+// P.Layouts.botTarget(s) gives tools/bot.js the next chokepoint to walk through (the bot has no path planner).
 P.Layouts = {};
 
 var T = {};   // template generators: T[kind](zone, out) fill out.solids, out.chokes, out.centre
@@ -61,14 +64,17 @@ T.market = function (z, out) {
   }
 };
 
-// Chicane: shop walls every `every` m, alternating sides; each leaves a gap on the far side.
+// Chicane: shop walls every `every` m, alternating sides. Each wall runs from the corridor edge to the gap; a pier on the
+// far side closes the gap at the hero's reach, so the 2.6 m gap sits inside the walkable width.
 T.chicane = function (z, out) {
-  var C = P.CFG.layouts.chicane, n = Math.floor(z.len / C.every), i, sd, y;
+  var C = P.CFG.layouts.chicane, n = Math.floor(z.len / C.every), i, sd, y, xe;
   for (i = 0; i < n; i++) {
     sd = i % 2 ? 1 : -1;
     y = z.y0 + C.every * (i + 0.5);
-    solid(out, 'lx_wall', sd * C.gap / 2, y, 2 * C.reach - C.gap, C.wallT);
-    choke(out, -sd * (C.reach - C.gap / 2), y, C.gap);
+    xe = -sd * (C.pierX - C.pierW / 2 - C.gap);                  // wall end: the gap runs from here to the pier
+    solid(out, 'lx_wall', (sd * C.outer + xe) / 2, y, Math.abs(sd * C.outer - xe), C.wallT);
+    solid(out, 'lx_pillar', -sd * C.pierX, y, C.pierW, C.pierW);
+    choke(out, -sd * (C.pierX - C.pierW / 2 - C.gap / 2), y, C.gap);
   }
 };
 
@@ -160,7 +166,8 @@ function streetCentres(geo, L, hood, rng) {
 // street blocks (layBlocks skips zones and clashes with these). Consumes the level rng in a fixed order.
 P.Layouts.plan = function (s, info, rng, geo) {
   var hood = info.hood, kind = geo.boss ? 'arena' : (hood.layouts && hood.layouts[info.stage - 1]) || 'street';
-  var L = { zones: [], chokes: [], centre: [], slots: [], boss: null }, out = { solids: [], chokes: [], centre: null }, z = null;
+  var hx = P.CFG.view.geoHeroHalfX, L = { walk: { x0: -hx, x1: hx, y0: 0, y1: geo.exitY }, zones: [], chokes: [], centre: [], slots: [], spawns: [], boss: null };
+  var out = { solids: [], chokes: [], centre: null }, z = null;
   if (kind !== 'street' && T[kind]) z = zoneFor(geo, kind, rng);
   if (z) {
     z.stage = info.stage;
@@ -195,6 +202,25 @@ function zoneAt(zones, y) {
   return -1;
 }
 
+// Door, window and manhole spawn points (s.layout.spawns), after the street blocks exist. Deterministic: no rng, so a
+// level always has the same points. Doors sit at the facade line on alternating sides, windows opposite and further up,
+// manholes on the centre lane. A point inside a solid is skipped.
+P.Layouts.spawns = function (s) {
+  var L = s.layout, G = s.geo, K = P.CFG.layouts.spawn, y, sd, i = 0;
+  for (y = K.from; y < G.exitY - K.endGap; y += K.every, i++) {
+    sd = i % 2 ? 1 : -1;
+    addSpawn(G, L, sd * K.sideX, y, sd, 'door');
+    addSpawn(G, L, -sd * K.sideX, y + K.winOff, -sd, 'window');
+  }
+  for (y = K.from + K.manholeOff, i = 0; y < G.exitY - K.endGap; y += K.manholeEvery, i++) {
+    sd = i % 2 ? 1 : -1;
+    addSpawn(G, L, sd * K.manholeX, y, sd, 'manhole');
+  }
+};
+function addSpawn(G, L, x, y, sd, kind) {
+  if (freeAt(G, x, y, P.CFG.layouts.spawn.clear)) L.spawns.push({ x: x, y: y, side: sd, kind: kind });
+}
+
 // Level marks for the centre landmarks (levels.js adds them to s.gen.marks).
 P.Layouts.marks = function (L) {
   return L.centre.map(function (c) { return { y: c.y, kind: 'landmark', x: c.x, ev: c.ev }; });
@@ -212,6 +238,19 @@ P.Layouts.trigger = function (s, m) {
 // True when y lies in a layout zone (or within the zone gap), so street blocks stay out.
 P.Layouts.inZone = function (geo, y) {
   return inZone(geo.zones || [], y, P.CFG.layouts.centre.zoneGap);
+};
+
+// Bot waypoint (tools/bot.js targetOf): the nearest chokepoint from `passed` m behind the hero up to `look` m ahead, or
+// null. The bot has no path planner, so a chicane, market or bridge is walked gap by gap; the player steers on their own.
+P.Layouts.botTarget = function (s) {
+  var L = s.layout, R = P.CFG.layouts.route, h = s.hero, best = null, i, c;
+  if (!L || !L.chokes.length) return null;
+  for (i = 0; i < L.chokes.length; i++) {
+    c = L.chokes[i];
+    if (c.y < h.y - R.passed || c.y > h.y + R.look) continue;
+    if (!best || c.y < best.y) best = c;
+  }
+  return best ? [best.x, best.y] : null;
 };
 
 // Chokepoint check for a route zone: at least minChokes gaps of maxChoke m or less. Returns problem strings.

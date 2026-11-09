@@ -11,10 +11,17 @@ P.Weapons6 = {};
   // ---------- terrain seam ----------
   // Kinds present at (x, y): gas (live canister prop), car (live cart prop), wet (wet zone), plus whatever lane A reports.
   P.Weapons6.terrainAt = function (s, x, y) {
-    var out = [], R = P.CFG.terrainR, pr = s.props || {};
+    var out = [], R = P.CFG.terrainR, pr = s.props || {}, recs = s.env && s.env.recs || [], i, r;
     function near(list, r) { return (list || []).some(function (p) { return p.alive !== false && Math.hypot(p.x - x, p.y - y) - (p.r || 0) <= r; }); }
     if (near(pr.canisters, R.gas)) out.push('gas');
     if (near(pr.carts, R.car)) out.push('car');
+    // Lane A records: gas cans are 'gas', parked cars (bomb or not) are 'car'. Read the live records only.
+    for (i = 0; i < recs.length; i++) {
+      r = recs[i];
+      if (!r.alive || Math.hypot(r.x - x, r.y - y) - (r.r || 0) > (r.kind === 'gascan' ? R.gas : R.car)) continue;
+      if (r.kind === 'gascan' && out.indexOf('gas') < 0) out.push('gas');
+      else if (P.Env && P.Env.isCar && P.Env.isCar(r.kind) && out.indexOf('car') < 0) out.push('car');
+    }
     if ((s.zones || []).some(function (z) { return z.kind === 'wet' && Math.hypot(z.x - x, z.y - y) - z.r <= R.wet; })) out.push('wet');
     if (P.Env && P.Env.kindsAt) P.Env.kindsAt(s, x, y).forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
     return out;
@@ -114,7 +121,7 @@ P.Weapons6 = {};
       dx = t.x - h.x; dy = t.y - h.y; d = Math.hypot(dx, dy) || 1;
       P.Mods.hit(s, t, dmg, dx / d, dy / d, 0.1, src, A);
       if (!t.dead) P.Status.apply(t, 'stun', lv.stun, 1);
-      s.events.push({ type: 'stormZap', x0: h.x, y0: h.y, x1: t.x, y1: t.y, n: k, orbitR: lv.orbitR });
+      s.events.push({ type: 'stormZap', x0: h.x, y0: h.y, x1: t.x, y1: t.y, n: k, orbitR: lv.orbitR, tag: 'electric' });
     }
     if (picks.length) P.Weapons.fired(s, 'cable', Math.atan2(picks[0].y - h.y, picks[0].x - h.x), picks.length, 'stormshield');
     return picks.length;
@@ -148,7 +155,7 @@ P.Weapons6 = {};
     if (members.length < 2) return;
     members.forEach(function (m) { m.netPrev = m.hp; });
     (W.nets = W.nets || []).push({ members: members, share: lv.netShare, t: 0, T: root + P.CFG.evoFx.netLinkT, acc: 0 });
-    s.events.push({ type: 'netLink', x: pin.x, y: pin.y, n: members.length });
+    s.events.push({ type: 'netLink', x: pin.x, y: pin.y, n: members.length, tag: 'blade' });
   };
 
   // Each step: the damage a rope member took since the last check is shared (netShare) with the other members.
@@ -190,7 +197,7 @@ P.Weapons6 = {};
         if (!b.lv || Math.hypot(a.x - b.x, a.y - b.y) > a.r + b.r + K.lakeMergePad) continue;
         a.r = Math.max(a.r, b.r) * (a.lv.lakeMerge || 1); a.t = Math.max(a.t, b.t); a.T = Math.max(a.T, b.T);
         a.x = (a.x + b.x) / 2; a.y = (a.y + b.y) / 2;
-        s.events.push({ type: 'lakeMerge', x: a.x, y: a.y, r: a.r });
+        s.events.push({ type: 'lakeMerge', x: a.x, y: a.y, r: a.r, tag: 'fire' });
         list.splice(j, 1);
       }
       s.enemies.forEach(function (e) {

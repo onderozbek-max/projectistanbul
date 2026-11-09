@@ -1,10 +1,11 @@
 // Objective HUD, world markers, run-condition tints and the results row (lane P, view only).
 // It reads the run through P.debug (main.js: sim, state) every frame, so it needs no hook in ui.js or main.js.
 // It owns its DOM: a stylesheet, the objective row under the HUD, markers for crates, the civilian, the booster and
-// terminals, night and rain tints for run modifiers, and a panel in #scr-results (goals, stars, unlock previews).
+// terminals, night and rain tints for run modifiers, and a panel in #scr-results (objective, bonus, unlock previews;
+// the star goals are drawn by screens.js from P.Objectives.goals).
 // Telemetry: one 'objective' event per level when its outcome is final.
 P.ObjectivesHud = (function () {
-  var H = {}, el = {}, marks = [], lastSim = null, startT = 0, reported = null, resKey = null;
+  var H = {}, el = {}, marks = [], lastSim = null, startT = 0, reported = null, resSim = null;
   var IN_RUN = { play: 1, storyRun: 1, exit: 1, cards: 1, chest: 1, paused: 1, down: 1 };
   var CSS = [
     '.obj-row{position:absolute;left:12px;right:12px;z-index:5;pointer-events:none;background:rgba(20,21,31,.74);color:#F4EBDD;',
@@ -99,7 +100,7 @@ P.ObjectivesHud = (function () {
 
   function updateRow(sim, st) {
     var hud = document.getElementById('hud'), cls = 'obj-row';
-    if (hud) el.row.style.top = (hud.offsetHeight + 6) + 'px';
+    if (hud) el.row.style.top = (hud.offsetTop + hud.offsetHeight + 6) + 'px';   // below the HUD's bottom edge (AUDIT-6 F7)
     if (st.state === 'done') cls += ' ok';
     if (st.state === 'failed') cls += ' bad';
     if (st.hp !== null && st.hp < 0.35) cls += ' warn';
@@ -128,13 +129,12 @@ P.ObjectivesHud = (function () {
     P.Tel.log('objective', { level_id: sim.levelInfo.id, objective: st.id, result: st.state, t_s: +sim.runT.toFixed(1) });
   }
 
-  // Results panel: the level's goals (three stars and the objective), the bonus, and what the next level brings.
+  // Results panel (under the star criteria that screens.js draws): the objective, its bonus, and what the next level brings.
   function resultsPanel(sim, state) {
-    var key = sim.seed + ':' + sim.levelIndex + ':' + state, host = document.getElementById('scr-results'), rn, box, st, won, hero, list;
-    if (!host || resKey === key) return;
-    resKey = key;
+    var host = document.getElementById('scr-results'), rn, box, st, won, list;
+    if (!host || resSim === sim) return;   // one panel per finished run (a retry is a new sim object)
+    resSim = sim;
     won = sim.mode === 'won';
-    hero = sim.hero;
     st = P.Objectives.results(sim);
     box = make('div', 'obj-res');
     box.appendChild(make('h4', null, tx('obj.res.title')));
@@ -142,9 +142,6 @@ P.ObjectivesHud = (function () {
       box.appendChild(make('div', null, tx(st.title) + ' · ' + tx(st.line, st.vars)));
       box.appendChild(chipRow([[st.done ? tx('obj.res.bonusYes', { n: st.bonus }) : tx('obj.res.bonusNo'), st.done]]));
     } else box.appendChild(make('div', null, tx('obj.res.none')));
-    box.appendChild(make('h4', null, tx('res.stars')));
-    box.appendChild(chipRow([[tx('ui.res.starClear'), won], [tx('ui.res.starNoRevive'), won && !sim.reviveUsed],
-      [tx('ui.res.starHp'), won && hero.hp / hero.maxHp >= 0.5], [st ? tx(st.title) : tx('obj.res.none'), !!(st && st.done)]]));
     if (won && P.Progress) {
       list = P.Progress.unlockPreview(sim.levelIndex);
       box.appendChild(make('h4', null, tx('unlock.title') + ' · ' + tx('unlock.next')));

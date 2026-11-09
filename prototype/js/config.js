@@ -12,8 +12,9 @@ P.CFG = {
     widthM: 10, holdWidthM: 12, zoomTime: 0.6,                            // V2: closer camera (GD 2 says 12/13.5)
     aspect: 844 / 390, lookAhead: 1.5, smoothing: 0.15,                   // GD 2, LD 11
     offscreenMargin: 1.0,                                                 // PROTO
-    geoHeroHalfX: 4.6,                                                    // G1: generated levels keep the hero at |x| <= 4.6 m
-                                                                          //     (half of 10 m visible, minus the 0.4 m hero radius)
+    geoHeroHalfX: 4.6,                                                    // generated levels: walk zone half-width (layouts.js, lane B; not the hero clamp)
+    heroClampX: 4.4,                                                      // G1: the hero's keep-in on generated levels (world.js clampHero): half of the 10 m frame
+                                                                          //     minus the 0.5 m ring. At 4.6 the ring and the knife tip clipped the screen edge.
     spriteScale: { hero: 1.22, walker: 1.15, runner: 1.15, elite: 1.25 }, // G2: draw scale on top of each rig's own scale
                                                                           //     (collision radii are never read here)
     anim: { bobWalk: 0.05, bobIdle: 0.012, squashWalk: 0.04, stepWidth: 0.02,   // walk cycle: body bob and squash (units)
@@ -21,7 +22,7 @@ P.CFG = {
     blinkHz: 1.5, blinkMinAlpha: 0.6,                                     // G5: invulnerability pulse, never above 3 per s
     contactShadow: { alpha: 0.22, radius: 0.9, aspect: 0.36 },            // G4: enemy ground shadow (x body radius)
     heroShadow: { alpha: 0.34, radius: 0.5, aspect: 0.36 },               // soft contact shadow under the hero
-    crowdRing: { spitter: '#C6F04A', bloater: '#FF8A3D' },                 // G4: coloured base ring for readable crowds
+    crowdRing: { spitter: '#C6F04A', bloater: '#FF8A3D' }, ringRadius: 1.1, // G4: coloured base ring for readable crowds (radius x body)
     eliteOutline: { color: '#FFC93C', units: 0.05 },                      // G4: gold outline on elites (units of figure height)
     ao: { spread: [0.34, 0.18, 0.05], alpha: [0.10, 0.13, 0.16], dx: 0.08, dy: -0.12 }, // ground AO under props (m)
   },
@@ -113,8 +114,9 @@ P.CFG = {
     traumaPlayerHit: 0.2, traumaDecay: 1.5, maxShakePx: 12, maxShakeDeg: 1,
     scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.03, punchTime: 0.12,
     dmgNumberLife: 0.7, dmgNumberRise: 0.6, dmgNumberMax: 40, dmgMerge: 0.2, lowHpFrac: 0.3,
-    edgePulseFrac: 0.1, edgePulseAlpha: 0.25, edgePulseLife: 0.25, edgePulseGap: 0.5,  // G3: red edge pulse on a heavy hit
-    heroFlashGap: 0.333,                                                  // G3: hero white flash at most 3 per s (60 ms each)
+    edgePulseFrac: 0.1, edgePulseAlpha: 0.25, edgePulseLife: 0.25, edgePulseGap: 0.55,  // G3: red edge pulse on a heavy hit (gap > 0.5 s so three hits in 1 s give at most two pulses)
+    heroFlashGap: 0.34,                                                   // G3: hero white flash, at most 3 in any 1 s window (60 ms each)
+    enemyFlashGap: 0.34,                                                  // guardrail: one white hit flash per enemy, at most 3 in any 1 s (squash still plays)
     hitSparks: 3,                                                         // G3: sparks per enemy hit (view only)
     partsMax: 500,                                                        // view: particle cap for big crowds
   },

@@ -9,14 +9,18 @@
 
   function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
 
-  // Pose for a damage source id. Unknown sources fall back to POSE.fallback (blunt).
+  // Synergy tag (config-weapons3.js C.tags, via P.Weapons.tagOf) -> pose, for a source the lists do not name.
+  var TAG_POSE = { fire: 'fire', electric: 'electric', blade: 'blade', gas: 'explosion', blunt: 'blunt', water: 'blunt' };
+
+  // Pose for a damage source id: the named lists first, then its synergy tag, else POSE.fallback (blunt).
   function poseFor(src) {
-    var keys = ['fire', 'electric', 'blade', 'explosion', 'blunt'], i, list;
+    var keys = ['fire', 'electric', 'blade', 'explosion', 'blunt'], i, list, tag;
     for (i = 0; i < keys.length; i++) {
       list = POSE[keys[i]] || [];
       if (src && list.indexOf(src) >= 0) return keys[i];
     }
-    return POSE.fallback;
+    tag = src && P.Weapons && P.Weapons.tagOf ? P.Weapons.tagOf(src) : null;
+    return TAG_POSE[tag] || POSE.fallback;
   }
 
   // Extra transform for a pose at age a (s), facing f (+1 right). Returns {dx, dy (px-free: metres), rot (rad), char}.
@@ -38,18 +42,44 @@
   function draw(Rd, rec, a) {
     var c = Rd.ctx, u = Rd.ppm, f = rec.dx >= 0 ? 1 : -1, X = Rd.X(rec.x), Y = Rd.Y(rec.y - 0.2);
     var fade = clamp01((a - (rec.dur - POSE.fade)) / POSE.fade), k = 0.5 + 0.5 * fade, x = extraOf(rec.pose, a, f, rec.etype);
+    var p = { x: rec.x, y: rec.y, dx: rec.dx, dy: rec.dy, etype: rec.etype, variant: rec.variant, skin: rec.skin, fling: false, t: 1 - k, T: 1, pose: rec.pose };
+    if (x.char && charredBody(Rd, p, fade, x, X, Y, u)) return;
     c.save();
     c.translate(X + x.dx * u, Y + x.dy * u); c.rotate(x.rot); c.translate(-X, -Y);
-    baseCorpse(Rd, { x: rec.x, y: rec.y, dx: rec.dx, dy: rec.dy, etype: rec.etype, variant: rec.variant, skin: rec.skin,
-      fling: false, t: 1 - k, T: 1, pose: rec.pose });
-    if (x.char) charred(c, X, Y, u, 0.5 * (1 - fade) + 0.25);
+    baseCorpse(Rd, p);
     c.restore();
   }
 
-  // Scorch over the corpse only: source-atop paints where the body already has pixels, so the ground stays put.
-  function charred(c, X, Y, u, a) {
-    c.save(); c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(16,10,8,' + a.toFixed(3) + ')';
-    c.fillRect(X - 1.3 * u, Y - 0.9 * u, 2.6 * u, 1.1 * u); c.restore();
+  // Charred pose (fire, explosion): the body is drawn into a small scratch canvas, scorched there, then blitted. source-atop
+  // on the live canvas would darken the ground too; on the scratch canvas it only paints where the body has pixels.
+  // Returns false when the live transform is not readable, and the caller draws the plain body instead.
+  var scratch = null, sctx = null, BOX_W = 3.6, BOX_H = 3.0, PAD = 4;
+  function charredBody(Rd, p, fade, x, X, Y, u) {
+    var c = Rd.ctx, M = c.getTransform ? c.getTransform() : null;
+    if (!M) return false;
+    var cx = M.a * X + M.c * Y + M.e, cy = M.b * X + M.d * Y + M.f;       // device centre of the body
+    var bw = Math.ceil(BOX_W * u * Math.abs(M.a)) + PAD, bh = Math.ceil(BOX_H * u * Math.abs(M.d)) + PAD;
+    var ox = Math.round(cx - bw / 2), oy = Math.round(cy - bh * 0.7);
+    if (!scratch) { scratch = document.createElement('canvas'); sctx = scratch.getContext('2d'); }
+    if (scratch.width < bw) scratch.width = bw;
+    if (scratch.height < bh) scratch.height = bh;
+    sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.clearRect(0, 0, bw, bh);
+    // Same matrix as the live canvas, shifted so the buffer's corner sits at (ox, oy) in device pixels.
+    sctx.setTransform(M.a, M.b, M.c, M.d, M.e - ox, M.f - oy);
+    var R2 = Object.create(Rd); R2.ctx = sctx;
+    sctx.save();
+    sctx.translate(X + x.dx * u, Y + x.dy * u); sctx.rotate(x.rot); sctx.translate(-X, -Y);
+    baseCorpse(R2, p);
+    sctx.restore();
+    sctx.setTransform(1, 0, 0, 1, 0, 0);
+    sctx.globalCompositeOperation = 'source-atop';
+    sctx.fillStyle = 'rgba(16,10,8,' + (0.5 * (1 - fade) + 0.25).toFixed(3) + ')';
+    sctx.fillRect(0, 0, bw, bh);
+    sctx.globalCompositeOperation = 'source-over';
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+    c.drawImage(scratch, 0, 0, bw, bh, ox, oy, bw, bh);
+    c.restore();
+    return true;
   }
 
   // Corpses that fx2 owns are drawn by drawUnder; the fx.js particle draws nothing for them.

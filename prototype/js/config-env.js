@@ -22,7 +22,7 @@
     pathCell: 0.5, pathStartY: 2,                     // path test grid (m) and the start row (y)
 
     // ---- A2 · explosions (gas canister, explosive car, fire, chains). Blast numbers match the L1 canister (60 / 15). ----
-    fuse: { gas: 1.2, car: 1.5, fire: 0.9, chain: 0.3, ignite: 0.05 },   // telegraph before the blast (s)
+    fuse: { gas: 1.2, car: 1.5, fire: 0.9, chain: 0.4, ignite: 0.05 },   // telegraph before the blast (s); chain >= 0.34 keeps blasts under 3/s
     blast: { r: 2.2, enemyDmg: 60, heroDmg: 12, trauma: 0.3, kb: 1.0, fireR: 2.4, fireT: 3.5, fireDps: 4 },
     chainMargin: 0.6,                                 // a blast reaches props within r + this (m) + their half size
     cloud: { r: 1.6 },                                // gas cloud of a fusing canister (m); a molotov lights it
@@ -32,7 +32,8 @@
     glass: { r: 1.4, T: 4, slow: 0.15 },
     debris: { r: 1.2, T: 3, slow: 0.15 },
     foam: { r: 2.6, T: 3, slow: 0.2, spray: 3.2 },    // extinguisher foam; spray = fire and fuse reach (m)
-    slowHold: 0.3,                                    // each tick an enemy stays in a slow zone it keeps the slow this long
+    slowHold: 0.05,                                   // a slow zone refreshes every tick; this tail ends the slow just after the zone (s)
+    burn: { r: 1.2, T: 2.5, dps: 4 },                 // a fire-tagged hit that breaks cover leaves a small fire patch
 
     // ---- W1 · weapon x terrain rules (A3). Emits envHit so weapon evolutions can read the rule. ----
     rules: {
@@ -41,6 +42,15 @@
       lob: { r: 0.6, ids: ['canister', 'cluster'] },  // canister landing this close to an explosive car lights its fuse
     },
 
+    // ---- Damage tags (W lane). An event or hit may carry tag; when it does not, the weapon id or event type decides.
+    // Tags change only the reaction (debris size, fire patches), never the damage, which the weapon already dealt.
+    tags: ['fire', 'electric', 'water', 'blunt', 'blade', 'gas'],
+    tagById: { molotov: 'fire', torch: 'fire', fireworks: 'fire', canister: 'gas', cluster: 'gas', chain: 'electric',
+      cable: 'electric', sawblade: 'blade', knife: 'blade', nailgun: 'blade', speargun: 'blade', sledge: 'blunt',
+      manhole: 'blunt', extinguisher: 'water', dash: 'blunt' },
+    tagByType: { flaskShatter: 'fire', blast: 'gas' },
+    tagDebris: { blunt: 1.5 },                        // debris radius factor on break (a sledge throws wood and glass wider)
+
     // ---- A4 · live cable over a puddle: sparks telegraph a zap that shocks anyone standing in a linked puddle. ----
     cable: { chance: 0.5, len: 4, reach: 2.2, every: 3.5, telegraph: 0.8, show: 0.4, dmg: 8, stun: 0.35, heroDmg: 8, y0: 0.25, y1: 0.85,
       xMax: 3 },
@@ -48,6 +58,6 @@
     // ---- A5 · doors, windows and manholes: telegraph, then 2-4 enemies emerge within 0.6 m of the opening. ----
     portal: { telegraph: 0.6, gap: 0.2, nMin: 2, nMax: 4, ahead: 9, past: 2, behind: 12, maxActive: 2, chance: 0.6, tries: 3,
       offset: 0.6, manholeJit: 3, runnerShare: 0.3, windowEvery: 2, manholeEvery: 30, manholeX: 1.2, windowDy: 9, yStart: 8, yEnd: 10,
-      doorX: 6.9, windowX: 6.6, manholeStart: 20 },
+      doorX: 4.9, windowX: 4.7, manholeStart: 20 },   // inside the 5 m half-width view (AUDIT-6 A5): the telegraph must be seen
   };
 })(P.CFG);

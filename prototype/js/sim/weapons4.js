@@ -95,7 +95,7 @@
           T: cfg.sparkT + i * cfg.stagger, r: r, dmg: sdmg, kb: cfg.blastKb, A: A, src: 'sawblade' });
       }
     }
-    s.events.push({ type: 'sawCatch', x: bl.x, y: bl.y, n: n });
+    s.events.push({ type: 'sawCatch', x: bl.x, y: bl.y, n: n, tag: 'blade' });
   }
 
   // Timed landings: sparks blast on impact; reflected spit blasts only.
@@ -108,7 +108,7 @@
       P.Mods.blast(s, q.x, q.y, q.r, q.dmg, q.kb, q.src, q.A);
       if (q.kind === 'reflect') continue;
       P.Mods.field(s, q.x, q.y, q.r, q.A, q.dmg, q.src);
-      s.events.push({ type: 'sparkBurst', x: q.x, y: q.y, r: q.r });
+      s.events.push({ type: 'sparkBurst', x: q.x, y: q.y, r: q.r, tag: 'blade' });
     }
   }
 
@@ -142,7 +142,7 @@
     var cfg = P.CFG.weapons.manhole, dx = e.x - mh.x, dy = e.y - mh.y, d = Math.hypot(dx, dy) || 1;
     mh.hit.push(e.id); mh.left--;
     P.Mods.hit(s, e, mh.dmg, dx / d, dy / d, cfg.kb, 'manhole', mh.A);
-    s.events.push({ type: 'manholeBounce', x: e.x, y: e.y, n: mh.hit.length });
+    s.events.push({ type: 'manholeBounce', x: e.x, y: e.y, n: mh.hit.length, tag: 'blunt' });
     manholeRetarget(s, mh);
   }
 
@@ -169,17 +169,17 @@
 
   // ---------- Pürmüz: a short flame jet in a cone (ticks), then a scorch on the ground that keeps burning ----------
   function fireTorch(s, dt) {
-    var h = s.hero, cfg = P.CFG.weapons.torch, lv = P.Weapons.level(h, 'torch'), W = ws4(s);
-    if (!lv || !P.Weapons.ready(h, 'torch', dt)) return;
+    var h = s.hero, id = P.Weapons.variantOf(h, 'torch'), cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id), W = ws4(s);
+    if (!lv || !P.Weapons.ready(h, id, dt)) return;
     var M = P.Mods.of(s, 'torch'), t = P.Weapons.nearestEnemy(s, h.x, h.y, lv.range * M.area);
     if (!t) return;
     var A = P.Mods.act(s, 'torch'), a = Math.atan2(t.y - h.y, t.x - h.x), range = lv.range * A.area;
     var arc = A.sig ? A.sig.arc : lv.arcDeg;
-    cdSet(s, h, 'torch', cfg, lv, A);
-    W.torches.push({ a: a, A: A, range: range, arc: arc, t: 0, ticks: A.sig ? cfg.sigTicks : cfg.ticks, tickT: 0,
+    cdSet(s, h, id, cfg, lv, A);
+    W.torches.push({ id: id, lv: lv, a: a, A: A, range: range, arc: arc, t: 0, ticks: A.sig ? cfg.sigTicks : cfg.ticks, tickT: 0,
       done: false, dmg: P.Weapons.dmgFor(s, 'torch', lv.dmg) * A.dmg });
-    s.events.push({ type: 'torchJet', x: h.x, y: h.y, a: a, range: range, arc: arc });
-    P.Weapons.fired(s, 'torch', a, 1);
+    s.events.push({ type: 'torchJet', x: h.x, y: h.y, a: a, range: range, arc: arc, tag: P.Weapons.tagOf(id), variant: id });
+    P.Weapons.fired(s, 'torch', a, 1, id);
     P.Mods.announce(s, A, h.x, h.y, range);
   }
 
@@ -200,7 +200,17 @@
     bo.done = true;
     s.zones.push({ kind: 'scorch', x: sx, y: sy, r: r, t: T, T: T, hit: {} });
     P.Mods.field(s, sx, sy, r, bo.A, bo.dmg, 'torch');
-    s.events.push({ type: 'scorchSizzle', x: sx, y: sy, r: r, T: T });
+    s.events.push({ type: 'scorchSizzle', x: sx, y: sy, r: r, T: T, tag: 'fire' });
+    if (bo.lv && bo.lv.stains > 1) forgeStain(s, bo, T);
+  }
+
+  // Forge (Ocak Ağzı): the extra scorch parts of the jet, laid along it at extraAt of the range.
+  function forgeStain(s, bo, T) {
+    var lv = bo.lv, h = s.hero, d = bo.range * lv.extraAt, x = h.x + Math.cos(bo.a) * d, y = h.y + Math.sin(bo.a) * d;
+    var r = lv.extraR * bo.A.area;
+    s.zones.push({ kind: 'scorch', x: x, y: y, r: r, t: T, T: T, hit: {} });
+    P.Mods.field(s, x, y, r, bo.A, bo.dmg, 'torch');
+    s.events.push({ type: 'forgeStain', x: x, y: y, r: r, n: lv.stains - 1, tag: 'fire' });
   }
 
   function updateJets(s, dt) {
@@ -216,12 +226,12 @@
 
   // ---------- Olta: cast a hook to the nearest, it sticks, reels the target in and slams it down ----------
   function fireOlta(s, dt) {
-    var h = s.hero, cfg = P.CFG.weapons.olta, lv = P.Weapons.level(h, 'olta'), W = ws4(s);
-    if (!lv || !P.Weapons.ready(h, 'olta', dt)) return;
+    var h = s.hero, id = P.Weapons.variantOf(h, 'olta'), cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id), W = ws4(s);
+    if (!lv || !P.Weapons.ready(h, id, dt)) return;
     var t = P.Weapons.nearestEnemy(s, h.x, h.y, cfg.range);
     if (!t) return;
     var A = P.Mods.act(s, 'olta'), n = 1 + A.M.count, taken = [];
-    cdSet(s, h, 'olta', cfg, lv, A);
+    cdSet(s, h, id, cfg, lv, A);
     for (var k = 0; k < n; k++) {
       var tg = k === 0 ? t : nearestWithin(s, h.x, h.y, cfg.range, taken);
       if (!tg) break;
@@ -230,8 +240,22 @@
       W.hooks.push({ phase: 'cast', e: tg, t: 0, T: Math.max(cfg.minCastT, d / cfg.castSpeed), lv: lv, A: A,
         dmg: P.Weapons.dmgFor(s, 'olta', lv.dmg) * A.dmg, reelDist: lv.reel * A.M.reel, rt: 0 });
     }
-    s.events.push({ type: 'oltaCast', x: h.x, y: h.y, tx: t.x, ty: t.y, n: n });
-    P.Weapons.fired(s, 'olta', Math.atan2(t.y - h.y, t.x - h.x), n);
+    s.events.push({ type: 'oltaCast', x: h.x, y: h.y, tx: t.x, ty: t.y, n: n, tag: 'blade', variant: id });
+    P.Weapons.fired(s, 'olta', Math.atan2(t.y - h.y, t.x - h.x), n, id);
+  }
+
+  // Hookpull (Çeki Halatı): a set hook hauls the enemies near its catch toward it and stuns them. Base olta has no haulR.
+  function haul(s, hk, e) {
+    var lv = hk.lv, n = 0;
+    s.enemies.forEach(function (o) {
+      if (o === e || o.dead || o.state !== 'active') return;
+      var dx = e.x - o.x, dy = e.y - o.y, d = Math.hypot(dx, dy);
+      if (d < EPS || d - o.r - e.r > lv.haulR) return;
+      P.Weapons.shove(o, dx / d, dy / d, lv.haulM * P.Weapons.kbMult(s));
+      P.Status.apply(o, 'stun', lv.haulStun, 1);
+      n++;
+    });
+    if (n) s.events.push({ type: 'oltaHaul', x: e.x, y: e.y, r: lv.haulR, n: n, tag: 'blade' });
   }
 
   function updateHooks(s, dt) {
@@ -249,7 +273,8 @@
     if (hk.t < hk.T) return;
     var alive = !e.dead && e.state === 'active';
     hk.phase = alive ? 'reel' : 'slam'; hk.t = 0;
-    if (alive) { P.Status.apply(e, 'stun', cfg.stagger, 1); s.events.push({ type: 'oltaSet', x: e.x, y: e.y }); }
+    if (alive) { P.Status.apply(e, 'stun', cfg.stagger, 1); s.events.push({ type: 'oltaSet', x: e.x, y: e.y, tag: 'blade' }); }
+    if (alive && hk.lv.haulR) haul(s, hk, e);
   }
 
   function reelStep(s, hk, dt) {
@@ -275,25 +300,25 @@
         }
       });
     }
-    s.events.push({ type: 'oltaSlam', x: x, y: y, r: r, sig: !!A.sig });
+    s.events.push({ type: 'oltaSlam', x: x, y: y, r: r, sig: !!A.sig, tag: 'blade' });
     P.Mods.announce(s, A, x, y, r);
   }
 
   // ---------- Araba Kapısı: the door swings up toward the nearest threat, shoves what presses in, reflects spit ----------
   function fireDoor(s, dt) {
-    var h = s.hero, cfg = P.CFG.weapons.cardoor, lv = P.Weapons.level(h, 'cardoor'), W = ws4(s);
-    if (!lv || !P.Weapons.ready(h, 'cardoor', dt) || W.doors.length) return;
+    var h = s.hero, id = P.Weapons.variantOf(h, 'cardoor'), cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id), W = ws4(s);
+    if (!lv || !P.Weapons.ready(h, id, dt) || W.doors.length) return;
     var t = P.Weapons.nearestEnemy(s, h.x, h.y, cfg.trigR), shot = null;
     s.enemyShots.forEach(function (q) { if (!shot && Math.hypot(q.x - h.x, q.y - h.y) < cfg.trigR) shot = q; });
     var thr = t || shot;
     if (!thr) return;
     var M = P.Mods.of(s, 'cardoor'), A = P.Mods.act(s, 'cardoor'), sig = A.sig, a = Math.atan2(thr.y - h.y, thr.x - h.x);
-    cdSet(s, h, 'cardoor', cfg, lv, A);
+    cdSet(s, h, id, cfg, lv, A);
     var T = (sig ? sig.T : lv.openT) * M.life, radius = lv.radius * A.area;
-    W.doors.push({ a: a, t: 0, T: T, A: A, arc: sig ? cfg.fullArc : lv.arcDeg, radius: radius,
+    W.doors.push({ id: id, lv: lv, a: a, t: 0, T: T, A: A, arc: sig ? cfg.fullArc : lv.arcDeg, radius: radius,
       dmg: P.Weapons.dmgFor(s, 'cardoor', lv.dmg) * A.dmg });
     s.events.push({ type: 'doorRaise', x: h.x, y: h.y, a: a, radius: radius, T: T });
-    P.Weapons.fired(s, 'cardoor', a, 1);
+    P.Weapons.fired(s, 'cardoor', a, 1, id);
     P.Mods.announce(s, A, h.x, h.y, radius);
   }
 
@@ -331,15 +356,35 @@
       e.umbCd = C.touchGap;
       P.Weapons.shove(e, dx / d, dy / d, C.shove * M.push);
       P.Mods.hit(s, e, u.dmg * C.touchDmg, dx / d, dy / d, 0, 'cardoor', u.A);
-      s.events.push({ type: 'doorShove', x: e.x, y: e.y, hx: h.x, hy: h.y, a: u.a, radius: u.radius, arc: u.arc });
+      s.events.push({ type: 'doorShove', x: e.x, y: e.y, hx: h.x, hy: h.y, a: u.a, radius: u.radius, arc: u.arc, tag: 'blunt' });
     });
+  }
+
+  // Minibus (Minibüs Kapısı): the door comes down on the ground; what is close takes a hit, a stun and a shove.
+  function doorSlam(s, u) {
+    var h = s.hero, C = u.lv, A = u.A, r = C.slamR * A.area, n = 0;
+    s.enemies.forEach(function (e) {
+      if (e.dead || e.state !== 'active') return;
+      var dx = e.x - h.x, dy = e.y - h.y, d = Math.hypot(dx, dy) || EPS;
+      if (d - e.r > r) return;
+      P.Status.apply(e, 'stun', C.slamStun, 1);
+      P.Weapons.shove(e, dx / d, dy / d, C.slamKb * P.Weapons.kbMult(s));
+      P.Mods.hit(s, e, u.dmg * C.slamMul, dx / d, dy / d, 0, 'cardoor', A);
+      n++;
+    });
+    s.events.push({ type: 'doorSlam', x: h.x, y: h.y, r: r, n: n, tag: 'blunt' });
   }
 
   function updateDoors(s, dt) {
     var W = ws4(s), i, u;
     for (i = W.doors.length - 1; i >= 0; i--) {
       u = W.doors[i]; u.t += dt;
-      if (u.t >= u.T) { W.doors.splice(i, 1); s.events.push({ type: 'doorDrop', x: s.hero.x, y: s.hero.y }); continue; }
+      if (u.t >= u.T) {
+        W.doors.splice(i, 1);
+        s.events.push({ type: 'doorDrop', x: s.hero.x, y: s.hero.y, tag: 'blunt' });
+        if (u.lv.slamR) doorSlam(s, u);
+        continue;
+      }
       reflectShots(s, u);
       touchDoor(s, u, dt);
     }
@@ -392,7 +437,7 @@
       var lucky = luckyHit(p, e);
       p.hit.push(e.id); p.left--;
       P.Mods.hit(s, e, lucky ? p.dmg * cfg.luckyMul : p.dmg, dx / d, dy / d, cfg.kb, 'slingshot', p.A);
-      s.events.push({ type: 'marbleHit', x: e.x, y: e.y, lucky: lucky });
+      s.events.push({ type: 'marbleHit', x: e.x, y: e.y, lucky: lucky, tag: 'blunt' });
       marbleNext(s, p);
       if (p.phase === 'done') W.marbles.splice(i, 1);
     }

@@ -25,7 +25,8 @@
   var EVO = {
     blacksmith: ['sledge', 'blunt'], stormshield: ['cable', 'electric'], foamstorm: ['extinguisher', 'water'],
     netspear: ['speargun', 'blade'], lake: ['molotov', 'fire'], twinsaw: ['sawblade', 'blade'],
-    fireball: ['molotov', 'fire'], arcchain: ['chain', 'electric'], carbomb: ['canister', 'gas']
+    fireball: ['molotov', 'fire'], arcchain: ['chain', 'electric'], carbomb: ['canister', 'gas'],
+    forge: ['torch', 'fire'], grinder: ['chainsaw', 'blade'], hookpull: ['olta', 'blade'], minibus: ['cardoor', 'blunt']
   };
   Object.keys(EVO).forEach(function (id) {
     I.register(id, function () { return evoIcon(EVO[id][0], EVO[id][1]); });

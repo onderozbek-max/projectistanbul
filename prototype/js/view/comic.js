@@ -246,10 +246,10 @@ P.Comic = (function () {
   }
   function popUpdate(dt) {
     var j = pops[0]; if (!j) { if (popCv) popCv.c.clearRect(0, 0, POP_W, POP_H); return; }
-    if (!j.started) {
-      j.started = true; ensurePop(); popEl.style.display = '';
-      sfx('comicPop', 60, j.s.who);
-    }
+    // AUDIT-6 F6: one call-or-pop at a time in the top band. A pop waits (hidden, not advancing) while a call is open.
+    if (calls.length) { if (popEl) popEl.style.display = 'none'; return; }
+    if (!j.started) { j.started = true; sfx('comicPop', 60, j.s.who); }
+    ensurePop(); popEl.style.display = '';
     var before = j.T; j.T += dt;
     var tt = popTimes(j);
     if (j.T > tt.t1 && j.T < tt.t2) {
@@ -262,7 +262,7 @@ P.Comic = (function () {
 
   // ---------- calls ----------
   function callCard(rec) {
-    var card = el('div', 'cm-call' + (rec.blocking ? ' cm-block' : '') + (reduced() ? ' cm-reduce' : ''), host());
+    var card = el('div', 'cm-call cm-compact' + (rec.blocking ? ' cm-block' : '') + (reduced() ? ' cm-reduce' : ''), host());
     var head = el('div', 'cm-call-head', card), ctact = el('div', 'cm-contact', head), info = el('div', 'cm-call-info', head);
     ctact.appendChild(A.contact(rec.who, 'neutral', 56, dpr));
     rec.nameEl = el('div', 'cm-call-name', info); rec.nameEl.textContent = P.upper(P.t('spk.' + rec.who));
@@ -307,9 +307,23 @@ P.Comic = (function () {
     rec.nosigEl.style.display = dropped ? '' : 'none';
     if (dropped) sfx('phoneBuzz', 200, 'other');
   }
+  // AUDIT-6 F6: the call is a strip directly under the HUD (its boss bar included), so it never covers the HUD or a boss.
+  // The top band in play: under the HUD and the objective row (when shown). Null when neither is on screen.
+  function topBand() {
+    var hud = P.Speech && P.Speech.domRect ? P.Speech.domRect('#hud') : null;
+    var obj = P.Speech && P.Speech.domRect ? P.Speech.domRect('.obj-row') : null;
+    if (!hud && !obj) return null;
+    var y = hud ? hud.y + hud.h : 0;
+    if (obj && obj.y + obj.h > y) y = obj.y + obj.h;
+    return y + 6;
+  }
+  function placeCall(rec) {
+    var y = topBand();
+    rec.el.style.top = (y == null ? 12 : y) + 'px';
+  }
   function callUpdate(dt) {
     var rec = calls[0]; if (!rec) return;
-    rec.T += dt; rec.staticOn = rec.T < rec.staticUntil;
+    rec.T += dt; rec.staticOn = rec.T < rec.staticUntil; placeCall(rec);
     if (rec.phase === 'ring') {
       rec.el.classList.add('cm-ringing');
       if (!rec.ringed2 && rec.T >= 1.0) { rec.ringed2 = true; sfx('phoneRing', 900, 'other'); }
@@ -351,9 +365,10 @@ P.Comic = (function () {
   function kick() { if (!loopOn) { loopOn = true; last = now(); requestAnimationFrame(frame); } }
   function frame() {
     var t = now(), dt = clamp((t - last) / 1000, 0, 0.05); last = t;
+    // AUDIT-6 F6: while a menu is up (cards, pause, settings, chest, down) pops and calls wait; their timers freeze.
+    var held = !!(P.UI && P.UI.isOverlay && P.UI.isOverlay());
     pageUpdate(dt);
-    popUpdate(dt);
-    callUpdate(dt);
+    if (!held) { popUpdate(dt); callUpdate(dt); }
     if (book || pops.length || calls.length) requestAnimationFrame(frame); else loopOn = false;
   }
 
@@ -392,10 +407,11 @@ P.Comic = (function () {
   // Arbiter provider (speech.js): the pop and the call card are fixed obstacles; other bubbles go around them.
   C.speechOffers = function () {
     var r;
-    if (pops.length && pops[0].started && popEl) {
+    if (P.UI && P.UI.isOverlay && P.UI.isOverlay()) return;   // menus own the screen: nothing is offered (AUDIT-6 F6)
+    if (pops.length && pops[0].started && popEl && !calls.length) {
       // The balloon sits under the HUD: the streak meter can add a row, so the top follows the HUD's bottom edge.
-      var hud = P.Speech.domRect('#hud');
-      popEl.style.top = Math.max(POP_TOP, hud ? hud.y + hud.h + 6 : 0) + 'px';
+      var band = topBand();
+      popEl.style.top = Math.max(POP_TOP, band == null ? 0 : band) + 'px';
       r = P.Speech.domRect('.cm-pop');
       if (r) P.Speech.offer({ id: 'pop', kind: 'pop', prio: P.Speech.PRIO.pop, fixed: true, rect: r });
     }

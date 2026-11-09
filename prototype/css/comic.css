@@ -50,9 +50,14 @@
 .cm-bars i:nth-child(4) { height: 20px; }
 .cm-bars i.on { background: var(--paper); }
 .cm-call-art { display: block; width: 366px; height: 150px; }
-/* Subtitles: the whole line always shows (no line clamp, no ellipsis); a long word breaks anywhere. */
+/* AUDIT-6 F6: in play the call is a strip under the HUD (comic.js places it): no art, so the boss and its bar stay
+   visible. Menus (cards, pause, settings, chest, down) hide pops and calls; their timers wait in comic.js. */
+.cm-call.cm-compact .cm-call-art { display: none; }
+#phone.overlay-up .cm-pop, #phone.overlay-up .cm-call { visibility: hidden; }
+/* Subtitles: the whole line always shows (no line clamp, no ellipsis). AUDIT-6 F10: words never break mid-word
+   (overflow-wrap normal; a long word overflows the strip instead of splitting). */
 .cm-call-sub { min-height: 44px; padding: 9px 12px; font: 700 14px/1.3 var(--cm-speech);
-               text-transform: uppercase; overflow-wrap: anywhere; background: rgba(0, 0, 0, .55); }
+               text-transform: uppercase; overflow-wrap: normal; word-break: normal; background: rgba(0, 0, 0, .55); }
 .cm-call-sub b { color: var(--heal); margin-right: 6px; }
 .cm-nosig { padding: 14px 12px; text-align: center; font: 400 24px var(--cm-title); color: #FF7A5C;
             letter-spacing: .04em; text-transform: uppercase; background: rgba(0, 0, 0, .55); }

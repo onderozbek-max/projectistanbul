@@ -13,7 +13,9 @@
     clear: 0.6,           // clearance kept between a new solid and the existing ones (m)
     plaza: { len: 24, pillarX: 4.0, pillarW: 1.2, pillarAt: [0.25, 0.75], landmark: 3 },
     market: { len: 40, inset: 2, row: 4.0, frontX: 6.1, unitW: 1.8, unitD: 1.6, pieceX: 0.9, pieceW: 1.4 },
-    chicane: { len: 66, every: 22, reach: 7, gap: 2.6, wallT: 1.2 },
+    // chicane: a shop wall from the corridor edge (outer) to the gap, and a stone pier that closes the gap on the far side.
+    // The pier's inner edge sits at the hero's reach (view.geoHeroHalfX 4.6 m), so the 2.6 m gap is always walkable.
+    chicane: { len: 66, every: 22, outer: 7, gap: 2.6, wallT: 1.2, pierX: 5.2, pierW: 1.2 },
     waterfront: { len: 50, seaX: 3.4, reach: 7, seaSeg: 8, bollardX: 2.6, bollardW: 0.35, bollardEvery: 6,
       kioskX: -5.8, kioskW: 2.2, kioskD: 1.6, kioskEvery: 14, boatX: -0.6, boatW: 1.8, boatL: 3.4, boatAt: [0.25, 0.75] },
     bridge: { len: 50, deckHalf: 3.2, reach: 7, seaSeg: 8, postX: 1.6, postW: 0.6, postAt: [10, 28, 44] },
@@ -25,6 +27,11 @@
       events: [{ k: 'ambush', w: 2 }, { k: 'loot', w: 1 }, { k: 'hack', w: 2 }], hack: ['atm', 'cell', 'traffic'] },
     // Free floor spots for env props (Lane A), along the route, both sidewalks, kept clear of solids.
     slot: { every: 6, side: 5.8, clear: 1.0, max: 120 },
+    // Door, window and manhole spawn points (s.layout.spawns, Lane A portals). Doors at the facade line (sideX, just
+    // beyond the visible half-width), windows on the opposite side winOff m further up, manholes on the centre lane.
+    spawn: { from: 10, every: 16, endGap: 6, sideX: 5.4, winOff: 8, clear: 0.8, manholeOff: 16, manholeEvery: 32, manholeX: 1.2 },
+    // Bot route hint (tools/bot.js targetOf): walk to the next chokepoint within `look` m; a choke counts as passed `passed` m past it.
+    route: { look: 30, passed: 0.6 },
   };
   // Block kinds added for the layouts (sizes in metres: [w across, h along]). Same table as the street kinds.
   C.levels.kinds = Object.assign(C.levels.kinds, { lx_stall: [1.8, 1.6], lx_truck: [2.2, 5.0], lx_boat: [1.8, 3.4], lx_pillar: [1.2, 1.2] });
