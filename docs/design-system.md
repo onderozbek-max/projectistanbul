@@ -27,7 +27,7 @@
 | Proportions | Heroes ~ 1 : 4.5 head-to-body (stylized, expressive faces readable at small size); zombies ~ 1 : 5, slumped |
 | Hero size on screen | ~ 1.0 m tall in-world ≈ 90 px at reference (+ ground ring) |
 | Lighting | Painted time of day per level (golden hour → blue hour → night); dynamic 2D lights for night modifier only (Mid/High), baked fallback (Low) |
-| Gore | **No gore close-ups.** Hits produce dark ink splats and comic impact stars; deaths dissolve into ash-grey wisps |
+| Gore | **No gore close-ups.** Hits produce blood splats (red by default) or dark ink splats (setting, D-024) and comic impact stars; deaths dissolve into ash-grey wisps |
 | Istanbul authenticity | Real landmarks shown respectfully; fictional shop names and brands only; no flags, political banners, or graffiti with real slogans; religious buildings appear only as background architecture and are never damaged |
 
 ## 3. Color Tokens
@@ -144,7 +144,7 @@ Text size setting scales all text by 100 / 125 / 150%; layouts must not clip at 
 | Knockback | Per weapon/enemy data; 0.15 s ease-out | Every knockback hit |
 | Hit-stop | **40 ms** freeze for heavy hits, **60 ms** for boss hits and crit kills; **never** for regular swarm hits; max one hit-stop per 0.25 s | Heavy/boss/crit |
 | Screen shake | Trauma model (trauma 0–1, shake = trauma², decay 1.5/s); max offset 12 px, max rotation 1°; explosions add 0.3, player hit 0.2, boss slam 0.5 | Big events only |
-| Camera punch | 3% zoom-in pulse over 0.12 s | Ultimates, evolutions, first fork stab |
+| Camera punch | 3% zoom-in pulse over 0.12 s | Ultimates, evolutions, first knife stab |
 | Damage numbers | Pop up 0.6 m, scale 1.2 → 1.0, fade at 0.7 s; crit = bigger + `simit_gold` | Hits |
 | Death | 6–8 frame collapse → ash wisp dissolve 0.3 s; XP pops out in a small arc | Enemies |
 | Pickup | XP droplets arc toward the player (0.25 s ease-in) inside `pickup_radius`; soft rising "tink" pitch while collecting in quick succession | XP |
@@ -174,7 +174,10 @@ Text size setting scales all text by 100 / 125 / 150%; layouts must not clip at 
 
 ## 9. Story Presentation
 
-### 9.1 Motion comics
+### 9.1 Motion comics (slice format: comic pages, D-028)
+
+> The slice uses comic pages (3–5 panels over 2 screens, tap to advance; `story-presentation.md` §3). The panel rules
+> below still apply. Pan and zoom per panel is optional.
 - **Panels:** 1–4 per screen in portrait; panel borders 6 px `night_ink` on `paper`.
 - **Camera:** pan/zoom per panel (Ken Burns) with 3–5 parallax layers.
 - **Speech bubbles:** comic font, max 90 characters per bubble, tail points at the speaker.
@@ -186,11 +189,12 @@ Text size setting scales all text by 100 / 125 / 150%; layouts must not clip at 
 ### 9.2 The dizi cliffhanger (signature device)
 Freeze frame → **three rapid zooms** onto 2–3 faces (0.35 s each, ease-out, slight vignette
 increase) → strings stinger → cut to black → title card. Use it **only** at chapter-ending beats
-and select boss beats (L10, L20, L30, L100) so it stays special.
+and select hood ends (H01 at L5, H04 at L20, H06 at L30, and L100; `journey.md` §8.1) so it stays special.
 
 ### 9.3 Barks (in-run lines)
 - Text bubble above the speaker + optional VO, max 40 characters, 2.5 s on screen.
-- Global bark cooldown 20 s; never during level-up UI or boss telegraph peaks.
+- Global bark cooldown 20 s in this doc. The v0.3 prototype uses 14 s, and the story proposal is 12 s with a per-speaker
+  cap (`story-presentation.md` §6, open). Never during level-up UI or boss telegraph peaks.
 
 ### 9.4 Dad's letters
 - Full-screen paper texture, handwritten-style font (glyph test applies), slow reveal while VO
@@ -274,7 +278,7 @@ butter = golden glow.
 | Particles | 300 | 800 | 2,000 |
 | Dynamic 2D lights | 0 (baked) | 4 | 12 |
 | Post-processing | none | bloom (cheap) | bloom + color grading + chromatic punch on ultimates |
-| Decals (ink splats) persistence | 3 s | 8 s | 15 s |
+| Decals (blood splats by default, ink with the setting; D-024) persistence | 3 s | 8 s | 15 s |
 | Texture set | base | base | HD (on-demand download) |
 
 Gameplay elements (telegraphs, hitboxes, enemy counts) are **identical on all tiers** (D-003).
@@ -286,7 +290,7 @@ Gameplay elements (telegraphs, hitboxes, enemy counts) are **identical on all ti
   Instrument palette: ney, bağlama, darbuka, kanun + modern synth bass and beats.
 - **SFX priority (mixing):** player hurt > boss telegraph > player weapons > pickups > enemy
   ambience. Limit concurrent instances per SFX (e.g., max 6 zombie groans).
-- **Signature sounds:** the tea-glass "tink/shatter", the tram bell, the fork "çat".
+- **Signature sounds:** the tea-glass "tink/shatter", the tram bell, the Döner Knife's "şak" (air swish, edge ping, thwack on cloth).
 - **Ducking:** music −8 dB under VO; SFX −4 dB under VO.
 - **Haptics:** light on level-up, medium on player hit (≥ 10% HP), heavy on boss slam and
   ultimate. Never on every XP pickup.

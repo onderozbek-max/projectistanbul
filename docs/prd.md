@@ -53,14 +53,14 @@ Mila/Ada as playable heroes, PvP, guilds, live events, Remote Config backend
 ### Content in the slice
 | Category | In slice | Source of truth |
 |---|---|---|
-| Levels | **1–30** (3 districts × 10) | content-catalog.md §7, level docs |
-| Heroes | **Arda** (playable), **Kaan** (joins in L30, tag-switch enabled in L30 phase 3) | content-catalog.md §1 |
-| Card weapons | Fork (signature) + Tea Glass, Simit, Seagulls, Döner Skewer, Chestnut Mortar, Tram Bell | content-catalog.md §2 |
-| Passives | Sneakers, Puffer Jacket, Ayran, Turkish Coffee, Butter, Teapot | content-catalog.md §3 |
-| Evolutions | Semaver Storm, İskender Lance, Chestnut Volcano, Tram Line | content-catalog.md §4 |
+| Levels | **1–30** = hoods 1–6, one walk from Taksim to Sirkeci (D-027; was 3 districts × 10) | journey.md §2, §8; content-catalog.md §7 (v0.2, superseded) |
+| Heroes | **Arda** (playable), **Kaan** (joins at L20 on the bridge, proposed in journey §9.1; tag-switch enabled in L30 phase 3) | content-catalog.md §1; journey.md §9.1 |
+| Card weapons | **Döner Knife** (signature, D-018) + Nail Gun, Gas Canister, Bike Chain (D-017 kit) + six new weapons (D-030) | weapons-skills.md §3–§4; content-catalog.md §2, §10.1 |
+| Passives | Running Shoes, Leather Jacket, Work Gloves, Energy Drink, First Aid Kit (D-017) + Nazar Charm, Magnet (D-030) | weapons-skills.md §6.1 |
+| Evolutions | Five approved (D-030): Usta's Cleaver, Nail Storm, Cluster Bomb, Chain Cyclone, Wedding Finale | weapons-skills.md §7.1; content-catalog.md §10.3 |
 | Enemies | Walker, Runner, Crawler, Brute, Spitter, Exploder, Tourist, Fisherman (+ Elite variants) | content-catalog.md §5 |
-| Bosses | L5 Kestaneci, L10 Vatman, L15 Tour Guide, L20 The Bride, L25 Big Fisherman, L30 Kaan | content-catalog.md §6 |
-| Story | Level 1 cold open (in-engine), motion comics at L10, L20, L30; banter barks | narrative.md, level-001 |
+| Bosses | Stage-5 boss of each hood H01–H06: The Vatman (L5), Tour Guide (L10), The Bride (L15), Big Fisherman (L20), The Captain (L25), The Ticket Man (L30) | journey.md §2, §5 |
+| Story | Level 1 cold open (in-engine); comic pages after each hood boss (D-028); bust pop-ins; Mom's calls; banter barks | story-presentation.md, narrative.md, level-001 |
 | Meta | Hero levels, Survival Skills (Arda + Kaan), Workshop weapon mastery (cap M5), 4 gear slots + merge, 4 currencies, stars, world route map | game-design.md §8.1–8.7 |
 
 ### Feature scope (epics)
@@ -81,8 +81,8 @@ Format: *As a [persona], I want [X], so that [Y].* **AC** = acceptance criteria 
   **AC:** first launch → first player input ≤ 90 s (including the cold-open cinematic);
   no account creation, no permissions prompt before L1 ends.
 - **US-1.2** As a new player, I want the first stab to be *my* action, so that the opening feels earned.
-  **AC:** the cinematic pauses for the Tap (grab fork) and Swipe (stab) prompts and waits
-  indefinitely (no time-out fail); the stab triggers hit-stop, the comic SFX "ÇAT!" and camera punch.
+  **AC:** the cinematic pauses for the Tap (grab knife) and Swipe (stab) prompts and waits
+  indefinitely (no time-out fail); the stab triggers hit-stop, the comic SFX "ŞAK!" and camera punch.
 - **US-1.3** As a new player, I want to learn by playing, not by reading.
   **AC:** max 1 tutorial prompt on screen at a time; every prompt is ≤ 6 words + icon;
   L1 teaches move, auto-attack, XP pickup, level-up card, interactable, and holding a zone,
@@ -126,7 +126,7 @@ Format: *As a [persona], I want [X], so that [Y].* **AC** = acceptance criteria 
 ### E5: Level types
 - **US-5.1** As a player, I want levels that feel like a journey.
   **AC:** **Route** levels (corridor + hold zones, like L1) and **Arena** levels (survive
-  the timer in a bounded area) both work; each district mixes them per game-design.md §6.
+  the timer in a bounded area) both work; each hood mixes them per journey.md §3 (replaces the district template in game-design.md §6).
 - **US-5.2** As the designer, I want to add a level without code.
   **AC:** a LevelDef resource (map, wave script, modifiers, boss, rewards, story hooks) is
   enough to make a new playable level; verified by adding a test level in ≤ 2 h.
@@ -149,7 +149,7 @@ Format: *As a [persona], I want [X], so that [Y].* **AC** = acceptance criteria 
   (3 identical → next rarity) per game-design.md §8.2–8.6; all costs are data-driven;
   every earn/spend logs `currency_flow`.
 - **US-7.3** As a player, I want rewards for doing well.
-  **AC:** 3 stars per level (clear / no revive / ≥ 50% HP at end); star chests per district.
+  **AC:** 3 stars per level (clear / no revive / ≥ 50% HP at end); star chests per hood.
 
 ### E8: Settings & accessibility
 - **US-8.1** As any player, I want the game to adapt to me.

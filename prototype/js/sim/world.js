@@ -1,4 +1,5 @@
 // Level 1 geometry, walkable area and props (LD 6, level-001-map.svg). Units: meters, +y toward Tünel.
+// Generated levels (2..100) use s.geo (levels.js): corridor, AABB blocks and the exit gate (props.shutterOpen).
 P.World = {};
 
 P.World.createProps = function () {
@@ -31,7 +32,9 @@ function inDoorGap(x, r) {
 }
 
 // Clamp a circle (p.x, p.y, radius r) into the walkable area. Mutates p.
+// props.geo (generated levels) switches to the geo clamp.
 P.World.clampWalk = function (p, r, props) {
+  if (props.geo) { P.World.clampGeo(p, r, props); return; }
   var L = P.CFG.level, c = L.corridor, room = L.room, sh = L.shutter;
   var gapOpen = props.doorOpen && inDoorGap(p.x, r);
   if (p.y < 0) {
@@ -50,6 +53,21 @@ P.World.clampWalk = function (p, r, props) {
     var k = props.carts[i];
     if (k.alive) P.World.pushOutCircle(p, r, k.x, k.y, k.r);
   }
+};
+
+// Generated level walkable area: corridor walls, blocks (AABB), and the exit gate while it is shut.
+// The gate sits at g.exitY; behind it the corridor runs to g.length (the win trigger is just past it).
+P.World.clampGeo = function (p, r, props) {
+  var g = props.geo, bl = g.blocks, i;
+  for (i = 0; i < bl.length; i++) P.World.pushOutRect(p, r, bl[i].rc);
+  p.x = Math.min(Math.max(p.x, g.xMin + r), g.xMax - r);
+  var top = props.shutterOpen ? g.length - r : g.exitY - r;
+  p.y = Math.min(Math.max(p.y, r), top);
+};
+
+// Hero clamp used by movement and dashes (E1): geo-aware for generated levels, L1 walk otherwise.
+P.World.clampHero = function (s, h) {
+  P.World.clampWalk(h, P.CFG.hero.radius, s.props);
 };
 
 P.World.pushOutRect = function (p, r, rc) {

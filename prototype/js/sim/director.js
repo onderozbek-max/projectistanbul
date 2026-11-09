@@ -253,11 +253,13 @@ function updateDecor(s, dt) {
       P.Combat.spawnEnemy(s, 'crawler', tg.x, tg.y, {});
       P.Director.complete(s, 't_cat');
       s.events.push({ type: 'crawler' });
-    }
+    } else if (P.Enemies && P.Enemies.onTele) P.Enemies.onTele(s, tg);
   }
 }
+P.Director.decor = updateDecor;
 
 P.Director.step = function (s, dt) {
+  if (s.geo) { P.Levels.step(s, dt); return; }   // generated levels 2..100 (levels.js)
   var segs = P.CFG.level.segments, h = s.hero, d = s.dir;
   for (var i = 0; i < segs.length; i++) if (!d.reached[segs[i].id] && h.y >= segs[i].y0) enterSegment(s, segs[i].id);
   scripted(s, dt);

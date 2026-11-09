@@ -116,6 +116,11 @@ P.Decor = (function () {
   }
 
   D.drawStreet = function (R, s, y0, y1) {
+    if (isGen(s)) { genStreet(R, s, y0, y1); gullShadows(R); return; }
+    l1Extras(R, s, y0, y1);
+    l1Street(R, s, y0, y1);
+  };
+  function l1Street(R, s, y0, y1) {
     var c = R.ctx, u = R.ppm;
     blocks(y0 - 2, y1, function (y) {
       [-1, 1].forEach(function (side) {
@@ -170,6 +175,11 @@ P.Decor = (function () {
   }
 
   D.drawOverhead = function (R, s, y0, y1) {
+    if (isGen(s)) { genOverhead(R, s, y0, y1); gullsDraw(R, s); return; }
+    L1Over(R, y0, y1);
+    l1Overhead(R, s, y0, y1);
+  };
+  function l1Overhead(R, s, y0, y1) {
     var c = R.ctx, u = R.ppm, i;
     blocks(y0, y1, function (y) {
       [-1, 1].forEach(function (side) {
@@ -196,6 +206,10 @@ P.Decor = (function () {
       }
       c.restore();
     }
+    gullsDraw(R, s);
+  };
+  function gullsDraw(R, s) {
+    var c = R.ctx, u = R.ppm, i;
     for (i = 0; i < 3; i++) {
       var gl = gull(i, R.cam), X = R.X(gl.x), Yg = R.Y(gl.y), wsp = 0.55 * u, fl = gl.flap * 0.25 * u;
       c.fillStyle = '#F4F6F8'; c.strokeStyle = INK; c.lineWidth = 1.6;
@@ -206,6 +220,75 @@ P.Decor = (function () {
     D.gullCd -= 1 / 60;
     if (D.gullCd <= 0 && s.mode === 'play') { D.gullCd = 14 + Math.random() * 10; if (P.Sfx) P.Sfx.play('gull'); }
   };
+
+  // ---------- L1 enrichment: a few local props at fixed, unscripted spots (non-colliding, outside beats) ----------
+  var L1_PROPS = [ ['catbox', -5.9, 3.6, { k: 1 }], ['bags', -5.4, 52, { k: 0 }], ['spill', 5.9, 77, { k: 0 }],
+    ['dog', 5.6, 150, { k: 1 }], ['geranium', -5.7, 112, {}], ['phones', 5.2, 40, { k: 1 }], ['blood', -5.6, 38, { n: 6, dir: 1, k: 0 }],
+    ['devrik', 5.0, 128, { k: 0 }] ];
+  var L1_OVER = [ ['laundry', 0, 40, {}], ['laundry', 0, 112, { k: 2 }], ['laundry', 0, 190, { k: 4 }],
+    ['cumba', -7.6, 18, {}], ['cumba', 7.6, 108, {}], ['cumba', -7.6, 176, {}] ];
+  function listDraw(R, list, y0, y1) { list.forEach(function (p) { if (p[2] > y0 - 4 && p[2] < y1 + 4) P.Props.draw(p[0], R, p[1], p[2], p[3]); }); }
+  function l1Extras(R, s, y0, y1) { listDraw(R, L1_PROPS, y0, y1); }
+  function L1Over(R, y0, y1) { listDraw(R, L1_OVER, y0, y1); }
+
+  // ---------- generated levels (levelIndex > 1): sidewalk props from theme weights, hashed per (level, slot) ----------
+  var SLOT = 4.5, BIG = { cinar: 1, palm: 1, playground: 1, shelter: 1, kiosk: 1, iskele: 1, tower: 1 };
+  function isGen(s) { return s.levelIndex > 1; }
+  function pick(w, h) {
+    var keys = Object.keys(w), tot = 0, i, r;
+    for (i = 0; i < keys.length; i++) tot += w[keys[i]];
+    r = h * tot;
+    for (i = 0; i < keys.length; i++) { r -= w[keys[i]]; if (r < 0) return keys[i]; }
+    return keys[keys.length - 1];
+  }
+  // Pigeons burst up when Arda comes within 3.5 m; the flock returns after 20 s.
+  function flyFor(key, x, y, s) {
+    var st = D.pig[key] || (D.pig[key] = { t: 0 }), now = performance.now() / 1000;
+    if (!st.t && Math.hypot(s.hero.x - x, s.hero.y - y) < 3.5) st.t = now;
+    if (st.t && now - st.t > 20) st.t = 0;
+    return st.t ? now - st.t : 0;
+  }
+  function genStreet(R, s, y0, y1) {
+    var th = P.RenderWorld.themeOf(s), seed = s.levelIndex * 131, h = s.hero;
+    if (!th.props || !Object.keys(th.props).length) return;
+    for (var y = Math.floor(y0 / SLOT) * SLOT; y < y1; y += SLOT) [-1, 1].forEach(function (sd) {
+      if (hash(seed + y * 3.1 + sd * 7.7) < 0.4) return;
+      var kind = pick(th.props, hash(seed + y * 5.3 + sd * 2.1)), x = sd * (BIG[kind] ? 6.2 : 5.3 + hash(y * 2.3 + sd));
+      var yy = y + hash(y * 4.7 + sd) * 2.5, o = { k: Math.floor(hash(y * 9.1 + sd) * 4) };
+      if (kind === 'cat' || kind === 'catbox') o.alert = Math.hypot(h.x - x, h.y - yy) < 2.2;
+      if (kind === 'pigeon') o.fly = flyFor(seed + ':' + y + ':' + sd, x, yy, s);
+      P.Props.draw(kind, R, x, yy, o);
+    });
+  }
+  function genOverhead(R, s, y0, y1) {
+    var th = P.RenderWorld.themeOf(s), rig = th.overhead, hp = P.RenderWorld.hoodPos(s), t = performance.now() / 1000;
+    for (var y = Math.ceil(y0 / 12) * 12; y < y1 && rig !== 'none'; y += 12) {
+      if (rig === 'strings') P.Props.draw('strings', R, 0, y, {});
+      else if (rig === 'lanterns') P.Props.draw('lanterns', R, 0, y, { n: 12 });
+      else if (rig === 'laundry') P.Props.draw('laundry', R, 0, y + 3, { k: Math.floor(hash(y) * 6) });
+      else if (rig === 'vault') P.Props.draw('vault', R, 0, y, {});
+      else if (rig === 'lamps') { P.Props.draw('lamp', R, 6.4, y, {}); P.Props.draw('lamp', R, -6.4, y + 6, {}); }
+    }
+    if (hp >= 5 && hp <= 17) for (var q = Math.floor(y0 / 40) * 40; q < y1; q += 40) {
+      if (hash(q * 0.7) < 0.5) P.Props.draw('smoke', R, (hash(q) < 0.5 ? -1 : 1) * 8.6, q, { n: 6, a: 0.22 });
+    }
+    genSigns(R, th, y0, y1, t);
+  }
+  // Hanging shop signs from the theme's word list; a few flicker (no neon).
+  function genSigns(R, th, y0, y1, t) {
+    var c = R.ctx, u = R.ppm, n = th.sign.length;
+    for (var y = Math.floor(y0 / 6) * 6; y < y1; y += 6) [-1, 1].forEach(function (side) {
+      if (hash(y * 1.7 + side) < 0.45) return;
+      var txt = th.sign[Math.floor(hash(y * 9 + side * 3) * n)], col = SIGN_COL[Math.floor(hash(y + side * 5) * SIGN_COL.length)];
+      var X = R.X(side * 5.35), Y = R.Y(y + 1.2), w = 1.5 * u, hh = 0.55 * u;
+      c.globalAlpha = hash(y * 4.4 + side) < 0.2 && Math.sin(t * 37 + y) > 0.2 ? 0.25 : 1;
+      c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(R.X(side * 7.05), Y - hh * 0.6); c.lineTo(X - side * w * 0.45, Y - hh * 0.6); c.stroke();
+      c.fillStyle = col[0]; c.fillRect(X - w / 2, Y - hh / 2, w, hh); c.strokeRect(X - w / 2, Y - hh / 2, w, hh);
+      c.font = 'italic 900 ' + Math.round(0.26 * u) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = col[1]; c.fillText(txt, X, Y + 1, w - 6);
+      c.globalAlpha = 1;
+    });
+  }
 
   return D;
 })();

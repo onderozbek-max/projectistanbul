@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World preview (workstream F)</title>
+<style>
+  body { margin: 0; padding: 16px; background: #8A8F98; font: 600 13px/1.3 system-ui, -apple-system, sans-serif; color: #14151F; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 10px; }
+  select, button { font: inherit; padding: 4px 6px; }
+  label { display: inline-flex; gap: 6px; align-items: center; }
+  input[type=range] { width: 200px; }
+  #game { width: 390px; height: 844px; background: #14151F; display: block; border-radius: 12px; }
+  #info { margin-top: 8px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <label>Theme <select id="theme"></select></label>
+  <label>Scroll y <input id="y" type="range" min="0" max="240" step="0.25" value="0"> <span id="yv">0</span> m</label>
+  <label>Cam x <input id="x" type="range" min="-3" max="3" step="0.1" value="0"></label>
+  <label><input id="hold" type="checkbox"> hold width 12 m</label>
+  <label><input id="exit" type="checkbox"> exit open</label>
+  <label><input id="blocks" type="checkbox" checked> blocks</label>
+  <label><input id="auto" type="checkbox"> auto-scroll</label>
+  <button id="prev">&lt; prev</button><button id="next">next &gt;</button>
+</div>
+<canvas id="game" width="390" height="844"></canvas>
+<div id="info"></div>
+
+<script>window.P = {};</script>
+<!-- Real game scripts in index.html order (minus main.js, input.js, ui.js, music and audio, which the preview does not need). -->
+<script src="../js/config.js"></script>
+<script src="../js/config-weapons.js"></script>
+<script src="../js/config-levels.js"></script>
+<script src="../js/strings.js"></script>
+<script src="../js/journey.js"></script>
+<script src="../js/strings-weapons.js"></script>
+<script src="../js/meta/strings-meta.js"></script>
+<script src="../js/story/strings-story.js"></script>
+<script src="../js/sim/rng.js"></script>
+<script src="../js/sim/world.js"></script>
+<script src="../js/view/settings.js"></script>
+<script src="../js/view/sfx-bank.js"></script>
+<script src="../js/view/sfx-bank2.js"></script>
+<script src="../js/view/sfx.js"></script>
+<script src="../js/view/fx.js"></script>
+<script src="../js/view/render.js"></script>
+<script src="../js/view/render-world.js"></script>
+<script src="../js/view/art-rig.js"></script>
+<script src="../js/view/art-characters.js"></script>
+<script src="../js/view/art-enemies.js"></script>
+<script src="../js/view/sprites.js"></script>
+<script src="../js/view/weapons-fx.js"></script>
+<script src="../js/view/weapons-fx2.js"></script>
+<script src="../js/view/skills-fx.js"></script>
+<script src="../js/view/weapons-fx3.js"></script>
+<script src="../js/view/enemies-fx.js"></script>
+<script src="../js/view/istanbul.js"></script>
+<script src="../js/view/istanbul-props.js"></script>
+<script src="../js/view/istanbul-props2.js"></script>
+<script src="../js/view/istanbul-themes.js"></script>
+<script src="../js/view/screens.js"></script>
+<script src="../js/view/coldopen.js"></script>
+
+<script>
+(function () {
+  // Sample geometry shared by all themes. Blocks: AABB centre (x, y) with w (x) and h (y) in metres.
+  var BLOCKS = [
+    { kind: 'car', x: -1.3, y: 36, w: 1.8, h: 4.2 }, { kind: 'taxi', x: 1.2, y: 52, w: 1.8, h: 4.3 },
+    { kind: 'dolmus', x: -1.2, y: 70, w: 1.9, h: 4.6 }, { kind: 'bus', x: 1.4, y: 98, w: 2.5, h: 9 },
+    { kind: 'barrier', x: 0, y: 128, w: 2.4, h: 0.6 }, { kind: 'kiosk', x: -2.2, y: 150, w: 1.4, h: 1.1 },
+    { kind: 'bench', x: 2.1, y: 168, w: 1.6, h: 0.5 }, { kind: 'bin', x: -2.4, y: 182, w: 0.5, h: 0.5 },
+    { kind: 'planter', x: 2.4, y: 192, w: 1.2, h: 1.2 }, { kind: 'crates', x: -2.6, y: 202, w: 1.2, h: 1.0 },
+    { kind: 'tables', x: 2.8, y: 212, w: 1.6, h: 1.2 }, { kind: 'cart', x: -1.0, y: 222, w: 1.2, h: 0.8 },
+    { kind: 'tree', x: 0.6, y: 118, w: 1.0, h: 1.0 }, { kind: 'bollard', x: -0.8, y: 86, w: 0.4, h: 0.4 },
+    { kind: 'mystery', x: 1.8, y: 60, w: 1, h: 1 }
+  ];
+  var LANDMARKS = [ { kind: 'tower', y: 24 }, { kind: 'pillar', y: 44 }, { kind: 'mural', y: 60 }, { kind: 'clock', y: 88 },
+    { kind: 'crane', y: 70 }, { kind: 'vault', y: 110 }, { kind: 'wallSection', y: 120 }, { kind: 'playground', y: 130 },
+    { kind: 'gateArch', y: 140 }, { kind: 'pier', y: 180 } ];
+  var canvas = document.getElementById('game'), sel = document.getElementById('theme');
+  var ui = { y: document.getElementById('y'), x: document.getElementById('x'), hold: document.getElementById('hold'),
+    exit: document.getElementById('exit'), blocks: document.getElementById('blocks'), auto: document.getElementById('auto') };
+
+  // Options: L1 (scripted) first, then one generated level per neighbourhood (first stage, hood 0 uses stage 2).
+  var OPTS = [{ label: 'L1 · İstiklal (scripted opening level)', level: 1 }];
+  P.Journey.hoods.forEach(function (h, hi) {
+    OPTS.push({ label: (hi + 1) + ' · ' + h.name + ' (' + h.theme + ')', level: hi === 0 ? 2 : hi * 5 + 1 });
+  });
+  OPTS.forEach(function (o, i) { var op = document.createElement('option'); op.value = i; op.textContent = o.label; sel.appendChild(op); });
+
+  function fakeSim(level) {
+    var li = level > 1 ? P.Journey.level(level) : null, theme = li ? li.hood.theme : 'istiklal';
+    return {
+      seed: 1, t: 0, runT: 0, mode: 'play', levelIndex: level, levelInfo: li, theme: theme,
+      geo: { xMin: -4.6, xMax: 4.6, length: 230, exitY: 230, holdY: 200, holdT: 56, boss: null, exitOpen: ui.exit.checked,
+        blocks: ui.blocks.checked ? BLOCKS : [], landmarks: LANDMARKS },
+      hero: { x: 0, y: 0, fx: 0, fy: 1, hp: 100, maxHp: 100, moving: false, invuln: 0, pickupRadius: 1.2, sinceHit: 99,
+        weapons: { knife: 1 }, passives: {}, cds: {}, chainA: 0, swingDir: 1, regenOn: false, hitFlash: 0 },
+      enemies: [], drops: [], projs: [], nails: [], zones: [], events: [],
+      props: { carts: [], canisters: [], doorOpen: false, shutter: 0, shutterOpen: false, scaffoldDown: false },
+      dir: { civilians: [], telegraphs: [], flags: {}, bubbles: [], barks: { cur: null, queue: [] }, tut: { active: null }, hold: { active: false }, zoomOut: false }
+    };
+  }
+
+  var sim = null, camY = 0;
+  function setTheme(i) {
+    sel.value = i;
+    sim = fakeSim(OPTS[i].level);
+    sim.hero.y = 0;
+    P.Fx.reset(sim);
+    if (P.Sfx && P.Sfx.ambience) P.Sfx.ambience(sim.theme);
+  }
+  function frame() {
+    if (ui.auto.checked) { var v = (parseFloat(ui.y.value) + 0.12) % 240; ui.y.value = v; }
+    var y = parseFloat(ui.y.value), cam = P.Fx.cam;
+    document.getElementById('yv').textContent = y.toFixed(1);
+    sim.exitOpen = ui.exit.checked; sim.geo.exitOpen = ui.exit.checked; sim.geo.blocks = ui.blocks.checked ? BLOCKS : [];
+    var cx = parseFloat(ui.x.value);
+    sim.hero.y = y; sim.hero.x = cx;
+    cam.y = y; cam.x = cx; cam.w = ui.hold.checked ? P.CFG.view.holdWidthM : P.CFG.view.widthM;
+    cam.ox = 0; cam.oy = 0; cam.rot = 0; cam.zoom = 1; cam.trauma = 0; cam.punchT = 0;
+    P.Render.frame(sim, null);
+    var tint = P.RenderWorld.screenLight ? P.RenderWorld.screenLight(sim) : null, hp = P.RenderWorld.hoodPos ? P.RenderWorld.hoodPos(sim) : 0;
+    document.getElementById('info').textContent = OPTS[sel.value].label + ' · levelIndex ' + sim.levelIndex + ' · hood pos ' +
+      hp.toFixed(2) + (tint ? ' · tint rgba(' + tint.map(function (v, k) { return k < 3 ? Math.round(v) : v.toFixed(2); }).join(',') + ')' : '');
+    requestAnimationFrame(frame);
+  }
+  sel.addEventListener('change', function () { setTheme(parseInt(sel.value, 10)); });
+  document.getElementById('prev').addEventListener('click', function () { setTheme((parseInt(sel.value, 10) + OPTS.length - 1) % OPTS.length); });
+  document.getElementById('next').addEventListener('click', function () { setTheme((parseInt(sel.value, 10) + 1) % OPTS.length); });
+  P.Render.init(canvas); P.Render.resize(1);
+  setTheme(0);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

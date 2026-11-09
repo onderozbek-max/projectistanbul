@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Art preview: characters, enemies, civilians, portraits</title>
+<style>
+  body { margin: 0; padding: 20px; background: #8A8F98; font: 600 13px/1.3 system-ui, -apple-system, sans-serif; color: #14151F; }
+  h1 { margin: 0 0 4px; font-size: 16px; color: #F4EBDD; }
+  h2 { margin: 18px 0 8px; font-size: 13px; color: #F4EBDD; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+  .cell { background: #C9CED6; border-radius: 10px; padding: 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .cell small { font-size: 11px; color: #14151F; }
+  .gp { background: #5E636B; border-radius: 8px; }
+  .big { background: #3E4A5A; border-radius: 10px; }
+  .mood { background: #C9CED6; border-radius: 10px; padding: 6px; }
+  .mood p { margin: 0 0 4px; font-size: 11px; text-align: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .faint { color: #F4EBDD; font-weight: 500; }
+</style>
+</head>
+<body>
+<h1>Art preview: No Signal: İstanbul (workstream B)</h1>
+<p class="faint">Gameplay scale: 39 px per metre (R.ppm at zoom 1). 2x: double. All sprites are animated walk cycles.</p>
+
+<h2>Hero: Arda (gameplay scale, then 2x)</h2>
+<div class="row" id="hero"></div>
+
+<h2>Enemy types, one row per type, four skins each (gameplay scale)</h2>
+<div id="types"></div>
+
+<h2>Enemy types at 2x</h2>
+<div class="row" id="types2x"></div>
+
+<h2>Elite, boss and special states</h2>
+<div class="row" id="special"></div>
+
+<h2>Civilians fleeing (arms up, running)</h2>
+<div class="row" id="civ"></div>
+
+<h2>Portraits: every character x every mood</h2>
+<div id="portraits"></div>
+
+<script>window.P = window.P || {}; P.goreRGB = function (s) { return ['86,14,20', '120,20,28', '160,24,36'][s || 0]; };</script>
+<script src="../js/view/art-rig.js"></script>
+<script src="../js/view/art-characters.js"></script>
+<script src="../js/view/art-enemies.js"></script>
+<script src="../js/view/sprites.js"></script>
+<script src="../js/view/portraits.js"></script>
+<script>
+(function () {
+  var dpr = Math.min(window.devicePixelRatio || 1, 3), BASE = 39, cells = [], t0 = performance.now();
+
+  // A small animated cell: canvas of w x h CSS px, figure feet at (w/2, h*0.82), figure drawn by fn(Rd, time).
+  function cell(parent, label, w, h, scale, fn, cls) {
+    var box = document.createElement('div'), cv = document.createElement('canvas'), small = document.createElement('small');
+    box.className = 'cell ' + (cls || ''); cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    cv.style.width = w + 'px'; cv.style.height = h + 'px'; cv.className = 'gp';
+    small.textContent = label; box.appendChild(cv); box.appendChild(small); parent.appendChild(box);
+    var g = cv.getContext('2d');
+    cells.push({ g: g, w: w, h: h, scale: scale, fn: fn, cv: cv });
+    return box;
+  }
+  // Rd for the sprite API: world = canvas CSS px, feet at (w/2, h*0.82).
+  function rdFor(c, w, h, u) { return { ctx: c, ppm: u, X: function (x) { return x; }, Y: function (y) { return y; } }; }
+  function drawAt(g, w, h, fn, time) {
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#5E636B'; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.ellipse(w / 2, h * 0.82, w * 0.3, h * 0.07, 0, 0, Math.PI * 2); g.fill();
+    fn(g, w / 2, h * 0.82, time);
+  }
+  function heroFn(scale) {
+    return function (g, x, y, time) {
+      var ph = time * 6.5;
+      P.Sprites.hero(g, x, y, { u: BASE * 1.22 * scale, face: 1, phase: ph, still: false, flash: 0, arms: 'knife', knifeA: -0.45 + 0.2 * Math.sin(time * 9) });
+    };
+  }
+  function enemyFn(type, skin, variant, scale, extra) {
+    return function (g, x, y, time) {
+      var Rd = { ctx: g, ppm: BASE * scale, X: function (v) { return v; }, Y: function (v) { return v; } };
+      var e = { id: variant + 3, type: type, x: x, y: y, r: 0, hp: 10, maxHp: 10,
+        variant: variant, skin: skin, state: 'active', walk: time * (type === 'runner' ? 9 : 5.5), flash: 0, vy: 0, kbx: 0 };
+      if (extra) for (var k in extra) e[k] = extra[k];
+      if (type === 'crawler') e.walk = time * 6;
+      P.Sprites.enemy(Rd, e, { x: x + 1, y: 0 });
+    };
+  }
+  function civFn(skin, variant, scale) {
+    return function (g, x, y, time) {
+      var Rd = { ctx: g, ppm: BASE * scale, X: function (v) { return v; }, Y: function (v) { return v; } };
+      P.Sprites.civilian(Rd, { x: x, y: y, drift: 1, walk: time * 2.4, scream: 0, variant: variant, skin: skin });
+    };
+  }
+  function corpseFn(type, variant, fling) {
+    return function (g, x, y) {
+      var Rd = { ctx: g, ppm: BASE, X: function (v) { return v; }, Y: function (v) { return v; } };
+      P.Sprites.corpse(Rd, { x: x, y: y + 0.2 * BASE, dx: 1, dy: 0, etype: type, variant: variant, fling: fling, t: 0.2, T: 0.55 });
+    };
+  }
+
+  var W = 120, H = 130;
+  // Hero.
+  var heroBox = document.getElementById('hero');
+  cell(heroBox, 'Arda 1x (run/knife)', W, H, 1, heroFn(1));
+  cell(heroBox, 'Arda 1x idle', W, H, 1, function (g, x, y) { P.Sprites.hero(g, x, y, { u: BASE * 1.22, face: -1, still: true, flash: 0, arms: 'idle' }); });
+  cell(heroBox, 'Arda hit flash', W, H, 1, function (g, x, y, time) { P.Sprites.hero(g, x, y, { u: BASE * 1.22, face: 1, phase: 1, still: false, flash: time % 1 < 0.5 ? 0.05 : 0, arms: 'idle' }); });
+  cell(heroBox, 'Arda back view', W, H, 1, function (g, x, y, time) { P.Sprites.hero(g, x, y, { u: BASE * 1.22, face: 1, phase: time * 6.5, still: false, back: true, flash: 0 }); });
+  var hero2 = document.getElementById('hero');
+  cell(hero2, 'Arda 2x (run/knife)', 2 * W, 2 * H, 2, heroFn(2), 'big');
+  cell(hero2, 'Arda 2x idle', 2 * W, 2 * H, 2, function (g, x, y) { P.Sprites.hero(g, x, y, { u: BASE * 1.22 * 2, face: -1, still: true, flash: 0, arms: 'idle' }); }, 'big');
+
+  // Types x skins at gameplay scale.
+  var typeRows = [
+    ['walker', ['waiter', 'tourist', 'shopper', 'student']],
+    ['runner', ['jogger', 'worker', 'commuter', 'sailor']],
+    ['diner', ['tourist', 'granny', 'chef', 'neighbor']],
+    ['crawler', ['worker', 'shopper', 'student', 'chef']],
+    ['spitter', ['fisher', 'vendor', 'hamal', 'driver']],
+    ['brute', ['hamal', 'worker', 'conductor', 'shopkeeper']],
+    ['bloater', ['picnicker', 'gardener', 'pigeonman', 'barista']]
+  ];
+  var typesBox = document.getElementById('types');
+  typeRows.forEach(function (row) {
+    var r = document.createElement('div'); r.className = 'row'; r.style.marginBottom = '8px';
+    row[1].forEach(function (skin, i) {
+      var sc = row[0] === 'brute' ? 1.6 : 1;
+      cell(r, row[0] + ' / ' + skin, W, H, sc, enemyFn(row[0], skin, i, sc));
+    });
+    typesBox.appendChild(r);
+  });
+
+  // Types at 2x (walker, runner, spitter, brute, bloater, crawler).
+  var t2 = document.getElementById('types2x');
+  [['walker', 'waiter'], ['runner', 'jogger'], ['spitter', 'fisher'], ['brute', 'hamal'], ['bloater', 'picnicker'], ['crawler', 'shopper']].forEach(function (p) {
+    var sc = p[0] === 'brute' ? 1.6 : 1;
+    cell(t2, p[0] + ' 2x', 2 * W, 2 * H, 2 * sc, enemyFn(p[0], p[1], 2, 2 * sc), 'big');
+  });
+
+  // Specials: L1 default skin mapping (no e.skin), elite, boss, windup, swell, dormant, corpse, crawler corpse.
+  var sp = document.getElementById('special');
+  cell(sp, 'walker default skin (variant 5)', W, H, 1, enemyFn('walker', undefined, 5, 1));
+  cell(sp, 'elite walker', W, H, 1, enemyFn('walker', 'worker', 1, 1, { elite: true, hp: 40, maxHp: 80 }));
+  cell(sp, 'elite runner', W, H, 1, enemyFn('runner', 'jogger', 4, 1, { elite: true, hp: 40, maxHp: 80 }));
+  cell(sp, 'boss brute (2.2x)', 2 * W, 2 * H, 1, enemyFn('brute', 'hamal', 2, 1, { boss: true }), 'big');
+  cell(sp, 'boss spitter windup', W, H, 1, enemyFn('spitter', 'fisher', 0, 1, { boss: true, windup: 1 }));
+  cell(sp, 'spitter windup', W, H, 1, enemyFn('spitter', 'vendor', 1, 1, { windup: 0.9 }));
+  cell(sp, 'brute windup (red eyes)', W, H, 1.6, enemyFn('brute', 'conductor', 3, 1.6, { windup: 1 }));
+  cell(sp, 'bloater swollen', W, H, 1.2, enemyFn('bloater', 'picnicker', 5, 1.2, { swell: 1 }));
+  cell(sp, 'diner dormant (human)', W, H, 1, enemyFn('diner', 'tourist', 2, 1, { state: 'dormant' }));
+  cell(sp, 'corpse walker', W, H, 1, corpseFn('walker', 1, false));
+  cell(sp, 'corpse brute', W, H, 1, corpseFn('brute', 2, false));
+  cell(sp, 'corpse charred', W, H, 1, corpseFn('runner', 3, true));
+
+  // Civilians: all eight civilian looks, arms up, running.
+  var civBox = document.getElementById('civ');
+  ['tourist', 'shopper', 'student', 'commuter', 'granny', 'jogger', 'picnicker', 'sailor'].forEach(function (s, i) {
+    cell(civBox, 'civilian / ' + s, W, H, 1, civFn(s, i, 1));
+  });
+
+  // Portraits: DOM canvases, every who x every mood.
+  var pb = document.getElementById('portraits');
+  P.Portraits.list.forEach(function (who) {
+    var row = document.createElement('div'); row.className = 'grid'; row.style.marginBottom = '10px';
+    P.Portraits.moods.forEach(function (mood) {
+      var box = document.createElement('div'); box.className = 'mood';
+      var cv = P.Portraits.canvas(who, mood, 120), p = document.createElement('p');
+      p.textContent = who + ' / ' + mood; box.appendChild(p); box.appendChild(cv); row.appendChild(box);
+    });
+    pb.appendChild(row);
+  });
+
+  function frame() {
+    var time = (performance.now() - t0) / 1000;
+    cells.forEach(function (c) { drawAt(c.g, c.w, c.h, c.fn, time); });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

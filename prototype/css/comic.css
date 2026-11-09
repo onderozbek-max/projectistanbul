@@ -1,1 +1,57 @@
-/* Comic story presentation (workstream G). */
+/* Comic story presentation (workstream G, v0.4). All classes are cm-*. Overlays sit inside #phone (390 x 844).
+   Canvas drawing lives in js/view/comic.js and comic-art.js; this file only places and styles the containers. */
+.cm-page { position: absolute; inset: 0; z-index: 60; background: var(--ink); overflow: hidden; user-select: none;
+           touch-action: manipulation; }
+.cm-grid { position: absolute; inset: 0; }
+.cm-panel { position: absolute; overflow: hidden; background: var(--paper); border: 4px solid var(--ink);
+            box-shadow: 5px 5px 0 #000; opacity: 0; transform: rotate(var(--tilt, 0deg)) translateY(10px);
+            transition: opacity .22s ease-out, transform .28s cubic-bezier(.2, .9, .3, 1.2); }
+.cm-panel.in { opacity: 1; transform: rotate(var(--tilt, 0deg)); }
+.cm-art { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.cm-dark { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+.cm-tag { position: absolute; left: 14px; right: 60px; top: 16px; font: italic 900 14px var(--display);
+          letter-spacing: .08em; color: var(--heal); text-transform: uppercase; pointer-events: none; }
+.cm-hint { position: absolute; left: 0; right: 0; bottom: 22px; text-align: center; font: 600 12px var(--body);
+           color: rgba(255, 248, 236, .72); letter-spacing: .04em; pointer-events: none; animation: cm-blink 1.6s steps(2) infinite; }
+.cm-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cm-skip { position: absolute; top: 8px; right: 8px; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%;
+           background: rgba(20, 21, 31, .6); cursor: pointer; }
+.cm-skip svg { display: block; width: 48px; height: 48px; transform: rotate(-90deg); }
+.cm-ring-bg { fill: none; stroke: rgba(255, 248, 236, .25); stroke-width: 4; }
+.cm-ring { fill: none; stroke: var(--heal); stroke-width: 4; stroke-linecap: round;
+           stroke-dasharray: 125.66; stroke-dashoffset: 125.66; }
+
+/* Pop-ins: a bust with a bubble in the upper band (JS sets top to 150px). */
+.cm-pop { position: absolute; left: 0; width: 390px; height: 300px; z-index: 50; pointer-events: none; }
+.cm-pop-cv { display: block; width: 390px; height: 300px; }
+
+/* Mom's call card. Non-blocking by default; cm-block lets taps advance the line. */
+.cm-call { position: absolute; left: 12px; top: 150px; width: 366px; z-index: 55; background: var(--ink);
+           box-shadow: 0 0 0 3px var(--paper), 5px 5px 0 #000; color: #fff; pointer-events: none; }
+.cm-call.cm-block { pointer-events: auto; }
+.cm-call.cm-ringing { animation: cm-shake .25s steps(2) infinite; }
+.cm-call-head { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--ink-2); }
+.cm-contact { flex: none; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 2px solid var(--paper); }
+.cm-contact canvas { display: block; width: 56px; height: 56px; }
+.cm-call-info { flex: 1; min-width: 0; }
+.cm-call-name { font: italic 900 20px var(--display); letter-spacing: .02em; }
+.cm-call-timer { font: 600 12px var(--body); opacity: .7; font-variant-numeric: tabular-nums; }
+.cm-bars { display: flex; align-items: flex-end; gap: 3px; height: 22px; }
+.cm-bars i { display: block; width: 5px; background: rgba(255, 248, 236, .25); }
+.cm-bars i:nth-child(1) { height: 6px; }
+.cm-bars i:nth-child(2) { height: 10px; }
+.cm-bars i:nth-child(3) { height: 15px; }
+.cm-bars i:nth-child(4) { height: 20px; }
+.cm-bars i.on { background: var(--paper); }
+.cm-call-art { display: block; width: 366px; height: 150px; }
+.cm-call-sub { min-height: 44px; padding: 9px 12px; font: 600 14px/1.3 var(--body); background: rgba(0, 0, 0, .55); }
+.cm-call-sub b { color: var(--heal); margin-right: 6px; }
+.cm-nosig { padding: 14px 12px; text-align: center; font: italic 900 24px var(--display); color: #FF7A5C;
+            letter-spacing: .04em; text-transform: uppercase; background: rgba(0, 0, 0, .55); }
+
+@keyframes cm-blink { 0% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes cm-shake { 0% { transform: translateX(-1px); } 50% { transform: translateX(1px); } }
+
+/* Reduced motion: no slides, no blinking, no shaking. The JS also skips Ken Burns drift and zoom. */
+.cm-reduce .cm-panel { transition: none; }
+.cm-reduce .cm-hint, .cm-call.cm-reduce { animation: none; }

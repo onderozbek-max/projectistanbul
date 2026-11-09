@@ -1,6 +1,6 @@
 # Project Istanbul: Content Catalog (Vertical Slice + Planned)
 
-> **Status:** v0.1 · 2026-11-08 · Owns: starting numbers for heroes, weapons, passives,
+> **Status:** v0.2 · 2026-11-08 (v0.4 docs pass: D-017, D-018, D-027–D-031) · Owns: starting numbers for heroes, weapons, passives,
 > evolutions, enemies, bosses, pickups, interactables, and the L1–30 level list.
 > **Rules that use these numbers:** [game-design.md](game-design.md).
 > After implementation, `game/content/**/*.tres` is the source of truth. IDs below are the
@@ -12,7 +12,7 @@
 
 | ID | Name | HP | Armor | Move (m/s) | Signature weapon | Tag-in move | Ultimate | Available |
 |---|---|---|---|---|---|---|---|---|
-| `hero_arda` | Arda | 100 | 0 | 3.2 | Fork | **Stab-Dash:** 2 m dash, 20 dmg to enemies passed | **Fork Frenzy:** chain-dashes through up to 7 enemies (40 dmg each) over 1.2 s, invulnerable | Slice (start) |
+| `hero_arda` | Arda | 100 | 0 | 3.2 | Döner Knife (`wpn_knife`) | **Kaçış (dash):** 3.2 m in 0.16 s, 0.3 s i-frames, 3.5 s cooldown (`skill_dash`, D-031) | **Evil-Eye Burst (Nazar Patlaması):** 2 s burst, 60 dmg ring, push 2.5 m; charged by kills and elites (`skill_ult`, D-031) | Slice (start) |
 | `hero_kaan` | Kaan | 180 | 2 | 2.6 | Anchor | **Mini Slam:** r 1.5 m, 25 dmg, knockback 1 m | **Ground Slam:** r 3.5 m, 80 dmg, stun 1 s, knockback 2 m | Slice (L30) |
 | `hero_mila` | Mila | 70 | 0 | 4.2 | Twin Batons | **Dash:** 3 m through enemies, 15 dmg | **Sprint Blitz:** 3 rapid dashes (35 dmg each), leaves a 40% slow trail for 3 s | Chapter 2 |
 | `hero_ada` | Ada | 80 | 0 | 3.2 | Slingshot | **Calm Pulse:** r 3 m, slow 40% for 2 s | **Calm Field:** r 5 m, slow 60% for 4 s + volley of 12 bolts (20 dmg each) | Chapter 2 |
@@ -28,11 +28,15 @@
 
 ## 2. Card Weapons
 
+> **v0.4 (D-017, D-018, D-030):** `wpn_fork` is now `wpn_knife`, the Döner Knife, Arda's starting weapon. The
+> rows below are v0.2 data. Tea Glass is out of the slice (Çaycı Tepsisi takes its role; `weapons-skills.md` §5).
+> The v0.4 slice arsenal is in §10.1.
+
 Behaviors map 1:1 to weapon strategy classes (architecture.md §4.4). Damage is base, before stats.
 
 | ID | Name (EN / TR) | Behavior | Targeting | Dmg | CD (s) | Area / range | Proj | Pierce | Slice |
 |---|---|---|---|---|---|---|---|---|---|
-| `wpn_fork` | Fork / Çatal | `melee_arc` | Facing | 12 | 0.8 | 1.6 m, 60° | 1 | all in arc | Yes (signature) |
+| `wpn_knife` | Döner Knife / Döner Bıçağı | `melee_arc` | Nearest threat (auto-aim) | 14 (L1) → 30 (L5) | see config | 1.8 m, 100° (L1) → 2.3 m, 170° (L5) | 1 | all in arc | Yes (starting weapon, D-017/D-018) |
 | `wpn_tea_glass` | Tea Glass / Çay Bardağı | `lob_aoe` | Densest cluster within 6 m | 18 | 2.0 | Lob 4 m, splash r 1.2 m | 1 | AoE | Yes |
 | `wpn_simit` | Simit Ricochet / Simit | `ricochet` | Nearest | 10 | 1.5 | Bounce range 3 m | 1 | 3 bounces | Yes |
 | `wpn_seagulls` | Seagulls / Martılar | `orbit_dive` | Nearest within 4 m | 8 | 1.2 per gull | Orbit r 2.2 m | 2 gulls | 1 | Yes |
@@ -45,7 +49,7 @@ Behaviors map 1:1 to weapon strategy classes (architecture.md §4.4). Damage is 
 ### Level-up effects (L2 → L5)
 | ID | L2 | L3 | L4 | L5 |
 |---|---|---|---|---|
-| `wpn_fork` | +4 dmg | Adds a back-thrust | +25% range | +8 dmg, arc 120° |
+| `wpn_knife` | Dmg up (see config) | Back-slash | Range up (see config) | 30 dmg, arc 170° |
 | `wpn_tea_glass` | +1 projectile | +25% area | +1 projectile | +10 dmg, leaves 1 s scald zone (Burn) |
 | `wpn_simit` | +1 bounce | +1 projectile | +1 bounce, +4 dmg | +1 projectile |
 | `wpn_seagulls` | +1 gull | +3 dmg | +1 gull | Dives knock back; 5% chance a gull "steals a simit" (heal 2) |
@@ -58,6 +62,9 @@ Behaviors map 1:1 to weapon strategy classes (architecture.md §4.4). Damage is 
 ---
 
 ## 3. Passives
+
+> **v0.4 (D-017):** Tea Glass, Ayran, Butter and Sneakers are out of the slice kit. Teapot is not in the v0.4 kit either.
+> Their rows are kept for later content. The v0.4 passives are in §10.2 and `weapons-skills.md` §6.
 
 | ID | Name (EN / TR) | Per level | Max | Pairs with (evolution) | Slice |
 |---|---|---|---|---|---|
@@ -75,6 +82,10 @@ Behaviors map 1:1 to weapon strategy classes (architecture.md §4.4). Damage is 
 ---
 
 ## 4. Evolutions
+
+> **v0.4 (D-030):** The slice evolution set is in §10.3. The rows below pair retired items (Tea Glass, Ayran)
+> and are later-content candidates. The old rule "each passive pairs with exactly one weapon" is replaced
+> (proposed, `weapons-skills.md` §7): each weapon has one evolution, and a passive may feed more than one.
 
 | ID | From (weapon L5 + passive) | Name (EN / TR) | Effect | Slice |
 |---|---|---|---|---|
@@ -114,6 +125,11 @@ Zombies wear everyday Istanbul clothes; desaturated palette; no gore close-ups.
 ---
 
 ## 6. Bosses and Mini-Bosses
+
+> **Superseded (D-027):** The slice has 20 stage-5 bosses, one per hood. They are in `journey.md` §2 and §5, with
+> canonical names in §9.8. The names The Vatman, Tour Guide, The Bride and Big Fisherman carry over, at the hood
+> slots in `journey.md` §2 (not the levels below). The L5 Kestaneci mini-boss is replaced. Kaan's story fight moves
+> to L20 if `journey.md` §9.1 is approved. The rows below are v0.2 data.
 
 All telegraphs ≥ 0.8 s for bosses. Damage values are base (scaled by nothing else).
 
@@ -165,6 +181,11 @@ All telegraphs ≥ 0.8 s for bosses. Damage values are base (scaled by nothing e
 ---
 
 ## 7. Levels 1–30
+
+> **Superseded (D-027):** Districts 1–3 map to hoods H01–H06 (`journey.md` §2 and §8.2). District 1 (levels 1–10) is
+> H01 İstiklal and H02 Galata. District 2 (11–20) is H03 Karaköy and H04 Galata Köprüsü. District 3 (21–30) is H05
+> Eminönü and H06 Sirkeci. Level 1 stays in `level-001-istiklal.md`. The L30 Kaan and Ticket Man beats move per
+> `journey.md` §9.1–9.2 (open). The level list below is v0.2 data.
 
 Template: game-design.md §6. Durations are targets for an average player.
 
@@ -234,3 +255,49 @@ Template: game-design.md §6. Durations are targets for an average player.
 | `int_cafe_chairs` | Café chairs | — | Knocked aside (cosmetic, physics-lite) | Pure juice |
 | `int_shutter` | Shop shutter | — | Objective door (opens on script) | Route-level exits |
 | `int_manhole` | Manhole | — | Crawler spawn point (1.0 s telegraph: lid rattles) | Telegraph = audio + visual |
+
+---
+
+## 10. v0.4 arsenal and skills (D-017, D-030, D-031)
+
+> **Status: prototype values, source of truth `prototype/js/config-weapons.js` (in progress).** Level tables,
+> feel targets and sound and animation specs are in [weapons-skills.md](weapons-skills.md). Display names are
+> proposals until the owner picks them (weapons §12). Balance is decided by the bot, not by these numbers.
+
+### 10.1 Six new weapons (the four v0.3 weapons are in §2)
+
+| ID | Name (EN / TR) | Behavior | Role | Unlock | L1 key numbers | Notes |
+|---|---|---|---|---|---|---|
+| `wpn_sledge` | Sledgehammer / Tamirci Çekici (proposed) | `periodic_slam` at the best cluster | Crowd control | L1 | 30 dmg, r 1.5 m, stun 0.5 s; 2 slams from L4 | Code comments still say "Balyoz". Retire the word (AUDIT-3 A-3). |
+| `wpn_molotov` | Molotov / Benzin Şişesi (proposed) | `arc_pool` (burning pool, Burn) | Area denial | L3 | 10 dmg, pool r 1.3 m, 3.5 s; 1 bottle | Keep the code ID. Display name is the owner's call (weapons §12.1). |
+| `wpn_fireworks` | Fireworks / Havai Fişek | `homing_rockets` with a burst | Burst | L16 | 12 dmg, blast r 0.9 m, 1 rocket | Max 2 bursts per second (flash rule, `wow-catalog.md` §6). |
+| `wpn_cable` | Live Cable / Canlı Kablo | `chain_lightning` | Chain | L21 | 11 dmg, 3 jumps, stun 0.25 s | Max 6 arcs per 0.5 s (flash rule). |
+| `wpn_speargun` | Speargun / Zıpkın | `pierce_line`, pins the last target | Single target | L11 | 14 dmg, pierce 2, root 1.0 s | Harpoon in a line. |
+| `wpn_extinguisher` | Fire Extinguisher / Yangın Söndürücü | `cone_push` (foam) | Crowd control | L6 | 4 dmg, range 2.4 m, arc 70°, slow 40% for 1.2 s, push 1.2 m | Foam cone. Slows and pushes. |
+
+### 10.2 Two new passives
+
+| ID | Name (EN / TR) | Effect (per level) | Unlock | Notes |
+|---|---|---|---|---|
+| `pas_nazar` | Nazar Charm / Nazar Boncuğu | Crit +4%. Dodge +3%, cap 20%. Eye flash on dodge | L1 | The eye flash counts toward the flash limit. |
+| `pas_magnet` | Magnet / Mıknatıs | Pickup radius +0.6 m. Vacuum pulse (config: base 14, +1.5 per level, min 6) | L8 | Units per `config-weapons.js`. |
+
+### 10.3 Five evolutions (approved, owner: "100%")
+
+Rule: each weapon has one evolution. It needs the weapon at L5 and the passive owned (any level). It is awarded by a boss chest.
+
+| ID | Name (EN / TR) | Weapon + passive | Effect (config) |
+|---|---|---|---|
+| `evo_cleaver` | Usta's Cleaver / Usta Satırı | Knife + Work Gloves | 360° cleave, r 2.4 m, 34 dmg, spin 1.0 s |
+| `evo_nailstorm` | Nail Storm / Çivi Fırtınası | Nail Gun + Energy Drink | Fan of 9 nails over 80°, 9 dmg, pierce 2 |
+| `evo_cluster` | Cluster Bomb / Küme Bomba | Gas Canister + Leather Jacket | 2 canisters. Each splits into 3 blasts (r 1.0 m, 14 dmg) |
+| `evo_cyclone` | Chain Cyclone / Zincir Kasırgası | Bike Chain + Running Shoes | 4 blades, r 2.3 m. Pulls enemies within 3.2 m |
+| `evo_finale` | Wedding Finale / Düğün Finali | Fireworks + Magnet | 9 rockets every 3.0 s over 8.8 × 12.4 m. 22 dmg, r 1.3 m |
+
+### 10.4 Skills (D-031)
+
+| ID | Name (EN / TR) | Input | Effect (config) | Notes |
+|---|---|---|---|---|
+| `skill_dash` | Dash / Kaçış | Swipe flick (40 px in 200 ms) or double-tap (280 ms). Space on desktop | 3.2 m in 0.16 s, i-frames 0.3 s, cooldown 3.5 s | A near miss ("KIL PAYI!") slows time to 0.25 for 0.25 s, once per dash. |
+| `skill_ult` | Evil-Eye Burst / Nazar Patlaması | Ult button (auto-fires if the setting is on) | 2.0 s burst, 60 dmg ring, push 2.5 m. Weapons ×1.5 power, cooldowns ×0.6 | Charge: +0.004 per kill, +0.03 per elite (250 kills). |
+| `skill_frenzy` | Frenzy / Çılgınlık ("ÇILGINLIK!") | Automatic | 6 s, weapon attack speed +40% | Trigger: 60 kills with gaps ≤ 1.5 s. 50 proposed (weapons §8.2). |

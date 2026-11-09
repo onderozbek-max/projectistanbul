@@ -69,7 +69,7 @@ Durations assume one executor working steadily; compress if velocity allows.
 | T2 | InputRouter, floating joystick, desktop controls | US-2.1 AC |
 | T3 | Arda placeholder (capsule + ring), camera with look-ahead | Camera spec (game-design.md §2) |
 | T4 | Swarm promoted to `sim/`: walker + runner Defs, contact damage, deaths, XP droplets, pickup radius | 300 enemies at 60 fps on desktop |
-| T5 | Weapon framework + Fork + Tea Glass; level-up card UI (placeholder) | US-3.1 AC |
+| T5 | Weapon framework + Döner Knife (D-017 kit); level-up card UI (placeholder) | US-3.1 AC |
 | T6 | Arena test level (30 × 30 m), simple budget spawner, run timer, death → results stub | A complete run loop |
 | T7 | Telemetry JSONL sink with core events | JSONL written and exportable |
 

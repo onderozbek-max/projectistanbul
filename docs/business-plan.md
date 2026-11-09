@@ -183,7 +183,7 @@ Recompute this table with real soft-launch data.
 ## 11. Go-to-Market
 
 1. **Build in public** from M1: TikTok/Reels devlog in Turkish and English ("I'm making a zombie
-   game set in Istanbul": the fork scene is the hook).
+   game set in Istanbul": the knife scene is the hook).
 2. **Turkish gaming creators** (YouTube/TikTok/Twitch): early access builds in M7.
 3. **Community:** a Discord from the demand test onward; testers become ambassadors.
 4. **App Store Optimization:** title + city, subtitle with genre keywords, Turkish and English

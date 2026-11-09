@@ -4,14 +4,21 @@ P.Fx = (function () {
 
   F.reset = function (s) {
     var w = P.CFG.view.widthM;
-    F.cam = { x: -6, y: s.hero.y, w: w, trauma: 0, punchT: 0, ox: 0, oy: 0, rot: 0, zoom: 1 };
+    F.cam = { x: s.geo ? 0 : -6, y: s.hero.y, w: w, trauma: 0, punchT: 0, ox: 0, oy: 0, rot: 0, zoom: 1 };
     F.cam.y = targetY(s, w);
-    F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = []; F.flash = 0;
+    F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = []; F.flash = 0; F.beat = null;
     P.WFx.reset();
+    if (P.EnemyFx && P.EnemyFx.reset) P.EnemyFx.reset();
+    if (P.Sfx && P.Sfx.ambience) P.Sfx.ambience(s.theme);
   };
 
+  // Generated levels clamp the camera to the corridor (s.geo); L1 keeps its street walls and the restaurant.
   function targetX(s, w) {
     var h = s.hero, look = h.moving ? h.fx * P.CFG.view.lookAhead : 0;
+    if (s.geo) {
+      var lg = Math.max(0, (s.geo.xMax - s.geo.xMin) / 2 - w / 2);
+      return Math.min(lg, Math.max(-lg, look));
+    }
     if (h.y < 0) return -6;
     var lim = Math.max(0, 7 - w / 2) + 1.2;
     return Math.min(lim, Math.max(-lim, h.x + look));
@@ -20,12 +27,18 @@ P.Fx = (function () {
     var h = s.hero, half = P.viewHalfH(w), look = h.moving ? h.fy * P.CFG.view.lookAhead : 0;
     if (s.mode === 'cutscene') return -5.2;
     var y = h.y + look;
+    if (s.geo) return Math.min(Math.max(y, half - 3), s.geo.length + 2 - half);
     y = Math.max(y, -10 + half - 2.5);
     return Math.min(y, P.CFG.level.scaffoldY + 2 - half);
   }
 
+  // Boss death beat: visuals (camera, particles, rings) run at k = 0.3 for 1.2 s. The sim keeps its rate;
+  // main.js may also use F.timeScale() to slow the simulation.
+  F.timeScale = function () { return F.beat && F.beat.t > 0 ? F.beat.k : 1; };
+
   F.update = function (s, dt) {
     var c = F.cam, v = P.CFG.view, fe = P.CFG.feel, rm = P.Settings.reduceMotion;
+    if (F.beat && F.beat.t > 0) { F.beat.t -= dt; dt *= F.beat.k; }
     var wT = s.dir.zoomOut ? v.holdWidthM : v.widthM;
     var dw = (v.holdWidthM - v.widthM) / v.zoomTime * dt;
     c.w = c.w < wT ? Math.min(wT, c.w + dw) : Math.max(wT, c.w - dw);
@@ -67,8 +80,14 @@ P.Fx = (function () {
 
   F.onEvent = function (ev, s) {
     P.WFx.onEvent(ev, s);
+    if (P.EnemyFx && P.EnemyFx.onEvent) P.EnemyFx.onEvent(ev, s);
     switch (ev.type) {
       case 'shockwave': F.flash = P.Settings.reduceMotion ? 0 : 0.35; F.punch(); break;
+      case 'bloaterPop':                                    // the wow moment: punch, trauma, cream flash
+        F.addTrauma(ev.boss ? 0.8 : 0.5); F.punch(); F.flash = P.Settings.reduceMotion ? 0 : 0.3; break;
+      case 'bossDie': F.addTrauma(0.6); F.beat = { t: 1.2, T: 1.2, k: 0.3 }; break;
+      case 'bossSlam': F.addTrauma(0.5); break;
+      case 'bruteStomp': F.addTrauma(0.35); break;
       case 'eliteSpawn': F.bursts.push({ x: ev.x, y: ev.y, t: 0.5, T: 0.5 }); break;
       case 'hit':
         F.number(ev.id, ev.x, ev.y, ev.dmg, ev.crit);

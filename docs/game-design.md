@@ -14,7 +14,7 @@ Units: distances in **meters (m)**, time in **seconds (s)**. Reference camera sh
 
 1. **Readable chaos.** Hundreds of enemies, but the player always knows where they are,
    what will hurt them, and what they just picked up.
-2. **Power fantasy curve.** Every run starts fragile and ends godlike. The fork-stabbing
+2. **Power fantasy curve.** Every run starts fragile and ends godlike. The knife-stabbing
    kid becomes a samovar-wielding storm.
 3. **Short sessions, long arcs.** Runs are 3–8 min; the journey (world map, story, meta)
    gives a reason to come back.
@@ -30,7 +30,7 @@ Units: distances in **meters (m)**, time in **seconds (s)**. Reference camera sh
 | Orientation | Portrait, reference 1080 × 2340, safe-area aware |
 | Move | Floating joystick spawns at the touch point in the lower 60% of the screen. Radius 1.1 cm physical. Dead-zone 8%. Release = stop. |
 | Attack | Automatic. Weapons target per their behavior (content-catalog.md §2). |
-| Facing | Last non-zero move direction (matters for Fork, Döner Skewer). |
+| Facing | Last non-zero move direction (matters for the Speargun line and later directional weapons; the Döner Knife auto-aims). |
 | Tag-switch | Squad portraits, bottom-left column (mirrored in left-handed mode). Unlocks in L30. |
 | Ultimate | Button bottom-right; glows when charged. "Auto-ult" setting fires it automatically. |
 | Pause | Top-right; always available, including in boss fights. |
@@ -167,9 +167,12 @@ Rules:
 - The game is paused while the card UI is open.
 
 ### 5.4 Progressive pool unlock (onboarding)
+
+> **Superseded (D-017, D-027):** the onboarding pool is now the D-017 kit, and the unlock schedule is in `journey.md` §7
+> (`C.unlock` in `config-weapons.js`). The table below is v0.2 and is kept for the history of the pool design.
 | Unlocks at level | Items added to the card pool |
 |---|---|
-| L1 | Fork (signature), Tea Glass, Sneakers, Ayran, Butter |
+| L1 | Döner Knife (signature), Nail Gun, Gas Canister, Bike Chain (D-017 kit) |
 | L2 | Simit, Teapot |
 | L3 | Seagulls, Turkish Coffee |
 | L4 | Döner Skewer, Puffer Jacket |
@@ -177,7 +180,7 @@ Rules:
 | L11 (after beating L10 Vatman) | Tram Bell |
 | Later chapters | Lahmacun Barrage, Pickle Juice, Pul Biber, Sesame (+ their evolutions) |
 
-**L1 scripted first card:** `[Tea Glass (highlighted), Fork L2, Sneakers]`.
+**L1 scripted first card:** `[Nail Gun, Döner Knife L2, Running Shoes]` (config `scriptedFirstCard`: `['w:nailgun', 'w:knife', 'p:shoes']`).
 
 ### 5.5 Evolutions
 - Condition: weapon at **L5** + its **paired passive owned** (any level) + open a **Boss Chest**.
@@ -198,6 +201,9 @@ Rules:
 ---
 
 ## 6. Level Types and District Structure
+
+> **Superseded for Chapter 1 (D-027):** Chapter 1 is 20 hoods × 5 levels. The hood template (stages, holds, waves,
+> elites, boss) is in `journey.md` §3. The district template below is kept for Chapters 2–4 until their journey pass.
 
 | Type | Shape | Win condition | Typical length |
 |---|---|---|---|
@@ -271,7 +277,7 @@ Run-only resources (XP) never leave the run.
 - Three branches per hero: **Offense / Defense / Utility**, 5 nodes each + 1 capstone.
   Nodes have ranks 1–3. Node tier *t* (1–5) at rank *r* costs `t * r` Skill Credits.
 - Branch nodes unlock in order; the capstone needs 10 points in that branch.
-- **Arda examples:** *Fork Discipline* (+10% Fork damage per rank), *Street Smart* (+5% XP gain
+- **Arda examples:** *Knife Discipline* (+10% knife damage per rank), *Street Smart* (+5% XP gain
   per rank), *Thick Hoodie* (+1 armor per rank), *Lucky Find* (+5% luck per rank),
   capstone *Second Wind* (once per run: survive a lethal hit at 1 HP + 2 s invulnerability).
 - **Kaan examples:** *Anchor Weight* (+15% anchor knockback per rank), *Big Guy* (+8% max HP per
@@ -348,7 +354,7 @@ the engaged non-whale majority.
 
 ### 8.12 Cosmetics (SL)
 Hero outfits (e.g., Arda as a ferry captain, Kaan in a fisherman's jacket, Mila in a track
-suit), weapon skins (gold-plated fork, porcelain tea glass), **cat companions** (Pasha variants:
+suit), weapon skins (gold-plated knife, porcelain tea tray), **cat companions** (Pasha variants:
 tuxedo, calico, ginger kitten) that follow you. **Cosmetics give no stats.**
 
 ### 8.13 Rewarded ads (Slice: stubs; SL: real SDK)

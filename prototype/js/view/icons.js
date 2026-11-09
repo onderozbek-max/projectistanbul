@@ -31,6 +31,11 @@ P.Icons = (function () {
   function rivet(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="1.8" fill="' + STEEL + '" stroke="' + INK + '" stroke-width="1.4"/>'; }
   function pt(a, r) { return (24 + r * Math.cos(a)).toFixed(2) + ' ' + (24 + r * Math.sin(a)).toFixed(2); }
 
+  // Nazar eye bead: blue ring, white sclera, dark iris, ink pupil (charm and ultimate).
+  function eye() {
+    return circle(24, 24, 19, BLUE) + circle(24, 24, 13, '#FFFFFF') + circle(24, 24, 7.5, '#1B4965') + circle(24, 24, 3.2, INK);
+  }
+
   function starPath(cx, cy, R, r) {
     var d = '', i, a, k;
     for (i = 0; i < 10; i++) {
@@ -209,6 +214,78 @@ P.Icons = (function () {
     back: function () {
       return path('M23 10L9 24L23 38V30H39V18H23Z', CYAN) +
         hi('M23 18.5H38V20.5H23Z');
+    },
+
+    // ---- arsenal (workstream E1): new weapons, passives, evolutions, skills ----
+    sledge: function () {
+      return '<g transform="rotate(-35 24 24)">' + rect(12, 5, 24, 13, 3.5, DSTEEL) + rect(19.5, 16, 9, 29, 4, LEATHER) +
+        hi('M15 9H33V11H15Z') + '</g>';
+    },
+    molotov: function () {
+      return rect(20.5, 6, 7, 14, 2, '#2E7D4F') +
+        path('M14 24Q11 28 11 33V40Q11 45 16 45H32Q37 45 37 40V33Q37 28 34 24Z', '#2E7D4F') +
+        rect(15, 31, 18, 9, 2, PAPER) +
+        path('M17 9Q14 5 19 2Q18 6 22 5Q20 9 24 9Q22 13 20 13Q19 12 17 9Z', GOLD) +
+        hi('M16.5 30Q15.5 36 17 41V28Z');
+    },
+    fireworks: function () {
+      return '<g transform="rotate(45 24 24)">' + rect(21, 22, 6, 22, 2, DSTEEL) + '</g>' +
+        path(starPath(26, 16, 12, 4.6), GOLD) +
+        circle(10, 9, 3.4, RED) + circle(41, 8, 3.2, CYAN) + circle(42, 24, 2.8, '#E040FB') + circle(8, 22, 2.6, '#7CF08E') +
+        hi('M22 12.5L23.2 13.6L21 16.2Z');
+    },
+    cable: function () {
+      return line('M6 38C12 22 22 40 30 24S40 12 44 18', DSTEEL, 6, true) +
+        line('M6 38C12 22 22 40 30 24S40 12 44 18', STEEL, 1.6) +
+        path(starPath(38, 9, 7.5, 2.6), GOLD) + line('M30 24L26 30L31 31L27 37', GOLD, 2.2) +
+        hi('M38 5.5L39 7.5L37 9Z');
+    },
+    speargun: function () {
+      return line('M4 44L37 11', DSTEEL, 3.4, true) + path('M34 8L46 2L41 14Z', STEEL) +
+        line('M10 40Q18 24 30 22', PAPER, 2) + path('M3 45L8 38L10 43Z', DSTEEL) +
+        hi('M39 10L43 6L42 10Z');
+    },
+    extinguisher: function () {
+      return rect(15, 16, 16, 28, 6, RED) + rect(15, 28, 16, 4, 0, GOLD) + rect(19, 10, 8, 7, 2, DSTEEL) +
+        line('M23 10Q34 4 36 16', DSTEEL, 2.4, true) +
+        path('M31 16C31 6 42 2 44 10C47 12 45 19 40 18C38 22 33 21 31 16Z', PAPER) +
+        hi('M18 20H20V40H18Z');
+    },
+    nazar: function () { return eye() + hi('M10 20Q12 10 20 8Q14 13 13 21Z'); },
+    magnet: function () {
+      return path('M9 6H19V26Q19 33 24 33Q29 33 29 26V6H39V26Q39 42 24 42Q9 42 9 26Z', RED) +
+        rect(9, 6, 10, 9, 1.5, STEEL) + rect(29, 6, 10, 9, 1.5, STEEL) + hi('M11.5 22V28Q11.5 31 13 33Z');
+    },
+    cleaver: function () {
+      return rect(4, 17, 12, 13, 5, LEATHER) + path('M14 15L40 11Q46 15 45 24Q44 32 38 33L14 31Z', STEEL) +
+        line('M16 31L38 33', DSTEEL, 2) + hi('M18 17L36 13.8L36.5 15.4L18 18.6Z');
+    },
+    nailstorm: function () {
+      var out = '', i, x;
+      for (i = 0; i < 5; i++) { x = 8 + i * 8; out += line('M24 44L' + x + ' 8', STEEL, 2.4, true) + circle(x, 8, 2.2, GOLD); }
+      return out + hi('M22 40L9 12L10 11L23 39Z');
+    },
+    cluster: function () {
+      return circle(13, 31, 8, DSTEEL) + circle(35, 31, 8, DSTEEL) + circle(24, 17, 8, DSTEEL) +
+        line('M13 23L17 19M35 23L31 19', GOLD, 2.2) + path(starPath(24, 9, 5, 2), GOLD) +
+        hi('M9 27Q10 24 13 23Z');
+    },
+    cyclone: function () {
+      return line('M37 13A15 15 0 1 0 39 30', STEEL, 5, true) + path('M40 8L46 18L35 18Z', CYAN) +
+        hi('M14 16Q18 12 24 10Q18 13 16 18Z');
+    },
+    finale: function () {
+      return path(starPath(24, 23, 17, 7.6), GOLD) + circle(24, 23, 5, RED) +
+        circle(8, 9, 2.4, CYAN) + circle(41, 8, 2.4, '#E040FB') + circle(40, 40, 2.4, GOLD) + circle(7, 39, 2.2, RED) +
+        hi('M18 14Q20 11 23 10Q20 13 19 17Z');
+    },
+    dash: function () {
+      return path('M5 14L23 24L5 34L10 24Z', CYAN) + path('M22 14L40 24L22 34L27 24Z', CYAN) + hi('M8 19L13 24L8 29Z');
+    },
+    ult: function () {
+      var out = '', i, a;
+      for (i = 0; i < 8; i++) { a = i * Math.PI / 4; out += line('M' + pt(a, 16) + ' L' + pt(a, 22), GOLD, 2.6); }
+      return out + eye();
     }
   };
 

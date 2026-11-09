@@ -45,8 +45,8 @@ behind a family that keeps leaving him letters. Each letter knows a little more 
 - Lives in Ataköy with his parents. Fixed protagonist (name + voice) for v1.
 - **Gameplay:** balanced stats; can spec into any direction. Unique role: *hacker/mechanic*.
   He hacks scooters, upgrades vehicles and crafts gadgets.
-- **Signature weapon:** the fork. It gets a full evolution line, ending in the legendary
-  *Altın Çatal* (Golden Fork).
+- **Signature weapon:** the döner knife (*Döner Bıçağı*). It gets a full evolution line
+  (`weapons-skills.md` §7), ending in the legendary *Usta Satırı* (Usta's Cleaver).
 - **Arc:** a kid who calls his mom for everything → the person everyone looks to.
 
 ### Kaan: 21, "the tank"
@@ -99,35 +99,39 @@ the group in Chapter 1 and never leaves.
 
 ## Chapter Structure
 
-Each chapter = **100 levels = 10 districts × 10 levels**.
-- Level **x5** = mini-boss · Level **x0** = district boss + a major story beat.
+Chapter 1 = **100 levels = 20 hoods (neighbourhoods) × 5 levels**, one walk from Taksim to Ataköy (D-027;
+map in `journey.md`). Chapters 2–4 keep the district format below until they get their own journey pass.
+- Chapter 1: level **5 of each hood** = the hood boss, and a comic page closes the hood (D-028).
+- Chapters 2–4: Level **x5** = mini-boss · Level **x0** = district boss + a major story beat.
 - Small story beats (banter, bond scenes, letters) every 2–4 levels.
 
 ---
 
 ## Chapter 1: *Eve Dönüş* (Homecoming)
-**Taksim → Ataköy · on foot · Levels 1–100 · Squad: Arda (+ Kaan from L30)**
+**Taksim → Ataköy · on foot · Levels 1–100 · Squad: Arda (+ Kaan from L20, proposed)**
 
 **Synopsis:** Arda is eating döner on İstiklal when a breaking-news report flickers on the
 restaurant TV. Seconds later the man at the next table drops his dürüm and bites his friend.
-Arda remembers every zombie movie he's ever watched and puts his fork through the man's skull.
+Arda remembers every zombie movie he's ever watched and puts his döner knife through the man's skull.
 He calls Mom ("I'm coming home"), then the call drops. Networks are dead, transit is dead,
 traffic is gridlocked. Ataköy is 17 km away and the only way there is to walk.
 
-| Levels | District | What happens | District boss (x0) |
+| Arc (journey §8.2) | Hoods (levels) | What happens | Hood boss (stage 5) |
 |---|---|---|---|
-| 1–10 | **İstiklal Avenue** | Cold open: TV, the bite, the fork. Dropped call. Tutorial by fire. | *The Vatman*: a zombie tram driver riding a derailed red tram |
-| 11–20 | **Karaköy & Galata** | Zombie tourists with selfie sticks. Paşa the cat shows up and hisses at an empty alley... it isn't empty. | *The Bride*: a zombie wedding party in a Karaköy café |
-| 21–30 | **Galata Bridge** | Zombie fishermen cast lines that reel you in. A giant swinging an anchor blocks the far end. | *Kaan*: a misunderstanding fight; he thinks Arda is infected. Team-up. **Kaan joins (auto-battle companion).** |
-| 31–40 | **Eminönü & Spice Bazaar** | Spice clouds as hazards (pepper = stun). Kaan has to put down his zombified boat captain. First emotional beat. | *The Captain* |
-| 41–50 | **Grand Bazaar** | Maze levels. Humans looting the gold shops. First hint that people are the next threat. | *The Carpet Golem*: armored in rolled carpets |
-| 51–60 | **Laleli & Aksaray** | Mannequins everywhere (are they zombies?). First night level. **Campfire:** Arda admits his crush on Mila. Kaan teases him, then goes quiet. *(Triangle seed.)* | *The Wholesaler* |
-| 61–70 | **Yenikapı** | Underground Marmaray station, flashlight-only levels. | *Rush Hour*: a station-wide horde |
-| 71–80 | **Samatya & the coastal road** | Sunrise over the sea. A crackling radio mentions "safe zones" and "stay away from the north". | *The Picnic*: a zombie family barbecue horde |
-| 81–90 | **Zeytinburnu & Bakırköy** | Outskirts, an abandoned mall, Arda's old high school. | *The Principal* |
-| 91–100 | **Ataköy** | Home. The apartment is empty. **Dad's Letter #1** + toolkit + Arda's electric scooter. The family went to Dede's in Sarıyer. Ominous line: *"Avoid the highways. And whatever the radio says about the forest up north, stay away from it."* | *Ahmet Abi*: the beloved apartment *kapıcı* who brought bread every morning. Bittersweet. |
+| A. İstiklal & Galata | H01–H02 (1–10) | Cold open: TV, the bite, the knife. Dropped call. Tutorial by fire. On Galata: zombie tourists with selfie sticks. | *The Vatman* (L5): a zombie tram driver in a derailed red tram. *Tour Guide* (L10). |
+| B. Karaköy & the Bridge | H03–H04 (11–20) | Paşa the cat hisses at an empty alley... it isn't empty. Zombie fishermen cast lines that reel you in. **Kaan joins after the bridge boss (L20, proposed):** a misunderstanding (he thinks Arda is infected), then a team-up. | *The Bride* (L15): a zombie wedding party in a Karaköy café. *Big Fisherman* (L20). |
+| C. Eminönü & Sirkeci | H05–H06 (21–30) | Spice clouds as hazards (pepper = stun). Kaan has to put down his zombified boat captain. First emotional beat. Sirkeci ends the slice at L30. | *The Captain* (L25): anchor chain sweep. *The Ticket Man* (L30, slice end). |
+| D. Grand Bazaar & Beyazıt | H07–H08 (31–40) | Maze levels. Humans looting the gold shops. First hint that people are the next threat. | *The Carpet Golem* (L35). *The Pigeon Man* (L40). |
+| E. Laleli & Aksaray | H09–H10 (41–50) | Mannequins everywhere (are they zombies?). First night level. **Campfire:** Arda admits his crush on Mila. Kaan teases him, then goes quiet. *(Triangle seed.)* | *The Wholesaler* (L45). *Dolmuş Driver* (L50). |
+| F. Kumkapı & Yenikapı | H11–H12 (51–60) | Fish market, then the underground Marmaray station with flashlight-only levels. | *Fish Porter* (L55). *The Evening Crowd* (L60): a station-wide horde. |
+| G. Samatya & Yedikule | H13–H14 (61–70) | Sunrise over the sea. The walk turns along the coast. | *The Grill Man* (L65): the barbecue horde (was "The Picnic"). *Key Keeper* (L70). |
+| H. Zeytinburnu & Kazlıçeşme | H15–H16 (71–80) | The coastal road. A crackling radio mentions "safe zones" and "stay away from the north". | *Dye Foreman* (L75). *Hose Man* (L80). |
+| I. Bakırköy | H17–H18 (81–90) | Outskirts, an abandoned mall, Arda's old high school. | *The Principal* (L85). *Ice-Cream Man* (L90). |
+| J. Ataköy | H19–H20 (91–100) | Home. The apartment is empty. **Dad's Letter #1** + toolkit + Arda's electric scooter. The family went to Dede's in Sarıyer. Ominous line: *"Avoid the highways. And whatever the radio says about the forest up north, stay away from it."* | *Yacht Owner* (L95). *Ahmet Abi* (L100): the beloved apartment *kapıcı* who brought bread every morning. Bittersweet. |
 
-**Cliffhanger (L100):** A knock on the door. Arda raises the fork. It's **Mila**.
+Hood-by-hood beats and stage data: `journey.md` §5. Names: `journey.md` §9.8 ("Rush Hour" is a film title and is now The Evening Crowd).
+
+**Cliffhanger (L100):** A knock on the door. Arda raises the knife. It's **Mila**.
 Freeze. Zoom × 3.
 
 ---

@@ -1,15 +1,17 @@
 // Enemies, weapons, damage, drops, props (GD 4-5, CC 2-5, DS 7). Emits events into s.events.
+// Generated levels: s.diff scales enemy HP and contact damage; new behaviours live in enemies.js / bosses.js.
 P.Combat = {};
 
 P.Combat.spawnEnemy = function (s, type, x, y, opts) {
-  var d = P.CFG.enemies[type], scale = 1 + P.CFG.hpScalePerMinute * (s.runT / 60);
-  var hp = d.hp * (type === 'diner' ? 1 : scale);
+  var d = P.CFG.enemies[type], scale = 1 + P.CFG.hpScalePerMinute * (s.runT / 60), df = s.diff;
+  var hp = d.hp * (type === 'diner' ? 1 : scale) * (df ? df.hp : 1);
   var e = {
     id: s.nextId++, type: type, x: x, y: y, r: d.radius, hp: hp, maxHp: hp, speed: d.speed,
-    contact: d.contact, xp: d.xp, kbResist: d.kbResist, kbx: 0, kby: 0, kbT: 0, flash: 0,
+    contact: d.contact * (df ? df.dmg : 1), xp: d.xp * (df ? df.xp : 1), kbResist: d.kbResist, kbx: 0, kby: 0, kbT: 0, flash: 0,
     contactCd: 0, state: (opts && opts.state) || 'active', stateT: (opts && opts.stateT) || 0,
     burn: [], dotTick: 0, dotAcc: 0, dead: false, door: opts && opts.door, vx: 0, vy: 0, walk: 0,
     variant: s.rng.ai.int(0, 7), age: 0,
+    skin: (opts && opts.skin) || null, windup: 0, swell: 0, boss: false, ai: null,
   };
   if (opts && opts.elite) {
     var el = P.CFG.elite;
@@ -17,12 +19,15 @@ P.Combat.spawnEnemy = function (s, type, x, y, opts) {
     e.kbResist = Math.max(e.kbResist, el.kbResist);
     s.events.push({ type: 'eliteSpawn', x: x, y: y });
   }
+  P.Enemies.init(s, e);
   s.enemies.push(e);
   s.peakAlive = Math.max(s.peakAlive, s.enemies.length);
   return e;
 };
 
-P.Combat.might = function (s) { return (s.hero.passives.gloves || 0) * P.CFG.passives.gloves.might; };
+P.Combat.might = function (s) {
+  return (s.hero.passives.gloves || 0) * P.CFG.passives.gloves.might + (s.hero.baseMight || 0);
+};
 
 P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
   if (e.dead || e.state === 'dormant') return;
@@ -34,14 +39,28 @@ P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
     var k = kb * (1 - e.kbResist), T = P.CFG.knockbackTime;
     e.kbx = dirx * 2 * k / T; e.kby = diry * 2 * k / T; e.kbT = T;
   }
-  s.events.push({ type: 'hit', id: e.id, x: e.x, y: e.y, dmg: dmg, crit: crit, src: src, dx: dirx, dy: diry });
+  s.events.push({ type: 'hit', id: e.id, x: e.x, y: e.y, dmg: dmg, crit: crit, src: src, dx: dirx, dy: diry, boss: !!e.boss });
   if (e.hp <= 0) P.Combat.killEnemy(s, e, crit, src);
+};
+
+// Shove a zombie aside (brute charge): impulse of k metres, resisted by its knockback resist.
+P.Combat.shove = function (e, dx, dy, k) {
+  var f = k * (1 - e.kbResist), T = P.CFG.knockbackTime;
+  e.kbx = dx * 2 * f / T; e.kby = dy * 2 * f / T; e.kbT = T;
+};
+
+// Push the hero away from (dx, dy) by dist metres (stomp, slam), clamped to the walkable area.
+P.Combat.pushHero = function (s, dx, dy, dist) {
+  var h = s.hero, d = Math.hypot(dx, dy) || 1;
+  h.x += dx / d * dist; h.y += dy / d * dist;
+  P.World.clampHero(s, h);
 };
 
 P.Combat.killEnemy = function (s, e, crit, src) {
   e.dead = true;
   s.kills++;
-  s.events.push({ type: 'kill', id: e.id, enemy: e.type, x: e.x, y: e.y, crit: crit, variant: e.variant, dx: e.kbx, dy: e.kby, src: src || 'dot', elite: !!e.elite });
+  s.events.push({ type: 'kill', id: e.id, enemy: e.type, x: e.x, y: e.y, crit: crit, variant: e.variant, dx: e.kbx, dy: e.kby,
+    src: src || 'dot', elite: !!e.elite, boss: !!e.boss, skin: e.skin });
   if (e.elite) s.drops.push({ kind: 'chest', value: 1, x: e.x, y: e.y, mag: true, pop: 0.7 });
   var a = s.rng.loot.range(0, Math.PI * 2);
   s.drops.push({ kind: 'xp', value: e.xp, x: e.x + Math.cos(a) * 0.3, y: e.y + Math.sin(a) * 0.3, mag: false, pop: 0.25 });
@@ -50,10 +69,13 @@ P.Combat.killEnemy = function (s, e, crit, src) {
   if (s.rng.loot.chance(dr.simitChance)) s.drops.push({ kind: 'simit', value: dr.simitHeal, x: e.x + 0.2, y: e.y, mag: false, pop: 0.25 });
   for (var di = s.drops.length - 4 < 0 ? 0 : s.drops.length - 4; di < s.drops.length; di++) P.World.clampWalk(s.drops[di], 0.25, s.props);
   if (crit) s.events.push({ type: 'critKill' });
+  if (e.boss) P.Bosses.onDeath(s, e);
+  if (e.type === 'bloater') P.Enemies.burst(s, e);
 };
 
 P.Combat.updateEnemies = function (s, dt) {
   var h = s.hero, sep = P.CFG.separation, list = s.enemies, n = list.length;
+  var hasStatus = !!(P.Status && P.Status.speedMul);
   for (var i = 0; i < n; i++) {
     var e = list[i];
     e.age += dt;
@@ -65,16 +87,23 @@ P.Combat.updateEnemies = function (s, dt) {
       if (e.stateT <= 0) { e.state = 'active'; s.events.push({ type: 'enemyActive', id: e.id, enemy: e.type }); }
       continue;
     }
+    var own = P.Enemies.think(s, e, dt);
     var dx = h.x - e.x, dy = h.y - e.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
-    var vx = dx / d * e.speed, vy = dy / d * e.speed, sx = 0, sy = 0, found = 0;
-    for (var j = 0; j < n && found < sep.maxNeighbors; j++) {
-      if (j === i) continue;
-      var o = list[j], ox = e.x - o.x, oy = e.y - o.y, rr = e.r + o.r, d2 = ox * ox + oy * oy;
-      if (d2 >= rr * rr || o.state === 'dormant') continue;
-      var od = Math.sqrt(d2) || 0.01;
-      sx += ox / od * (1 - od / rr); sy += oy / od * (1 - od / rr); found++;
+    var sm = hasStatus ? P.Status.speedMul(e) : 1;
+    var vx, vy, sx = 0, sy = 0, found = 0;
+    if (own) { vx = e.dvx * sm; vy = e.dvy * sm; } else { vx = dx / d * e.speed * sm; vy = dy / d * e.speed * sm; }
+    var rooted = !!(P.Status && P.Status.rooted && P.Status.rooted(e));
+    if (rooted) { vx = 0; vy = 0; }
+    if (!rooted && !(own && e.noSep)) {
+      for (var j = 0; j < n && found < sep.maxNeighbors; j++) {
+        if (j === i) continue;
+        var o = list[j], ox = e.x - o.x, oy = e.y - o.y, rr = e.r + o.r, d2 = ox * ox + oy * oy;
+        if (d2 >= rr * rr || o.state === 'dormant') continue;
+        var od = Math.sqrt(d2) || 0.01;
+        sx += ox / od * (1 - od / rr); sy += oy / od * (1 - od / rr); found++;
+      }
+      vx += sx * sep.strength; vy += sy * sep.strength;
     }
-    vx += sx * sep.strength; vy += sy * sep.strength;
     if (e.kbT > 0) {
       var f = e.kbT / P.CFG.knockbackTime;
       vx += e.kbx * f; vy += e.kby * f; e.kbT -= dt;
@@ -91,6 +120,7 @@ P.Combat.addBurn = function (e) {
   else e.burn[0] = b.duration;
 };
 
+// Zones: fire/scald/toxic/acid affect enemies (DoT); acid and toxic also hurt the hero (ticks, armor applies).
 P.Combat.updateBurnAndZones = function (s, dt) {
   var b = P.CFG.burn, i, e;
   for (i = 0; i < s.enemies.length; i++) {
@@ -106,8 +136,9 @@ P.Combat.updateBurnAndZones = function (s, dt) {
       e = s.enemies[i];
       if (e.dead || Math.hypot(e.x - zone.x, e.y - zone.y) > zone.r + e.r) continue;
       if (zone.kind === 'scald' && !zone.hit[e.id]) { zone.hit[e.id] = true; P.Combat.addBurn(e); }
-      if (zone.kind === 'fire') e.dotAcc += zone.dps * dt;
+      if (zone.kind === 'fire' || zone.kind === 'toxic' || zone.kind === 'acid') e.dotAcc += zone.dps * dt;
     }
+    if (zone.heroDps) P.Enemies.zoneHero(s, zone, dt);
     if (zone.t <= 0) s.zones.splice(z, 1);
   }
   for (i = 0; i < s.enemies.length; i++) {
@@ -165,9 +196,10 @@ P.Combat.explodeCanister = function (s, c) {
   });
 };
 
+// Hero damage is ignored during i-frames (hit i-frames `invuln`, dash/ult `iframes` set by E1).
 P.Combat.damageHero = function (s, raw, cause) {
   var h = s.hero, hc = P.CFG.hero;
-  if (h.invuln > 0 || s.mode !== 'play') return;
+  if (h.invuln > 0 || (h.iframes || 0) > 0 || s.mode !== 'play') return;
   var jc = P.CFG.passives.jacket, armor = Math.min(jc.armorCap, (h.passives.jacket || 0) * jc.armorPerLevel);
   var dmg = Math.max(1, raw - armor);
   h.hp -= dmg;
@@ -180,6 +212,7 @@ P.Combat.damageHero = function (s, raw, cause) {
   }
 };
 
+// Melee contact. P.Enemies.onContact may handle the contact itself (bloater burst, brute charge hit).
 P.Combat.contact = function (s) {
   var h = s.hero, hr = P.CFG.hero.radius;
   for (var i = 0; i < s.enemies.length; i++) {
@@ -187,6 +220,7 @@ P.Combat.contact = function (s) {
     if (e.dead || e.state !== 'active' || e.contactCd > 0) continue;
     var rr = e.r + hr;
     if ((e.x - h.x) * (e.x - h.x) + (e.y - h.y) * (e.y - h.y) > rr * rr) continue;
+    if (e.ai && P.Enemies.onContact(s, e)) continue;
     e.contactCd = P.CFG.contactInterval;
     P.Combat.damageHero(s, e.contact, e.type);
   }

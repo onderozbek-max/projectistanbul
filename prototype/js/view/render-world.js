@@ -37,6 +37,8 @@ P.RenderWorld = (function () {
   function hash(n) { var x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
   W.drawGround = function (R, s, y0, y1) {
+    ambience(s);
+    if (!isL1(s)) { genGround(R, s, y0, y1); return; }
     var c = R.ctx, lv = L(), cor = lv.corridor, i;
     var ya = Math.max(0, y0), yb = Math.min(cor.yMax + 4, y1);
     var pat = cobblePattern(R);
@@ -85,6 +87,7 @@ P.RenderWorld = (function () {
   }
 
   W.drawLights = function (R, s, y0, y1) {
+    if (!isL1(s)) { genLights(R, s, y0, y1); return; }
     var c = R.ctx, u = R.ppm;
     c.save(); c.globalCompositeOperation = 'lighter';
     for (var py = Math.ceil((y0 - 6) / 12) * 12; py < y1 + 6; py += 12) {
@@ -165,6 +168,7 @@ P.RenderWorld = (function () {
   };
 
   W.drawProps = function (R, s) {
+    if (!isL1(s)) { genProps(R, s); return; }
     var c = R.ctx, lv = L(), t = performance.now() / 1000;
     c.fillStyle = '#3A3E45'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
     c.beginPath(); c.arc(R.X(lv.manhole.x), R.Y(lv.manhole.y), 0.55 * R.ppm, 0, Math.PI * 2); c.fill(); c.stroke();
@@ -209,6 +213,149 @@ P.RenderWorld = (function () {
     c.strokeStyle = '#3A3A3A'; c.lineWidth = 4;
     for (var x = -7; x < 7; x += 1.2) { c.beginPath(); c.moveTo(R.X(x), R.Y(y - 0.5)); c.lineTo(R.X(x + 0.9), R.Y(y + 1.2)); c.stroke(); }
   };
+
+  // ---------- generated levels (levelIndex > 1): theme ground, sides, water, blocks, landmarks, exit ----------
+  // gate/arena landmarks from E2 are covered by the exit gate and the boss arena, so they are not drawn as landmarks.
+  var CROSS = { gateArch: 1, vault: 1, exitGate: 1 }, SKIP_LM = { gate: 1, arena: 1 }, ambTheme = null, ferryCycle = {};
+  function isL1(s) { return !s.levelIndex || s.levelIndex === 1; }
+  function themeOf(s) { return P.Themes.get(s.theme || (s.levelInfo && s.levelInfo.hood && s.levelInfo.hood.theme) || 'istiklal'); }
+  function hoodPos(s) {
+    var li = s.levelInfo;
+    if (li && li.hoodIndex !== undefined) return li.hoodIndex + ((li.stage || 1) - 1) / 5;
+    return Math.max(0, ((s.levelIndex || 1) - 1) / 5);
+  }
+  function ambience(s) {
+    var id = isL1(s) ? 'istiklal' : themeOf(s).id;
+    if (id !== ambTheme) { ambTheme = id; if (P.Sfx && P.Sfx.ambience) P.Sfx.ambience(id); }
+  }
+  // Tile record for a theme role, pre-rendered per ppm step (P.Themes.tile). Its pattern is created once.
+  function pattern(R, th, role) {
+    var t = P.Themes.tile(th, role, Math.max(8, Math.round(R.ppm / 4) * 4));
+    if (t && !t.pat) t.pat = R.ctx.createPattern(t.cv, 'repeat');
+    return t;
+  }
+  // Fill world x0..x1 by y0..y1 with tile t, anchored at world (ox, 0); sx = -1 mirrors the tile on the left.
+  function fillTile(R, t, x0, x1, y0, y1, ox, sx) {
+    var c = R.ctx, m = R.ppm / t.k;
+    if (t.pat.setTransform && window.DOMMatrix) t.pat.setTransform(new DOMMatrix().translate(R.X(ox), R.Y(0)).scale(sx * m, m));
+    c.fillStyle = t.pat; c.fillRect(R.X(Math.min(x0, x1)), R.Y(y1), Math.abs(x1 - x0) * R.ppm, (y1 - y0) * R.ppm);
+  }
+  function darkFill(R, x0, x1, y0, y1, col) {
+    R.ctx.fillStyle = col; R.ctx.fillRect(R.X(Math.min(x0, x1)), R.Y(y1), Math.abs(x1 - x0) * R.ppm, (y1 - y0) * R.ppm);
+  }
+  function genGround(R, s, y0, y1) {
+    var th = themeOf(s), ya = y0 - 1, yb = y1 + 1, g = pattern(R, th, 'ground'), w = pattern(R, th, 'walk');
+    if (g) fillTile(R, g, -4.6, 4.6, ya, yb, 0, 1);
+    [-1, 1].forEach(function (sd) {
+      if (w) fillTile(R, w, sd * 4.6, sd * 7, ya, yb, sd * 4.6, sd);
+      sideGround(R, th, sd, ya, yb);
+      kerb(R, sd, ya, yb, th);
+    });
+    if (th.tracks) tramRails(R, ya, yb);
+  }
+  function sideGround(R, th, sd, ya, yb) {
+    var kind = sd > 0 ? th.R : th.L, t = pattern(R, th, sd > 0 ? 'R' : 'L');
+    if (kind === 'water') return water(R, th, sd, ya, yb);
+    if (kind === 'facade') {
+      if (t) fillTile(R, t, sd * 6.2, sd * 9.6, ya, yb, sd * 6.2, sd);
+      return darkFill(R, sd * 9.6, sd * 16, ya, yb, '#2A2C31');
+    }
+    if (t) fillTile(R, t, sd * 7, sd * (7 + t.w), ya, yb, sd * 7, sd);
+    darkFill(R, sd * (7 + (t ? t.w : 0)), sd * 16, ya, yb, kind === 'grass' ? '#3F4A36' : '#2A2C31');
+  }
+  function water(R, th, sd, ya, yb) {
+    var c = R.ctx, u = R.ppm, t = performance.now() / 1000, xa = sd > 0 ? 7 : -16, xb = sd > 0 ? 16 : -7, i;
+    darkFill(R, xa, xb, ya, yb, th.wat);
+    c.strokeStyle = 'rgba(190,220,230,0.2)'; c.lineWidth = 1.2;
+    for (var wy = Math.floor(ya / 1.5) * 1.5; wy < yb; wy += 1.5) {
+      c.beginPath();
+      for (i = 0; i <= 8; i++) {
+        var wx = xa + (xb - xa) * i / 8, yy = wy + 0.12 * Math.sin(t * 1.4 + wx * 1.3 + wy * 0.7);
+        if (i) c.lineTo(R.X(wx), R.Y(yy)); else c.moveTo(R.X(wx), R.Y(yy));
+      }
+      c.stroke();
+    }
+    c.fillStyle = 'rgba(255,220,160,0.14)';
+    for (i = 0; i < 4; i++) {
+      var ry = ya + ((i * 13 + Math.floor(t * 0.5)) % 10);
+      c.fillRect(R.X(sd * (7.4 + i * 0.2)), R.Y(ry + 1.4), 0.2 * u, 1.6 * u);
+    }
+  }
+  function kerb(R, sd, ya, yb, th) {
+    var c = R.ctx, u = R.ppm, X = R.X(sd * 4.6);
+    c.strokeStyle = '#14151F'; c.lineWidth = 3; c.beginPath(); c.moveTo(X, R.Y(ya)); c.lineTo(X, R.Y(yb)); c.stroke();
+    c.strokeStyle = '#8A8F98'; c.lineWidth = Math.max(1.5, 0.08 * u); c.beginPath(); c.moveTo(X - sd * 0.05 * u, R.Y(ya)); c.lineTo(X - sd * 0.05 * u, R.Y(yb)); c.stroke();
+    if (th.rail && (sd > 0 ? th.R : th.L) === 'water') {
+      var rx = R.X(sd * 6.9);
+      c.strokeStyle = '#14151F'; c.lineWidth = Math.max(2, 0.08 * u); c.beginPath(); c.moveTo(rx, R.Y(ya)); c.lineTo(rx, R.Y(yb)); c.stroke();
+      c.fillStyle = '#4E5560';
+      for (var py = Math.ceil(ya / 1.2) * 1.2; py < yb; py += 1.2) c.fillRect(rx - 0.04 * u, R.Y(py) - 0.5 * u, 0.08 * u, 0.5 * u);
+    }
+  }
+  function tramRails(R, ya, yb) {
+    var c = R.ctx, u = R.ppm;
+    [-0.7, 0.7].forEach(function (rx) {
+      c.strokeStyle = '#3E4148'; c.lineWidth = Math.max(3, 0.12 * u); c.beginPath(); c.moveTo(R.X(rx), R.Y(ya)); c.lineTo(R.X(rx), R.Y(yb)); c.stroke();
+      c.strokeStyle = '#B9BEC6'; c.lineWidth = Math.max(1, 0.04 * u); c.stroke();
+    });
+  }
+  // Water-side craft: slotted boats plus one ferry that sails past on a timer (horn at each pass).
+  function waterProps(R, th, cy, half, t) {
+    var kinds = th.wprops.filter(function (k) { return k !== 'ferry'; }), span = 2 * half + 40;
+    [-1, 1].forEach(function (sd) {
+      if ((sd > 0 ? th.R : th.L) !== 'water') return;
+      if (th.wprops.indexOf('ferry') >= 0) ferryPass(R, sd, cy, half, t, span, sd > 0 ? 0 : span / 2);
+      if (!kinds.length) return;
+      for (var y = Math.floor((cy - half) / 9) * 9; y < cy + half; y += 9) {
+        var h = hash(y * 1.7 + sd * 3.1);
+        if (h < 0.45) continue;
+        P.Props.draw(kinds[Math.floor(hash(y * 5.3 + sd) * kinds.length)], R, sd * (8 + hash(y + 2) * 1.2), y + hash(y * 2.9) * 3, { k: Math.floor(h * 4) });
+      }
+    });
+  }
+  function ferryPass(R, sd, cy, half, t, span, ph) {
+    var p = (t * 2.2 + ph) % span, cyc = Math.floor((t * 2.2 + ph) / span);
+    if (ferryCycle[sd] !== cyc) { ferryCycle[sd] = cyc; if (P.Sfx && P.Sfx.play) P.Sfx.play('ferryHorn', 4000); }
+    P.Props.draw('ferry', R, sd * 8.5, cy - half - 20 + p, { horn: p < 1.2 });
+  }
+  function genProps(R, s) {
+    var th = themeOf(s), cy = R.cam.y, half = P.viewHalfH(R.cam.w), g = s.geo || {}, t = performance.now() / 1000;
+    waterProps(R, th, cy, half, t);
+    (g.blocks || []).filter(function (b) { return Math.abs(b.y - cy) < half + 3; })
+      .sort(function (a, b) { return b.y - a.y; })
+      .forEach(function (b) {
+        var car = b.kind === 'car' || b.kind === 'taxi' || b.kind === 'dolmus';
+        P.Props.draw(b.kind, R, b.x, b.y, { w: b.w, h: b.h, k: 0, alarm: car && hash(b.y * 3.7 + b.x) < 0.4 });
+      });
+    (g.landmarks || []).forEach(function (lm, i) {
+      if (SKIP_LM[lm.kind] || Math.abs(lm.y - cy) > half + 6 || !P.Props.has(lm.kind)) return;
+      var sd = lm.side ? lm.side : (hash(lm.y * 0.37 + i) < 0.5 ? -1 : 1);
+      P.Props.draw(lm.kind, R, CROSS[lm.kind] ? 0 : sd * 5.9, lm.y, { style: th.exit, open: true, k: i, span: 9.2 });
+    });
+    if (typeof g.exitY === 'number' && Math.abs(g.exitY - cy) < half + 6) P.Props.draw('exitGate', R, 0, g.exitY, { style: th.exit, open: !!(s.props.shutterOpen || g.exitOpen) });
+  }
+  function genLights(R, s, y0, y1) {
+    var c = R.ctx, th = themeOf(s), t = performance.now() / 1000, hp = hoodPos(s), u = R.ppm, i;
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for (var y = Math.ceil((y0 - 3) / 6) * 6; y < y1 + 3 && th.shop > 0; y += 6) {
+      [-1, 1].forEach(function (sd) {
+        if ((sd > 0 ? th.R : th.L) === 'facade' && hash(y * 3.3 + sd * 7) < th.shop * 0.6) P.Props.h.glow(c, R.X(sd * 7.4), R.Y(y + 3.5), 1.8 * u, 0.14);
+      });
+    }
+    if (hp >= 4 && hp <= 17) for (i = 0; i < 14; i++) {
+      var ey = y0 + ((hash(i * 3.1) * (y1 - y0) + t * (0.6 + hash(i)) * 1.5) % (y1 - y0)), ex = Math.sin(t * 1.3 + i * 2.2) * 3.5;
+      c.fillStyle = 'rgba(255,150,70,' + (0.5 + 0.5 * Math.sin(t * 6 + i)).toFixed(2) + ')';
+      c.beginPath(); c.arc(R.X(ex), R.Y(ey), 0.05 * u, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+    if (th.fog && hp >= 6) for (i = 0; i < 4; i++) {
+      c.fillStyle = 'rgba(170,182,198,0.07)'; c.beginPath();
+      c.ellipse(R.X(Math.sin(t * 0.05 + i * 2.1) * 3), R.Y(y0 + ((i * 7.3 + t * 0.6) % (y1 - y0))), 5 * u, 2.5 * u, 0, 0, Math.PI * 2); c.fill();
+    }
+  }
+  W.themeOf = themeOf; W.hoodPos = hoodPos;
+  W.screenLight = function (s) { return P.Themes.tint(hoodPos(s)); };
+  W.vignette = function (s) { return P.Themes.vignette(hoodPos(s)); };
 
   return W;
 })();

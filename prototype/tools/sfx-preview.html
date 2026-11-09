@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sound audition · No Signal</title>
+<style>
+  body { margin: 0; padding: 20px 24px 60px; background: #1b1c28; color: #F4EBDD; font: 13px/1.35 system-ui, -apple-system, sans-serif; }
+  h1 { margin: 0 0 6px; font-size: 18px; }
+  h2 { margin: 22px 0 8px; font-size: 14px; color: #E8B86B; border-bottom: 1px solid #3a3c52; padding-bottom: 4px; }
+  .hint { color: #B7B0A4; margin: 0 0 14px; max-width: 900px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; background: #242636; border-radius: 10px; padding: 10px 12px; }
+  .bar label { display: flex; align-items: center; gap: 6px; }
+  .bar input[type=range] { width: 130px; }
+  button { font: inherit; color: #14151F; background: #E8B86B; border: 0; border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+  button:hover { filter: brightness(1.08); }
+  button.alt { background: #7FA7B8; }
+  button.ghost { background: #3a3c52; color: #F4EBDD; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+  .cell { display: flex; gap: 4px; align-items: stretch; }
+  .cell button.cue { flex: 1; text-align: left; }
+  .cell button.x3 { background: #3a3c52; color: #F4EBDD; min-width: 36px; }
+  .small { color: #9d978c; font-size: 11px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  select { font: inherit; padding: 4px 6px; border-radius: 6px; }
+  #status { color: #9fd0a3; min-height: 1.2em; }
+</style>
+</head>
+<body>
+<h1>Sound audition</h1>
+<p class="hint">Click <b>Enable audio</b> once (browsers need a user gesture). Every cue is synthesized in code and rendered on first use,
+so the first press of a cue can take a few milliseconds longer. <b>3x</b> plays three variants in a row to hear the variety.
+Loudness is normalised per cue (loudest 50 ms RMS), so judge balance between cues, not single hits.</p>
+
+<div class="bar">
+  <button id="enable">Enable audio</button>
+  <label><input type="checkbox" id="soundOn" checked> Sound effects on</label>
+  <label>Variant <select id="variant"><option value="">cycle</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+  <button id="stopAll" class="ghost">Stop all voices</button>
+  <span id="status"></span>
+</div>
+<div class="bar" style="margin-top:8px">
+  <label>SFX <input type="range" min="0" max="1" step="0.01" value="1" data-cat="sfx"></label>
+  <label>UI <input type="range" min="0" max="1" step="0.01" value="1" data-cat="ui"></label>
+  <label>Voice <input type="range" min="0" max="1" step="0.01" value="1" data-cat="voice"></label>
+  <label>Ambience <input type="range" min="0" max="1" step="0.01" value="1" data-cat="ambience"></label>
+  <label>Master <input type="range" min="0" max="1" step="0.01" value="1" data-cat="master"></label>
+  <label>Music <input type="range" min="0" max="1" step="0.01" value="0.7" data-cat="music"></label>
+</div>
+
+<div id="groups"></div>
+
+<h2>Speech blips (opts.voice)</h2>
+<div class="row" id="voices"></div>
+
+<h2>Ambience beds (crossfaded; P.Sfx.ambience accepts a theme id or a group)</h2>
+<div class="row">
+  <select id="theme"></select>
+  <button id="ambPlay">Play bed</button>
+  <button id="ambStop" class="ghost">Stop bed (null)</button>
+</div>
+<div class="row" id="ambGroups" style="margin-top:8px"></div>
+
+<h2>Music (audio/music/&lt;id&gt;.mp3; silent if the file is missing)</h2>
+<div class="row" id="music"></div>
+<div class="row" style="margin-top:8px">
+  <label>Intensity <input type="range" min="0" max="1" step="0.01" value="0" id="intensity"></label>
+  <label><input type="checkbox" id="duck"> Duck (-9 dB, comic/dialogue)</label>
+  <span class="small" id="musicNow"></span>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/strings.js"></script>
+<script src="../js/view/settings.js"></script>
+<script src="../js/view/sfx-bank.js"></script>
+<script src="../js/view/sfx-bank2.js"></script>
+<script src="../js/view/sfx.js"></script>
+<script src="../js/view/music.js"></script>
+<script>
+(function () {
+  // Display groups. Any cue not listed here is collected under "Other" so new cues always appear.
+  var GROUPS = [
+    ['Player & skills', 'dash nearMiss crit ultReady ult frenzy evolve hurt footstep combo heal magnet'],
+    ['Weapons', 'swish stab nail nailStorm lob blast chain cleaver hammer molotovThrow molotovBurst burn rocketLaunch rocketWhistle rocketBoom zap spear spearPin extinguisher cyclone cluster'],
+    ['Pickups & rewards', 'tink gem coin click pick star'],
+    ['World & impacts', 'boom shock slam glass shutter rattle doorSlam chestDrop chestShake chestOpen bell hiss gull cat nosignal'],
+    ['Enemies', 'splat spit spitHit elite bruteRoar bruteStomp bruteCharge bloaterSwell bloaterPop bossIntro bossDie groan snarl zombieDie crowdScream'],
+    ['UI & meta', 'uiTap uiBack uiOpen mapWalk nodeUnlock gearEquip'],
+    ['Story & flow', 'comicPop comicPage phoneRing phoneBuzz hoodIntro level levelClear levelFail finale'],
+  ];
+  var VOICES = ['arda', 'anne', 'usta', 'friend', 'other'];
+  var THEMES = ['istiklal', 'galata', 'karakoy', 'bridge', 'eminonu', 'sirkeci', 'bazaar', 'beyazit', 'laleli', 'aksaray',
+    'kumkapi', 'yenikapi', 'samatya', 'yedikule', 'zeytinburnu', 'kazlicesme', 'bakirkoy', 'sahil', 'marina', 'atakoy'];
+  var GROUP_NAMES = ['street', 'waterfront', 'bazaar', 'wind', 'night'];
+  var MUSIC = ['title', 'map', 'run_calm', 'run_intense', 'boss', 'comic', 'victory', 'defeat'];
+
+  function h(tag, props, kids) {
+    var e = document.createElement(tag), k;
+    for (k in props || {}) {
+      if (k === 'text') e.textContent = props[k];
+      else if (k.indexOf('on') === 0) e[k] = props[k];
+      else e.setAttribute(k, props[k]);
+    }
+    (kids || []).forEach(function (c) { e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function status(msg) { document.getElementById('status').textContent = msg; }
+  function variant() { var v = document.getElementById('variant').value; return v === '' ? undefined : +v; }
+  function play(name, opts) { P.Sfx.play(name, 0, opts || {}); }
+  function cell(name) {
+    var m = P.SfxRecipes.meta[name] || {};
+    var one = h('button', { class: 'cue', title: 'bus ' + m.c + ' · priority ' + m.p + ' · max ' + m.m + ' · gap ' + m.g + ' ms · ' + m.v + ' variants',
+      onclick: function () { play(name, { variant: variant() }); } }, [name]);
+    var three = h('button', { class: 'x3', title: 'three variants in a row', onclick: function () {
+      [0, 1, 2].forEach(function (v, i) { setTimeout(function () { play(name, { variant: v }); }, i * 450); });
+    } }, ['3x']);
+    return h('div', { class: 'cell' }, [one, three]);
+  }
+  function buildCues() {
+    var root = document.getElementById('groups'), used = {}, other = [];
+    GROUPS.forEach(function (g) {
+      var names = g[1].split(' ').filter(function (n) { return P.SfxRecipes.has(n); });
+      names.forEach(function (n) { used[n] = true; });
+      root.appendChild(h('h2', { text: g[0] + ' (' + names.length + ')' }));
+      root.appendChild(h('div', { class: 'grid' }, names.map(cell)));
+    });
+    P.SfxRecipes.names.forEach(function (n) { if (!used[n] && n !== 'speech') other.push(n); });
+    if (other.length) {
+      root.appendChild(h('h2', { text: 'Other (' + other.length + ')' }));
+      root.appendChild(h('div', { class: 'grid' }, other.map(cell)));
+    }
+  }
+  function buildVoices() {
+    var root = document.getElementById('voices');
+    VOICES.forEach(function (v) {
+      root.appendChild(h('button', { title: 'one syllable', onclick: function () { play('speech', { voice: v, variant: variant() }); } }, ['blip · ' + v]));
+      root.appendChild(h('button', { class: 'alt', title: 'six syllables in a row, like a short line',
+        onclick: function () { for (var i = 0; i < 6; i++) { (function (k) { setTimeout(function () { play('speech', { voice: v, variant: k % 5 }); }, k * 110); })(i); } } }, ['line · ' + v]));
+    });
+  }
+  function buildAmbience() {
+    var sel = document.getElementById('theme');
+    THEMES.concat(GROUP_NAMES).forEach(function (t) { sel.appendChild(h('option', { text: t })); });
+    document.getElementById('ambPlay').onclick = function () { P.Sfx.ambience(sel.value); status('bed: ' + sel.value); };
+    document.getElementById('ambStop').onclick = function () { P.Sfx.ambience(null); status('bed stopped'); };
+    var root = document.getElementById('ambGroups');
+    GROUP_NAMES.forEach(function (g) {
+      root.appendChild(h('button', { class: 'alt', onclick: function () { P.Sfx.ambience(g); status('bed: ' + g); } }, [g]));
+    });
+  }
+  function buildMusic() {
+    var root = document.getElementById('music');
+    MUSIC.forEach(function (id) {
+      root.appendChild(h('button', { onclick: function () { P.Music.play(id, { fade: 1.2 }); } }, [id]));
+    });
+    root.appendChild(h('button', { class: 'ghost', onclick: function () { P.Music.stop(1.2); } }, ['stop']));
+    document.getElementById('intensity').oninput = function () { P.Music.intensity(+this.value); };
+    document.getElementById('duck').onchange = function () { P.Music.duck(this.checked); };
+    setInterval(function () { document.getElementById('musicNow').textContent = 'playing: ' + (P.Music.current() || '-'); }, 500);
+  }
+  function wireVolumes() {
+    var inputs = document.querySelectorAll('input[data-cat]');
+    Array.prototype.forEach.call(inputs, function (inp) {
+      inp.oninput = function () {
+        var cat = inp.getAttribute('data-cat'), v = +inp.value;
+        if (cat === 'music') P.Music.setVolume(v); else P.Sfx.setVolume(cat, v);
+      };
+    });
+  }
+  document.getElementById('enable').onclick = function () {
+    P.Sfx.unlock(); P.Music.unlock(); status('audio enabled');
+  };
+  document.getElementById('soundOn').onchange = function () { P.Settings.sound = this.checked; };
+  document.getElementById('stopAll').onclick = function () { P.Sfx.stopAll(); P.Sfx.ambience(null); P.Music.stop(0.3); };
+  P.Settings.sound = true;   // in memory only: this page never writes the game's save
+  buildCues(); buildVoices(); buildAmbience(); buildMusic(); wireVolumes();
+})();
+</script>
+</body>
+</html>

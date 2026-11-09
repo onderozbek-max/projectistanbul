@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>No Signal · Meta preview</title>
+<link rel="stylesheet" href="../css/proto.css">
+<link rel="stylesheet" href="../css/meta.css">
+<style>
+  .dev { position: fixed; left: 8px; bottom: 8px; z-index: 999; display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+    font: 600 12px/1.2 system-ui, -apple-system, sans-serif; color: #14151F; }
+  .dev button, .dev label { font: 600 12px system-ui, sans-serif; padding: 6px 10px; border-radius: 8px; border: 1px solid #14151F;
+    background: #F4EBDD; color: #14151F; cursor: pointer; }
+</style>
+</head>
+<body>
+<main id="stage"><div id="phone" role="application" aria-label="Meta preview"></div></main>
+<div class="dev">
+  <button id="dev-open" data-t="meta.dev.open">Open map</button>
+  <button id="dev-reset" data-t="meta.dev.reset">Reset</button>
+  <button id="dev-unlock" data-t="meta.dev.unlock">Unlock all</button>
+  <label><input type="checkbox" id="dev-lose"> <span data-t="meta.dev.lose">Lose</span></label>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/strings.js"></script>
+<script src="../js/journey.js"></script>
+<script src="../js/view/settings.js"></script>
+<script src="../js/view/icons.js"></script>
+<script src="../js/meta/strings-meta.js"></script>
+<script src="../js/view/portraits.js"></script>
+<script src="../js/meta/meta-data.js"></script>
+<script src="../js/meta/meta-map.js"></script>
+<script src="../js/meta/meta-gear.js"></script>
+<script src="../js/meta/meta-ui.js"></script>
+<script>
+(function () {
+  var phone = document.getElementById('phone'), lose = document.getElementById('dev-lose');
+  // Scale the 390x844 phone to the window, like main.js fit().
+  function fit() {
+    var s = Math.min(window.innerWidth / 390, window.innerHeight / 844);
+    phone.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+  if (/[?&]lang=en/.test(location.search)) P.lang = 'en';
+  // Match the app (js/view/ui.js): CSS uppercase follows the document language.
+  document.documentElement.lang = P.lang;
+  document.querySelectorAll('[data-t]').forEach(function (n) { n.textContent = P.t(n.getAttribute('data-t')); });
+
+  // Simulated level: a result is queued, then the map reopens and plays the return.
+  function onPlay(i) {
+    P.Meta.onResults({ levelIndex: i, won: !lose.checked, stars: lose.checked ? 0 : 3, coins: 40, kills: 300, timeS: 150 });
+    P.Meta.open(onPlay);
+  }
+  document.getElementById('dev-open').addEventListener('click', function () { P.Meta.open(onPlay); });
+  document.getElementById('dev-reset').addEventListener('click', function () {
+    P.Meta.close(); P.Meta.reset(); P.Meta.open(onPlay);
+  });
+  document.getElementById('dev-unlock').addEventListener('click', function () {
+    P.Meta.close(); P.Meta.debugUnlockAll(); P.Meta.open(onPlay);
+  });
+  P.Meta.open(onPlay);
+})();
+</script>
+</body>
+</html>

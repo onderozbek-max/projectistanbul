@@ -29,7 +29,7 @@ first-run Second Wind safety net from game-design.md §3).
 | Length | Corridor 14 m × 262 m, plus a restaurant room (10 × 8 m) |
 | Duration | ~70 s cold open (first view) + **~3.5 min gameplay** |
 | Enemies | Walker, Runner (from Segment C), Crawler (1, scripted) |
-| Card pool | Fork, Tea Glass, Sneakers, Ayran, Butter (game-design.md §5.4) |
+| Card pool | Döner Knife, Nail Gun, Gas Canister, Bike Chain; passives Running Shoes, Leather Jacket, Work Gloves, Energy Drink, First Aid Kit (D-017; game-design.md §5.4 superseded) |
 | Expected kills / level-ups | ~160 / 7–8 |
 | Win | Enter the shop through the opened shutter (exit trigger) |
 
@@ -77,7 +77,7 @@ Desaturated (`zombie_base`), pale glowing eyes, torn but not gory clothing.
 ### 3.5 Avoid (guardrails)
 No flags, political banners, real slogans, religious buildings in the playable area, or the
 Taksim Square monument. No real brand logos or transit liveries; the tram is generic red-and-cream.
-No camera flashes. No blood pools; use ink splats (design-system.md §2).
+No camera flashes. No blood pools. Splats are red blood by default, or ink with the setting (D-024; design-system.md §2).
 
 ---
 
@@ -94,18 +94,18 @@ In-engine, letterboxed, with two interactive beats. TR is the primary VO; subtit
 | S5 | 30–36 s | Slow-mo: the pale guy's dürüm falls to the floor. Arda's eyes follow it with real grief. | (Comedic beat, no line; a soft sad string note) |
 | S6 | 36–42 s | The pale guy lunges and bites his friend's shoulder. Screams, chairs topple, people run. | Screams, crash |
 | S7 | 42–52 s | Freeze → three comic panels: Arda's zombie-movie memory montage. | Arda (VO): "Kural bir: kafaya." (Rule one: the head.) · "Kural iki: asla ısırılma." (Rule two: never get bitten.) · "Kural üç... kural üç neydi?" (Rule three... what was rule three?) |
-| S8 | 52–58 s | The zombie turns from his friend toward Arda. Close-up on a fork on the counter. **INTERACTIVE: TAP** (icon on the fork, waits indefinitely). Arda grabs it. | — |
-| S9 | 58–64 s | Zombie lunges. **INTERACTIVE: SWIPE** toward the zombie (any direction accepted after 3 s of no input; we never fail here). Stab: 60 ms hit-stop, camera punch, comic "ÇAT!" lettering. Zombie drops. | SFX: "çat" |
-| S10 | 64–70 s | Arda stares at the fork, then at the body. The bitten friend and another diner start twitching. Letterbox slides away: control handed over. | Arda: "...Pardon." (...Sorry.) |
+| S8 | 52–58 s | The zombie turns from his friend toward Arda. Close-up on the döner knife on the counter. **INTERACTIVE: TAP** (icon on the knife, waits indefinitely). Arda grabs it. | — |
+| S9 | 58–64 s | Zombie lunges. **INTERACTIVE: SWIPE** toward the zombie (any direction accepted after 3 s of no input; we never fail here). Stab: 60 ms hit-stop, camera punch, comic "ŞAK!" lettering. Zombie drops. | SFX: "şak" |
+| S10 | 64–70 s | Arda stares at the knife, then at the body. The bitten friend and another diner start twitching. Letterbox slides away: control handed over. | Arda: "...Pardon." (...Sorry.) |
 
 ## 5. Tutorial Flow (in order; one prompt at a time, ≤ 6 words + icon)
 
 | Step ID | Where | Teaches | Prompt (TR / EN) | Completes when |
 |---|---|---|---|---|
 | `t_move` | Restaurant | Move | Ghost-thumb animation: "Sürükle ve yürü" / "Drag to move" | Player moves 2 m |
-| `t_attack` | Restaurant | Auto-attack | None; the fork auto-stabs the first zombie in range. Bark: "Kendiliğinden mi saplıyorum?" (I'm stabbing on autopilot?) | First kill by the player |
+| `t_attack` | Restaurant | Auto-attack | None; the knife auto-swings at the first zombie in range. Bark: "Kendiliğinden mi sallıyorum?" (I'm swinging on autopilot?) [TR writer to confirm wording] | First kill by the player |
 | `t_xp` | Restaurant → Segment A | Collect XP | Arrow to the first droplet outside pickup radius: "Topla" / "Collect" | First XP collected |
-| `t_card` | Segment A (~15 s) | Level-up choice | Scripted cards `[Tea Glass*, Fork L2, Sneakers]`, Tea Glass highlighted: "Birini seç" / "Pick one" | Card chosen |
+| `t_card` | Segment A (~15 s) | Level-up choice | Scripted cards `[Nail Gun*, Döner Knife L2, Running Shoes]`, Nail Gun highlighted (proposal; config `scriptedFirstCard` has no highlight flag): "Birini seç" / "Pick one" | Card chosen |
 | `t_env` | Segment B | Interactables | When a cluster passes the gas canister: "Tüpe vur!" / "Hit the canister!" | Canister explodes (or the cluster passes) |
 | `t_cat` | Segment C | Cat warning | No text. The cat hisses + a "!" above it; the manhole rattles (1.0 s telegraph) | Crawler emerges |
 | `t_hold` | Segment D | Survive a hold zone | "Dayan!" / "Hold on!" + the shutter's diegetic progress | Shutter fully open |
@@ -219,7 +219,7 @@ gameplay never pauses for it. Lines play at segment entries (after the first car
 
 | Moment | Music layer | Key SFX |
 |---|---|---|
-| Restaurant | L0 (ambient, TV murmur) | Sizzle, TV jingle, the fork "çat" |
+| Restaurant | L0 (ambient, TV murmur) | Sizzle, TV jingle, the knife "şak" |
 | A | L1 darbuka pulse | Crowd panic fading, distant car alarms, phone ringing on the ground |
 | B | L2 bass + strings | Chestnut crackle, canister hiss → boom, comic "KÜT!" |
 | C | L2 + tension riser | Tram creak, cat hiss, manhole rattle |
@@ -266,12 +266,12 @@ game-design.md §10).
 
 | Category | Assets |
 |---|---|
-| Hero | Arda: full animation set (design-system.md §8), fork-grab and stab cinematic poses, phone-call idle |
+| Hero | Arda: full animation set (design-system.md §8), knife-grab and stab cinematic poses, phone-call idle |
 | Enemies | Walker × 4 outfits (office, student, waiter, shopper), Runner (jogger), Crawler, scripted "pale guy" |
 | NPCs | Fleeing crowd silhouettes × 8, usta (döner master), waiter, friend, shopkeeper, the cat |
 | Environment | İstiklal paving + rails tileset; facade kit (6 building modules, 4 shopfronts, 2 passages); restaurant interior; collapsed scaffolding; shop interior (exit scene) |
 | Props | Chestnut cart, simit cart, gas canister, café table + tea tray, chairs, shoe-shine box, balloon cart, street lamp, flower stand, manhole, shutter, generic red-and-cream tram, wall TV |
-| VFX | Fork stab smear, tea glass shatter, canister explosion, chestnut embers/burn zone, ink splats, ash dissolve, XP droplets, level-up burst, telegraph decal shader |
+| VFX | Knife stab smear, tea glass shatter, canister explosion, chestnut embers/burn zone, blood or ink splats (D-024), ash dissolve, XP droplets, level-up burst, telegraph decal shader |
 | UI | HUD (HP, XP, timer, signal bars, pause), call widget, level-up cards, tutorial prompts, results, title slam |
 | Comic | 3 memory-montage panels (S7) |
 | Audio | Music layers L0–L3, all SFX in §10, VO lines in §4 and §9 (TR), subtitles TR/EN |

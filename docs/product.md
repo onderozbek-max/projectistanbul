@@ -1,6 +1,6 @@
 # Project Istanbul: Product Decisions & Principles
 
-> **Status:** Draft v0.2 · 2026-11-08 · Owner: Onder
+> **Status:** Draft v0.3 · 2026-11-08 · Owner: Onder · v0.4 pass: journey (D-027), comic story (D-028), music (D-029), arsenal and skills (D-030, D-031), decisions D-017–D-026 adopted
 > **Scope:** Product, design, tech and business decisions. The story lives in
 > [narrative.md](narrative.md); money lives in [business-plan.md](business-plan.md).
 > This doc only references them (DRY).
@@ -78,7 +78,7 @@ loot & story beat → upgrade squad / weapons / vehicle → next level`
 
 ### Base genre (keep what works)
 - One-thumb movement, automatic attacks, a choice of 3 random skills on each level-up.
-- Short runs, bosses every 10 levels, persistent upgrades between runs.
+- Short runs, a boss at the end of each hood (every 5 levels, D-027), persistent upgrades between runs.
 
 ### Our differentiators
 | # | Feature | Why it matters |
@@ -105,12 +105,13 @@ loot & story beat → upgrade squad / weapons / vehicle → next level`
 
 ## 5. Content Structure
 
-- **Chapter = 100 levels = 10 districts × 10 levels.** *(Decision D-001)*
-- Level x5 = mini-boss, level x0 = district boss + major story beat.
+- **Chapter = 100 levels = 20 neighbourhoods (hoods) × 5 levels, one walk from Taksim to Ataköy (17 km).** *(Decision D-027, which amends D-001's 10 districts × 10 levels)*
+- Level 5 of each hood is the hood boss. A comic page closes each hood (D-028). Route, bosses and
+  stage template: `journey.md`.
 - **Solo-builder rule:** 100 levels are *assembled* from reusable parts, not hand-crafted
-  one by one: `district map × wave script × modifier (night, fog, horde, human ambush) × boss`.
-  About 10 maps per chapter, 30–40 wave scripts, ~10 modifiers.
-- Story beats every 2–4 levels (motion-comic panels, banter, letters).
+  one by one: `hood sheet × stage template × modifier (night, fog, horde, human ambush) × boss`.
+  20 hood sheets, one stage template, three boss types in the slice, ~10 modifiers. Level 1 stays hand-built.
+- Story beats on most levels: bust pop-ins, calls and letters. Comic pages close each hood (`story-presentation.md`).
 
 ## 6. Chapter Release & Gating Policy *(Decision D-002)*
 
@@ -260,6 +261,11 @@ to fund user acquisition. Their tests can replace your marketing budget.
 - **Data privacy:** KVKK (Turkey), GDPR (EU/diaspora). If minors might play, add age gates
   and COPPA-style handling.
 - **Age rating:** target 16+ (human enemies, stylized violence).
+  **Risk (D-024):** red blood is now the default, and v0.4 adds grabbed civilians, collapsing scaffolds and
+  boss kill-cam replays (W58). Apple's age tiers have moved to 13+ / 16+ / 18+ (confirm in App Store Connect). PEGI 16
+  is likely; close-up gore could push some stores to 18. Get a formal pre-check (Apple questionnaire,
+  IARC for Google Play, PEGI) before soft-launch prep, and record the answer in D-024. The ink option is not a
+  rating fix on its own. Answer the questionnaires with each setting. Details: `reviews/AUDIT-3-2026-11-08.md` A-1.
 - **Gambling:** no casino mechanics, no paid random loot in v1.
 - **Content guardrails:** see narrative.md, *Writer Guardrails* (no real state actors,
   no earthquake imagery, no religion or politics as targets, no unlicensed brands or crests).
@@ -274,11 +280,11 @@ no gacha, no custom backend, no more than 3 quality tiers. Each one needs data t
 
 | ID | Date | Decision | Rationale | Status |
 |---|---|---|---|---|
-| D-001 | 2026-11-08 | Chapters are 100 levels (10 districts × 10) | Clear progression, enough content runway, modular build | Adopted |
+| D-001 | 2026-11-08 | Chapters are 100 levels (10 districts × 10) | Clear progression, enough content runway, modular build | Adopted; **amended by D-027** (20 hoods × 5 levels, still 100 levels) |
 | D-002 | 2026-11-08 | Next chapter unlocks at 5% of *qualified active* players, with a 21-day max wait | Keeps Onder's intent; fixes the denominator and protects superfans | Adopted (confirmed by Onder) |
 | D-003 | 2026-11-08 | Visual quality tiers with gameplay parity; HD assets downloaded after install | Premium look on good phones without excluding budget phones | Adopted |
 | D-004 | 2026-11-08 | Engine: Godot 4 if the stress test passes, else Unity 6 | AI-friendliness vs. ad-SDK maturity and enemy-count performance | Open |
-| D-005 | 2026-11-08 | Story via motion comics + Turkish VO for key scenes | Dizi feel at solo-builder cost | Adopted |
+| D-005 | 2026-11-08 | Story via motion comics + Turkish VO for key scenes | Dizi feel at solo-builder cost | Adopted; **amended by D-028** (static comic pages and bust pop-ins for v0.4, not animated motion comics). VO scope open (`story-presentation.md` §12.5) |
 | D-006 | 2026-11-08 | Branch-and-bottleneck narrative; triangle targets the highest-bond girl | Meaningful choice at affordable scope | Adopted |
 | D-007 | 2026-11-08 | 2D, top-down 3/4 view, **portrait** orientation; skeletal heroes, flipbook enemies | One-thumb play; cheapest path to premium hero animation; best low-end performance | Adopted |
 | D-008 | 2026-11-08 | Content data as Godot custom Resources (`.tres`) in per-city packs | Typed, text-based (AI-editable), editor-friendly; city-as-data | Adopted |
@@ -290,16 +296,21 @@ no gacha, no custom backend, no more than 3 quality tiers. Each one needs data t
 | D-014 | 2026-11-08 | iOS first; Android port before any big Turkish growth push | Owner hardware and accounts, higher spend per player; Turkey is Android-heavy | Adopted |
 | D-015 | 2026-11-08 | Onder picks the executor model directly (bake-off dropped); the lead checks execution-plan.md §2 criteria in every review | Owner's call; swapping models is cheap because context lives in the repo | Adopted (revised) |
 | D-016 | 2026-11-08 | Monetization designed into game systems: deterministic purchases, Monthly Card, Road Pass, Bazaar, rewarded ads only (business-plan.md) | Fair PvE monetization that funds the game without hurting retention or trust | Adopted |
-| D-017 | 2026-11-08 | Level 1 kit replaced: Döner Knife (arc), Nail Gun (auto-aim pierce), Gas Canister (lob AoE), Bike Chain (orbit); passives Running Shoes, Leather Jacket (flat armor), Work Gloves, Energy Drink, First Aid Kit. Drops Fork / Tea Glass / Ayran / Butter / Sneakers | Owner feedback: "ayran, tereyağ, çatal are meaningless". Every item is a distinct verb or a behavior change, grounded but credible as weapons (reviews/AUDIT-2026-11-08.md P0-1) | **Owner-directed, proposed details** (prototype v0.2; 29 doc references to the fork still to update once confirmed) |
-| D-018 | 2026-11-08 | Arda's signature weapon is the Döner Knife (was the Fork). Nail Gun replaces the Slingshot to avoid colliding with Ada's Chapter 2 signature | Knife reads as a weapon and keeps the döner-shop origin; slingshot collision found in the audit | **Proposed** |
-| D-019 | 2026-11-08 | Cold open cut from 70 s to about 28 s; no manual stab beat (Arda grabs the cook's knife, the knife auto-swings) | Doc rule says ≤45 s; a manual stab teaches the wrong verb for an auto-attack game | **Proposed** |
-| D-020 | 2026-11-08 | Level 1 climax (Segment D hold) is a real threat: spawn rate 4 → 7 → 10/s, peak 100 alive | v0.1 hold was a timer with no pressure; bot: autopilot 26/30 hitless clears, naive straight-line 11/30 | **Proposed** (numbers in prototype/js/config.js) |
-| D-021 | 2026-11-08 | Camera width 10 m in route levels, 12 m in holds (GD said 12 / 13.5) | Characters were unreadable dots at 12 m on a phone | **Proposed** (re-check in Godot at device scale) |
-| D-022 | 2026-11-08 | Preview one Elite in L1 Segment C and one mid-hold, each dropping a Mini Chest with an opening set piece (CC says first elite at L7) | First session needs reward spikes, not only level-up cards (reviews/AUDIT-2-2026-11-08.md G1) | **Proposed** |
-| D-023 | 2026-11-08 | Level-up triggers a shockwave that shoves nearby enemies (no damage) | Power beat plus a breather; reads as a wow moment | **Proposed** |
-| D-024 | 2026-11-08 | Gore colour default: red blood or DS "ink splats" (setting exists either way) | Drives the age rating (12+ vs 17+) and store creative | **Open** (lead recommends ink by default) |
-| D-025 | 2026-11-08 | XP curve exponent 1.4 → 1.6 | 11 card stops per L1 run was too many; now 9 cards + 2 chests | **Proposed** |
-| D-026 | 2026-11-08 | Camera may pan 1.2 m beyond the walkable edge; decorative sidewalk band with street life | The street never looked like İstiklal because facades sat off-screen | **Proposed** |
+| D-017 | 2026-11-08 | Level 1 kit replaced: Döner Knife (arc), Nail Gun (auto-aim pierce), Gas Canister (lob AoE), Bike Chain (orbit); passives Running Shoes, Leather Jacket (flat armor), Work Gloves, Energy Drink, First Aid Kit. Drops Fork / Tea Glass / Ayran / Butter / Sneakers | Owner feedback: "ayran, tereyağ, çatal are meaningless". Every item is a distinct verb or a behavior change, grounded but credible as weapons (reviews/AUDIT-2026-11-08.md P0-1) | **Adopted** (owner-directed, approved 2026-11-08). Fork references swept in the v0.4 docs pass; the history stays here |
+| D-018 | 2026-11-08 | Arda's signature weapon is the Döner Knife (was the Fork). Nail Gun replaces the Slingshot to avoid colliding with Ada's Chapter 2 signature | Knife reads as a weapon and keeps the döner-shop origin; slingshot collision found in the audit | **Adopted** (owner approved) |
+| D-019 | 2026-11-08 | Cold open cut from 70 s to about 28 s; no manual stab beat (Arda grabs the cook's knife, the knife auto-swings) | Doc rule says ≤45 s; a manual stab teaches the wrong verb for an auto-attack game | **Adopted** (pre-approved by owner: "not sure what you mean but I pre-approve your suggestion"; re-confirm on device) |
+| D-020 | 2026-11-08 | Level 1 climax (Segment D hold) is a real threat: spawn rate 4 → 7 → 10/s, peak 100 alive | v0.1 hold was a timer with no pressure; bot: autopilot 26/30 hitless clears, naive straight-line 11/30 | **Adopted** (pre-approved by owner; re-confirm on device; numbers in prototype/js/config.js, moving to config-levels.js in E2) |
+| D-021 | 2026-11-08 | Camera width 10 m in route levels, 12 m in holds (GD said 12 / 13.5) | Characters were unreadable dots at 12 m on a phone | **Adopted** (pre-approved by owner; re-confirm on device; re-check in Godot at device scale) |
+| D-022 | 2026-11-08 | Preview one Elite in L1 Segment C and one mid-hold, each dropping a Mini Chest with an opening set piece (CC says first elite at L7) | First session needs reward spikes, not only level-up cards (reviews/AUDIT-2-2026-11-08.md G1) | **Adopted** (owner: "agreed with you") |
+| D-023 | 2026-11-08 | Level-up triggers a shockwave that shoves nearby enemies (no damage) | Power beat plus a breather; reads as a wow moment | **Adopted** (pre-approved by owner; re-confirm on device) |
+| D-024 | 2026-11-08 | Gore colour default: **red blood** (owner decision). A setting switches to DS "ink splats" | Drives the age rating (see §15 risk note: red blood may land at 16+ or 18+ on some stores) and store creative | **Adopted** (owner: "blood"). Rating pre-check still needed |
+| D-025 | 2026-11-08 | XP curve exponent 1.4 → 1.6 | 11 card stops per L1 run was too many; now 9 cards + 2 chests | **Adopted** (pre-approved by owner; re-confirm on device) |
+| D-026 | 2026-11-08 | Camera may pan 1.2 m beyond the walkable edge; decorative sidewalk band with street life | The street never looked like İstiklal because facades sat off-screen | **Adopted** (owner approved) |
+| D-027 | 2026-11-08 | **Journey, not a flat level list.** Chapter 1 is one walk, 17 km, from Taksim to Ataköy, through 20 neighbourhoods (hoods) of 5 levels each (still 100 levels). Each hood has its own street, roster, light, boss and comic page. Level 1 stays hand-built; levels 2–100 come from one generator. Amends D-001 (10 districts → 20 hoods). Map: `journey.md` | Owner P0: "current level progression is wrong… 20 different neighborhoods… from Taksim to Ataköy". Gives the walk a visible progress bar | **Adopted** (owner-directed). Details **Proposed**: Kaan joins at L20 (journey §9.1), slice ends at Sirkeci L30 (§9.2), difficulty model (§6, §9.6), boss names (§9.7–9.8), route order (§9.4) |
+| D-028 | 2026-11-08 | **Comic-style story presentation.** Comic pages (3–5 panels, tap to advance) close each hood. Bust pop-ins during play (ink burst, key-line slow-mo, at most one per 30 s). A message log with an unread dot. Mom's calls on the phone UI. Amends D-005 (static comic pages, not animated motion comics, for v0.4). Map: `story-presentation.md` | Owner P0: "story is not very immersive… comic book style illustrations". Subtitles last 2–4.5 s and barks expire | **Adopted**: comic pages, bust pop-ins, message log. **Proposed**: call mechanic and signal bars (story §5.2, owner picks A/B/C), radio, collectibles, environment notes. Art budget open (story §12.1) |
+| D-029 | 2026-11-08 | **Music by the owner (Suno Pro). Code makes the SFX.** The owner composes the music with Suno Pro. The prototype ships layered, pre-rendered SFX (weapon, hit, impact, zombie voice, ambience) and a music player (`P.Music`) for the owner's tracks | Owner brief: "the owner will compose with Suno Pro and needs SFX from us". Today's audio is 85 synthesized cue definitions, 38 of them played (AUDIT-3 P0-1) | **Adopted**. Open: Suno Pro commercial licence, plan tier and provenance log before any track ships (§15; AUDIT-3 §5) |
+| D-030 | 2026-11-08 | **Arsenal: 6 new weapons, 2 new passives, 5 evolutions.** New weapons: Tamirci Çekici (sledgehammer), Benzin Şişesi (molotov), Havai Fişek (fireworks), Canlı Kablo (cable), Zıpkın (speargun), Yangın Söndürücü (extinguisher). New passives: Nazar Charm, Magnet. One evolution per weapon; a passive may feed more than one evolution. Map: `weapons-skills.md` | Owner P0: "weapon types and variety… unique powers, animations, and player value". v0.3 had four weapons and no skills | **Adopted** (evolutions approved, owner: "100%"). Numbers **Proposed** (prototype values in `config-weapons.js`, in progress). Display names pending owner (weapons §12.1–12.2) |
+| D-031 | 2026-11-08 | **Player skills.** Dash on swipe or double-tap (Kaçış: 3.2 m, 0.3 s i-frames, 3.5 s cooldown). Ultimate Nazar Patlaması (Evil-Eye Burst), charged by kills and elites. Frenzy (ÇILGINLIK!) at kill-streak milestones | Owner: "player skill (dash / charged special): yes". Gives the thumb a second decision and a power beat | **Adopted** (owner "yes"). Numbers **Proposed**: ult charge 250 kills, frenzy at 60 kills in code (50 proposed), dash damage (owner call). See weapons §8.2 |
 
 ## 18. Open Questions
 
@@ -308,3 +319,5 @@ no gacha, no custom backend, no more than 3 quality tiers. Each one needs data t
 3. Hand-painted 2D style direction (D-007 settles 2D): pick from style frames in M4.
 4. Self-publish vs. publisher deal: decide after the demand test.
 5. Final game title (D-012): run the §1.1 checks, then pick.
+6. Journey and story (D-027, D-028): the open items in `journey.md` §9, `story-presentation.md` §12, and the
+   decision list in `reviews/AUDIT-3-2026-11-08.md` §5.

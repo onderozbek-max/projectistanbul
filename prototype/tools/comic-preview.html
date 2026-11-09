@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comic preview (workstream G)</title>
+<link rel="stylesheet" href="../css/proto.css">
+<link rel="stylesheet" href="../css/comic.css">
+<style>
+  body { margin: 0; min-height: 100vh; background: #0b0c12; color: #ddd; font: 13px/1.4 system-ui, sans-serif;
+         display: flex; gap: 24px; align-items: flex-start; justify-content: center; padding: 16px; box-sizing: border-box; }
+  #phone { position: relative; left: auto; top: auto; transform: none; flex: none; }
+  .dummy { position: absolute; inset: 0; background: linear-gradient(#262B3D, #14151F); color: #5c6378;
+           display: grid; place-items: center; font: 600 14px system-ui; }
+  .ctl { width: 330px; display: grid; gap: 8px; }
+  .ctl h3 { margin: 10px 0 0; font-size: 13px; color: #FFD166; text-transform: uppercase; letter-spacing: .06em; }
+  .ctl button, .ctl select, .ctl input { font: inherit; padding: 6px 8px; background: #1F2130; color: #eee; border: 1px solid #444; border-radius: 4px; }
+  .ctl .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .ctl label { display: flex; gap: 6px; align-items: center; }
+  #log { white-space: pre-wrap; font: 12px/1.35 ui-monospace, Menlo, monospace; background: #0F1018; padding: 8px;
+         min-height: 90px; border: 1px solid #222; }
+</style>
+</head>
+<body>
+<div id="phone"><div class="dummy">game screen (dummy)</div></div>
+
+<div class="ctl">
+  <h3>Pages</h3>
+  <div class="row"><select id="pageSel"></select><button id="openPage" type="button">Open page</button></div>
+  <h3>Pops (non-blocking)</h3>
+  <div class="row">
+    <button type="button" data-pop="L01s">L01s start</button>
+    <button type="button" data-pop="H10p2">H10p2 pool</button>
+    <button type="button" data-pop="H03b" data-imp="1">H03b boss (big)</button>
+  </div>
+  <h3>Mom's call</h3>
+  <div class="row">
+    <button type="button" id="callGood">C90 clear</button>
+    <button type="button" id="callDrop">C15 drops</button>
+  </div>
+  <h3>Beats for a level</h3>
+  <div class="row">
+    <label>Level <input id="lvl" type="text" value="1" size="10"></label>
+    <select id="when"><option>intro</option><option selected>start</option><option>mid</option><option>boss</option><option>end</option></select>
+  </div>
+  <div class="row">
+    <button type="button" id="playBeat">Play beat</button>
+    <button type="button" id="walk">Walk all beats</button>
+  </div>
+  <h3>Options</h3>
+  <div class="row">
+    <label><input id="reduce" type="checkbox"> reduce motion</label>
+    <button type="button" id="lang">Language: TR</button>
+  </div>
+  <div id="log">Ready. Works from file://.</div>
+</div>
+
+<script src="../js/strings.js"></script>
+<script src="../js/journey.js"></script>
+<script src="../js/story/strings-story.js"></script>
+<script src="../js/view/portraits.js"></script>
+<script src="../js/view/comic-art.js"></script>
+<script src="../js/view/comic.js"></script>
+<script src="../js/story/story-data.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var log = $('log');
+  function say(msg) { log.textContent = msg + '\n' + log.textContent.slice(0, 600); }
+  P.Settings = P.Settings || {};
+  Object.keys(P.Story.pages).sort().forEach(function (id) {
+    var o = document.createElement('option'); o.textContent = id; $('pageSel').appendChild(o);
+  });
+  $('openPage').onclick = function () {
+    var id = $('pageSel').value;
+    say('page ' + id);
+    P.Comic.page(id, function (skipped) { say('page ' + id + (skipped ? ' skipped' : ' done')); });
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-pop]'), function (b) {
+    b.onclick = function () {
+      say('pop ' + b.getAttribute('data-pop'));
+      P.Comic.pop(b.getAttribute('data-pop'), { important: b.getAttribute('data-imp') === '1' });
+    };
+  });
+  function call(lines, bars, label) {
+    say('call ' + label);
+    P.Comic.call('anne', lines, function (ok) { say('call ' + label + (ok ? ' connected' : ' dropped')); }, { bars: bars });
+  }
+  $('callGood').onclick = function () { call(['C90a', 'C90b', 'C90c', 'C90d', 'C90e'], 4, 'C90'); };
+  $('callDrop').onclick = function () { call(['C15a', 'C15b', 'C15c', 'C15d'], [2, 2, 1, 0], 'C15'); };
+  function playBeat(level, when, done) {
+    var b = P.Story.beat(level, when);
+    say(level + ' ' + when + ' -> ' + (b ? b.kind + ' ' + (b.id || b.line || b.lines.join(',')) : 'none'));
+    P.Story.play(level, when, done || function () {});
+  }
+  $('playBeat').onclick = function () { playBeat($('lvl').value.trim(), $('when').value); };
+  // Walks intro, start, mid, boss, end for one level; waits for pages and calls, and a short beat for pops.
+  var WHENS = ['intro', 'start', 'mid', 'boss', 'end'];
+  $('walk').onclick = function () {
+    var level = $('lvl').value.trim(), i = 0;
+    function next() {
+      if (i >= WHENS.length) return say('walk done for ' + level);
+      var when = WHENS[i++], b = P.Story.beat(level, when);
+      if (!b) return next();
+      playBeat(level, when, function () { setTimeout(next, b.kind === 'pop' ? 2600 : 200); });
+    }
+    next();
+  };
+  $('reduce').onchange = function () { P.Settings.reduceMotion = $('reduce').checked; };
+  $('lang').onclick = function () {
+    P.lang = P.lang === 'tr' ? 'en' : 'tr';
+    $('lang').textContent = 'Language: ' + P.lang.toUpperCase();
+    document.documentElement.lang = P.lang;
+  };
+})();
+</script>
+</body>
+</html>

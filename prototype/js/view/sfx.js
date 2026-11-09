@@ -1,68 +1,201 @@
-// Placeholder sound effects synthesized with WebAudio (no audio files). Signature cues per DS 15 / LD 10.
+// WebAudio runtime for sound effects (workstream A, v0.4). Cues are rendered once into AudioBuffers by
+// sfx-bank.js / sfx-bank2.js (lazily on first use; variant 0 of every cue is warmed in small steps after
+// unlock). play() only starts buffer sources. Unknown cue names are a silent no-op.
+// API: play(name, minGapMs, {pan, vol, rate, voice, variant}) | unlock() | ambience(themeId|group|null)
+//      | setVolume(category, v) with category sfx|ui|voice|ambience|master | stopAll() | has(name)
+// Respects P.Settings.sound (the "Sound effects" toggle): when off, nothing plays.
 P.Sfx = (function () {
-  var ctx = null, last = {}, tinkStreak = 0, tinkT = 0;
+  var R = P.SfxRecipes, DSP = P.SfxDsp;
+  var CATS = { sfx: 0.85, ui: 0.8, voice: 0.95, ambience: 0.5 };   // bus base gains, linear
+  var AMB_SEC = 8, MAX_VOICES = 20, BUSY = 12, FADE = 1.5, AMB_GROUPS = ['street', 'waterfront', 'bazaar', 'wind', 'night'];
+  // Journey theme id -> ambience group (journey.js). 'bridge' is the Galata Köprüsü wind bed.
+  var GROUP_OF = {
+    istiklal: 'street', galata: 'street', eminonu: 'street', sirkeci: 'street', beyazit: 'street', laleli: 'street',
+    aksaray: 'street', yedikule: 'street', bakirkoy: 'street', zeytinburnu: 'street',
+    karakoy: 'waterfront', kumkapi: 'waterfront', yenikapi: 'waterfront', samatya: 'waterfront', kazlicesme: 'waterfront',
+    sahil: 'waterfront', marina: 'waterfront', bazaar: 'bazaar', bridge: 'wind', atakoy: 'night'
+  };
+  var ctx = null, comp = null, master = null, rev = null, bus = {}, vol = { sfx: 1, ui: 1, voice: 1, ambience: 1 }, mv = 1;
+  var cache = {}, last = {}, lastVar = {}, active = [], amb = null, ambWant = null, warmed = false;
+  var tink = { streak: 0, t: -1e9 };
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function clamp(v, a, b) { v = Number(v); return v !== v ? a : (v < a ? a : (v > b ? b : v)); }
+  function soundOn() { return !P.Settings || P.Settings.sound !== false; }
+  function bufferOf(c, x) {
+    var b = c.createBuffer(1, x.length, c.sampleRate);
+    b.getChannelData(0).set(x);
+    return b;
+  }
+  function buildGraph(c) {
+    var k;
+    comp = c.createDynamicsCompressor();
+    comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.2;
+    master = c.createGain(); master.gain.value = 0.9 * mv;
+    comp.connect(master); master.connect(c.destination);
+    rev = c.createConvolver();
+    rev.buffer = bufferOf(c, DSP.ir(c.sampleRate, 1.6, 0.35, DSP.rng(DSP.seed('reverb-ir'))));
+    var ret = c.createGain(); ret.gain.value = 0.45; rev.connect(ret); ret.connect(comp);
+    for (k in CATS) {
+      if (!has(CATS, k)) continue;
+      bus[k] = c.createGain(); bus[k].gain.value = CATS[k] * vol[k]; bus[k].connect(comp);
+    }
+  }
+  // Lazily creates the context and graph. Returns null where WebAudio is unavailable.
   function ensure() {
     if (ctx) return ctx;
-    var AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return null;
-    ctx = new AC();
+    var AC = window.AudioContext || window.webkitAudioContext, c;
+    if (!AC || !R || !DSP) return null;
+    try { c = new AC(); buildGraph(c); ctx = c; } catch (e) { ctx = null; }
     return ctx;
   }
-  function env(g, t0, a, d, peak) {
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(peak, t0 + a);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + a + d);
+  function cueBuffer(name, v, who) {
+    var key = name + '|' + v + '|' + (who || ''), b = cache[key], x;
+    if (b === undefined) {
+      x = R.render(name, ctx.sampleRate, v, who);
+      b = cache[key] = x ? bufferOf(ctx, x) : null;
+    }
+    return b;
   }
-  function tone(type, f0, f1, dur, vol) {
-    var c = ctx, t = c.currentTime, o = c.createOscillator(), g = c.createGain();
-    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-    env(g, t, 0.005, dur, vol); o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+  function pickVariant(name, n) {
+    var v = Math.floor(Math.random() * n);
+    if (n > 1 && v === lastVar[name]) v = (v + 1) % n;
+    lastVar[name] = v;
+    return v;
   }
-  function noise(dur, vol, freq, q) {
-    var c = ctx, t = c.currentTime, n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), ch = buf.getChannelData(0);
-    for (var i = 0; i < n; i++) ch[i] = Math.random() * 2 - 1;
-    var src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q || 1;
-    env(g, t, 0.004, dur, vol); src.connect(f).connect(g).connect(c.destination); src.start(t);
+  function prune(now) { active = active.filter(function (a) { return a.end > now; }); }
+  function stopVoice(a) {
+    var t = ctx.currentTime;
+    try { a.g.gain.cancelScheduledValues(t); a.g.gain.setTargetAtTime(0, t, 0.01); a.src.stop(t + 0.06); } catch (e) { /* already ended */ }
+    active = active.filter(function (x) { return x !== a; });
   }
-  var bank = {
-    cat: function () { noise(0.07, 0.25, 2600, 3); tone('square', 900, 500, 0.05, 0.05); },
-    tink: function () { tinkStreak = (performance.now() - tinkT < 400) ? Math.min(tinkStreak + 1, 12) : 0; tinkT = performance.now(); tone('sine', 1200 + tinkStreak * 60, 1500 + tinkStreak * 60, 0.08, 0.06); },
-    glass: function () { tone('triangle', 2400, 1800, 0.12, 0.08); noise(0.1, 0.08, 5000, 2); },
-    boom: function () { noise(0.6, 0.5, 120, 0.7); tone('sine', 90, 30, 0.5, 0.4); },
-    hurt: function () { tone('square', 180, 90, 0.12, 0.12); },
-    level: function () { tone('triangle', 660, 990, 0.18, 0.15); setTimeout(function () { ctx && tone('triangle', 990, 1320, 0.2, 0.12); }, 90); },
-    hiss: function () { noise(0.9, 0.18, 4200, 4); },
-    rattle: function () { for (var i = 0; i < 5; i++) setTimeout(function () { ctx && noise(0.05, 0.25, 300, 2); }, i * 160); },
-    bell: function () { tone('sine', 1320, 1300, 0.9, 0.12); tone('sine', 1980, 1950, 0.6, 0.05); },
-    shutter: function () { noise(1.2, 0.2, 400, 0.5); },
-    slam: function () { noise(0.3, 0.5, 200, 0.6); tone('square', 70, 40, 0.3, 0.2); },
-    stab: function () { noise(0.05, 0.4, 1800, 1.5); tone('square', 300, 120, 0.08, 0.2); },
-    nosignal: function () { tone('sine', 480, 480, 0.25, 0.08); setTimeout(function () { ctx && tone('sine', 380, 380, 0.4, 0.08); }, 300); },
-    click: function () { tone('square', 800, 600, 0.03, 0.05); },
-    pick: function () { tone('triangle', 520, 1040, 0.12, 0.14); setTimeout(function () { ctx && tone('square', 1040, 1560, 0.08, 0.06); }, 60); },
-    swish: function () { noise(0.09, 0.22, 3200, 0.8); },
-    nail: function () { noise(0.03, 0.3, 2400, 2); tone('square', 1400, 700, 0.03, 0.05); },
-    blast: function () { noise(0.35, 0.4, 220, 0.6); tone('sine', 140, 40, 0.3, 0.3); },
-    lob: function () { tone('sine', 300, 520, 0.12, 0.05); },
-    chain: function () { noise(0.04, 0.12, 6000, 6); },
-    combo: function () { [660, 880, 1320].forEach(function (f, i) { setTimeout(function () { ctx && tone('square', f, f * 1.02, 0.09, 0.07); }, i * 70); }); },
-    shock: function () { tone('sine', 220, 880, 0.25, 0.12); noise(0.25, 0.12, 900, 0.7); },
-    chestDrop: function () { tone('sine', 180, 90, 0.2, 0.25); noise(0.12, 0.2, 400, 1); },
-    chestShake: function () { noise(0.06, 0.2, 600, 2); tone('square', 300, 280, 0.05, 0.05); },
-    chestOpen: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { setTimeout(function () { ctx && tone('triangle', f, f, 0.3, 0.12); }, i * 60); }); noise(0.4, 0.1, 6000, 1); },
-    elite: function () { tone('sawtooth', 110, 70, 0.6, 0.12); },
-    gull: function () { tone('triangle', 1700, 1100, 0.18, 0.05); setTimeout(function () { ctx && tone('triangle', 1600, 1000, 0.22, 0.05); }, 220); },
-    splat: function () { noise(0.07, 0.18, 700, 1.2); },
-  };
+  // Voice limiting: per-cue cap, global cap, drop low-priority cues when busy, steal a lower-priority voice when full.
+  function admit(name, m) {
+    var i, same = 0, low = null;
+    prune(ctx.currentTime);
+    for (i = 0; i < active.length; i++) {
+      if (active[i].name === name) same++;
+      if (!low || active[i].prio < low.prio) low = active[i];
+    }
+    if (same >= m.m) return false;
+    if (active.length >= BUSY && m.p <= 1) return false;
+    if (active.length >= MAX_VOICES) {
+      if (!low || low.prio >= m.p) return false;
+      stopVoice(low);
+    }
+    return true;
+  }
+  function tinkRate(now) {
+    tink.streak = now - tink.t < 400 ? Math.min(tink.streak + 1, 12) : 0;
+    tink.t = now;
+    return 1 + tink.streak * 0.035;
+  }
+  // Starts one voice: buffer -> gain (opts.vol) -> optional panner (opts.pan) -> category bus, plus reverb send.
+  function start(name, m, b, o, rate) {
+    var c = ctx, t = c.currentTime + 0.005, src = c.createBufferSource(), g = c.createGain(), out = g, pan = null, send = null;
+    src.buffer = b;
+    src.playbackRate.value = rate * (name === 'speech' ? 1 : 1 + (Math.random() * 2 - 1) * 0.015);
+    g.gain.value = typeof o.vol === 'number' ? clamp(o.vol, 0, 1) : 1;
+    src.connect(g);
+    if (typeof o.pan === 'number' && c.createStereoPanner) {
+      pan = c.createStereoPanner(); pan.pan.value = clamp(o.pan, -1, 1); g.connect(pan); out = pan;
+    }
+    out.connect(bus[m.c] || bus.sfx);
+    if (m.r > 0) { send = c.createGain(); send.gain.value = m.r; out.connect(send); send.connect(rev); }
+    var rec = { name: name, prio: m.p, g: g, src: src, end: t + b.duration / src.playbackRate.value + 0.05 };
+    src.onended = function () {
+      active = active.filter(function (x) { return x !== rec; });
+      try { src.disconnect(); g.disconnect(); if (pan) pan.disconnect(); if (send) send.disconnect(); } catch (e) { /* ignore */ }
+    };
+    active.push(rec);
+    src.start(t);
+  }
+  function play(name, minGap, opts) {
+    if (!R || !R.has(name) || !soundOn()) return;
+    var c = ensure(), o = opts || {}, m, now, gap, rate, v, b;
+    if (!c) return;
+    if (c.state === 'suspended') { c.resume(); return; }
+    m = R.meta[name];
+    now = performance.now();
+    gap = typeof minGap === 'number' ? minGap : m.g;
+    if (last[name] !== undefined && now - last[name] < gap) return;
+    if (!admit(name, m)) return;
+    rate = typeof o.rate === 'number' ? o.rate : 1;
+    if (name === 'tink') rate *= tinkRate(now);
+    v = typeof o.variant === 'number' ? o.variant : pickVariant(name, m.v);
+    b = cueBuffer(name, v, o.voice);
+    if (!b) return;
+    last[name] = now;
+    start(name, m, b, o, rate);
+  }
+  // ---- Ambience beds: one seamless loop per group, crossfaded on theme change ----
+  function ambBuffer(group) {
+    var key = 'amb|' + group;
+    if (!cache[key]) cache[key] = bufferOf(ctx, DSP.bed(group, AMB_SEC, ctx.sampleRate, DSP.rng(DSP.seed(key))));
+    return cache[key];
+  }
+  function startBed(group) {
+    var c = ctx, t = c.currentTime, src = c.createBufferSource(), gn = c.createGain();
+    src.buffer = ambBuffer(group); src.loop = true;
+    gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(1, t + FADE);
+    src.connect(gn); gn.connect(bus.ambience); src.start(t);
+    amb = { src: src, g: gn };
+  }
+  function fadeBed(sec) {
+    if (!amb || !ctx) return;
+    var a = amb, t = ctx.currentTime;
+    amb = null;
+    a.g.gain.cancelScheduledValues(t);
+    a.g.gain.setValueAtTime(Math.max(a.g.gain.value, 0.0001), t);
+    a.g.gain.exponentialRampToValueAtTime(0.0001, t + sec);
+    a.src.onended = function () { try { a.src.disconnect(); a.g.disconnect(); } catch (e) { /* ignore */ } };
+    a.src.stop(t + sec + 0.05);
+  }
+  function groupOf(theme) {
+    if (theme === null || theme === undefined) return null;
+    if (AMB_GROUPS.indexOf(theme) >= 0) return theme;
+    return has(GROUP_OF, theme) ? GROUP_OF[theme] : null;
+  }
+  function ambience(theme) {
+    var g = groupOf(theme);
+    if (g === ambWant) return;
+    ambWant = g;
+    if (!ctx) return;   // not unlocked yet: unlock() starts the wanted bed
+    fadeBed(1.2);
+    if (g && soundOn()) startBed(g);
+  }
+  // Renders variant 0 of every cue and the beds in small steps, so first plays do not stall.
+  function warm() {
+    var jobs = R.names.map(function (n) { return function () { cueBuffer(n, 0, null); }; });
+    AMB_GROUPS.forEach(function (g) { jobs.push(function () { ambBuffer(g); }); });
+    (function next() {
+      var job = jobs.shift();
+      if (!job) return;
+      try { job(); } catch (e) { /* ignore: a failed warm just renders lazily later */ }
+      setTimeout(next, 30);
+    })();
+  }
   return {
-    unlock: function () { var c = ensure(); if (c && c.state === 'suspended') c.resume(); },
-    play: function (name, minGap) {
-      if (!P.Settings.sound || !ensure() || !bank[name]) return;
-      var now = performance.now();
-      if (minGap && last[name] && now - last[name] < minGap) return;
-      last[name] = now;
-      try { bank[name](); } catch (e) { /* audio not ready */ }
+    play: play,
+    unlock: function () {
+      var c = ensure();
+      if (!c) return;
+      if (c.state === 'suspended') c.resume();
+      if (!warmed) { warmed = true; warm(); }
+      if (ambWant && !amb && soundOn()) startBed(ambWant);
     },
+    ambience: ambience,
+    setVolume: function (cat, v) {
+      v = clamp(v, 0, 1);
+      if (cat === 'master') {
+        mv = v;
+        if (ctx) master.gain.setTargetAtTime(0.9 * v, ctx.currentTime, 0.02);
+        return;
+      }
+      if (!has(CATS, cat)) return;
+      vol[cat] = v;
+      if (ctx) bus[cat].gain.setTargetAtTime(CATS[cat] * v, ctx.currentTime, 0.02);
+    },
+    stopAll: function () { if (ctx) active.slice().forEach(stopVoice); },
+    has: function (name) { return !!R && R.has(name); }
   };
 })();
