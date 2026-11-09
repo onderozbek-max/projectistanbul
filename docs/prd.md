@@ -1,4 +1,4 @@
-# Project Istanbul: PRD, Vertical Slice (Chapter 1, Levels 1–30)
+# Project Istanbul: PRD, Vertical Slice (Levels 1–30, a build milestone inside Chapter 1)
 
 > **Status:** v0.1 · 2026-11-08 · Owner: Onder · Reviewer: Opus (lead) · Executor: TBD
 > **Strategy and decisions:** [product.md](product.md) · **Story:** [narrative.md](narrative.md)
@@ -13,7 +13,7 @@ It does not repeat strategy, story or numbers; it links to the doc that owns the
 
 ## 1. Summary
 
-Build the first 30 levels of Chapter 1 (İstiklal → Karaköy & Galata → Galata Bridge) as a
+Build the vertical slice, Levels 1–30 = hoods 1–6 (İstiklal → Sirkeci). It is a build milestone inside Chapter 1, which ends at Ataköy, L100 (D-040). Ship the slice as a
 **playable, polished, testable mobile build** for iOS (Android port later, product.md D-014). The slice has to prove three things:
 
 1. **The core is fun.** The survivor-like loop holds players for multiple sessions.
@@ -53,7 +53,7 @@ Mila/Ada as playable heroes, PvP, guilds, live events, Remote Config backend
 ### Content in the slice
 | Category | In slice | Source of truth |
 |---|---|---|
-| Levels | **1–30** = hoods 1–6, one walk from Taksim to Sirkeci (D-027; was 3 districts × 10) | journey.md §2, §8; content-catalog.md §7 (v0.2, superseded) |
+| Levels | **1–30** = hoods 1–6, one walk from Taksim to Sirkeci (D-027; was 3 districts × 10). Build milestone only; Chapter 1 ends at Ataköy, L100 (D-040). | journey.md §2, §8; content-catalog.md §7 (v0.2, superseded) |
 | Heroes | **Arda** (playable), **Kaan** (joins at L20 on the bridge, proposed in journey §9.1; tag-switch enabled in L30 phase 3) | content-catalog.md §1; journey.md §9.1 |
 | Card weapons | **Döner Knife** (signature, D-018) + Nail Gun, Gas Canister, Bike Chain (D-017 kit) + six new weapons (D-030) | weapons-skills.md §3–§4; content-catalog.md §2, §10.1 |
 | Passives | Running Shoes, Leather Jacket, Work Gloves, Energy Drink, First Aid Kit (D-017) + Nazar Charm, Magnet (D-030) | weapons-skills.md §6.1 |

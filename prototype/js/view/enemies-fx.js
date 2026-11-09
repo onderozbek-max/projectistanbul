@@ -33,6 +33,7 @@ P.EnemyFx = (function () {
       else if (tg.kind === 'ring') drawRing(R, tg);
     });
     s.enemies.forEach(function (e) { if (e.type === 'bloater' && e.swell > 0) drawSwell(R, e, t); });
+    s.enemies.forEach(function (e) { if (e.type === 'hardhat' && e.helmet) drawHelmet(R, e); if (e.anchored) drawBalcony(R, e); });
     drawSplats(R, s);
   };
 
@@ -87,6 +88,20 @@ P.EnemyFx = (function () {
     c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.fillStyle = hexA(col, 0.16); c.fill();
     c.setLineDash([8, 6]); c.strokeStyle = col; c.lineWidth = 2.5; c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
     c.lineWidth = 5; c.beginPath(); c.arc(X, Y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); c.stroke();
+  }
+
+  // Hardhat: a yellow helmet arc on the side it faces (world angle faceA; screen Y is flipped).
+  function drawHelmet(R, e) {
+    var c = R.ctx, X = R.X(e.x), Y = R.Y(e.y), r = (e.r + 0.12) * R.ppm, a = -(e.faceA || 0);
+    c.strokeStyle = 'rgba(255,209,102,0.95)'; c.lineWidth = 4;
+    c.beginPath(); c.arc(X, Y, r, a - 0.9, a + 0.9); c.stroke();
+  }
+
+  // Balcony spitter (anchored set piece): a small balcony ledge under it.
+  function drawBalcony(R, e) {
+    var c = R.ctx, u = R.ppm;
+    c.fillStyle = 'rgba(120,110,100,0.9)';
+    c.fillRect(R.X(e.x) - 0.7 * u, R.Y(e.y) + 0.35 * u, 1.4 * u, 0.2 * u);
   }
 
   function hexA(hex, a) {
@@ -219,7 +234,14 @@ P.EnemyFx = (function () {
       case 'ambush': P.Fx.letter(s.hero.x, s.hero.y + 2, '!'); sfx('crowdScream', 0, s); break;
       case 'groan': sfx('groan', 400, s, ev.x); break;
       case 'holdStart': P.Fx.letter(s.hero.x, s.hero.y + 2, P.t('ui.hud.hold')); break;
-      case 'kill': if (ev.enemy === 'bloater' || ev.enemy === 'spitter' || ev.enemy === 'brute') killFx(s, ev); break;
+      case 'screamStart': sfx('groan', 300, s, ev.x); break;
+      case 'scream':
+        EF.rings.push({ x: ev.x, y: ev.y, r: P.CFG.enemies.screamer.callR, col: SUMMON, t0: s.t, dur: 0.5 });
+        P.Fx.letter(ev.x, ev.y + 1, label('ev.scream', 'ÇIĞLIK!', 'SCREAM!')); sfx('snarl', 0, s, ev.x); break;
+      case 'screamCut': P.Fx.letter(ev.x, ev.y + 1, label('ev.silenced', 'Sustu!', 'Silenced!')); sfx('tink', 0, s, ev.x); break;
+      case 'helmetBlock': sfx('tink', 120, s, ev.x); break;
+      case 'helmetOff': P.Fx.letter(ev.x, ev.y + 1.2, label('ev.helmet', 'Kask düştü!', 'Helmet off!')); sfx('tink', 0, s, ev.x); break;
+      case 'kill': if (['bloater', 'spitter', 'brute', 'screamer', 'hardhat'].indexOf(ev.enemy) >= 0) killFx(s, ev); break;
     }
   };
 

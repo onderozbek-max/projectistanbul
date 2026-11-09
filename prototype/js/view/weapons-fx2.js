@@ -93,7 +93,8 @@ P.WFx2 = (function () {
 
   function startFinale(ev, s) {
     var L = P.Weapons.level(s.hero, 'finale') || { spanX: 0, spanY: 0 };
-    zones.push({ x: s.hero.x, y: s.hero.y, sx: L.spanX, sy: L.spanY, t: ev.T, T: ev.T });
+    zones.push({ x: s.hero.x, y: s.hero.y, sx: ev.spanX !== undefined ? ev.spanX : L.spanX,
+      sy: ev.spanY !== undefined ? ev.spanY : L.spanY, t: ev.T, T: ev.T });
     if (zones.length > 4) zones.shift();
     P.Sfx.play('finale', 300);
   }
@@ -144,6 +145,7 @@ P.WFx2 = (function () {
     st.slams.forEach(function (sl) { drawReticle(c, R, sl, u); });
     c.restore();
     if (P.WFx3 && P.WFx3.drawGround) P.WFx3.drawGround(R, s);
+    if (P.WFx4 && P.WFx4.drawGround) P.WFx4.drawGround(R, s);
   };
 
   function drawZone(c, R, z, u, t) {
@@ -203,6 +205,7 @@ P.WFx2 = (function () {
     sparks.forEach(function (p) { drawSpark(c, R, p, u); });
     c.restore();
     if (P.WFx3 && P.WFx3.drawAir) P.WFx3.drawAir(R, s);
+    if (P.WFx4 && P.WFx4.drawAir) P.WFx4.drawAir(R, s);
   };
 
   // Anticipation (0-0.7: raise the head back), then the swing (0.7-1: forward to the impact point).

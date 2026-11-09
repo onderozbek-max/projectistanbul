@@ -2,18 +2,20 @@
 // (cards / chest / pause / down / story pages) -> exit beat -> end comic -> results -> map.
 // Review shortcuts: ?skipintro=1  ?seg=B|C|D (L1 jump with a typical build)  ?seed=123  ?level=N (play journey
 // level N directly)  ?map=1 (title opens the map)  ?arsenal=1 (all weapons in the card pool)  ?meta=unlockall
+// ?mastery=0..5 (treat every weapon as that mastery rank)
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var phone = $('phone'), params = new URLSearchParams(location.search);
   var scale = 1, sim = null, state = 'title', acc = 0, last = 0, timeScale = 1, slowMo = -1, hitStop = 0;
   var offer = null, settingsReturn = null, exitT = 0, perf = { t: 0, frames: [] }, rerolled = false;
-  var levelIndex = 1, fxSlow = { t: 0, T: 1, k: 1 };
+  var levelIndex = 1, runOpts = {}, fxSlow = { t: 0, T: 1, k: 1 };
   var STEP = 1 / P.CFG.sim.hz, SEG_TEL = { A: 'seg_a', B: 'seg_b', C: 'seg_c', D: 'seg_d' };
   var FROZEN = { paused: 1, cards: 1, down: 1, chest: 1, story: 1, storyRun: 1, storyEnd: 1 };
   var music = function (id) { if (P.Music) P.Music.play(id); };
 
   if (params.get('arsenal')) P.CFG.debugAllWeapons = true;
   if (params.get('meta') === 'unlockall' && P.Meta) P.Meta.debugUnlockAll();
+  if (params.get('mastery') !== null) P.CFG.debugMastery = parseInt(params.get('mastery'), 10) || 0;
 
   function fit() {
     scale = Math.min(window.innerWidth / 390, window.innerHeight / 844);
@@ -22,10 +24,12 @@
   }
   function toLocal(e) { var r = phone.getBoundingClientRect(); return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale }; }
 
-  function newRun(idx) {
-    if (idx) levelIndex = idx;
-    var seed = params.get('seed') ? parseInt(params.get('seed'), 10) : (Date.now() % 100000);
-    sim = P.createSim(seed, { levelIndex: levelIndex, loadout: P.Meta ? P.Meta.loadout() : null });
+  // opts (from the map / daily): {daily, modifiers, seed}. Kept for retries of the same run.
+  function newRun(idx, opts) {
+    if (idx) { levelIndex = idx; runOpts = opts || {}; }
+    var seed = runOpts.seed || (params.get('seed') ? parseInt(params.get('seed'), 10) : (Date.now() % 100000));
+    sim = P.createSim(seed, { levelIndex: levelIndex, loadout: P.Meta ? P.Meta.loadout(runOpts) : null });
+    if (P.Barks && P.Barks.reset) P.Barks.reset(seed);
     P.Fx.reset(sim); P.Tel.setSeed(seed);
     acc = 0; timeScale = 1; slowMo = -1; hitStop = 0; rerolled = false; fxSlow.t = 0; P.HitStop = 0;
     if (P.Comic) P.Comic.clearPops();
@@ -51,13 +55,19 @@
     P.Meta.open(playLevel);
   }
 
-  function playLevel(i) {
+  function playLevel(i, opts) {
     if (P.Meta && P.Meta.isOpen()) P.Meta.close();
-    newRun(i);
+    newRun(i, opts);
     P.Screens.hideAll(); P.UI.showHud(false);
     if (levelIndex === 1) { coldOpenOrPlay(); return; }
     state = 'story';
-    if (P.Story) P.Story.play(levelIndex, 'intro', beginPlay); else beginPlay();
+    hoodCard(function () { if (P.Story) P.Story.play(levelIndex, 'intro', beginPlay); else beginPlay(); });
+  }
+
+  // Neighbourhood postcard (stage 1) or a small sub-location banner (stages 2-5).
+  function hoodCard(next) {
+    if (!P.HoodCard || params.get('skipintro')) { next(); return; }
+    P.HoodCard.show(sim.levelInfo, { big: sim.levelInfo.stage === 1 }, next);
   }
 
   function coldOpenOrPlay() {
@@ -66,7 +76,7 @@
     P.ColdOpen.start(sim, function (skipped, t) {
       P.Tel.log('cinematic', { id: 'l1_cold_open', action: skipped ? 'skip' : 'complete', t_s: +t.toFixed(1) });
       P.Settings.coldOpenSeen = true; P.saveSettings();
-      beginPlay();
+      state = 'story'; hoodCard(beginPlay);
     });
   }
 
@@ -102,6 +112,7 @@
   function handleEvents() {
     P.drainEvents(sim).forEach(function (ev) {
       P.Fx.onEvent(ev, sim);
+      if (P.Barks && P.Barks.onEvent) P.Barks.onEvent(ev, sim);
       switch (ev.type) {
         case 'kill': P.Sfx.play('splat', 45); break;
         case 'pickup': P.Sfx.play(ev.kind === 'xp' ? 'tink' : 'click', 30); break;
@@ -118,6 +129,9 @@
           break;
         case 'nearMiss': slow(ev.slowMo || 0.25, 0.3); break;
         case 'ult': slow(ev.slowMo || 0.3, 0.25); P.Tel.log('ult_used', { t_s: +sim.runT.toFixed(1) }); break;
+        case 'masteryMove': slow(ev.slowMo || 0.4, 0.25); P.Tel.log('mastery_move', { weapon: ev.weapon }); break;
+        case 'modChosen': P.Tel.log('mod_chosen', { weapon: ev.weapon, mod: ev.mod }); break;
+        case 'hackDone': P.Tel.log('hack_done', { kind: ev.kind, t_s: +sim.runT.toFixed(1) }); break;
         case 'evolve': slow(ev.T || 1.6, 0.2); P.Tel.log('evolve', { from: ev.from, to: ev.to }); break;
         case 'bossIntro': music('boss'); P.Tel.log('boss_intro', { boss: ev.nameKey, t_s: +sim.runT.toFixed(1) }); break;
         case 'bossDie': music('run_calm'); break;
@@ -256,7 +270,8 @@
     var jeton = win ? (C.jetonBase + C.jetonPerLevel * levelIndex) * (first ? C.firstClearMult : 1) + sim.jeton : Math.floor(sim.jeton * C.loseKeep);
     var km = 0;
     if (P.Meta) {
-      var pend = P.Meta.onResults({ levelIndex: levelIndex, won: win, stars: nStars, coins: sim.jeton, kills: sim.kills, timeS: sim.runT });
+      var pend = P.Meta.onResults({ levelIndex: levelIndex, won: win, stars: nStars, coins: sim.jeton, kills: sim.kills, timeS: sim.runT,
+        tally: sim.tally, reviveUsed: !!sim.reviveUsed, daily: !!runOpts.daily, hero: 'arda' });
       if (pend && pend.reward) { jeton = pend.reward.total; first = pend.reward.first; }
       km = P.Meta.progress().kmWalked;
     }
@@ -313,6 +328,7 @@
     }
     if (steps === P.CFG.sim.maxStepsPerFrame) acc = 0;
     if (P.Music && P.Music.intensity) P.Music.intensity(Math.min(1, sim.enemies.length / 90));
+    if (P.Barks && P.Barks.update) P.Barks.update(dt, sim);
     perfSample(dt);
   }
 
@@ -350,7 +366,7 @@
   on('btn-restart', function () { P.Tel.log('level_end', { result: 'quit', t_s: +sim.runT.toFixed(1) }); newRun(); beginPlay(); });
   on('btn-quit', function () { if (P.Meta) quitToMap(); else toTitle(); });
   on('btn-export', function () { P.Tel.exportJsonl(); });
-  on('btn-next', function () { playLevel(levelIndex + 1); });
+  on('btn-next', function () { playLevel(levelIndex + 1, {}); });
   on('btn-retry', function () { newRun(); beginPlay(); });
   on('btn-to-title', function () { if (P.Meta) openMap(); else toTitle(); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });

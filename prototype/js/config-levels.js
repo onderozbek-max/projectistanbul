@@ -1,5 +1,5 @@
-// Defs for journey levels 2..100 (workstream E2): new enemy types, bosses, generator and difficulty.
-// Extends P.CFG. Sources: CC = docs/content-catalog.md (brute, spitter), GD = docs/game-design.md.
+// Defs for journey levels 2..100 (workstream E2) plus the v0.5 level events, hacking and new enemies
+// (workstream B). Extends P.CFG. Sources: CC = docs/content-catalog.md, GD = docs/game-design.md.
 // "PROTO" = value the docs leave unspecified (tuned with tools/bot.js).
 (function (C) {
   var E = C.enemies;
@@ -22,6 +22,18 @@
     swellFrom: 3.5, burstR: 2.2, heroDmg: 22, enemyDmg: 30, shove: 1.2,
     cloud: { r: 1.8, t: 3.0, dps: 4.0, heroDps: 2.0 },
     mini: { hp: 14, radius: 0.36, burstR: 1.4, heroDmg: 12, enemyDmg: 18, xp: 2 },
+  };
+  // v0.5 · Screamer (çığlıkçı): walks in, stops and screams. A ring telegraphs the call (windup); if it is still
+  // alive when the windup ends, a horde of `call` walkers comes from off-screen. Killing it in the windup cancels it.
+  E.screamer = {
+    hp: 22, speed: 0.9, contact: 4, radius: 0.4, xp: 6, kbResist: 0.2, budget: 2.5,
+    sense: 6.5, cd: 9, firstCd: 0.5, windup: 1.4, ringR: 6.0, call: 4, callR: 9, shove: 0.6,
+  };
+  // v0.5 · Hardhat (baretli): the helmet cuts frontal damage (hero in front of its facing); a frontal hit shoves
+  // it back. Flank it (it turns slowly) or hit it from behind. The helmet falls off below helmetOffAt.
+  E.hardhat = {
+    hp: 42, speed: 0.95, contact: 8, radius: 0.42, xp: 6, kbResist: 0.3, budget: 2.2,
+    frontalCos: 0.5, frontalMul: 0.4, frontalShove: 1.0, helmetOffAt: 0.4, turnRate: 2.5,
   };
 
   // ---- bosses (one per hood type; scaled by hood and difficulty in levels.js) ----
@@ -80,6 +92,14 @@
     wideKinds: ['car', 'taxi', 'dolmus', 'bus', 'kiosk', 'planter', 'crates', 'tables', 'cart'],
     smallKinds: ['bench', 'bin', 'tree', 'bollard'],
     landmarks: ['shopfront', 'cafe', 'tram_stop', 'fountain', 'lamp_row', 'bus_stop', 'kebab', 'flower_stand', 'billboard', 'tea_garden'],
+    // v0.5 · extra roster types per hood id (added from stage 2), weight = extraShare x segment share.
+    hoodExtras: {
+      galata: ['screamer'], karakoy: ['hardhat'], bridge: ['screamer'], eminonu: ['hardhat'], kapalicarsi: ['screamer'],
+      laleli: ['hardhat'], aksaray: ['screamer'], yenikapi: ['hardhat'], zeytinburnu: ['hardhat'],
+      bakirkoy: ['screamer'], atakoy: ['screamer', 'hardhat'],
+    },
+    extraFrom: 2, extraShare: 0.5,
+    subCount: 3,                       // geo.sub: 0..2 sub-location per stage (F varies scenery by it)
     // Boss name keys per hood (strings go in strings.js; fallbacks below are used if a key is missing).
     names: {
       'boss.istiklal': { tr: 'Hamal Dev', en: 'Giant Porter' },
@@ -106,4 +126,105 @@
   };
   // Spawn-director budget cost for types without a `budget` field (walker, runner, crawler: CC 5).
   C.budgetOf = { walker: 1.0, runner: 1.5, crawler: 1.5 };
+
+  // ---- v0.5 level events (js/sim/events.js, events-kinds.js). Lifetimes in s, distances in m. ----
+  C.ev = {
+    edge: 0.6,                                         // spawn/event margin from the corridor walls and blocks (m)
+    dropPop: 0.3,                                      // drop pop-in time (s)
+    streakWin: 6,                                      // kills closer than this (s) keep the kill streak going
+    span: [0.12, 0.82],                                // event marks spread over this fraction of the route
+    hackSpot: { xMin: 3.2, xMax: 5.6, ahead: 5, jit: 3, tries: 6 },   // hack terminal beside the route (generated levels)
+    coin: { rMin: 0.3, rMax: 1.2, pop: 0.2, popStep: 0.05 },   // jeton burst spread and pop timing
+    telegraphT: 1.2,                                   // ambush / pier / set arrow lead time (s)
+    ambush: { n: 7, x: 6.2, lead: 6, jit: 2.0, spacing: 0.45 },   // alley horde from a side street, ahead of the hero
+    pier: { n: 6, x: 6.4, lead: 7, jit: 1.0, spacing: 0.5 },      // ferry arrival (Eminönü flavour)
+    loot: { hp: 14, speed: 2.7, life: 16, spawnAhead: 9, xMin: 1.5, xMax: 4.5, jeton: 14, runAway: 0.7, wobbleRate: 2.5 },
+    rescue: { trappers: 6, ringR: 3.2, angJit: 0.4, holdR: 2.0, holdT: 2.5, timeout: 45, jeton: 25, heal: 25,
+      helperMin: 0.15, helperT: 20, helperEvery: 1.1, helperDmg: 12, helperRange: 6.5, helperKb: 0.2, xRange: 3.5, ahead: 11, simitDx: 0.3 },
+    blackout: { T: 9, spawnMul: 1.25, glowR: 9 },
+    car: { fuse: 4.5, blastR: 2.8, enemyDmg: 45, heroDmg: 14, fireT: 4, fireDps: 4, fireR: 2.4, trauma: 0.3, kb: 1.0, xRange: 3.5, ahead: 9 },
+    gas: { r: 2.2, t: 8, dps: 4, heroDps: 3 },
+    hazard: { xRange: 3.5, ahead: 9 },
+    stampede: { n: 8, T: 5, speed: 3.6, lane: 6.4, pushR: 0.45, shove: 0.5, yAhead: 8.5, yJit: 3.0, vJit: 0.15 },
+    barricade: { w: 12.4, h: 0.8, cx: -0.8, breakT: 3.0, holdR: 1.4, decay: 0.5, ahead: 10, exitGap: 6 },   // breakT = s of contact
+    chest: { guardDist: 2.5, drop: 1, pop: 0.5, xRange: 3.0, ahead: 10 },           // guard = elite next to a chest box
+    defend: { r: 2.6, T: 22, every: 4, n: 3, ringR: 7.5, expire: 40, jeton: 20, decay: 0.5, xRange: 3.0, ahead: 9, chestDx: 0.4 },
+    set: { telegraphT: 1.0 },                                              // single special spawn (shop door, balcony)
+    // Stage menus (generated levels). kinds: [{k, w}] picked without repeats; `pick` events per stage,
+    // plus one flavour event for the hood theme from stage 2. 'hack' uses hackKinds[stage].
+    mix: [
+      { stage: 1, pick: 2, kinds: [{ k: 'loot', w: 3 }, { k: 'hack', w: 3 }, { k: 'chest', w: 1 }] },
+      { stage: 2, pick: 2, kinds: [{ k: 'rescue', w: 3 }, { k: 'defend', w: 2 }, { k: 'stampede', w: 2 }, { k: 'hack', w: 2 }, { k: 'chest', w: 1 }] },
+      { stage: 3, pick: 1, forced: ['ambush'], kinds: [{ k: 'hazard', w: 2 }, { k: 'blackout', w: 2 }, { k: 'barricade', w: 1 }, { k: 'hack', w: 2 }] },
+      { stage: 4, pick: 2, kinds: [{ k: 'blackout', w: 2 }, { k: 'stampede', w: 2 }, { k: 'barricade', w: 2 }, { k: 'hazard', w: 2 }, { k: 'rescue', w: 2 }, { k: 'hack', w: 2 }] },
+      { stage: 5, pick: 0, forced: ['chest'], kinds: [] },    // boss stage: the guard chest only
+    ],
+    // Hood flavour (one extra event from stage 2, by theme). Themes not listed get none.
+    flavour: { bridge: 'stampede', eminonu: 'pier', bazaar: 'barricade', sahil: 'defend', zeytinburnu: 'hazard',
+      yenikapi: 'blackout', kazlicesme: 'rescue', marina: 'loot', samatya: 'defend' },
+    // Hack kinds per stage (generated levels). Tram and shutter are the later kinds.
+    hackKinds: [['atm', 'traffic'], ['cell', 'atm', 'traffic'], ['car', 'traffic'], ['shutter', 'tram'], []],
+  };
+
+  // ---- v0.5 hacking (js/sim/hack.js). INT (hackSpeedPct) speeds it and adds bonuses from bonusAt. ----
+  C.hack = {
+    r: 2.4, T: 6, slowR: 3.4, slowPer: 0.35, slowMin: 0.25, decay: 0.5, tick: 0.25, bonusAt: 0.25, fadeT: 1.0,
+    noise: { wave: 3, spawnMin: 9, spawnMax: 13, lureR: 12, lureT: 4 },   // hacking attracts and spawns a small wave
+    atm: { coins: 8, bonus: 8, coinV: 3 },
+    traffic: { r: 7, stunT: 2.5, bonusT: 1.0 },
+    cell: { bars: 3 },
+    shutter: { chest: 1, shortR: 4, spread: 0.4, pop: 0.5 },
+    car: { lureR: 16, lureT: 6, minLured: 3, nearR: 3.5 },   // the car blows up when it ends with enough zombies near
+    tram: { w: 2.8, len: 12, back: 1, dmg: 999, kb: 2.0, rushT: 0.8 },
+  };
+
+  // ---- v0.5 strings and call lines. Merged into P.STR / P.LINES by js/view/events-fx.js (strings load later). ----
+  C.levelStrings = {
+    'prompt.hack': { tr: 'Bağlan · basılı tut', en: 'Link · hold' },
+    'prompt.rescue': { tr: 'Kafesin yanında dur', en: 'Stay by the cage' },
+    'prompt.break': { tr: 'Kır!', en: 'Smash it!' },
+    'prompt.defend': { tr: 'Bölgede kal', en: 'Hold the zone' },
+    'hack.atm': { tr: 'ATM', en: 'ATM' },
+    'hack.traffic': { tr: 'Trafik ışığı', en: 'Traffic light' },
+    'hack.cell': { tr: 'Sinyal anteni', en: 'Signal booster' },
+    'hack.shutter': { tr: 'Elektrikli kepenk', en: 'Electric shutter' },
+    'hack.car': { tr: 'Araba alarmı', en: 'Car alarm' },
+    'hack.tram': { tr: 'Tram kumandası', en: 'Tram control' },
+    'hack.done': { tr: 'BAĞLANDI', en: 'LINKED' },
+    'hack.lost': { tr: 'KESİLDİ', en: 'LOST' },
+    'ev.ambush': { tr: 'PUSU!', en: 'AMBUSH!' },
+    'ev.loot': { tr: 'Tepsiyi yakala!', en: 'Catch the tray!' },
+    'ev.rescue': { tr: 'Birini kurtar!', en: 'Rescue someone!' },
+    'ev.freed': { tr: 'Kurtuldu!', en: 'Freed!' },
+    'ev.blackout': { tr: 'ELEKTRİKLER GİTTİ', en: 'POWER OUT' },
+    'ev.fuse': { tr: 'PATLAYACAK!', en: 'FUSE!' },
+    'ev.gas': { tr: 'GAZ KAÇAĞI', en: 'GAS LEAK' },
+    'ev.stampede': { tr: 'KAÇIŞ!', en: 'STAMPEDE!' },
+    'ev.barricade': { tr: 'Barikatı kır', en: 'Break the barricade' },
+    'ev.guard': { tr: 'Muhafızı yen', en: 'Beat the guard' },
+    'ev.scream': { tr: 'ÇIĞLIK!', en: 'SCREAM!' },
+    'ev.silenced': { tr: 'Sustu!', en: 'Silenced!' },
+    'ev.helmet': { tr: 'Kask düştü!', en: 'Helmet off!' },
+    'ev.helper': { tr: 'Yardımcı!', en: 'Helper!' },
+    'ev.signal': { tr: 'SİNYAL GERİ', en: 'SIGNAL BACK' },
+    'ev.tram': { tr: 'TRAM!', en: 'TRAM!' },
+    'ev.ferry': { tr: 'VAPUR!', en: 'FERRY!' },
+    'ev.defend': { tr: 'Dayan!', en: 'Hold!' },
+    'set.bloater': { tr: 'Şişman Garson', en: 'Fat Waiter' },
+    'set.spitter': { tr: 'Balkon tükürükçüsü', en: 'Balcony spitter' },
+    'set.screamer': { tr: 'Çığlıkçı', en: 'Screamer' },
+    'set.hardhat': { tr: 'Baretli', en: 'Hardhat' },
+    'enemy.screamer': { tr: 'Çığlıkçı', en: 'Screamer' },
+    'enemy.hardhat': { tr: 'Baretli', en: 'Hardhat' },
+  };
+  C.levelLines = {
+    callHack1: ['spk.anne', 'Arda! Duyuyor musun? Sinyal geldi galiba!', 'Arda! Can you hear me? I think the signal is back!'],
+    callHack2: ['spk.arda', 'Duyuyorum anne! Eve yürüyorum, merak etme.', "I can hear you! I'm walking home, don't worry."],
+    barkBloater: ['spk.arda', 'Şişman bir garson... kapıdan fırladı!', 'A fat waiter... just burst out of the shop!'],
+    barkSpitter: ['spk.arda', 'Balkonda biri bana tükürüyor!', 'Someone on the balcony is spitting at me!'],
+    barkScreamer: ['spk.arda', 'Bağırdı... şimdi herkes buraya gelecek!', 'It screamed... now everyone is coming!'],
+    barkHack: ['spk.arda', 'Sinyal kutusu! Bağlanabilirim.', 'The signal box! I can link into it.'],
+    barkBlackout: ['spk.arda', 'Elektrikler gitti... gözleri parlıyor.', "Power's gone... their eyes are glowing."],
+    barkLoot: ['spk.arda', 'O tepsi simit dolu! Yakalamam lazım.', 'That tray is full of simit! I have to catch it.'],
+  };
 })(P.CFG);

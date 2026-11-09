@@ -9,6 +9,7 @@ P.Fx = (function () {
     F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = []; F.flash = 0; F.beat = null;
     P.WFx.reset();
     if (P.EnemyFx && P.EnemyFx.reset) P.EnemyFx.reset();
+    if (P.EventsFx && P.EventsFx.reset) P.EventsFx.reset();
     if (P.Sfx && P.Sfx.ambience) P.Sfx.ambience(s.theme);
   };
 
@@ -81,6 +82,7 @@ P.Fx = (function () {
   F.onEvent = function (ev, s) {
     P.WFx.onEvent(ev, s);
     if (P.EnemyFx && P.EnemyFx.onEvent) P.EnemyFx.onEvent(ev, s);
+    if (P.EventsFx && P.EventsFx.onEvent) P.EventsFx.onEvent(ev, s);
     switch (ev.type) {
       case 'shockwave': F.flash = P.Settings.reduceMotion ? 0 : 0.35; F.punch(); break;
       case 'bloaterPop':                                    // the wow moment: punch, trauma, cream flash

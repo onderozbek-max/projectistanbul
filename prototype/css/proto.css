@@ -277,3 +277,18 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .lvl-chip:empty { display: none; }
 .card .badge.evo { background: #B04CF0; color: #fff; }
 .card.evo { box-shadow: 0 0 0 3px #B04CF0, 0 0 22px rgba(176,76,240,.6); }
+
+/* v0.5 weapon mod forks + mastery chips (screens.js) */
+.card.fork { box-shadow: 0 0 0 3px #3DDCFF, 0 0 20px rgba(61,220,255,.45); }
+.card .badge.mod { background: #3DDCFF; color: var(--ink, #14151F); }
+.mods { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+.mods-head { font: italic 900 12px var(--display, system-ui); letter-spacing: .04em; opacity: .8; }
+.mods-row { display: flex; gap: 6px; }
+.mod-opt { flex: 1; border: 2px solid var(--ink, #14151F); border-radius: 10px; padding: 6px 7px; background: #F4EEDC; color: var(--ink, #14151F); text-align: left; }
+.mod-opt.is-pick { background: #FFE08A; box-shadow: inset 0 0 0 2px #E9A23B; }
+.mod-name { display: block; font: italic 900 13px var(--display, system-ui); }
+.mod-desc { display: block; font-size: 11px; line-height: 1.25; margin-top: 2px; }
+.slot-tags, .chest-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; justify-content: center; }
+.chip.mastery { background: #2B1E4A; color: #FFD66B; border-color: #FFD66B; }
+.chip.mod-chip { background: #E8F7FB; color: var(--ink, #14151F); }
+.chip.mod-chip.chosen { background: #3DDCFF; }

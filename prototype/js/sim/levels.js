@@ -28,24 +28,29 @@ P.Levels.build = function (s, index) {
   var exitY = Math.round(st.len + rng.range(-6, 6));
   var holdY = boss ? st.approach : exitY - C.holdDepth;
   var geo = { xMin: G0.xMin, xMax: G0.xMax, length: exitY + 4, exitY: exitY, holdY: holdY,
-    holdT: boss ? 0 : st.holdT, boss: boss, blocks: [], landmarks: [] };
+    holdT: boss ? 0 : st.holdT, boss: boss, blocks: [], landmarks: [], events: [], sub: rng.int(0, C.subCount - 1) };
   s.geo = geo;
   s.diff = P.Levels.difficulty(index);
   s.props = { carts: [], canisters: [], doorOpen: true, shutter: 0, shutterOpen: false, scaffoldDown: false, geo: geo };
   s.hero.x = 0; s.hero.y = 2;
   s.dir.hold.T = geo.holdT;
-  s.gen = { info: info, st: st, stageIdx: info.stage, hood: info.hood, roster: rosterOf(info.hood), skins: info.hood.skins,
+  s.gen = { info: info, st: st, stageIdx: info.stage, hood: info.hood, roster: rosterOf(info.hood, info.stage), skins: info.hood.skins,
     marks: [], mi: 0, seg: 'A', acc: 0, next: null, arena: false, bossSpawned: false, boss: null, won: false, midDone: false, t: 0 };
   layBlocks(geo, rng);
   layLandmarks(geo, rng);
-  s.gen.marks = makeMarks(st, holdY, boss);
+  s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY)).sort(function (a, b) { return a.y - b.y; });
   civilians(s);
   s.events.push({ type: 'segment', id: 'A' });
   s.events.push({ type: 'story', id: info.id, when: 'start' });
   return s;
 };
 
-function rosterOf(hood) { return hood.enemies.filter(function (t) { return t !== 'diner'; }); }
+// Roster: the hood's enemy types, plus its extras (v0.5 screamer / hardhat) from stage extraFrom on.
+function rosterOf(hood, stage) {
+  var C = P.CFG.levels, base = hood.enemies.filter(function (t) { return t !== 'diner'; }), ex = C.hoodExtras[hood.id] || [];
+  if (stage < C.extraFrom) return base;
+  return base.concat(ex.filter(function (t) { return base.indexOf(t) < 0; }));
+}
 
 // Route marks by distance (sorted): route quarters, mid story beat, elites, ambush, intro, hold or arena.
 function makeMarks(st, end, boss) {
@@ -110,6 +115,41 @@ function civilians(s) {
   }
 }
 
+// ---------- v0.5 stage events: picked from config ev.mix (no repeats), hood flavour, hack terminals by stage ----------
+// Marks { y, kind: 'event' | 'hack', ev } spread along the route. geo.events lists them (bot and view).
+function planEvents(s, rng, info, end) {
+  var EV = P.CFG.ev, M = EV.mix.filter(function (m) { return m.stage === info.stage; })[0] || { pick: 0, kinds: [] };
+  var hk = EV.hackKinds[info.stage - 1] || [], pool = M.kinds.slice(), names = (M.forced || []).slice(), F = EV.flavour[info.hood.theme], i;
+  for (i = 0; i < M.pick && pool.length; i++) names.push(takeWeighted(rng, pool));
+  if (F && info.stage >= P.CFG.levels.extraFrom) names.push(F);
+  return names.map(function (k, j) { return eventMark(s, rng, k, hk, end, j, names.length); }).filter(Boolean);
+}
+
+function takeWeighted(rng, pool) {
+  var tot = 0, i, r;
+  for (i = 0; i < pool.length; i++) tot += pool[i].w;
+  r = rng.next() * tot;
+  for (i = 0; i < pool.length - 1; i++) { r -= pool[i].w; if (r < 0) break; }
+  return pool.splice(i, 1)[0].k;
+}
+
+function eventMark(s, rng, k, hk, end, j, n) {
+  var sp = P.CFG.ev.span, y = end * (sp[0] + (sp[1] - sp[0]) * (j + rng.range(0.2, 0.8)) / n), isHack = k === 'hack';
+  var name = isHack ? (hk.length ? hk[rng.int(0, hk.length - 1)] : null) : k;
+  if (!name) return null;
+  s.geo.events.push({ kind: isHack ? 'hack' : k, name: name, y: y });
+  return { y: y, kind: isHack ? 'hack' : 'event', ev: name };
+}
+
+// A hack terminal beside the route, ahead of the hero. Skipped if no free spot is found.
+function hackSpot(s, kind) {
+  var H = P.CFG.ev.hackSpot, h = s.hero, rng = s.rng.spawn, G = s.geo;
+  for (var k = 0; k < H.tries; k++) {
+    var x = (rng.chance(0.5) ? 1 : -1) * rng.range(H.xMin, H.xMax), y = Math.min(G.exitY - 3, h.y + H.ahead + rng.range(0, H.jit));
+    if (!P.Events.blocked(s, x, y)) { P.Hack.place(s, kind, x, y); return; }
+  }
+}
+
 // ---------- per tick ----------
 P.Levels.step = function (s, dt) {
   var g = s.gen, G = s.geo;
@@ -135,6 +175,8 @@ function doMark(s, m) {
   else if (m.kind === 'ambush') ambush(s);
   else if (m.kind === 'hold') startHold(s);
   else if (m.kind === 'arena') startArena(s);
+  else if (m.kind === 'event') P.Events.start(s, m.ev, {});
+  else if (m.kind === 'hack') hackSpot(s, m.ev);
 }
 
 function holdStage(s, dt) {
@@ -198,6 +240,7 @@ function spawnAdds(s, dt) {
 // Budget spawner (like L1 runBudget): accumulate budget/s, spawn the picked type when affordable.
 function spawnBudget(s, dt, rate, mix, behind) {
   var g = s.gen, guard = 0;
+  rate *= P.Events.spawnMul(s);
   if (rate <= 0) return;
   if (!g.next) g.next = pickType(s, mix);
   var cost = costOf(g.next);
@@ -231,6 +274,7 @@ function routeMix(s, seg) {
     if (t === 'walker') w = 1;
     else if (t === 'runner') w = seg === 0 ? 0.2 : 0.5;
     else if (t === 'crawler') w = 0.35;
+    else if (t === 'screamer' || t === 'hardhat') w = P.CFG.levels.extraShare * share;
     else w = st.newShare * share;
     return { type: t, w: w };
   });

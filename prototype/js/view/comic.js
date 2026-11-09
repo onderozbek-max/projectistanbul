@@ -1,9 +1,13 @@
-// Comic story presentation (workstream G, v0.4). P.Comic.page: full-screen comic pages (blocking; the lead pauses
-// the game). P.Comic.pop: non-blocking bust pop-in (upper-middle band, y 150-450). P.Comic.call: Mom's phone-call card
-// (non-blocking unless opts.blocking). Art: comic-art.js. Text: P.LINES through P.Story.forLine. Real-time timing.
+// Comic story presentation (workstream G v0.4; text fit and lettering workstream D v0.5). P.Comic.page: full-screen
+// comic pages (blocking; the lead pauses the game). P.Comic.pop: non-blocking bust pop-in (upper band). P.Comic.call:
+// Mom's phone-call card. Art and lettering: comic-art.js. Text: P.LINES through P.Story.forLine. Real-time timing.
+// FIT RULE: every bubble and caption is measured before it is drawn. A panel stacks its text above the busts' heads and
+// tries the largest type size first (18 px), stepping down to 12 px. If it still does not fit, the text is ellipsized
+// (A.clip) and a console warning is printed. Captions stack at the top so no bubble tail crosses one.
 P.Comic = (function () {
   var C = {}, A = P.ComicArt;
-  var TYPE_CPS = 42, POP_W = 390, POP_H = 300, POP_TOP = 150, RING_LEN = 125.66;
+  var TYPE_CPS = 42, POP_W = 390, POP_H = 300, POP_TOP = 150, RING_LEN = 125.66, PX_STEPS = [18, 17, 16, 15, 14, 13, 12];
+  var BUST_STEPS = [1, 0.85, 0.72, 0.6, 0.5], PX_SOFT_MIN = 14;
   var AREA = { x: 12, y: 64, w: 366, h: 704 };
   var LAYOUTS = {
     1: [[0, 0, 1, 1]],
@@ -13,8 +17,15 @@ P.Comic = (function () {
     5: [[0, 0, 1, 0.3], [0, 0.3, 0.5, 0.35], [0.5, 0.3, 0.5, 0.35], [0, 0.65, 0.5, 0.35], [0.5, 0.65, 0.5, 0.35]]
   };
   var dpr = Math.min(2, window.devicePixelRatio || 1);
-  var book = null, bookQueue = [], pops = [], calls = [], popEl = null, popCv = null;
+  var book = null, bookQueue = [], pops = [], calls = [], popEl = null, popCv = null, measureCv = null;
   var loopOn = false, last = 0, slowUntil = 0;
+
+  // Copy the lettering stacks into CSS variables so comic.css and the canvas share one font config.
+  (function setCssType() {
+    if (typeof document === 'undefined' || !document.documentElement) return;
+    document.documentElement.style.setProperty('--cm-speech', A.TYPE.speech);
+    document.documentElement.style.setProperty('--cm-title', A.TYPE.title);
+  })();
 
   // ---------- small helpers ----------
   function now() { return performance.now(); }
@@ -35,9 +46,10 @@ P.Comic = (function () {
     var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
     return { cv: cv, c: c };
   }
+  function meas() { if (!measureCv) measureCv = document.createElement('canvas').getContext('2d'); return measureCv; }
 
   // ---------- resolving lines ----------
-  // src: P.LINES id or {who, mood, side, text | key}. Returns {who, mood, side, important, text, speaker} or null.
+  // src: P.LINES id or {who, mood, side, text | key}. Returns {who, mood, side, important, text, caps, tag, speaker}.
   function resolve(src, opts) {
     var o = opts || {}, s;
     if (typeof src === 'string') {
@@ -53,6 +65,8 @@ P.Comic = (function () {
     if (o.side) s.side = o.side;
     if (o.important != null) s.important = !!o.important;
     s.side = s.side || (s.who === 'arda' ? 'l' : 'r');
+    s.caps = P.upper(s.text);                 // comic lettering: dialogue in capitals
+    s.tag = P.upper(s.speaker || '');         // name tag, same lettering
     return s;
   }
 
@@ -62,66 +76,109 @@ P.Comic = (function () {
     return { x: AREA.x + f[0] * AREA.w + g, y: AREA.y + f[1] * AREA.h + g, w: f[2] * AREA.w - 2 * g, h: f[3] * AREA.h - 2 * g };
   }
   // Busts: ch = [who, mood, x (0..1), flip, scale]. Base sits near the bottom of the panel.
-  function layoutBusts(p) {
+  // k scales the busts down (crowns drop) so long dialogue gets more room instead of being clipped.
+  function layoutBusts(p, k) {
     p.busts = (p.data.ch || []).map(function (ch) {
       return { who: ch[0], mood: ch[1] || 'neutral', x: clamp(ch[2], 0, 1) * p.w, base: p.h * 0.97,
-               h: p.h * (ch[4] || 0.6), flip: !!ch[3] };
+               h: p.h * (ch[4] || 0.6) * (k || 1), flip: !!ch[3] };
     });
   }
   function bustFor(p, who) {
     for (var i = 0; i < p.busts.length; i++) if (p.busts[i].who === who) return p.busts[i];
     return null;
   }
-  // Text item d = [kind, lineId, sideOverride?]: bubble (b speech, s shout, t thought). All text stacks in one
-  // column at the top of the panel, so a left and a right bubble never overlap.
-  function bubbleItem(p, d, cur, t) {
-    var s = resolve(d[1]); if (!s) return null;
-    var side = d[2] || s.side, W = p.w, bw = W < 220 ? W * 0.8 : Math.min(W * 0.62, 240);
-    var maxH = p.h * 0.36, f = A.fit(p.c, s.text, bw - 24, maxH, 'body', 17, 12);
-    var bh = f.lines.length * f.lh + 20, bx = side === 'l' ? W * 0.03 : W - bw - W * 0.03;
-    var by = Math.max(cur.L, cur.R), bust = bustFor(p, s.who), tx = bust ? bust.x : W / 2, ty = bust ? bust.base - bust.h * 0.74 : p.h * 0.9;
-    cur.L = cur.R = by + bh + 8;
-    var kind = d[0] === 's' ? 'shout' : d[0] === 't' ? 'thought' : 'speech';
-    return { kind: 'bubble', shape: kind, who: s.who, start: t, len: s.text.length, lines: f.lines, px: f.px, lh: f.lh,
-             x: bx, y: by, w: bw, h: bh, tx: tx, ty: ty, name: s.speaker, dur: s.text.length / TYPE_CPS };
+  // The text band: from the top of the panel down to just above the busts' crowns (crown = base - 0.96 h).
+  function textBand(p) {
+    var top = p.busts.length ? p.h : p.h * 0.94;
+    p.busts.forEach(function (b) { top = Math.min(top, b.base - b.h * 0.96); });
+    return Math.max(p.h * 0.2, top - 8);
   }
-  function captionItem(p, d, cur, t) {
-    var s = resolve(d[1]); if (!s) return null;
-    var W = p.w, f = A.fit(p.c, s.text, W * 0.92 - 18, p.h * 0.3, 'body', 16, 12);
-    var y = Math.max(cur.L, cur.R), h = f.lines.length * f.lh + 16;
-    cur.L = cur.R = y + h + 6;
-    return { kind: 'caption', start: t, len: s.text.length, lines: f.lines, px: f.px, lh: f.lh, x: W * 0.04, y: y, w: W * 0.92, dur: s.text.length / TYPE_CPS };
+  // Wraps one text at px. Normal mode may overflow (the stack then steps the size down); cut mode ellipsizes.
+  function lines(p, text, maxW, maxH, kind, px, cut) {
+    return cut ? A.clip(p.c, text, maxW, Math.max(20, maxH), kind, px) : A.measure(p.c, text, maxW, kind, px);
   }
-  function layoutItem(p, d, cur, t) {
-    if (d[0] === 'b' || d[0] === 's' || d[0] === 't') return bubbleItem(p, d, cur, t);
-    if (d[0] === 'c') return captionItem(p, d, cur, t);
-    if (d[0] === 'x') {
-      var txt = P.upper(P.t('cm.sfx.' + d[1]));
-      return { kind: 'sfx', start: t, text: txt, x: d[2] * p.w, y: d[3] * p.h, rot: d[4] || 0, fill: d[5] === 'red' ? '#FF7A5C' : '#FFD166', size: Math.min(p.w * 0.2, 60), dur: 0.3 };
-    }
-    if (d[0] === 'p') return { kind: 'bars', start: 0, n: d[1], x: p.w - 40, y: p.h - 14, dur: 0 };
-    if (d[0] === 'l') return letterItem(p, d, cur, t);
+  var TIME_GAP = 0.22;
+  function bubbleItem(p, d, g) {
+    var s = resolve(d[1]); if (!s) return null;
+    var W = p.w, shout = d[0] === 's', kind = shout ? 'shout' : d[0] === 't' ? 'thought' : 'speech', side = d[2] || s.side;
+    var bw = W < 220 ? W * 0.8 : Math.min(W * 0.62, 240), inset = A.textInset(shout ? 'shout' : 'speech', bw, 0);
+    var y = Math.max(g.cur.L, g.cur.R), name = s.tag, room = g.band - y - (name ? 26 : 18) - (shout ? 12 : 0);
+    var f = lines(p, s.caps, inset.maxW, room, 'speech', g.px, g.cut);
+    var bh = A.boxH(f.lines, f.lh, name, shout);
+    var bx = side === 'l' ? W * 0.03 : W - bw - W * 0.03, bust = bustFor(p, s.who);
+    var tx = bust ? bust.x : W / 2, ty = bust ? bust.base - bust.h * 0.86 : p.h * 0.9;
+    g.cur.L = g.cur.R = y + bh + 8;
+    return { kind: 'bubble', shape: kind, who: s.who, len: s.caps.length, lines: f.lines, px: f.px, lh: f.lh,
+             x: bx, y: y, w: bw, h: bh, tx: tx, ty: ty, name: name, dur: s.caps.length / TYPE_CPS, bottom: y + bh, cut: f.cut };
+  }
+  function captionItem(p, d, g) {
+    var s = resolve(d[1]); if (!s) return null;
+    var W = p.w, y = Math.max(g.cur.L, g.cur.R), f = lines(p, s.caps, W * 0.92 - 18, g.band - y - 16, 'speech', g.px, g.cut);
+    var h = f.lines.length * f.lh + 16;
+    g.cur.L = g.cur.R = y + h + 6;
+    return { kind: 'caption', len: s.caps.length, lines: f.lines, px: f.px, lh: f.lh, x: W * 0.04, y: y, w: W * 0.92,
+             dur: s.caps.length / TYPE_CPS, bottom: y + h, cut: f.cut };
+  }
+  // SFX lettering shrinks until it is at most 90% of the panel width.
+  function sfxItem(p, d) {
+    var txt = P.upper(P.t('cm.sfx.' + d[1])), size = Math.min(p.w * 0.2, 60);
+    A.setFont(p.c, 'title', size);
+    while (size > 14 && p.c.measureText(txt).width > p.w * 0.9) { size -= 2; A.setFont(p.c, 'title', size); }
+    return { kind: 'sfx', text: txt, x: d[2] * p.w, y: d[3] * p.h, rot: d[4] || 0, fill: d[5] === 'red' ? '#FF7A5C' : '#FFD166',
+             size: size, dur: 0.3, bottom: 0 };
+  }
+  function letterItem(p, d, g) {
+    var W = p.w, lw = W * 0.88, px = Math.min(g.px, 17), y = Math.max(g.cur.L, g.cur.R);
+    var text = d[1].filter(function (id) { return P.LINES[id]; }).map(function (id) { return P.line(id).text; }).join(' ');
+    var f = lines(p, text, lw - 24, g.band - y - 40, 'hand', px, g.cut), h = f.lines.length * f.lh + 40;
+    g.cur.L = g.cur.R = y + h + 6;
+    return { kind: 'letter', lines: f.lines, px: f.px, lh: f.lh, x: W * 0.06, y: y + 6, w: lw, rot: -1.2, dur: 0.5, len: 0,
+             bottom: y + h + 6, cut: f.cut };
+  }
+  function layoutItem(p, d, g) {
+    var k = d[0];
+    if (k === 'b' || k === 's' || k === 't') return bubbleItem(p, d, g);
+    if (k === 'c') return captionItem(p, d, g);
+    if (k === 'x') return sfxItem(p, d);
+    if (k === 'p') return { kind: 'bars', n: d[1], x: p.w - 40, y: p.h - 14, dur: 0, bottom: 0 };
+    if (k === 'l') return letterItem(p, d, g);
     return null;
   }
-  function letterItem(p, d, cur, t) {
-    var W = p.w, lw = W * 0.88, px = 15, lh = 21, lines = [];
-    p.c.font = A.font('hand', px);
-    d[1].forEach(function (id) { if (P.LINES[id]) lines = lines.concat(A.wrap(p.c, P.line(id).text, lw - 24)); });
-    var y = Math.max(cur.L, cur.R);
-    cur.L = cur.R = y + lines.length * lh + 40;
-    return { kind: 'letter', start: t, lines: lines, px: px, lh: lh, x: W * 0.06, y: y + 6, w: lw, rot: -1.2, dur: 0.5, len: 0 };
+  // Start times follow the script order, so the reveal reads in order even though captions are stacked first.
+  function timeline(items) {
+    var t = 0.35;
+    items.slice().sort(function (a, b) { return a.src - b.src; }).forEach(function (it) {
+      if (it.kind === 'bars') { it.start = 0; return; }
+      it.start = t; t = it.start + it.dur + TIME_GAP;
+    });
+    return t;
+  }
+  // One stacking pass at size g.px. Captions go first (top), then bubbles, sfx, letters.
+  function stack(p, defs, g) {
+    var order = defs.map(function (d, i) { return i; }), items = [], ok = true;
+    order.sort(function (a, b) { return (defs[a][0] === 'c' ? 0 : 1) - (defs[b][0] === 'c' ? 0 : 1) || a - b; });
+    g.cur = { L: p.h * 0.035, R: p.h * 0.035 };
+    order.forEach(function (i) {
+      var it = layoutItem(p, defs[i], g);
+      if (!it) return;
+      it.src = i; items.push(it);
+      if (it.bottom > g.band) ok = false;
+    });
+    return { ok: ok, items: items, total: timeline(items), px: g.px, cut: items.some(function (it) { return it.cut; }) };
   }
   function layoutPanel(p) {
-    var cur = { L: p.h * 0.035, R: p.h * 0.035 }, t = 0.35;
-    layoutBusts(p);
-    p.items = [];
-    (p.data.it || []).forEach(function (d) {
-      var it = layoutItem(p, d, cur, t);
-      if (!it) return;
-      p.items.push(it);
-      if (it.kind !== 'bars') t = it.start + it.dur + 0.22;
-    });
-    p.total = t;
+    var defs = p.data.it || [], g = { band: 0, px: PX_STEPS[0], cut: false, cur: null }, res = null, i, r;
+    // Prefer big lettering with smaller busts; only drop below 14 px at the smallest bust; clip last.
+    for (var b = 0; b < BUST_STEPS.length && !res; b++) {
+      layoutBusts(p, BUST_STEPS[b]); g.band = textBand(p);
+      var last = b === BUST_STEPS.length - 1;
+      for (i = 0; i < PX_STEPS.length && !res; i++) {
+        if (!last && PX_STEPS[i] < PX_SOFT_MIN) break;
+        g.px = PX_STEPS[i]; r = stack(p, defs, g); if (r.ok) res = r;
+      }
+    }
+    if (!res) { g.px = PX_STEPS[PX_STEPS.length - 1]; g.cut = true; res = stack(p, defs, g); }
+    p.items = res.items; p.total = res.total; p.px = res.px; p.cut = res.cut;
     p.T = 0; p.done = false; p.revealed = false;
   }
   function makePanel(pd, r) {
@@ -142,7 +199,7 @@ P.Comic = (function () {
     var k = clamp((T - it.start) * TYPE_CPS, 0, it.len || 0), n = Math.floor(k);
     if (it.kind === 'bubble') { A.bubble(c, { x: it.x, y: it.y, w: it.w, h: it.h, tx: it.tx, ty: it.ty, kind: it.shape, name: it.name, lines: A.partial(it.lines, n), px: it.px, lh: it.lh }); }
     else if (it.kind === 'caption') { A.caption(c, { x: it.x, y: it.y, w: it.w, lines: A.partial(it.lines, n), px: it.px, lh: it.lh }); }
-    else if (it.kind === 'sfx') { A.sfx(c, { x: it.x, y: it.y, text: it.text, rot: it.rot, size: it.size * clamp((T - it.start) / 0.12, 0, 1) + 1, fill: it.fill }); }
+    else if (it.kind === 'sfx') { A.sfx(c, { x: it.x, y: it.y, text: it.text, rot: it.rot, size: it.size * clamp((T - it.start) / 0.12, 0, 1) + 0.5, fill: it.fill }); }
     else if (it.kind === 'letter') { c.save(); c.globalAlpha = clamp((T - it.start) / 0.4, 0, 1); A.letter(c, it); c.restore(); }
     else if (it.kind === 'bars') { A.bars(c, it.x, it.y, it.n, 22); }
   }
@@ -305,26 +362,35 @@ P.Comic = (function () {
     popCv = canvasFor(POP_W, POP_H, popEl, 'cm-pop-cv');
     popEl.style.top = POP_TOP + 'px';
   }
-  function popJob(s, opts) {
-    var o = opts || {}, c = popCv.c, f = A.fit(c, s.text, 206 - 24, 128, 'body', 18, 13);
-    var imp = o.important != null ? !!o.important : s.important;
-    return { s: s, important: imp, lines: f.lines, px: f.px, lh: f.lh, len: s.text.length, T: 0, started: false,
-             typeDur: s.text.length / TYPE_CPS, holdDur: Math.max(2.2, 1.6 + 0.045 * s.text.length), shout: imp || !!o.shout };
+  // Pop geometry: the bubble hangs from the top edge; the bust's crown limits how low it may reach.
+  function popGeom(important) {
+    var bh = important ? 150 : 138, base = POP_H - 8, headTop = base - bh * 0.96;
+    return { bh: bh, base: base, top: 22, maxH: headTop - 8 - 22 };
+  }
+  function popJob(s, opts, c) {
+    var o = opts || {}, imp = o.important != null ? !!o.important : s.important, shout = imp || !!o.shout;
+    var geo = popGeom(imp), tw = shout ? 212 * 0.76 - 24 : 188, room = geo.maxH - 24 - (shout ? 12 : 0);
+    var f = A.fit(c || popCv.c, s.caps, tw, room, 'speech', 18, 12);
+    return { s: s, important: imp, shout: shout, lines: f.lines, px: f.px, lh: f.lh, len: s.caps.length, T: 0, started: false,
+             cut: f.cut, typeDur: s.caps.length / TYPE_CPS, holdDur: Math.max(2.2, 1.6 + 0.045 * s.caps.length) };
   }
   function popTimes(j) { var t1 = 0.28, t2 = t1 + j.typeDur, t3 = t2 + j.holdDur; return { t1: t1, t2: t2, t3: t3, t4: t3 + 0.25 }; }
+  function popPose(j, tt, T, fx, sx) {
+    if (T < tt.t1) { var sc = clamp(T / tt.t1, 0, 1); return { x: sx + (fx - sx) * easeOutBack(sc), a: 1, sc: sc }; }
+    if (T >= tt.t3) { var o = clamp((T - tt.t3) / 0.25, 0, 1); return { x: fx + (sx - fx) * o, a: 1 - o * 0.6, sc: 1 }; }
+    return { x: fx, a: 1, sc: 1 };
+  }
   function popDraw(j) {
-    var c = popCv.c, s = j.s, T = j.T, tt = popTimes(j), side = s.side === 'l' ? 'l' : 'r', bh = j.important ? 150 : 138;
-    var fx = side === 'l' ? 92 : POP_W - 92, sx = side === 'l' ? -90 : POP_W + 90, base = POP_H - 8, x = fx, a = 1, sc = 1;
-    c.clearRect(0, 0, POP_W, POP_H);
-    if (T < tt.t1) { sc = clamp(T / tt.t1, 0, 1); x = sx + (fx - sx) * easeOutBack(sc); }
-    else if (T >= tt.t3) { var o = clamp((T - tt.t3) / 0.25, 0, 1); x = fx + (sx - fx) * o; a = 1 - o * 0.6; }
+    var c = popCv.c, s = j.s, T = j.T, tt = popTimes(j), side = s.side === 'l' ? 'l' : 'r', geo = popGeom(j.important);
+    var fx = side === 'l' ? 92 : POP_W - 92, sx = side === 'l' ? -90 : POP_W + 90, pose = popPose(j, tt, T, fx, sx);
     var typed = T > tt.t1 ? clamp((T - tt.t1) * TYPE_CPS, 0, j.len) : 0, talking = typed < j.len && T > tt.t1;
-    c.save(); c.globalAlpha = a;
-    A.burst(c, x, base - bh * 0.5, bh * 0.62 * sc, j.important ? '#FFD166' : '#FFF1A8', 9);
-    A.bust(c, s.who || 'stranger', s.mood, x, base, bh, { flip: side === 'r', talk: talking ? 0.5 + 0.5 * Math.sin(T * 16) : 0 });
-    var bw = 212, bx = side === 'l' ? 164 : 14, bodyH = j.lines.length * j.lh + 20;
-    A.bubble(c, { x: bx, y: 14, w: bw, h: bodyH, tx: x, ty: base - bh * 0.74, kind: j.shout ? 'shout' : 'speech',
-                  name: s.speaker, lines: A.partial(j.lines, Math.floor(typed)), px: j.px, lh: j.lh });
+    c.clearRect(0, 0, POP_W, POP_H);
+    c.save(); c.globalAlpha = pose.a;
+    A.burst(c, pose.x, geo.base - geo.bh * 0.5, geo.bh * 0.62 * pose.sc, j.important ? '#FFD166' : '#FFF1A8', 9);
+    A.bust(c, s.who || 'stranger', s.mood, pose.x, geo.base, geo.bh, { flip: side === 'r', talk: talking ? 0.5 + 0.5 * Math.sin(T * 16) : 0 });
+    A.bubble(c, { x: side === 'l' ? 164 : 14, y: geo.top, w: 212, h: A.boxH(j.lines, j.lh, s.tag, j.shout), tx: pose.x,
+                  ty: geo.base - geo.bh * 0.86, kind: j.shout ? 'shout' : 'speech', name: s.tag,
+                  lines: A.partial(j.lines, Math.floor(typed)), px: j.px, lh: j.lh });
     c.restore();
   }
   function popUpdate(dt) {
@@ -349,7 +415,7 @@ P.Comic = (function () {
     var card = el('div', 'cm-call' + (rec.blocking ? ' cm-block' : '') + (reduced() ? ' cm-reduce' : ''), host());
     var head = el('div', 'cm-call-head', card), ctact = el('div', 'cm-contact', head), info = el('div', 'cm-call-info', head);
     ctact.appendChild(A.contact(rec.who, 'neutral', 56, dpr));
-    rec.nameEl = el('div', 'cm-call-name', info); rec.nameEl.textContent = P.t('spk.' + rec.who);
+    rec.nameEl = el('div', 'cm-call-name', info); rec.nameEl.textContent = P.upper(P.t('spk.' + rec.who));
     rec.timerEl = el('div', 'cm-call-timer', info); rec.timerEl.textContent = '00:00';
     rec.barsEl = el('div', 'cm-bars', head);
     for (var i = 0; i < 4; i++) el('i', '', rec.barsEl);
@@ -379,10 +445,10 @@ P.Comic = (function () {
   }
   function startLine(rec) {
     var id = rec.lines[rec.li], s = resolve(id);
-    rec.LT = 0; rec.cur = s; rec.len = s.text.length; rec.typeDur = rec.len / TYPE_CPS;
+    rec.LT = 0; rec.cur = s; rec.len = s.caps.length; rec.typeDur = rec.len / TYPE_CPS;
     rec.holdDur = Math.max(2.0, 1.2 + 0.045 * rec.len);
-    if (s.text.indexOf('[') >= 0 || barsAt(rec, rec.li) === 0) rec.staticUntil = rec.T + 0.2;
-    setSub(rec, s.speaker, s.text);
+    if (s.caps.indexOf('[') >= 0 || barsAt(rec, rec.li) === 0) rec.staticUntil = rec.T + 0.2;
+    setSub(rec, s.tag, s.caps);
   }
   // Ends the call: a dropped call (last bars at 0) shows "Sinyal yok" and buzzes before it closes.
   function endCall(rec, dropped) {
@@ -452,7 +518,7 @@ P.Comic = (function () {
   // line: P.LINES id or {who, mood, side, text|key, important}. opts: {mood, side, important, shout}.
   C.pop = function (line, opts) {
     var s = resolve(line, opts);
-    if (!s || !s.text) return;
+    if (!s || !s.caps) return;
     if (pops.length >= 4) pops.splice(1, 1);
     ensurePop();
     pops.push(popJob(s, opts));
@@ -477,5 +543,48 @@ P.Comic = (function () {
     return k >= 1 ? 1 : 0.35 + 0.65 * k;
   };
   C.active = function () { return !!(book || pops.length || calls.length); };
+
+  // ---------- dev audit (no DOM): every page panel, every pop and call line in the current language ----------
+  function popBeatIds() {
+    var seen = {}, out = [], n, when, b;
+    for (n = 1; n <= P.Journey.count(); n++) {
+      ['start', 'mid', 'boss'].forEach(function (w) {
+        b = P.Story.beat(n, w);
+        if (!b) return;
+        var ids = b.kind === 'pop' ? [b.line] : b.kind === 'call' ? b.lines : [];
+        ids.forEach(function (id) { if (!seen[id]) { seen[id] = 1; out.push({ id: id, kind: b.kind }); } });
+      });
+    }
+    return out;
+  }
+  function auditPage(rows, m) {
+    Object.keys(P.Story.pages).forEach(function (id) {
+      var def = P.Story.pages[id];
+      def.panels.forEach(function (pd, i) {
+        var r = panelRect(def.panels.length, i), fp = { w: r.w, h: r.h, c: m, data: pd };
+        layoutPanel(fp);
+        rows.push({ kind: 'page', id: id + ' #' + (i + 1), px: fp.px, cut: !!fp.cut });
+      });
+    });
+  }
+  function auditLine(rows, m, entry) {
+    var s = resolve(entry.id), f, shout = entry.kind === 'pop' && /^H\d+b$/.test(entry.id);
+    if (!s) return;
+    if (entry.kind === 'call') {
+      f = A.measure(m, s.caps, AREA.w - 40, 'speech', 14);
+      rows.push({ kind: 'call', id: entry.id, px: 14, cut: f.lines.length > 3 });
+      return;
+    }
+    var j = popJob(s, { important: shout }, m);
+    rows.push({ kind: 'pop', id: entry.id, px: j.px, cut: !!j.cut });
+  }
+  C.audit = function () {
+    var m = meas(), rows = [], saved = A.quiet;
+    A.quiet = true; A.cuts = [];
+    auditPage(rows, m);
+    popBeatIds().forEach(function (e) { auditLine(rows, m, e); });
+    A.quiet = saved;
+    return rows;
+  };
   return C;
 })();

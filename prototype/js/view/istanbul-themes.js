@@ -1,7 +1,7 @@
 // Neighbourhood looks for levels 2..100 (workstream F). 20 themes keyed by P.Journey hood.theme ids.
 // Data: ground/walk paving, side kinds (facade|water|grass|garden|walls|tracks|site), facade style and palette,
-// sidewalk prop weights (P.Props kinds), overhead rig, landmark kinds, exit style, signs (in-world Turkish
-// dressing only, generic words, no brands). Also pre-rendered tiles (cached per ppm step) and the time-of-day tint.
+// sidewalk prop weights (P.Props kinds), overhead rig, exit style, signs (generic Turkish trade words, no brands),
+// and 5 sub-locations per hood (stage 1..5) with weather and landmark kinds. Chapter 2 hoods: P.Themes.def(id, o).
 // Tiles are drawn in metres with top-left at the tile origin; render-world anchors them with a pattern matrix.
 P.Themes = (function () {
   var T = {}, DEF = {}, CACHE = {}, cacheK = 0;
@@ -16,79 +16,193 @@ P.Themes = (function () {
   var PLAQUES = ['Çınar Sk.', 'Lale Sk.', 'Deniz Cd.', 'Güneş Sk.', 'Kule Sk.', 'Bahçe Sk.', 'Çarşı Sk.', 'Liman Cd.'];
   T.plaques = PLAQUES;
 
+  // Weather keys -> screen wash [r,g,b,a] (null = none). Time of day comes from hood position (TINT below).
+  var WX = { clear: null, rain: [70, 90, 115, 0.14], fog: [185, 195, 205, 0.16], fire: [255, 120, 50, 0.1],
+    dawn: [255, 170, 120, 0.12], dusk: [110, 70, 130, 0.14] };
+
+  // Sub-locations, one row per stage 1..5: "TR|EN|weather|landmark kinds|prop weight overrides".
+  // Kinds: tram | arch:(glass|tunnel|metro|stone|classical|street|vault) | facade:(bay|glass|brick|wood|station|block|estate|mural|stone)
+  // | tower | steps | stall:(music|lamp|carpet|textile|leather|book|fish|spice|fasil) | park:(plane|palm|bostan|coast|square|grill|sprinkler)
+  // | pier:(pier|deck|boat|terminal|promenade|yachts|boardwalk) | board:(kadikoy|uskudar|aksaray|bilet) | crane | dig | overpass | minibus
+  // | wall:(curtain|tower) | playground (P.Props fallback). Stage 1 of istiklal is the scripted L1 (segments in landmarks).
+  var SUB = {
+    istiklal: ['Taksim Girişi|Taksim Entrance|clear|tram,facade:bay', 'Pasaj Sokağı|Passage Street|dusk|arch:glass,facade:glass|cat:3,pigeon:1',
+      'Tramvay Hattı|Tram Line|rain|tram,stall:music|pigeon:0', 'Tünel Ağzı|Tünel Mouth|fog|arch:tunnel,facade:bay|lamp:4',
+      'Opera Meydanı|Opera Square|dawn|arch:metro,facade:glass'],
+    galata: ['Galata Kulesi|Galata Tower|clear|tower,stall:music', 'Yüksek Kaldırım|High Pavement|rain|stall:music,facade:stone|music:5',
+      'Kamondo Merdiveni|Kamondo Steps|fog|steps,tower', 'Büyük Hendek|Great Ditch|dusk|facade:stone,stall:music|cat:3',
+      'Galata Meydanı|Galata Square|dawn|tower,steps'],
+    karakoy: ['Karaköy İskelesi|Karaköy Pier|clear|pier:pier,facade:brick', 'Rıhtım Caddesi|Quay Avenue|rain|facade:brick,facade:mural',
+      'Mumhane|Mumhane|fog|facade:brick|gull:3', 'Kemankeş|Kemankeş|clear|facade:mural,pier:pier', 'Kuledibi|Kuledibi|dawn|pier:pier,tower'],
+    bridge: ['Köprü Başı|Bridge Head|clear|pier:deck,tower', 'Alt Kat Balıkçılar|Lower Deck Fishers|rain|pier:deck,stall:fish|rods:3',
+      'Haliç Suyu|Horn Water|fog|pier:boat,tower', 'Vapur İskelesi|Ferry Pier|dusk|board:kadikoy,pier:deck',
+      'Köprü Gece|Night Bridge|fire|pier:deck,board:uskudar'],
+    eminonu: ['Eminönü İskelesi|Eminönü Pier|clear|board:kadikoy,pier:boat', 'Balık Ekmek|Fish Sandwich|fire|pier:boat,stall:fish',
+      'Mısır Çarşısı|Spice Arcade|clear|stall:spice,board:uskudar', 'Güvercin Meydanı|Pigeon Square|dawn|park:square,board:uskudar|pigeon:6',
+      'Simitçi Sokağı|Simit Lane|fog|park:plane,stall:spice|simit:3'],
+    sirkeci: ['Sirkeci Garı|Sirkeci Station|clear|facade:station,park:square', 'Peron|Platform|rain|arch:classical,facade:station',
+      'Banliyö Hattı|Commuter Line|fog|facade:station,board:bilet', 'Gar Kapısı|Station Gate|dusk|arch:classical,board:bilet',
+      'Gar Saati|Station Clock|dawn|facade:station,park:plane'],
+    bazaar: ['Kapalıçarşı Kapısı|Bazaar Gate|clear|arch:stone,stall:lamp', 'Kuyumcular|Jewellers|dusk|arch:vault,stall:lamp',
+      'Halıcılar|Carpet Row|clear|stall:carpet,arch:vault', 'Sedefçiler|Mother-of-pearl|rain|arch:vault,stall:lamp|lokum:3',
+      'Kahveci Kapısı|Coffee Gate|fire|arch:stone,stall:spice'],
+    beyazit: ['Üniversite Kapısı|University Gate|clear|arch:classical,park:plane', 'Sahaflar|Booksellers|rain|stall:book,park:plane',
+      'Kitap Sokağı|Book Lane|fog|stall:book,arch:classical', 'Çınar Altı|Under the Planes|dusk|park:plane,stall:book',
+      'Beyazıt Meydanı|Beyazıt Square|dawn|arch:classical,park:square'],
+    laleli: ['Laleli Caddesi|Laleli Avenue|clear|stall:textile,facade:block', 'Toptancılar|Wholesalers|rain|stall:textile,facade:block',
+      'Gelinlik Sokağı|Bridal Lane|dusk|stall:textile,arch:street', 'Kumaşçılar|Fabric Row|fog|stall:textile|kumas:4',
+      'Otel Sokağı|Hotel Lane|dawn|facade:block,arch:street'],
+    aksaray: ['Aksaray Kavşağı|Aksaray Junction|clear|overpass,minibus', 'Dolmuş Durağı|Minibus Stop|rain|minibus,board:aksaray',
+      'Üst Geçit|Overpass|fog|overpass,facade:block', 'Trafik Işıkları|Traffic Lights|dusk|minibus,facade:block',
+      'Gece Aksaray|Night Aksaray|fire|overpass,board:aksaray'],
+    kumkapi: ['Kumkapı Balıkçılar|Kumkapı Fishers|clear|stall:fish,stall:fasil', 'Meyhane Sokağı|Meyhane Lane|fire|stall:fasil,facade:stone',
+      'Fasıl Meydanı|Fasıl Square|rain|stall:fasil,stall:fish', 'Balık Tezgahı|Fish Counter|dusk|stall:fish,facade:stone',
+      'Deniz Kenarı|Sea Edge|dawn|pier:promenade,stall:fish'],
+    yenikapi: ['Yenikapı Terminali|Yenikapı Terminal|clear|pier:terminal,crane', 'Kazı Alanı|Excavation|fog|dig,crane',
+      'Ahşap Gemi|Timber Hulls|dusk|dig,pier:terminal', 'Vinç Hattı|Crane Line|rain|crane,dig',
+      'Vapur Rıhtımı|Ferry Quay|dawn|pier:terminal,board:kadikoy'],
+    samatya: ['Samatya Meydanı|Samatya Square|clear|park:plane,facade:wood', 'Ahşap Evler|Wooden Houses|rain|facade:wood,park:plane',
+      'Kedi Sokağı|Cat Lane|dusk|facade:wood|cat:6', 'Kahveler|Cafés|fire|park:square,facade:wood',
+      'Sahil Yolu|Shore Road|dawn|facade:wood,park:plane'],
+    yedikule: ['Yedikule Surları|Yedikule Walls|clear|wall:curtain,park:bostan', 'Kule Kapısı|Tower Gate|fog|wall:tower',
+      'Bostan|Kitchen Garden|rain|park:bostan,wall:curtain', 'Sur Yolu|Wall Road|dusk|wall:tower,park:bostan',
+      'Bostancı Sabahı|Gardeners Dawn|dawn|park:bostan,wall:tower'],
+    zeytinburnu: ['Deri Atölyesi|Leather Workshop|clear|stall:leather,facade:brick', 'Atölye Sokağı|Workshop Lane|rain|stall:leather,facade:block',
+      'Blok Sıra|Block Row|fog|facade:block,stall:leather', 'Kaynakçılar|Welders|fire|facade:brick,stall:leather',
+      'Sanayi Sabahı|Industrial Dawn|dawn|facade:brick,facade:block'],
+    kazlicesme: ['Kıyı Parkı|Coast Park|clear|park:coast,park:palm', 'Mangal Alanı|Barbecue Area|fire|park:grill,park:coast',
+      'Sprinkler Çimleri|Sprinkled Lawns|rain|park:sprinkler,park:coast', 'Piknik Alanı|Picnic Lawn|dusk|park:grill,park:sprinkler',
+      'Kıyı Sabahı|Coast Dawn|dawn|park:coast,pier:promenade'],
+    bakirkoy: ['Bakırköy Çarşı|Bakırköy Market|clear|arch:street,park:square', 'Yaya Caddesi|Pedestrian Street|rain|arch:street,facade:stone',
+      'Eski Meydan|Old Square|dusk|park:square,arch:street', 'Pasaj|Arcade|fog|arch:glass,facade:stone',
+      'Çarşı Sabahı|Market Dawn|dawn|arch:street,park:square'],
+    sahil: ['Sahil Yolu|Promenade|clear|pier:promenade,park:palm', 'Deniz Duvarı|Sea Wall|rain|pier:promenade',
+      'Bisiklet Yolu|Bike Path|dusk|pier:boardwalk,park:palm', 'Plaj Girişi|Beach Gate|fog|park:palm,pier:promenade',
+      'Gün Doğumu|Sunrise Promenade|dawn|pier:promenade,park:palm'],
+    marina: ['Marina Girişi|Marina Entrance|clear|pier:yachts,pier:boardwalk', 'Yat Limanı|Yacht Harbour|rain|pier:yachts',
+      'Tahta Yol|Boardwalk|fog|pier:boardwalk,pier:yachts', 'Tekne Kulübü|Boat Club|dusk|pier:yachts,facade:estate',
+      'Mavi Saat|Blue Hour|dawn|pier:yachts,facade:estate'],
+    atakoy: ['Ataköy Blokları|Ataköy Blocks|clear|facade:estate,playground', 'Çamaşır Sokağı|Laundry Lane|rain|facade:estate,park:palm',
+      'Oyun Parkı|Playground|dusk|playground,facade:estate', 'Otopark|Car Park|fog|facade:estate,playground|dog:3',
+      'Arda’nın Binası|Arda’s Building|dawn|facade:estate']
+  };
+  function parseW(s) {
+    if (!s) return null;
+    var o = {};
+    s.split(',').forEach(function (p) { var q = p.split(':'); o[q[0]] = +q[1]; });
+    return o;
+  }
+  function mkSub(row) {
+    var p = row.split('|');
+    return { tr: p[0], en: p[1], wx: p[2] || 'clear', lm: (p[3] || '').split(','), pr: parseW(p[4]), _p: null, _t: null };
+  }
+
+  // Theme record. Keys not given take the defaults. Chapter 2 hoods add a theme with this same call.
   function def(id, o) {
     var d = { id: id, ground: 'cobble', gc: '#4F5058', gj: '#3B3D46', walk: 'stone', wc: '#5E6068', L: 'facade', R: 'facade',
       fac: 'belle', pal: BELLE, trim: '#E9DCC4', awn: AW.mix, sign: ['LOKANTA', 'BÜFE'], props: { cat: 1, pigeon: 1, bin: 1, lamp: 2 },
-      wprops: [], overhead: 'strings', lm: [], exit: 'arch', shop: 0.4, rail: false, tracks: false, lanes: false, bays: false,
+      wprops: [], overhead: 'strings', exit: 'arch', shop: 0.4, rail: false, tracks: false, lanes: false, bays: false,
       fog: false, wat: '#2C4658' };
     for (var k in o) d[k] = o[k];
+    d.subs = o && o.subs ? o.subs : (SUB[id] || []).map(mkSub);
     DEF[id] = d;
+    return d;
   }
+  T.def = def;
   def('istiklal', { sign: ['LOKANTA', 'BÜFE', 'KURUYEMİŞ', 'SAHAF', 'PLAK', 'ÇİÇEKÇİ', 'PASTANE', 'ECZANE', 'KUYUMCU', 'BERBER'],
     props: { cafe: 3, simit: 2, misir: 2, kestane: 2, cicek: 2, dondurma: 2, cat: 2, pigeon: 3, bin: 2, bench: 1, lamp: 2, cay: 1, plaque: 1, parkmetre: 1, dish: 1, geranium: 1 },
-    lm: ['tower', 'gateArch'] });
+    tracks: true });
   def('galata', { ground: 'steps', gc: '#45474F', gj: '#2F3138', wc: '#55575E', fac: 'stone', pal: STONE, trim: '#D9CFBC',
-    awn: [ '#3D6E9E', '#8A3B3B', GOLD], sign: ['MÜZİK', 'GİTAR', 'ENSTRÜMAN', 'PLAK', 'KAHVE', 'DÜKKAN'], overhead: 'laundry',
-    props: { music: 3, cat: 2, cay: 2, cicek: 1, pigeon: 2, bin: 1, lamp: 2, dog: 1, geranium: 2, dish: 1 }, lm: ['tower', 'mural'], shop: 0.3 });
+    awn: ['#3D6E9E', '#8A3B3B', GOLD], sign: ['MÜZİK', 'GİTAR', 'ENSTRÜMAN', 'PLAK', 'KAHVE', 'DÜKKAN'], overhead: 'laundry',
+    props: { music: 3, cat: 2, cay: 2, cicek: 1, pigeon: 2, bin: 1, lamp: 2, dog: 1, geranium: 2, dish: 1 }, shop: 0.3 });
   def('karakoy', { ground: 'asphalt', gc: '#3F4248', gj: '#33363D', wc: '#55575E', L: 'facade', R: 'water', fac: 'brick', pal: BRICK,
     trim: '#CFC5B4', awn: AW.green, sign: ['KAHVE', 'KAVURMA', 'TASARIM', 'BAR', 'GALERİ', 'BUZ', 'ÇAY'], wprops: ['rowboat', 'buoy'],
-    props: { cafe: 3, tables: 1, bollard: 2, rods: 1, balikekmek: 1, mural: 1, bags: 1, cat: 1, lamp: 1, gull: 1 }, lm: ['mural', 'pier'], exit: 'gate', shop: 0.35 });
+    props: { cafe: 3, tables: 1, bollard: 2, rods: 1, balikekmek: 1, mural: 1, bags: 1, cat: 1, lamp: 1, gull: 1 }, exit: 'gate', shop: 0.35 });
   def('bridge', { ground: 'deck', gc: '#5A4E44', gj: '#3D342C', walk: 'deck', wc: '#6A5D50', L: 'water', R: 'water', rail: true,
     tracks: true, wprops: ['ferry', 'rowboat', 'buoy'], overhead: 'lamps', sign: ['BALIK', 'EKMEK', 'KAHVE', 'ÇAY'], exit: 'bridge',
-    props: { fisher: 4, rods: 2, cat: 1, gull: 2, lamp: 4, bollard: 1, lifering: 1, bags: 1 }, lm: ['tower', 'pier'], shop: 0 });
+    props: { fisher: 4, rods: 2, cat: 1, gull: 2, lamp: 4, bollard: 1, lifering: 1, bags: 1 }, shop: 0 });
   def('eminonu', { ground: 'cobble', gc: '#5D5246', gj: '#48403A', wc: '#6A5E50', R: 'water', fac: 'arcade', pal: ARC, trim: '#E8D6B0',
     awn: ['#B5651D', CREAM], sign: ['BAHARAT', 'KURU MEYVE', 'LOKUM', 'ÇAY', 'KUŞ YEMİ', 'BALIK EKMEK'], wprops: ['rowboat', 'ferry', 'buoy'],
-    props: { simit: 2, misir: 2, midye: 2, baharat: 2, pigeon: 4, cat: 1, crates: 1, cart: 1, balikekmek: 2, lokum: 1 }, lm: ['tower', 'pier'], exit: 'gate', shop: 0.45 });
+    props: { simit: 2, misir: 2, midye: 2, baharat: 2, pigeon: 4, cat: 1, crates: 1, cart: 1, balikekmek: 2, lokum: 1 }, exit: 'gate', shop: 0.45 });
   def('sirkeci', { ground: 'tile', gc: '#5E6068', gj: '#4A4D55', walk: 'platform', wc: '#6F7178', R: 'tracks', fac: 'station', pal: STA,
     trim: '#C8C2B4', awn: ['#2B4C6F', '#B5651D'], sign: ['GAR', 'BİLET', 'KAHVE', 'KİOSK', 'BAGAJ'], overhead: 'lamps',
-    props: { bench: 2, bin: 1, kiosk: 1, cay: 1, pigeon: 3, bags: 2, lamp: 2, planter: 1 }, lm: ['clock', 'tower'], exit: 'station', shop: 0.3 });
-  def('kapalicarsi', { ground: 'bazaar', gc: '#6B5A4A', gj: '#4B3F34', walk: 'bazaar', wc: '#7A6758', fac: 'arcade',
+    props: { bench: 2, bin: 1, kiosk: 1, cay: 1, pigeon: 3, bags: 2, lamp: 2, planter: 1 }, exit: 'station', shop: 0.3 });
+  def('bazaar', { ground: 'bazaar', gc: '#6B5A4A', gj: '#4B3F34', walk: 'bazaar', wc: '#7A6758', fac: 'arcade',
     pal: ['#7A5636', '#8B6A44', '#6A4E3A', '#9A7650'], trim: '#E9C46A', awn: ['#9E2B25', '#1B4965', GOLD],
     sign: ['HALI', 'ÇİNİ', 'KUYUMCU', 'BAHARAT', 'SEDEF', 'KAHVE'], overhead: 'vault',
-    props: { hali: 2, cini: 2, baharat: 2, lokum: 2, cay: 2, samovar: 1, cat: 1, crates: 1, bags: 1 }, lm: ['vault', 'gateArch'],
-    exit: 'gate', shop: 0.7 });
+    props: { hali: 2, cini: 2, baharat: 2, lokum: 2, cay: 2, samovar: 1, cat: 1, crates: 1, bags: 1 }, exit: 'gate', shop: 0.7 });
   def('beyazit', { ground: 'cobble', gc: '#5C5E62', gj: '#4A4C50', wc: '#6A6C70', fac: 'belle', pal: ['#8C8474', '#7D7A70', '#9A9080', '#6E6F72'],
     trim: '#D8CFBD', awn: AW.green, sign: ['KİTAP', 'SAHAF', 'KIRTASİYE', 'FOTOKOPİ', 'KAHVE'],
-    props: { books: 4, cay: 1, cinar: 2, bench: 2, bin: 1, pigeon: 2, cat: 1, chairs: 1, tavla: 1 }, lm: ['gateArch', 'tower'], exit: 'gate', fog: true });
+    props: { books: 4, cay: 1, cinar: 2, bench: 2, bin: 1, pigeon: 2, cat: 1, chairs: 1, tavla: 1 }, exit: 'gate', fog: true });
   def('laleli', { ground: 'asphalt', gc: '#44474E', gj: '#383B42', wc: '#55585F', fac: 'concrete', pal: CONC, trim: '#E8E2D6',
     awn: AW.plum, sign: ['TEKSTİL', 'KUMAŞ', 'TOPTAN', 'PERDE', 'GELİNLİK', 'MODA'], overhead: 'laundry',
     props: { kumas: 3, manken: 2, handtruck: 2, deri: 2, crates: 1, bin: 1, cart: 1, bags: 1, glass: 1 }, shop: 0.35, fog: true });
   def('aksaray', { ground: 'asphalt', gc: '#3A3D44', gj: '#2F3238', wc: '#5A5E66', fac: 'concrete', pal: ['#7D7F84', '#6F7478', '#8E8B84', '#66707A'],
     trim: '#D1D3D6', awn: AW.red, sign: ['MOTOR', 'OTO', 'LASTİK', 'DÖNER', 'KUAFÖR', 'MARKET', 'ECZANE'], overhead: 'lamps', lanes: true,
-    props: { durak: 2, parkmetre: 2, bin: 1, shelter: 1, cart: 1, bench: 1, lamp: 3, barrel: 1, glass: 1 }, lm: ['pillar'], exit: 'arch', fog: true });
+    props: { durak: 2, parkmetre: 2, bin: 1, shelter: 1, cart: 1, bench: 1, lamp: 3, barrel: 1, glass: 1 }, exit: 'arch', fog: true });
   def('kumkapi', { ground: 'cobble', gc: '#55504A', gj: '#403B36', wc: '#66615A', R: 'water', fac: 'belle', pal: MED, trim: '#E6D2B0',
     awn: ['#8E1F2D', CREAM, GOLD], sign: ['BALIK', 'MEYHANE', 'MEZE', 'LOKANTA', 'KAHVE'], overhead: 'lanterns', wprops: ['rowboat', 'buoy'],
-    props: { meyhane: 3, music: 2, midye: 2, balikekmek: 1, lamp: 2, cat: 2, chairs: 1, bags: 1 }, lm: ['tower'], shop: 0.5 });
+    props: { meyhane: 3, music: 2, midye: 2, balikekmek: 1, lamp: 2, cat: 2, chairs: 1, bags: 1 }, shop: 0.5 });
   def('yenikapi', { ground: 'asphalt', gc: '#4B4D52', gj: '#3D3F44', wc: '#5A5C60', L: 'site', R: 'water', awn: [],
     sign: ['OTOBÜS', 'TERMİNAL', 'KAHVE', 'KİRALIK', 'İNŞAAT'], wprops: ['ferry', 'rowboat', 'buoy'], overhead: 'none', exit: 'station',
-    props: { iskele: 2, hazard: 2, crates: 2, cart: 1, bin: 1, shelter: 1, pigeon: 1, cat: 1, glass: 1, barrel: 1 }, lm: ['crane', 'pier'], shop: 0.2 });
+    props: { iskele: 2, hazard: 2, crates: 2, cart: 1, bin: 1, shelter: 1, pigeon: 1, cat: 1, glass: 1, barrel: 1 }, shop: 0.2 });
   def('samatya', { ground: 'cobble', gc: '#5B5044', gj: '#463C32', wc: '#6A5E50', fac: 'houses', pal: OTT, trim: '#E8D9BC',
     awn: AW.red, sign: ['FIRIN', 'KAHVE', 'KUAFÖR', 'BAKKAL', 'ÇAY'], overhead: 'laundry',
-    props: { cat: 6, catbox: 2, cay: 2, cafe: 2, dog: 2, geranium: 2, bin: 1, chairs: 1, lamp: 1 }, lm: ['tower'], shop: 0.5 });
+    props: { cat: 6, catbox: 2, cay: 2, cafe: 2, dog: 2, geranium: 2, bin: 1, chairs: 1, lamp: 1 }, shop: 0.5 });
   def('yedikule', { ground: 'cobble', gc: '#5A5448', gj: '#48433A', walk: 'grass', wc: '#5E6A45', L: 'walls', R: 'garden', pal: WALLS,
     trim: '#B5A98C', awn: [], sign: ['SEBZE', 'MANAV', 'BOSTAN', 'ÇİFTLİK', 'ÇAY', 'TOHUM'], overhead: 'none', fog: true,
-    props: { veg: 3, cart: 2, cinar: 1, bin: 1, pigeon: 1, cat: 1, barrel: 1, glass: 1 }, lm: ['wallSection', 'tower'], exit: 'wall', shop: 0.2 });
+    props: { veg: 3, cart: 2, cinar: 1, bin: 1, pigeon: 1, cat: 1, barrel: 1, glass: 1 }, exit: 'wall', shop: 0.2 });
   def('zeytinburnu', { ground: 'asphalt', gc: '#4A4742', gj: '#3D3B37', wc: '#57534D', fac: 'brick', pal: ['#7D7A74', '#6E7378', '#8A8074', '#6B6F6A'],
     trim: '#D0CCC2', awn: [], sign: ['ATÖLYE', 'TAMİR', 'DİKİM', 'OTO', 'KAYNAK', 'MOBİLYA'], overhead: 'none',
     props: { bin: 2, cart: 1, durak: 1, handtruck: 1, barrel: 1, glass: 1, bags: 1, cat: 1 }, exit: 'gate', shop: 0.3 });
   def('kazlicesme', { ground: 'grass', gc: '#58644A', gj: '#4A5640', walk: 'promenade', wc: '#8A8B84', L: 'grass', R: 'water',
     awn: [], sign: ['MANGAL', 'PİKNİK', 'DONDURMA', 'ÇAY', 'KİRALIK BİSİKLET'], wprops: ['rowboat', 'buoy', 'ferry'],
-    props: { mangal: 3, cinar: 2, bench: 2, cicek: 1, dondurma: 1, cat: 1, pigeon: 2, dog: 1, palm: 1, bin: 1 }, lm: ['pier'], shop: 0.2 });
+    props: { mangal: 3, cinar: 2, bench: 2, cicek: 1, dondurma: 1, cat: 1, pigeon: 2, dog: 1, palm: 1, bin: 1 }, shop: 0.2 });
   def('bakirkoy', { ground: 'tile', gc: '#6A6B70', gj: '#55565C', walk: 'tile', wc: '#7A7B80', fac: 'belle', pal: ['#8E8478', '#7D857F', '#A08E7A', '#6E7A88'],
     trim: '#EDE7DA', awn: AW.mix, sign: ['AVM', 'GİYİM', 'AYAKKABI', 'PASTANE', 'KUYUMCU', 'OPTİK', 'ECZANE'],
-    props: { kiosk: 1, bench: 2, planter: 1, cicek: 2, dondurma: 2, bin: 2, lamp: 2, pigeon: 2, cat: 1, gazete: 1 }, lm: ['gateArch'], shop: 0.6 });
+    props: { kiosk: 1, bench: 2, planter: 1, cicek: 2, dondurma: 2, bin: 2, lamp: 2, pigeon: 2, cat: 1, gazete: 1 }, shop: 0.6 });
   def('sahil', { ground: 'jog', gc: '#70736F', gj: '#5C5F5B', walk: 'promenade', wc: '#8A8B84', L: 'grass', R: 'water', awn: [],
     sign: ['DENİZ', 'KAFE', 'DONDURMA', 'PLAJ', 'KİRALIK', 'BİSİKLET'], wprops: ['rowboat', 'ferry', 'buoy'], overhead: 'lamps',
-    props: { bench: 3, palm: 2, cinar: 1, lamp: 2, cat: 1, dog: 1, lifering: 1, bin: 1, cicek: 1, bollard: 1, gull: 2 }, lm: ['pier'], exit: 'arch', shop: 0.3 });
+    props: { bench: 3, palm: 2, cinar: 1, lamp: 2, cat: 1, dog: 1, lifering: 1, bin: 1, cicek: 1, bollard: 1, gull: 2 }, exit: 'arch', shop: 0.3 });
   def('marina', { ground: 'deck', gc: '#7A6A58', gj: '#5B4E42', walk: 'deck', wc: '#8C7B66', fac: 'balcony', pal: APT, trim: CREAM,
     awn: AW.navy, sign: ['MARİNA', 'YAT', 'KAFE', 'LOKANTA', 'KİRALIK TEKNE'], R: 'water', wprops: ['yacht', 'yacht', 'rowboat', 'buoy'],
-    props: { bollard: 3, lifering: 2, bench: 2, lamp: 2, cat: 1, cinar: 1, dog: 1, crates: 1, geranium: 1, gull: 1 }, lm: ['pier'], exit: 'gate', shop: 0.45 });
+    props: { bollard: 3, lifering: 2, bench: 2, lamp: 2, cat: 1, cinar: 1, dog: 1, crates: 1, geranium: 1, gull: 1 }, exit: 'gate', shop: 0.45 });
   def('atakoy', { ground: 'asphalt', gc: '#4C4E52', gj: '#3F4145', wc: '#5E6064', L: 'facade', R: 'grass', fac: 'balcony', pal: APT,
     trim: CREAM, awn: [], sign: ['ECZANE', 'FIRIN', 'BAKKAL', 'KUAFÖR', 'MARKET', 'KAPICI'], overhead: 'laundry', bays: true,
-    props: { dish: 2, geranium: 3, cat: 2, dog: 2, bench: 2, cinar: 1, bin: 2, lamp: 2, pigeon: 2 }, lm: ['playground'], exit: 'home', shop: 0.5 });
+    props: { dish: 2, geranium: 3, cat: 2, dog: 2, bench: 2, cinar: 1, bin: 2, lamp: 2, pigeon: 2 }, exit: 'home', shop: 0.5 });
 
   T.ids = Object.keys(DEF);
   T.get = function (id) { return DEF[id] || DEF.istiklal; };
+
+  // ---- sub-locations ----
+  function clampI(i, n) { return Math.max(0, Math.min((n || 5) - 1, i | 0)); }
+  // Stage index 0..4 for a generated level: s.geo.sub (1-based number, object {index}, or "TR"/"EN" name), else stage - 1.
+  T.subIndex = function (s) {
+    var g = s.geo || {}, v = g.sub, li = s.levelInfo || {}, th;
+    if (v && typeof v === 'object' && typeof v.index === 'number') v = v.index + 1;
+    if (typeof v === 'number' && v === v) return clampI(Math.round(v) - 1);
+    if (typeof v === 'string') {
+      th = T.get((li.hood && li.hood.theme) || 'istiklal');
+      for (var i = 0; i < th.subs.length; i++) if (th.subs[i].tr === v || th.subs[i].en === v) return i;
+    }
+    return clampI((li.stage || 1) - 1);
+  };
+  T.subOf = function (th, idx) {
+    var a = th.subs || [];
+    return a[clampI(idx, a.length)] || { tr: th.id, en: th.id, wx: 'clear', lm: [], pr: null };
+  };
+  // Prop weights for a sub: theme props with the sub's overrides applied (0 removes a kind). Cached per sub.
+  T.propsFor = function (th, sub) {
+    if (!sub || !sub.pr) return th.props;
+    if (sub._t !== th || !sub._p) {
+      var o = {}, k;
+      for (k in th.props) o[k] = th.props[k];
+      for (k in sub.pr) { if (sub.pr[k] > 0) o[k] = sub.pr[k]; else delete o[k]; }
+      sub._p = o; sub._t = th;
+    }
+    return sub._p;
+  };
+  T.weather = function (wx) { return WX[wx] || null; };
 
   // ---- pre-rendered tiles ----
   function hsh(n) { var x = Math.sin(n * 91.7 + 13.1) * 43758.5453; return x - Math.floor(x); }
@@ -222,6 +336,12 @@ P.Themes = (function () {
     return tab[tab.length - 1].slice(1);
   }
   T.tint = function (hi) { return lerpKey(TINT, hi); };
+  // Time-of-day tint blended with the sub's weather wash (rain/fog/fire/dawn/dusk).
+  T.tintFor = function (hi, wx) {
+    var b = lerpKey(TINT, hi), w = WX[wx];
+    if (!w) return b;
+    return [(b[0] + w[0]) / 2, (b[1] + w[1]) / 2, (b[2] + w[2]) / 2, Math.min(0.45, b[3] + w[3])];
+  };
   T.vignette = function (hi) { return lerpKey(VIG, hi); };
   return T;
 })();

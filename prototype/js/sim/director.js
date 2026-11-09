@@ -9,6 +9,7 @@ P.Director.create = function () {
     call: { active: false, t: 0, bars: 3, queue: [], sub: null },
     barks: { queue: [], cd: 0, cur: null },
     civilians: [], telegraphs: [], bubbles: [],
+    beats: P.CFG.level.beats.map(function (b) { return { b: b, done: false }; }),
   };
 };
 
@@ -31,7 +32,7 @@ P.Director.complete = function (s, id) {
 
 // ---------- subtitles (phone call) and barks ----------
 P.Director.say = function (s, ids) {
-  ids.forEach(function (id) { s.dir.call.queue.push(id); });
+  ids.forEach(function (id) { if (!P.LINES || P.LINES[id]) s.dir.call.queue.push(id); });
 };
 
 P.Director.bark = function (s, id, who) {
@@ -43,7 +44,7 @@ function updateTalk(s, dt) {
   if (c.active) c.t += dt;
   if (c.sub) { c.sub.t -= dt; if (c.sub.t <= 0) c.sub = null; }
   if (!c.sub && c.queue.length) {
-    var id = c.queue.shift(), len = P.LINES[id][1].length;
+    var id = c.queue.shift(), line = P.LINES && P.LINES[id], len = line ? line[1].length : 40;
     c.sub = { id: id, t: Math.min(4.5, Math.max(2.2, len * 0.065)) };
   }
   b.cd = Math.max(0, b.cd - dt);
@@ -53,6 +54,52 @@ function updateTalk(s, dt) {
   if (!b.cur && b.cd <= 0 && b.queue.length) {
     b.cur = b.queue.shift(); b.cur.t = cfg.show; b.cd = cfg.cooldown;
     s.events.push({ type: 'bark', id: b.cur.id });
+  }
+}
+
+// ---------- v0.5: wave rhythm, signal bars, L1 beats (events, set pieces, hacks at fixed y or hold seconds) ----------
+// Quiet stretches (config level.breathers) scale the A-D spawn rates.
+function rhythm(s) {
+  var y = s.hero.y, B = P.CFG.level.breathers;
+  for (var i = 0; i < B.length; i++) if (y >= B[i].from && y < B[i].to) return B[i].mul;
+  return 1;
+}
+
+// Signal bars. Dropping to 0 raises signalLost once.
+function setBars(s, n) {
+  var c = s.dir.call;
+  if (n === 0 && c.bars > 0) s.events.push({ type: 'signalLost' });
+  c.bars = n;
+}
+
+// Signal booster (hack 'cell'): the bars come back; in L1 Mom's call returns (once).
+P.Director.onSignal = function (s) {
+  var c = s.dir.call;
+  setBars(s, P.CFG.hack.cell.bars);
+  if (s.levelIndex === 1 && !c.restored) {
+    c.restored = true; c.active = true;
+    P.Director.say(s, ['callHack1', 'callHack2']);
+  }
+};
+
+function beatReady(s, b) {
+  if (b.hold !== undefined) return s.dir.hold.active && s.dir.hold.t >= b.hold;
+  return s.hero.y >= b.y;
+}
+
+function fireBeat(s, b) {
+  var o = Object.assign({}, b.opts || {});
+  if (o.dy !== undefined) o.y = s.hero.y + o.dy;
+  if (b.ev === 'hack') P.Hack.place(s, o.kind, o.x, o.y);
+  else P.Events.start(s, b.ev, o);
+}
+
+function runBeats(s) {
+  var list = s.dir.beats;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].done || !beatReady(s, list[i].b)) continue;
+    list[i].done = true;
+    fireBeat(s, list[i].b);
   }
 }
 
@@ -87,7 +134,7 @@ function spawnAt(s, type, opts) {
 function runBudget(s, dt, seg, rate, total, pickType, opts) {
   var d = s.dir;
   if (d.spawned[seg] >= total) return;
-  d.acc = Math.min(d.acc + rate * dt, 3);
+  d.acc = Math.min(d.acc + rate * dt * rhythm(s) * P.Events.spawnMul(s), 3);
   while (d.acc >= 1 && d.spawned[seg] < total) {
     if (!spawnAt(s, pickType(), opts)) break;
     d.acc -= 1; d.spawned[seg]++;
@@ -128,7 +175,7 @@ function enterSegment(s, id) {
     if (d.call.active) P.Director.say(s, ['callB1', 'callB2', 'callB3', 'callB4']);
   } else if (id === 'C') {
     for (i = 0; i < sp.C.initialRunners; i++) if (spawnAt(s, 'runner', { allowVisible: true })) d.spawned.C++;
-    if (d.call.active) { d.call.bars = 2; P.Director.say(s, ['callC1', 'callC2']); }
+    if (d.call.active) { setBars(s, 2); P.Director.say(s, ['callC1', 'callC2']); }
     P.Director.bark(s, 'barkRunners');
   } else if (id === 'D') {
     d.zoomOut = true;
@@ -186,7 +233,7 @@ function startHold(s) {
   s.events.push({ type: 'holdStart' });
   P.Director.bark(s, 'barkShop', 'shop');
   P.Director.prompt(s, 't_hold', 'prompt.t_hold');
-  if (d.call.active) { d.call.bars = 1; P.Director.say(s, ['callD1']); }
+  if (d.call.active) { setBars(s, 1); P.Director.say(s, ['callD1']); }
 }
 
 function updateHold(s, dt) {
@@ -199,7 +246,7 @@ function updateHold(s, dt) {
   s.props.shutter = Math.min(1, d.hold.t / L.holdTime);
   if (s.props.shutter >= 1 && !s.props.shutterOpen) {
     s.props.shutterOpen = true;
-    d.call.bars = 0;
+    setBars(s, 0);
     P.Director.complete(s, 't_hold');
     P.Director.prompt(s, 'exit', 'prompt.exit', { x: 7.6, y: (L.shutter.yMin + L.shutter.yMax) / 2 });
     s.events.push({ type: 'shutterOpen' });
@@ -263,6 +310,7 @@ P.Director.step = function (s, dt) {
   var segs = P.CFG.level.segments, h = s.hero, d = s.dir;
   for (var i = 0; i < segs.length; i++) if (!d.reached[segs[i].id] && h.y >= segs[i].y0) enterSegment(s, segs[i].id);
   scripted(s, dt);
+  runBeats(s);
   spawning(s, dt);
   tutorialChecks(s);
   updateTalk(s, dt);

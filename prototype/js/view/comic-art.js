@@ -1,24 +1,40 @@
-// Comic drawing helpers (workstream G, v0.4): scene backgrounds, busts (fallback when P.Portraits is missing),
-// speech / thought / shout bubbles, yellow captions, SFX lettering, paper letters, signal bars, static.
-// All coordinates are CSS px; the caller sets the device-pixel-ratio transform. No DOM work here except
-// creating an offscreen canvas for the halftone pattern and the contact-photo fallback.
+// Comic lettering and drawing helpers (workstream D, v0.5; drawing base from G, v0.4). Scenes, busts (P.Portraits when
+// present), speech / thought / shout bubbles, captions, SFX, paper letters, signal bars, static. Coordinates are CSS px;
+// the caller sets the device-pixel-ratio transform. Every line is measured before it is drawn: A.measure wraps,
+// A.fit steps the type size down, A.clip ellipsizes as the last resort (and records a cut for the audit).
 P.ComicArt = (function () {
   var A = {};
-  var DISPLAY = "'Avenir Next Condensed', 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif";
-  var BODY = "'Avenir Next', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif";
-  var HAND = "Georgia, 'Times New Roman', serif";
+  // ONE FONT CONFIG for all lettering. Dialogue, captions and bubbles are set in ALL CAPS, bold, lightly tracked
+  // (traditional comic lettering). Titles, SFX and name tags use a heavy condensed face. The CSS variables
+  // --cm-speech and --cm-title are copied from here at load (comic.js), so a bundled OFL font is a two-string change.
+  A.TYPE = {
+    speech: "'Chalkboard SE', 'Marker Felt', 'Comic Sans MS', 'Comic Neue', Bangers, cursive",
+    title: "'Impact', 'Arial Black', 'Avenir Next Condensed', 'Arial Narrow', sans-serif",
+    hand: "'Segoe Print', 'Bradley Hand', 'Chalkboard SE', 'Comic Sans MS', cursive",
+    weight: 700, track: 0.03, lead: 1.2
+  };
   var INK = '#14151F', PAPER = '#FFF8EC', CAPTION = '#F9D65C', TAU = Math.PI * 2;
   var WASH = { warm: 'rgba(255,160,70,.16)', night: 'rgba(20,30,70,.36)', red: 'rgba(215,38,61,.22)',
                cold: 'rgba(70,150,210,.16)', sepia: 'rgba(190,140,80,.40)', none: null };
   var PAL = { arda: '#3D8BFF', anne: '#E9A23B', baba: '#5C6B7A', usta: '#F4EBDD', friend: '#D7263D',
               shopkeeper: '#8A8F98', news: '#1B4965', stranger: '#2C2F42', zombie: '#7D8B6A' };
   var INIT = { arda: 'A', anne: 'L', baba: 'S', usta: 'U', friend: 'K', shopkeeper: 'A', news: 'H', stranger: '?', zombie: 'Z' };
-  var halfPat = null;
+  var KIND = { body: 'speech', speech: 'speech', display: 'title', title: 'title', hand: 'hand' };
+  var halfPat = null, warned = {};
+  A.quiet = false;   // true while the audit runs (no console noise)
+  A.cuts = [];       // texts that had to be ellipsized (audit reads and clears this)
 
   A.font = function (kind, px) {
-    if (kind === 'display') return 'italic 900 ' + px + 'px ' + DISPLAY;
-    if (kind === 'hand') return 'italic 600 ' + px + 'px ' + HAND;
-    return '700 ' + px + 'px ' + BODY;
+    var T = A.TYPE, k = KIND[kind] || 'speech';
+    if (k === 'title') return 'italic 900 ' + px + 'px ' + T.title;
+    if (k === 'hand') return 'italic 600 ' + px + 'px ' + T.hand;
+    return T.weight + ' ' + px + 'px ' + T.speech;
+  };
+  // Sets font and tracking together (letterSpacing where the browser has it; measurement uses the same state).
+  A.setFont = function (c, kind, px) {
+    var k = KIND[kind] || 'speech';
+    c.font = A.font(kind, px);
+    if ('letterSpacing' in c) c.letterSpacing = (k === 'hand' ? 0 : px * A.TYPE.track).toFixed(2) + 'px';
   };
   A.rng = function (seed) {   // mulberry32: deterministic scenery per panel
     var s = (seed | 0) >>> 0;
@@ -28,24 +44,69 @@ P.ComicArt = (function () {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   };
+
+  // ---------- measuring, wrapping, fitting ----------
+  function width(c, s) { return c.measureText(s).width; }
+  // A word wider than the box is broken into pieces that each fit.
+  function breakWord(c, w, maxW) {
+    var out = [], cur = '';
+    for (var i = 0; i < w.length; i++) {
+      var t = cur + w.charAt(i);
+      if (cur && width(c, t) > maxW) { out.push(cur); cur = w.charAt(i); } else cur = t;
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+  // Word wrap at maxW with the context's current font.
   A.wrap = function (c, text, maxW) {
     var out = [], line = '';
-    String(text).split(' ').forEach(function (w) {
+    String(text).split(/\s+/).forEach(function (w) {
+      if (!w) return;
+      if (width(c, w) > maxW) {
+        if (line) out.push(line);
+        var pieces = breakWord(c, w, maxW);
+        out.push.apply(out, pieces.slice(0, -1));
+        line = pieces[pieces.length - 1];
+        return;
+      }
       var test = line ? line + ' ' + w : w;
-      if (!line || c.measureText(test).width <= maxW) line = test; else { out.push(line); line = w; }
+      if (!line || width(c, test) <= maxW) line = test; else { out.push(line); line = w; }
     });
     if (line) out.push(line);
     return out;
   };
-  // Largest font (px, down to minPx) whose wrapped text fits maxW x maxH. Returns {px, lines, lh}.
-  A.fit = function (c, text, maxW, maxH, kind, px, minPx) {
-    for (var p = px; p >= minPx; p--) {
-      c.font = A.font(kind, p);
-      var lines = A.wrap(c, text, maxW), lh = Math.round(p * 1.22);
-      if (lines.length * lh <= maxH) return { px: p, lines: lines, lh: lh };
+  // Wraps at one type size. Lines may overflow the caller's height; the caller then steps the size down.
+  A.measure = function (c, text, maxW, kind, px) {
+    A.setFont(c, kind, px);
+    return { px: px, lh: Math.round(px * A.TYPE.lead), lines: A.wrap(c, text, maxW), cut: false };
+  };
+  // Last resort: keeps the lines that fit maxH, ends the last one with an ellipsis, notes the cut.
+  A.clip = function (c, text, maxW, maxH, kind, px) {
+    var f = A.measure(c, text, maxW, kind, px), n = Math.max(1, Math.floor(maxH / f.lh));
+    if (f.lines.length <= n && f.lines.length * f.lh <= maxH) return f;
+    var lines = f.lines.slice(0, n), last = lines[n - 1] || '';
+    while (last.length > 1 && width(c, last + '…') > maxW) last = last.slice(0, -1);
+    lines[n - 1] = last.replace(/\s+$/, '') + '…';
+    f.lines = lines; f.cut = true; cutNote(text);
+    return f;
+  };
+  function cutNote(text) {
+    if (A.cuts.length < 200) A.cuts.push(text);
+    if (!A.quiet && !warned[text] && typeof console !== 'undefined') {
+      warned[text] = true; console.warn('[comic] text ellipsized to fit: ' + String(text).slice(0, 60));
     }
-    c.font = A.font(kind, minPx);
-    return { px: minPx, lines: A.wrap(c, text, maxW), lh: Math.round(minPx * 1.22) };
+  }
+  // Largest type size (px0 down to pxMin) whose lines fit maxW x maxH. Otherwise clips at pxMin.
+  A.fit = function (c, text, maxW, maxH, kind, px0, pxMin) {
+    for (var px = px0; px >= pxMin; px--) {
+      var f = A.measure(c, text, maxW, kind, px);
+      if (f.lines.length * f.lh <= maxH) return f;
+    }
+    return A.clip(c, text, maxW, maxH, kind, pxMin);
+  };
+  A.widest = function (c, lines, kind, px) {
+    A.setFont(c, kind, px);
+    return lines.reduce(function (m, l) { return Math.max(m, width(c, l)); }, 0);
   };
   // Typewriter slice: the first n characters of wrapped lines (lines were split on single spaces).
   A.partial = function (lines, n) {
@@ -219,7 +280,7 @@ P.ComicArt = (function () {
     c.moveTo(w * 0.8, h * 0.06); c.quadraticCurveTo(w * 0.62, h * 0.3, w * 0.55, h * 0.45); c.quadraticCurveTo(w * 0.42, h * 0.62, w * 0.22, h * 0.82); c.stroke(); c.setLineDash([]);
     [[0.8, 0.06, 'Taksim'], [0.55, 0.45, 'Eminönü'], [0.22, 0.82, 'Ataköy']].forEach(function (p) {
       c.fillStyle = p[0] === 0.22 ? '#D7263D' : '#14151F'; c.beginPath(); c.arc(w * p[0], h * p[1], 7, 0, TAU); c.fill();
-      c.font = A.font('body', 14); c.fillStyle = '#14151F'; c.fillText(p[2], w * p[0] + 12, h * p[1] + 5);
+      A.setFont(c, 'body', 14); c.fillStyle = '#14151F'; c.fillText(p[2], w * p[0] + 12, h * p[1] + 5);
     });
     return c;
   }
@@ -233,7 +294,7 @@ P.ComicArt = (function () {
     var hr = h * 0.2, lw = Math.max(2, h * 0.025);
     c.fillStyle = PAL[who] || '#888'; c.strokeStyle = INK; c.lineWidth = lw;
     c.beginPath(); c.moveTo(-h * 0.42, 0); c.quadraticCurveTo(-h * 0.42, -h * 0.42, 0, -h * 0.44); c.quadraticCurveTo(h * 0.42, -h * 0.42, h * 0.42, 0); c.closePath(); c.fill(); c.stroke();
-    c.fillStyle = '#FFF'; c.font = A.font('display', Math.round(h * 0.2)); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#FFF'; A.setFont(c, 'title', Math.round(h * 0.2)); c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(INIT[who] || '?', 0, -h * 0.16);
     c.fillStyle = '#F2C9A0'; c.beginPath(); c.arc(0, -h * 0.74, hr, 0, TAU); c.fill(); c.stroke();
     c.fillStyle = INK; c.beginPath(); c.arc(0, -h * 0.76, hr * 1.02, Math.PI * 1.05, Math.PI * 1.95); c.fill();
@@ -269,16 +330,22 @@ P.ComicArt = (function () {
     }
     c.closePath();
   }
-  // o: {x, y, w, h, tx, ty (tail tip), kind, name, lines, px, lh}. Draws shape, tail, name tag and text.
+  // Box height for n lines. A name tag needs 16 px above the text; a shout needs an inset on every side.
+  A.boxH = function (lines, lh, name, shout) { return lines.length * lh + (name ? 24 : 18) + (shout ? lh * 0.6 : 0); };
+  // Text inset inside a shout (the outline is an ellipse, so the text box is smaller than the box).
+  A.textInset = function (kind, w, lh) { return kind === 'shout' ? { x: w * 0.12, y: lh * 0.3, maxW: w * 0.76 - 24 } : { x: 0, y: 0, maxW: w - 24 }; };
+  // Speech box: o = {x, y, w, h, tx, ty (tail tip), kind, name, lines (caps), px, lh, fill}.
+  // The name tag sits on the top edge and the text starts below it.
   A.bubble = function (c, o) {
-    var tail = o.kind !== 'thought';
-    c.save(); c.fillStyle = o.kind === 'shout' ? '#FFF1A8' : PAPER; c.strokeStyle = INK; c.lineWidth = 3; c.lineJoin = 'round';
+    var tail = o.kind !== 'thought', inset = A.textInset(o.kind, o.w, o.lh);
+    c.save(); c.fillStyle = o.fill || (o.kind === 'shout' ? '#FFF1A8' : PAPER); c.strokeStyle = INK; c.lineWidth = 3; c.lineJoin = 'round';
     if (tail && o.tx != null) tailShape(c, o);
     bubblePath(c, o.kind, o.x, o.y, o.w, o.h); c.fill(); c.stroke();
     if (o.kind === 'thought' && o.tx != null) thoughtTrail(c, o);
-    if (o.name) nameTag(c, o.x + 8, o.y - 10, o.name);
-    c.fillStyle = INK; c.font = A.font('body', o.px); c.textBaseline = 'top'; c.textAlign = 'left';
-    o.lines.forEach(function (ln, i) { c.fillText(ln, o.x + 12, o.y + 10 + i * o.lh); });
+    if (o.name) nameTag(c, o.x + 10, o.y - 11, o.name, o.w - 20);
+    c.fillStyle = INK; A.setFont(c, 'speech', o.px); c.textBaseline = 'top'; c.textAlign = 'left';
+    var top = o.y + (o.name ? 16 : 10) + inset.y;
+    o.lines.forEach(function (ln, i) { c.fillText(ln, o.x + 12 + inset.x, top + i * o.lh); });
     c.restore();
   };
   // Ink burst behind a bust: jagged star of radius r, n spikes, fill colour.
@@ -311,23 +378,29 @@ P.ComicArt = (function () {
     }
     c.closePath(); c.fill(); c.stroke();
   }
-  function nameTag(c, x, y, text) {
-    c.save(); c.font = A.font('display', 14); var tw = c.measureText(text).width + 14;
-    c.fillStyle = INK; c.fillRect(x, y, tw, 20); c.fillStyle = PAPER; c.textBaseline = 'middle'; c.fillText(text, x + 7, y + 11); c.restore();
+  // Name tag: heavy condensed caps on ink. Shrinks (down to 10 px) to stay inside maxW.
+  function nameTag(c, x, y, text, maxW) {
+    var px = 14; A.setFont(c, 'title', px);
+    while (px > 10 && width(c, text) + 14 > maxW) { px--; A.setFont(c, 'title', px); }
+    var tw = Math.min(maxW, width(c, text) + 14);
+    c.fillStyle = INK; c.fillRect(x, y, tw, 20);
+    c.fillStyle = PAPER; c.textBaseline = 'middle'; c.fillText(text, x + 7, y + 11);
   }
   // Yellow narration box: o = {x, y, w, lines, px, lh}; returns its height.
   A.caption = function (c, o) {
     var h = o.lines.length * o.lh + 16;
     c.save(); c.fillStyle = CAPTION; c.strokeStyle = INK; c.lineWidth = 3; c.fillRect(o.x, o.y, o.w, h); c.strokeRect(o.x, o.y, o.w, h);
-    c.fillStyle = INK; c.font = A.font('body', o.px); c.textBaseline = 'top';
+    c.fillStyle = INK; A.setFont(c, 'speech', o.px); c.textBaseline = 'top';
     o.lines.forEach(function (ln, i) { c.fillText(ln, o.x + 9, o.y + 8 + i * o.lh); });
     c.restore(); return h;
   };
-  // SFX lettering: o = {x, y, text, rot, size, fill}.
+  // SFX lettering: heavy condensed italic, ink outline and a hard drop shadow. o = {x, y, text, rot, size, fill}.
   A.sfx = function (c, o) {
     c.save(); c.translate(o.x, o.y); c.rotate((o.rot || 0) * Math.PI / 180);
-    c.font = A.font('display', o.size); c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.lineJoin = 'round'; c.lineWidth = Math.max(4, o.size * 0.18); c.strokeStyle = INK; c.strokeText(o.text, 0, 0);
+    A.setFont(c, 'title', o.size); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.lineJoin = 'round'; c.lineWidth = Math.max(4, o.size * 0.18); c.strokeStyle = INK;
+    c.fillStyle = INK; c.fillText(o.text, 3, 3);
+    c.strokeText(o.text, 0, 0);
     c.fillStyle = o.fill || '#FFD166'; c.fillText(o.text, 0, 0); c.restore();
   };
   // Paper letter: o = {x, y, w, lines (already visible), px, lh, rot}. Returns its height.
@@ -337,7 +410,7 @@ P.ComicArt = (function () {
     c.fillStyle = '#F7EFD9'; c.strokeStyle = INK; c.lineWidth = 3; c.fillRect(0, 0, o.w, h); c.strokeRect(0, 0, o.w, h);
     c.strokeStyle = 'rgba(20,21,31,.22)'; c.lineWidth = 1;
     for (var i = 0; i < 6; i++) { c.beginPath(); c.moveTo(12, 14 + i * 22); c.lineTo(o.w - 12, 14 + i * 22); c.stroke(); }
-    c.fillStyle = INK; c.font = A.font('hand', o.px); c.textBaseline = 'top';
+    c.fillStyle = INK; A.setFont(c, 'hand', o.px); c.textBaseline = 'top';
     o.lines.forEach(function (ln, j) { c.fillText(ln, 12, 12 + j * o.lh); });
     c.restore(); return h;
   };

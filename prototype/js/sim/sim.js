@@ -20,6 +20,10 @@ P.createSim = function (seed, opts) {
     levelIndex: idx, levelInfo: P.Journey.level(idx), theme: null,
   };
   s.theme = s.levelInfo.hood.theme;
+  s.fx = attrFx(o);
+  s.tally = P.Tally.create();
+  s.loadout = o.loadout || null;
+  P.Events.init(s);
   s.dir = P.Director.create();
   applyLoadout(s, o.loadout);
   if (idx > 1) {
@@ -37,14 +41,33 @@ P.createSim = function (seed, opts) {
 
 // Meta gear and start weapon (meta workstream). Percent stats are stored as base fields the stat code reads:
 // maxHp is multiplied here; might (Combat.might), move (stepHero), pickup (here), cooldown (baseCdr, read by E1).
+// Gear and attribute effects add up (gear + s.fx). Attribute fractions for crit, knockback, coins, luck, XP,
+// hack speed, help and damage taken are read from s.fx by their systems.
 function applyLoadout(s, ld) {
-  var h = s.hero, g = (ld && ld.gear) || {}, C = P.CFG;
+  var h = s.hero, g = (ld && ld.gear) || {}, C = P.CFG, f = s.fx;
   h.gear = g;
-  h.maxHp = C.hero.maxHp * (1 + (g.maxHpPct || 0)); h.hp = h.maxHp;
-  h.baseMight = g.mightPct || 0; h.baseMove = g.movePct || 0; h.baseCdr = g.cooldownPct || 0;
-  h.pickupRadius = C.hero.pickupRadius * (1 + (g.pickupPct || 0));
+  h.maxHp = C.hero.maxHp * (1 + (g.maxHpPct || 0) + f.maxHpPct); h.hp = h.maxHp;
+  h.baseMight = (g.mightPct || 0) + f.mightPct; h.baseMove = (g.movePct || 0) + f.movePct;
+  h.baseCdr = (g.cooldownPct || 0) + f.cooldownPct;
+  h.pickupRadius = C.hero.pickupRadius * (1 + (g.pickupPct || 0) + f.pickupPct);
   var sw = ld && ld.startWeapon;
   if (sw && sw !== C.pool.signature && C.pool.weapons.indexOf(sw) >= 0) { h.weapons[sw] = 1; h.cds[sw] = 0; }
+}
+
+// Per-run tally (meta): attribute training (config-stats.js trainingFromTally) and street cred. Filled by combat, events, hack.
+P.Tally = {};
+P.Tally.create = function () {
+  return { kills: 0, bySrc: {}, byType: {}, elites: 0, bosses: 0, crits: 0, ults: 0, maxStreak: 0, dashes: 0,
+    nearMisses: 0, distance: 0, hacks: 0, rescues: 0, events: 0, dmgTaken: 0 };
+};
+
+// Attribute effects for this run (config-stats.js P.Stats.effects). Levels: opts.attrs or loadout.attrs.
+// Zero-filled, so every s.fx field exists even without P.Stats (headless bot).
+function attrFx(o) {
+  var levels = o.attrs || (o.loadout && (o.loadout.stats || o.loadout.attrs)) || null, fx = {}, fields = (P.CFG.stats && P.CFG.stats.fields) || [], i;
+  if (P.Stats && P.Stats.effects) fx = P.Stats.effects(levels);
+  for (i = 0; i < fields.length; i++) if (fx[fields[i]] === undefined) fx[fields[i]] = 0;
+  return fx;
 }
 
 // Hand control to the player at the end of the cold open (LD 4 S10, 7).
@@ -89,10 +112,14 @@ function stepHero(s, dt, input) {
 P.stepSim = function (s, dt, input) {
   if (s.mode !== 'play' || s.pendingLevels > 0 || s.pendingChests > 0) return;
   s.t += dt; s.runT += dt;
+  var m0 = s.hero.moved;
   stepHero(s, dt, input);
   if (P.Skills && P.Skills.step) P.Skills.step(s, dt, input);
+  s.tally.distance += s.hero.moved - m0;
   P.Director.step(s, dt);
   if (s.mode !== 'play') return;
+  P.Events.step(s, dt);
+  P.Hack.step(s, dt);
   P.Combat.updateEnemies(s, dt);
   P.Weapons.step(s, dt);
   if (P.Status && P.Status.step) P.Status.step(s, dt);
@@ -105,8 +132,11 @@ P.stepSim = function (s, dt, input) {
   s.props.canisters.forEach(function (c) { c.flash = Math.max(0, c.flash - dt); });
 };
 
+// Skill-side tallies (dash, near miss, ult, crit) are counted here so attribute training sees them.
+var TALLY_EV = { dash: 'dashes', nearMiss: 'nearMisses', ult: 'ults' };
 P.drainEvents = function (s) {
   var ev = s.events;
+  if (s.tally) ev.forEach(function (e) { var k = TALLY_EV[e.type]; if (k) s.tally[k]++; });
   s.events = [];
   return ev;
 };

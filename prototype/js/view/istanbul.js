@@ -224,7 +224,7 @@ P.Decor = (function () {
   // ---------- L1 enrichment: a few local props at fixed, unscripted spots (non-colliding, outside beats) ----------
   var L1_PROPS = [ ['catbox', -5.9, 3.6, { k: 1 }], ['bags', -5.4, 52, { k: 0 }], ['spill', 5.9, 77, { k: 0 }],
     ['dog', 5.6, 150, { k: 1 }], ['geranium', -5.7, 112, {}], ['phones', 5.2, 40, { k: 1 }], ['blood', -5.6, 38, { n: 6, dir: 1, k: 0 }],
-    ['devrik', 5.0, 128, { k: 0 }] ];
+    ['devrik', 5.0, 128, { k: 0 }], ['durak', -5.7, 137, {}] ];
   var L1_OVER = [ ['laundry', 0, 40, {}], ['laundry', 0, 112, { k: 2 }], ['laundry', 0, 190, { k: 4 }],
     ['cumba', -7.6, 18, {}], ['cumba', 7.6, 108, {}], ['cumba', -7.6, 176, {}] ];
   function listDraw(R, list, y0, y1) { list.forEach(function (p) { if (p[2] > y0 - 4 && p[2] < y1 + 4) P.Props.draw(p[0], R, p[1], p[2], p[3]); }); }
@@ -250,10 +250,11 @@ P.Decor = (function () {
   }
   function genStreet(R, s, y0, y1) {
     var th = P.RenderWorld.themeOf(s), seed = s.levelIndex * 131, h = s.hero;
-    if (!th.props || !Object.keys(th.props).length) return;
+    var props = P.Themes.propsFor(th, P.Themes.subOf(th, P.Themes.subIndex(s)));
+    if (!props || !Object.keys(props).length) return;
     for (var y = Math.floor(y0 / SLOT) * SLOT; y < y1; y += SLOT) [-1, 1].forEach(function (sd) {
       if (hash(seed + y * 3.1 + sd * 7.7) < 0.4) return;
-      var kind = pick(th.props, hash(seed + y * 5.3 + sd * 2.1)), x = sd * (BIG[kind] ? 6.2 : 5.3 + hash(y * 2.3 + sd));
+      var kind = pick(props, hash(seed + y * 5.3 + sd * 2.1)), x = sd * (BIG[kind] ? 6.2 : 5.3 + hash(y * 2.3 + sd));
       var yy = y + hash(y * 4.7 + sd) * 2.5, o = { k: Math.floor(hash(y * 9.1 + sd) * 4) };
       if (kind === 'cat' || kind === 'catbox') o.alert = Math.hypot(h.x - x, h.y - yy) < 2.2;
       if (kind === 'pigeon') o.fly = flyFor(seed + ':' + y + ':' + sd, x, yy, s);

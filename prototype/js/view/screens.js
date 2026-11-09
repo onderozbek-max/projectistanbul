@@ -20,6 +20,131 @@ P.Screens = (function () {
     return w;
   }
 
+  // ---------- weapon depth (v0.5 A): mastery chips, mod chips, fork rows, card builders ----------
+  function mk(tag, cls, text) {
+    var e = document.createElement(tag); e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  // Mods and mastery belong to the base family: an evolved weapon reads its base's entry (evolved[base] = evoId).
+  function famOf(s, item, evo) {
+    if (evo) return evo;
+    var ev = s.hero.evolved || {};
+    for (var k in ev) if (ev[k] === item) return k;
+    return item;
+  }
+  function modChip(id, cls) {
+    var m = mk('span', cls || 'chip mod-chip', P.t('mod.' + id));
+    m.title = P.t('moddesc.' + id);
+    return m;
+  }
+  // Mastery chip (e.g. "Usta III") for a weapon whose family has run rank > 0; null otherwise.
+  function masteryChip(s, item, evo, cls) {
+    if (!P.Progression.isWeapon(item)) return null;
+    var B = P.Mastery.bonus(s, famOf(s, item, evo));
+    if (B.rank <= 0) return null;
+    var c = mk('span', cls || 'chip mastery');
+    c.innerHTML = P.Icons.svg('mastery', 12);
+    c.appendChild(document.createTextNode(P.t('mastery.chip', { rank: P.Mastery.roman(B.rank) })));
+    c.title = P.t('mastery.bonus', { dmg: '+' + Math.round((B.dmg - 1) * 100) + '%', cd: '-' + Math.round((1 - B.cd) * 100) + '%' });
+    return c;
+  }
+  // Weapon slot tags: mastery chip plus one chip per picked mod. Null when there is nothing to show.
+  function slotTags(s, item) {
+    if (!P.Progression.isWeapon(item)) return null;
+    var t = mk('div', 'slot-tags'), mc = masteryChip(s, item, null, 'chip small mastery');
+    if (mc) t.appendChild(mc);
+    ((s.hero.mods || {})[famOf(s, item, null)] || []).forEach(function (id) { t.appendChild(modChip(id, 'chip small mod-chip')); });
+    return t.childNodes.length ? t : null;
+  }
+  // Stat rows (name, from -> to) into el; shared by the level-up cards and the chest reveal.
+  function fillStats(el, lines) {
+    el.innerHTML = '';
+    lines.forEach(function (l) {
+      var r = document.createElement('span'); r.className = 'stat';
+      r.innerHTML = '<em></em>' + (l.a !== null ? '<s></s><i>→</i>' : '') + '<b></b>';
+      r.querySelector('em').textContent = P.t(l.k);
+      if (l.a !== null) r.querySelector('s').textContent = l.a;
+      r.querySelector('b').textContent = l.b;
+      el.appendChild(r);
+    });
+    return el;
+  }
+  // Chest reveal tags (inside #chest-info, shown after the open beat): mastery chip, MOD badge, chosen mod.
+  function chestTags(s, card, info) {
+    var t = info.querySelector('.chest-tags');
+    if (!t) { t = mk('div', 'chest-tags'); info.appendChild(t); }
+    t.innerHTML = '';
+    var mc = masteryChip(s, card.item, card.evo); if (mc) t.appendChild(mc);
+    if (card.fork) t.appendChild(mk('span', 'badge mod', P.t('card.mod')));
+    var pick = card.mods && card.mods[card.pick || 0];
+    if (pick) t.appendChild(modChip(pick, 'chip mod-chip chosen'));
+  }
+  // Locks the card row, plays the pick beat, then hands the card to onPick.
+  function pickCard(box, b, c, onPick) {
+    if (box.dataset.locked) return;
+    box.dataset.locked = '1'; b.classList.add('picked'); box.classList.add('has-pick'); P.Sfx.play('pick');
+    setTimeout(function () { delete box.dataset.locked; box.classList.remove('has-pick'); onPick(c); }, P.Settings.reduceMotion ? 0 : 320);
+  }
+  // Fork rows: header with the fork icon, then the mod options side by side. onSub(i) runs on a sub-button click.
+  function modRow(c, onSub) {
+    var wrap = mk('div', 'mods'), row = mk('div', 'mods-row'), head = mk('div', 'mods-head'), opts = [];
+    head.innerHTML = P.Icons.svg('fork', 16);
+    head.appendChild(document.createTextNode(P.t('fork.pick', { lv: c.next })));
+    function mark() {
+      opts.forEach(function (o, j) { var on = j === (c.pick || 0); o.classList.toggle('is-pick', on); o.setAttribute('aria-pressed', String(on)); });
+    }
+    (c.mods || []).forEach(function (id, i) {
+      var o = mk('span', 'mod-opt');
+      o.setAttribute('role', 'button'); o.tabIndex = 0;
+      if (id === 'usta') o.innerHTML = P.Icons.svg('usta', 18);
+      o.appendChild(mk('span', 'mod-name', P.t('mod.' + id)));
+      o.appendChild(mk('span', 'mod-desc', P.t('moddesc.' + id)));
+      o.addEventListener('click', function (e) { e.stopPropagation(); onSub(i); mark(); });
+      o.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault(); e.stopPropagation(); o.click();
+      });
+      opts.push(o); row.appendChild(o);
+    });
+    mark(); wrap.appendChild(head); wrap.appendChild(row);
+    return wrap;
+  }
+  function cardHead(s, c, kind) {
+    var head = mk('div', 'card-head');
+    head.appendChild(mk('span', 'type', P.t(kind === 'w' ? 'type.weapon' : kind === 'p' ? 'type.passive' : 'type.filler')));
+    if (c.evo) head.appendChild(mk('span', 'badge evo', P.t('evo.label')));
+    else if (c.next === 1 && kind !== 'f') head.appendChild(mk('span', 'badge', P.t('ui.cards.new')));
+    if (c.fork) head.appendChild(mk('span', 'badge mod', P.t('card.mod')));
+    head.appendChild(mk('div', 'name', P.t('item.' + c.item)));
+    var mc = masteryChip(s, c.item, c.evo); if (mc) head.appendChild(mc);
+    if (kind !== 'f') head.appendChild(pips(c.next - 1, c.next));
+    return head;
+  }
+  // One level-up card (a button): icon and head, description, stat rows, and mod options for a fork.
+  function buildCard(s, c, i, scripted, box, onPick) {
+    var kind = c.id[0], b = document.createElement('button');
+    b.className = 'card kind-' + kind + (scripted && i === 0 ? ' highlight' : '') + (c.fork ? ' fork' : '');
+    b.style.animationDelay = (P.Settings.reduceMotion ? 0 : i * 70) + 'ms';
+    var top = mk('div', 'card-top');
+    top.appendChild(iconBox(c.item, 'icon')); top.appendChild(cardHead(s, c, kind));
+    b.appendChild(top);
+    if (c.evo) b.classList.add('evo');
+    var ds = mk('div', 'desc');
+    ds.textContent = (c.evo ? P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + ' · ' : '') + P.Progression.describe(c);
+    b.appendChild(ds);
+    var lines = P.Progression.statLines(c);
+    if (lines.length) b.appendChild(fillStats(mk('div', 'stats'), lines));
+    if (c.fork && c.mods && c.mods.length) {
+      b.appendChild(modRow(c, function (k) {
+        if (box.dataset.locked) return;
+        c.pick = k; pickCard(box, b, c, onPick);
+      }));
+    }
+    b.addEventListener('click', function () { pickCard(box, b, c, onPick); });
+    return b;
+  }
+
   S.buildSlots = function (s, container, split) {
     container.innerHTML = '';
     var h = s.hero, add = function (item, lv) {
@@ -28,6 +153,7 @@ P.Screens = (function () {
         d.classList.add(P.Progression.isWeapon(item) ? 'kind-w' : 'kind-p'); d.innerHTML = P.Icons.svg(item, 28);
         d.title = P.t('item.' + item);
         var sm = document.createElement('small'); sm.textContent = lv; d.appendChild(sm);
+        var tags = slotTags(s, item); if (tags) d.appendChild(tags);
       }
       container.appendChild(d);
     };
@@ -45,43 +171,7 @@ P.Screens = (function () {
     $('cards-sub').textContent = P.t('ui.cards.sub', { n: s.level });
     $('cards-tut').classList.toggle('hidden', !offer.scripted);
     var box = $('cards'); box.innerHTML = '';
-    offer.cards.forEach(function (c, i) {
-      var kind = c.id[0], b = document.createElement('button');
-      b.className = 'card kind-' + kind + (offer.scripted && i === 0 ? ' highlight' : '');
-      b.style.animationDelay = (P.Settings.reduceMotion ? 0 : i * 70) + 'ms';
-      var top = document.createElement('div'); top.className = 'card-top';
-      top.appendChild(iconBox(c.item, 'icon'));
-      var head = document.createElement('div'); head.className = 'card-head';
-      var tp = document.createElement('span'); tp.className = 'type';
-      tp.textContent = P.t(kind === 'w' ? 'type.weapon' : kind === 'p' ? 'type.passive' : 'type.filler');
-      head.appendChild(tp);
-      if (c.evo) { var be = document.createElement('span'); be.className = 'badge evo'; be.textContent = P.t('evo.label'); head.appendChild(be); b.classList.add('evo'); }
-      else if (c.next === 1 && kind !== 'f') { var bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = P.t('ui.cards.new'); head.appendChild(bd); }
-      var nm = document.createElement('div'); nm.className = 'name'; nm.textContent = P.t('item.' + c.item); head.appendChild(nm);
-      if (kind !== 'f') head.appendChild(pips(c.next - 1, c.next));
-      top.appendChild(head); b.appendChild(top);
-      var ds = document.createElement('div'); ds.className = 'desc';
-      ds.textContent = (c.evo ? P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + ' · ' : '') + P.Progression.describe(c); b.appendChild(ds);
-      var lines = P.Progression.statLines(c);
-      if (lines.length) {
-        var st = document.createElement('div'); st.className = 'stats';
-        lines.forEach(function (l) {
-          var r = document.createElement('span'); r.className = 'stat';
-          r.innerHTML = '<em></em>' + (l.a !== null ? '<s></s><i>→</i>' : '') + '<b></b>';
-          r.querySelector('em').textContent = P.t(l.k);
-          if (l.a !== null) r.querySelector('s').textContent = l.a;
-          r.querySelector('b').textContent = l.b;
-          st.appendChild(r);
-        });
-        b.appendChild(st);
-      }
-      b.addEventListener('click', function () {
-        if (box.dataset.locked) return;
-        box.dataset.locked = '1'; b.classList.add('picked'); box.classList.add('has-pick'); P.Sfx.play('pick');
-        setTimeout(function () { delete box.dataset.locked; box.classList.remove('has-pick'); onPick(c); }, P.Settings.reduceMotion ? 0 : 320);
-      });
-      box.appendChild(b);
-    });
+    offer.cards.forEach(function (c, i) { box.appendChild(buildCard(s, c, i, offer.scripted, box, onPick)); });
     var rr = $('btn-reroll');
     rr.textContent = P.t('ui.cards.reroll', { n: s.rerolls });
     rr.disabled = s.rerolls <= 0 || offer.scripted;
@@ -221,13 +311,8 @@ P.Screens = (function () {
     $('chest-icon').innerHTML = P.Icons.svg(card.item, 72);
     $('chest-name').textContent = P.t('item.' + card.item);
     $('chest-level').textContent = card.next ? P.t('chest.level', { n: card.next }) : '';
-    var st = $('chest-stats'); st.innerHTML = '';
-    P.Progression.statLines(card).forEach(function (l) {
-      var r = document.createElement('span'); r.className = 'stat';
-      r.innerHTML = '<em></em>' + (l.a !== null ? '<s></s><i>→</i>' : '') + '<b></b>';
-      r.querySelector('em').textContent = P.t(l.k); if (l.a !== null) r.querySelector('s').textContent = l.a; r.querySelector('b').textContent = l.b;
-      st.appendChild(r);
-    });
+    chestTags(s, card, info);
+    fillStats($('chest-stats'), P.Progression.statLines(card));
     var rm = P.Settings.reduceMotion, OPEN = rm ? 0.1 : 1.5;
     S.show('scr-chest'); P.Sfx.play('chestDrop');
     function frame(now) {

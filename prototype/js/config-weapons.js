@@ -4,17 +4,19 @@
 // bool tick/cross, rate = ref/value (fire rate), ratio = value/ref (spin speed).
 (function (C) {
   C.arsenal = {
-    weapons: ['knife', 'nailgun', 'canister', 'chain', 'sledge', 'molotov', 'fireworks', 'cable', 'speargun', 'extinguisher'],
-    passives: ['shoes', 'jacket', 'gloves', 'energy', 'medkit', 'nazar', 'magnet'],
+    weapons: ['knife', 'nailgun', 'canister', 'chain', 'sledge', 'molotov', 'fireworks', 'cable', 'speargun', 'extinguisher',
+      'tray', 'simittray', 'cezve', 'olta', 'semsiye', 'tavla', 'kestane'],
+    passives: ['shoes', 'jacket', 'gloves', 'energy', 'medkit', 'nazar', 'magnet', 'kolonya', 'cay', 'lokum', 'powerbank', 'kask'],
   };
   C.pool.weapons = C.arsenal.weapons.slice();   // config.js pool kept in sync for old readers
   C.pool.passives = C.arsenal.passives.slice();
 
   // Journey level index (1..100) at which an item enters the level-up card pool.
   C.unlock = {
-    weapons: { knife: 1, nailgun: 1, canister: 1, chain: 1, sledge: 1, molotov: 3, extinguisher: 6, speargun: 11,
-               fireworks: 16, cable: 21 },
-    passives: { shoes: 1, jacket: 1, gloves: 1, energy: 1, medkit: 1, nazar: 1, magnet: 8 },
+    weapons: { knife: 1, nailgun: 1, canister: 1, chain: 1, sledge: 1, tray: 1, cezve: 1, simittray: 2, molotov: 3,
+               kestane: 3, tavla: 4, extinguisher: 6, olta: 8, semsiye: 9, speargun: 11, fireworks: 16, cable: 21 },
+    passives: { shoes: 1, jacket: 1, gloves: 1, energy: 1, medkit: 1, nazar: 1, kolonya: 1, lokum: 1, cay: 2,
+                powerbank: 4, kask: 5, magnet: 8 },
   };
   C.debugAllWeapons = false;   // lead sets true from ?arsenal=1: every item unlocked
 
@@ -113,13 +115,13 @@
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.radius', 'radius', 'm'], ['stat.spin', 'spinT', 's']],
     levels: [{ dmg: 34, radius: 2.4, spinT: 1.0 }],
   };
-  C.weapons.nailstorm = {                     // bullet-hell fan spray
-    evo: true, from: 'nailgun', cooldown: 0.24, speed: 22, life: 0.55,
+  C.weapons.nailstorm = {                     // bullet-hell fan spray (fan: spread shots across spreadDeg)
+    evo: true, from: 'nailgun', cooldown: 0.24, speed: 22, life: 0.55, seekRange: 7.5,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.nails', 'shots', 'n'], ['stat.arc', 'spreadDeg', 'deg'], ['stat.pierce', 'pierce', 'n']],
-    levels: [{ dmg: 9, shots: 9, spreadDeg: 80, pierce: 2, kb: 0.1 }],
+    levels: [{ dmg: 9, shots: 9, spreadDeg: 80, pierce: 2, kb: 0.1, fan: true }],
   };
   C.weapons.cluster = {                       // canister that splits into 3 secondary blasts
-    evo: true, heavy: true, from: 'canister', cooldown: 2.2, flight: 0.6, range: 6.5, subDelay: 0.3, subR: 1.1,
+    evo: true, heavy: true, from: 'canister', cooldown: 2.2, flight: 0.6, seekRange: 6.5, subDelay: 0.3, subR: 1.1,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.subs', 'subs', 'n'], ['stat.blast', 'blast', 'm']],
     levels: [{ dmg: 22, proj: 2, blast: 1.6, subs: 3, subDmg: 14, subBlast: 1.0, kb: 1.0 }],
   };

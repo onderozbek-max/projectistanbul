@@ -12,6 +12,7 @@ P.Combat.spawnEnemy = function (s, type, x, y, opts) {
     burn: [], dotTick: 0, dotAcc: 0, dead: false, door: opts && opts.door, vx: 0, vy: 0, walk: 0,
     variant: s.rng.ai.int(0, 7), age: 0,
     skin: (opts && opts.skin) || null, windup: 0, swell: 0, boss: false, ai: null,
+    evId: (opts && opts.ev) || 0, anchored: !!(opts && opts.anchored), lure: null, lootEv: 0,
   };
   if (opts && opts.elite) {
     var el = P.CFG.elite;
@@ -29,18 +30,22 @@ P.Combat.might = function (s) {
   return (s.hero.passives.gloves || 0) * P.CFG.passives.gloves.might + (s.hero.baseMight || 0);
 };
 
+// Crit adds the attribute critPct to Skills.critChance (A's). Knockback scales with knockbackPct (attributes).
+// A hardhat's helmet cuts frontal damage (P.Enemies.helmetMul, enemies.js).
 P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
   if (e.dead || e.state === 'dormant') return;
-  var cc = P.Skills && P.Skills.critChance ? P.Skills.critChance(s) : P.CFG.hero.critChance;
-  var crit = canCrit && s.rng.combat.chance(cc);
-  var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1);
+  var cc = (P.Skills && P.Skills.critChance ? P.Skills.critChance(s) : P.CFG.hero.critChance) + s.fx.critPct;
+  var crit = canCrit && s.rng.combat.chance(Math.min(1, cc));
+  var hm = e.helmet ? P.Enemies.helmetMul(s, e) : 1;
+  var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1) * hm;
   e.hp -= dmg;
   e.flash = P.CFG.feel.hitFlash;
   if (kb > 0) {
-    var k = kb * (1 - e.kbResist), T = P.CFG.knockbackTime;
+    var k = kb * (1 + s.fx.knockbackPct) * (1 - e.kbResist), T = P.CFG.knockbackTime;
     e.kbx = dirx * 2 * k / T; e.kby = diry * 2 * k / T; e.kbT = T;
   }
-  s.events.push({ type: 'hit', id: e.id, x: e.x, y: e.y, dmg: dmg, crit: crit, src: src, dx: dirx, dy: diry, boss: !!e.boss });
+  s.events.push({ type: 'hit', id: e.id, x: e.x, y: e.y, dmg: dmg, crit: crit, src: src, dx: dirx, dy: diry, boss: !!e.boss, helmet: hm < 1 });
+  if (e.helmet) P.Enemies.helmetHit(s, e, hm < 1);
   if (e.hp <= 0) P.Combat.killEnemy(s, e, crit, src);
 };
 
@@ -57,21 +62,38 @@ P.Combat.pushHero = function (s, dx, dy, dist) {
   P.World.clampHero(s, h);
 };
 
+// Kill tally for meta (s.tally) and the kill streak (tally.maxStreak). Luck raises drop chances; coinPct raises jeton.
+P.Combat.tallyKill = function (s, e, src, crit) {
+  var T = s.tally, k = src || 'dot', R = s.killRun || (s.killRun = { n: 0, t: -Infinity });
+  T.kills++;
+  if (crit) T.crits++;
+  T.bySrc[k] = (T.bySrc[k] || 0) + 1;
+  T.byType[e.type] = (T.byType[e.type] || 0) + 1;
+  if (e.elite) T.elites++;
+  if (e.boss) T.bosses++;
+  if (s.t - R.t > P.CFG.ev.streakWin) R.n = 0;
+  R.n++; R.t = s.t;
+  if (R.n > T.maxStreak) T.maxStreak = R.n;
+};
+
 P.Combat.killEnemy = function (s, e, crit, src) {
   e.dead = true;
   s.kills++;
+  P.Combat.tallyKill(s, e, src, crit);
   s.events.push({ type: 'kill', id: e.id, enemy: e.type, x: e.x, y: e.y, crit: crit, variant: e.variant, dx: e.kbx, dy: e.kby,
     src: src || 'dot', elite: !!e.elite, boss: !!e.boss, skin: e.skin });
   if (e.elite) s.drops.push({ kind: 'chest', value: 1, x: e.x, y: e.y, mag: true, pop: 0.7 });
   var a = s.rng.loot.range(0, Math.PI * 2);
-  s.drops.push({ kind: 'xp', value: e.xp, x: e.x + Math.cos(a) * 0.3, y: e.y + Math.sin(a) * 0.3, mag: false, pop: 0.25 });
-  var dr = P.CFG.drops;
-  if (s.rng.loot.chance(dr.jetonChance)) s.drops.push({ kind: 'jeton', value: s.rng.loot.int(dr.jetonMin, dr.jetonMax), x: e.x - 0.2, y: e.y, mag: false, pop: 0.25 });
-  if (s.rng.loot.chance(dr.simitChance)) s.drops.push({ kind: 'simit', value: dr.simitHeal, x: e.x + 0.2, y: e.y, mag: false, pop: 0.25 });
+  s.drops.push({ kind: 'xp', value: e.xp * (1 + s.fx.xpPct), x: e.x + Math.cos(a) * 0.3, y: e.y + Math.sin(a) * 0.3, mag: false, pop: 0.25 });
+  var dr = P.CFG.drops, lk = 1 + s.fx.luckPct, cm = 1 + s.fx.coinPct;
+  if (s.rng.loot.chance(dr.jetonChance * lk)) s.drops.push({ kind: 'jeton', value: Math.round(s.rng.loot.int(dr.jetonMin, dr.jetonMax) * cm), x: e.x - 0.2, y: e.y, mag: false, pop: 0.25 });
+  if (s.rng.loot.chance(dr.simitChance * lk)) s.drops.push({ kind: 'simit', value: dr.simitHeal, x: e.x + 0.2, y: e.y, mag: false, pop: 0.25 });
   for (var di = s.drops.length - 4 < 0 ? 0 : s.drops.length - 4; di < s.drops.length; di++) P.World.clampWalk(s.drops[di], 0.25, s.props);
   if (crit) s.events.push({ type: 'critKill' });
   if (e.boss) P.Bosses.onDeath(s, e);
   if (e.type === 'bloater') P.Enemies.burst(s, e);
+  if (e.type === 'screamer') P.Enemies.onDeath(s, e);
+  if (e.evId) P.Events.onKill(s, e);
 };
 
 P.Combat.updateEnemies = function (s, dt) {
@@ -202,9 +224,11 @@ P.Combat.damageHero = function (s, raw, cause) {
   var h = s.hero, hc = P.CFG.hero;
   if (h.invuln > 0 || (h.iframes || 0) > 0 || s.mode !== 'play') return;
   if (P.Skills && P.Skills.tryDodge && P.Skills.tryDodge(s, raw, cause)) return;
+  if (P.Skills && P.Skills.hitReduce) raw = P.Skills.hitReduce(s, raw, cause);
   var jc = P.CFG.passives.jacket, armor = Math.min(jc.armorCap, (h.passives.jacket || 0) * jc.armorPerLevel);
-  var dmg = Math.max(1, raw - armor);
+  var dmg = Math.max(1, raw - armor) * (1 - s.fx.dmgTakenPct);
   h.hp -= dmg;
+  s.tally.dmgTaken += dmg;
   h.sinceHit = 0;
   if (dmg >= hc.iframeHitFrac * h.maxHp) h.invuln = hc.iframeTime;
   s.events.push({ type: 'heroHit', dmg: dmg, cause: cause, hp: Math.max(0, h.hp) });

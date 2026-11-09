@@ -30,6 +30,8 @@ P.Icons = (function () {
   }
   function rivet(x, y) { return '<circle cx="' + x + '" cy="' + y + '" r="1.8" fill="' + STEEL + '" stroke="' + INK + '" stroke-width="1.4"/>'; }
   function pt(a, r) { return (24 + r * Math.cos(a)).toFixed(2) + ' ' + (24 + r * Math.sin(a)).toFixed(2); }
+  // Small plain dot (pips, sugar, seeds); no outline.
+  function pip(x, y, r, fill) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + fill + '"/>'; }
 
   // Nazar eye bead: blue ring, white sclera, dark iris, ink pupil (charm and ultimate).
   function eye() {
@@ -286,6 +288,135 @@ P.Icons = (function () {
       var out = '', i, a;
       for (i = 0; i < 8; i++) { a = i * Math.PI / 4; out += line('M' + pt(a, 16) + ' L' + pt(a, 22), GOLD, 2.6); }
       return out + eye();
+    },
+
+    // ---- arsenal depth (workstream A): weapons, passives, ultimates, mod, mastery ----
+    tray: function () {
+      return rect(3, 33, 42, 7, 3.5, GOLD) +
+        path('M8 12H22Q21.5 22 17.5 26V32H12.5V26Q8.5 22 8 12Z M26 12H40Q39.5 22 35.5 26V32H30.5V26Q26.5 22 26 12Z', CYAN) +
+        path('M9.5 18H20.5Q19.5 22.5 17 25V31H13V25Q10.5 22.5 9.5 18Z M27.5 18H38.5Q37.5 22.5 35 25V31H31V25Q28.5 22.5 27.5 18Z', AMBER) +
+        hi('M10 13.5H12.5Q12 18 13.5 21.5Q10 17.5 10 13.5Z');
+    },
+
+    simittray: function () {
+      return ellipse(24, 36, 20, 6, STEEL) +
+        '<path d="M10 25A14 9 0 1 0 38 25A14 9 0 1 0 10 25ZM19 25A5 3 0 1 0 29 25A5 3 0 1 0 19 25Z" fill="' + GOLD + '" fill-rule="evenodd"' + OUT + '/>' +
+        pip(24, 19, 1.3, PAPER) + pip(32.2, 22, 1.3, PAPER) + pip(32.2, 28, 1.3, PAPER) +
+        pip(24, 31, 1.3, PAPER) + pip(15.8, 28, 1.3, PAPER) + pip(15.8, 22, 1.3, PAPER) +
+        hi('M12.5 22Q13 18 18.5 17.2Q15 19 14.8 22Z');
+    },
+
+    cezve: function () {
+      return line('M35 31L45 11', LEATHER, 3.4, true) +
+        path('M17 15H31Q31 22 37 29Q39 33 36 38Q33 42 27 42H21Q15 42 12 38Q9 33 11 29Q17 22 17 15Z', AMBER) +
+        path('M15.5 15Q14 8.5 20.5 8.5Q23 5 27.5 7.5Q33.5 7.5 32.5 15Z', PAPER) +
+        hi('M15 30Q14.5 34 16 38Z');
+    },
+
+    olta: function () {
+      return line('M9 42L39 9', LEATHER, 3.2, true) +
+        line('M39 9Q46 25 36 34', DSTEEL, 2) +
+        line('M36 34V38.5Q36 43.5 31 43.5Q26.5 43.5 26.5 39', STEEL, 2.4, true) +
+        pip(41.8, 23.3, 3.2, RED) +
+        hiLine('M13 37.6L17 33.2', 1.2);
+    },
+
+    semsiye: function () {
+      return line('M24 8V40Q24 45 19.5 44', DSTEEL, 2.6, true) +
+        path('M4 24Q4 5 24 5Q44 5 44 24Q40 29 36 24Q32 29 28 24Q24 29 20 24Q16 29 12 24Q8 29 4 24Z', RED) +
+        hi('M9 22Q10 13 18 9Q13 14 12.5 22Z');
+    },
+
+    tavla: function () {
+      return rect(2.5, 17, 19, 19, 4.5, PAPER) +
+        pip(7.5, 22, 2.3, INK) + pip(16.5, 22, 2.3, INK) + pip(12, 26.5, 2.3, INK) +
+        pip(7.5, 31, 2.3, INK) + pip(16.5, 31, 2.3, INK) +
+        '<g transform="rotate(14 36 22)">' + rect(26, 12, 20, 20, 4.5, RED) +
+        hi('M28 13.5H38V15H28Z') +
+        pip(31, 17, 2.3, PAPER) + pip(36, 22, 2.3, PAPER) + pip(41, 27, 2.3, PAPER) + '</g>';
+    },
+
+    kestane: function () {
+      return path('M24 27L22 24C15 21 13 17 13 12C13 6 18 2 24 2C30 2 35 6 35 12C35 17 33 21 26 24Z', AMBER) +
+        rect(6, 27, 36, 6, 3, DSTEEL) +
+        path('M10 33H38L34 42H14Z', DSTEEL) +
+        pip(14, 30, 2.8, RED) + pip(24, 30, 3, GOLD) + pip(34, 30, 2.8, RED) +
+        hi('M16 10C16 6.5 18.5 4.5 21 4C18.5 6 17.5 8.5 17.5 12Z');
+    },
+
+    kolonya: function () {
+      return rect(16, 4, 16, 9, 2.5, DSTEEL) +
+        rect(19.5, 12, 9, 8, 1.5, STEEL) +
+        rect(9, 18, 30, 26, 7, CYAN) +
+        rect(11.5, 27, 25, 14.5, 4.5, GOLD) +
+        rect(15, 21, 18, 4.5, 1, PAPER) +
+        hi('M12.5 25H14.5V38H12.5Z');
+    },
+
+    cay: function () {
+      return ellipse(24, 37, 18, 5.5, STEEL) +
+        path('M13 8H35Q34 22 27.5 27V34H20.5V27Q14 22 13 8Z', CYAN) +
+        path('M15 15H33Q31.5 22.5 27.5 26V33H20.5V26Q16.5 22.5 15 15Z', AMBER) +
+        hi('M15.5 10.5H18.5Q18 17 21 22Q15.5 18 15.5 10.5Z');
+    },
+
+    lokum: function () {
+      return path('M6 15L24 24V44L6 35Z', '#E0557A') +
+        path('M42 15L24 24V44L42 35Z', '#B83A5C') +
+        path('M24 6L42 15L24 24L6 15Z', '#F08CA8') +
+        pip(17, 14, 1.7, '#FFFFFF') + pip(30, 12, 1.7, '#FFFFFF') + pip(31, 18, 1.7, '#FFFFFF') +
+        hi('M9 20L12 21.5V32L9 30Z');
+    },
+
+    powerbank: function () {
+      return rect(39, 19, 5, 10, 1.5, DSTEEL) +
+        rect(6, 13, 34, 22, 5, DSTEEL) +
+        path('M26 16L17.5 26H23L21 33L30 23H24.5Z', GOLD) +
+        hi('M9.5 17H11.5V31H9.5Z');
+    },
+
+    kask: function () {
+      return path('M6 30C6 17 13.5 9 24 9C34.5 9 42 17 42 30Z', GOLD) +
+        line('M24 11V27', AMBER, 2.4) +
+        rect(3.5, 27, 41, 6, 3, AMBER) +
+        hi('M11 26Q11.5 17 18 13Q14.5 18 14.5 26Z');
+    },
+
+    convoy: function () {
+      return path('M4 31V24Q4 21 7 20.5L14 19L19.5 12Q21 10 24 10H31Q33.5 10 35 12.5L39.5 19.5L43 20.5Q45 21 45 24V31Z', RED) +
+        path('M20.5 19L24.5 13.5H30.5L34.5 19Z', CYAN) +
+        circle(14, 31, 4.5, DSTEEL) + circle(36, 31, 4.5, DSTEEL) +
+        path('M25 9L19 4V14ZM25 9L31 4V14Z', GOLD) +
+        hi('M8 25H11.5V29H8Z');
+    },
+
+    horn: function () {
+      return rect(2.5, 17, 7, 14, 2.5, DSTEEL) +
+        path('M9 19H16L34 9V39L16 29H9Z', GOLD) +
+        line('M38 15Q42 24 38 33M41.5 10.5Q46 24 41.5 37.5', CYAN, 2.4, true) +
+        hi('M12 21H16L31 14.5V16.5L16 23H12Z');
+    },
+
+    fork: function () {
+      return line('M24 45V26L14.4 16.4M24 26L33.6 16.4', CYAN, 4.6, true) +
+        path('M8 10L18.6 12.1L10.1 20.6ZM40 10L29.4 12.1L37.9 20.6Z', CYAN) +
+        hiLine('M22 42V30', 1.4);
+    },
+
+    mastery: function () {
+      return path('M12 3H20L24 13L28 3H36L31 20H17Z', BLUE) +
+        circle(24, 30, 15, GOLD) +
+        '<circle cx="24" cy="30" r="10.5" fill="none" stroke="' + AMBER + '" stroke-width="2"/>' +
+        path(starPath(24, 30, 7.5, 3.2), RED) +
+        hi('M12.5 27Q13 21 18 18.5Q14.5 22 14.5 27Z');
+    },
+
+    usta: function () {
+      return line('M29.8 8A17 17 0 1 0 40 18.2', GOLD, 4.2, true) +
+        path('M38.5 14L44.2 16.7L35.8 19.7Z', GOLD) +
+        circle(24, 24, 11.5, PAPER) +
+        pip(19, 19, 2.2, INK) + pip(29, 19, 2.2, INK) + pip(19, 29, 2.2, INK) + pip(29, 29, 2.2, INK) +
+        hiLine('M8.5 18.5Q10.5 11.5 16.5 9', 1.6);
     }
   };
 

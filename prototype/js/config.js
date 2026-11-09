@@ -133,6 +133,20 @@ P.CFG = {
                      { until: 56, rate: 10.0, runner: 0.35 } ], visibleDoorShare: 0.5 },
       maxAheadM: 16, maxBehindM: 12, globalCap: 300,                     // GD 6
     },
+    // v0.5 · level events and set pieces by hero y (or hold seconds `hold`). ev names: js/sim/events-kinds.js.
+    // dy = offset from the hero's y at the moment the beat fires. Breathers scale A-D spawn rates (wave rhythm).
+    beats: [
+      { y: 22, ev: 'ambush', opts: { types: ['runner'], n: 5, x: 6.2 } },            // runner pack, early in A
+      { y: 44, ev: 'loot' },                                                         // simit-tray runner in A
+      { y: 50, ev: 'hack', opts: { kind: 'cell', x: -5.9, y: 66 } },                 // phone-shop booster (B)
+      { y: 96, ev: 'set', opts: { type: 'bloater', x: 6.4, y: 112, label: 'bloater' } },   // Şişman Garson (B)
+      { y: 118, ev: 'ambush', opts: { types: ['walker'], n: 7, x: -6.2 } },          // alley horde, arrow (B)
+      { y: 132, ev: 'set', opts: { type: 'spitter', x: -6.0, y: 138, anchored: true, label: 'spitter' } }, // balcony (C)
+      { y: 178, ev: 'blackout', opts: { T: 7 } },                                    // power cut (C)
+      { y: 162, ev: 'set', opts: { type: 'hardhat', x: 5.6, dy: 5, label: 'hardhat' } },   // hardhat in C: helmet on the hero's side, flank it
+      { hold: 18, ev: 'set', opts: { type: 'screamer', x: 5.8, dy: 6.5, label: 'screamer' } },   // screamer in D
+    ],
+    breathers: [{ from: 96, to: 104, mul: 0.4 }, { from: 124, to: 129, mul: 0.5 }, { from: 150, to: 158, mul: 0.7 }],
   },
 };
 

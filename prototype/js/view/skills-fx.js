@@ -1,11 +1,14 @@
 // Player-skill visuals (workstream E1): dash afterimages, speed lines and cooldown ring; the ultimate "Evil-Eye
 // Burst" (giant eye, area outline, rays); the Nazar charm dodge eye; the frenzy gold trail and banner; the magnet
 // vacuum ring; near-miss letters; and the 1.6 s evolution cutscene in screen space (the sim keeps running).
-// Screen flashes stay at or below 0.3 alpha and fire at most once per ultimate.
+// v0.5: the convoy ultimate (three lanes of cars, from sk.sweeps) and the horn ultimate (a ring from Arda) draw
+// under the hero; they have no eye and no full-screen flash. Screen flashes stay at or below 0.3 alpha and fire
+// at most once per ultimate.
 P.SkillsFx = (function () {
   var F = {}, INK = '#14151F', GOLD = '255,209,102', BLUE = '150,220,255';
   var MAX_GHOSTS = 8, MAX_TRAIL = 14, GHOST_GAP = 0.03;
-  var ghosts = [], trail = [], ult = null, eye = null, banner = null, evo = null, flash = null, vac = null, ghostT = 0, icons = {};
+  var ghosts = [], trail = [], ult = null, eye = null, banner = null, evo = null, flash = null, vac = null, ghostT = 0, icons = {},
+    kit = { convoy: null, horn: null };   // latest v0.5 ult payloads (lanes, car size, horn radius)
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function noop() {}
 
@@ -22,7 +25,7 @@ P.SkillsFx = (function () {
         P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: 0.9, t: 0.3, T: 0.3, col: BLUE });
         P.Sfx.play('nearMiss', 150, { pan: pn });
         break;
-      case 'ult': startUlt(ev); break;
+      case 'ult': if (ev.id === 'convoy' || ev.id === 'horn') startSweep(ev); else startUlt(ev); break;
       case 'ultReady': P.Fx.letter(h.x, h.y + 1.4, P.t('ult.ready')); P.Sfx.play('ultReady', 300); break;
       case 'frenzy': if (ev.on) { banner = { key: 'frenzy.on', t: 1.2, T: 1.2 }; P.Sfx.play('frenzy', 300); } break;
       case 'nazarDodge':
@@ -52,6 +55,15 @@ P.SkillsFx = (function () {
     banner = { key: 'ult.name', t: 1.2, T: 1.2 };
     P.Fx.addTrauma(0.5);
     P.Sfx.play('ult');
+  }
+
+  // Convoy and horn (v0.5): a banner, a small shake and a cue. The sweep itself is drawn from sk.sweeps in drawUnder.
+  function startSweep(ev) {
+    kit[ev.id] = ev;
+    banner = { key: 'ult.' + ev.id, t: 1.2, T: 1.2 };
+    P.Fx.addTrauma(ev.id === 'horn' ? 0.25 : 0.3);
+    P.Sfx.play('ult');
+    P.Sfx.play(ev.id === 'horn' ? 'ferryHorn' : 'bell', 300);
   }
 
   // ---------- per-frame timers and trails ----------
@@ -86,6 +98,7 @@ P.SkillsFx = (function () {
       c.fillStyle = 'rgba(' + GOLD + ',' + (0.5 * a).toFixed(3) + ')';
       c.beginPath(); c.arc(R.X(q.x), R.Y(q.y), (0.12 + 0.18 * a) * u, 0, Math.PI * 2); c.fill();
     });
+    drawSweeps(c, R, s);
     if (h.dashCd > 0) {
       var prog = 1 - h.dashCd / P.CFG.skills.dash.cooldown;
       c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 3;
@@ -100,6 +113,47 @@ P.SkillsFx = (function () {
     P.Sprites.person(c, R.X(g.x), R.Y(g.y - 0.25), { u: u * 1.22, face: g.fx >= 0 ? 1 : -1, phase: 0, skin: '#9FD8FF',
       shirt: '#2E6BD9', pants: '#1B2A44', hair: '#1B2A44', still: true, flash: 0, arms: 'idle', backHand: noop });
     c.globalAlpha = 1;
+  }
+
+  // ---------- ultimate sweeps (v0.5): convoy lanes and the horn ring, from the sim's own sweep state ----------
+  function drawSweeps(c, R, s) {
+    var list = (s.sk && s.sk.sweeps) || [], i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].kind === 'convoy') drawConvoy(c, R, list[i]);
+      else if (list[i].kind === 'horn') drawHorn(c, R, list[i]);
+    }
+  }
+
+  // Cars drive up the screen (world +y) from y0 to y0 + 2hh; the swept band stays behind each car.
+  function drawConvoy(c, R, w) {
+    var u = R.ppm, C = kit.convoy || P.CFG.ults.convoy, lanes = C.lanes, p = Math.min(1, w.t / w.T), car = w.y0 + p * 2 * w.hh,
+      yBot = R.Y(w.y0), yTop = R.Y(w.y0 + 2 * w.hh), cy = R.Y(car), k, X;
+    c.setLineDash([8, 8]); c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 2;
+    for (k = 0; k < lanes.length; k++) { X = R.X(w.x0 + lanes[k]); c.beginPath(); c.moveTo(X, yBot); c.lineTo(X, yTop); c.stroke(); }
+    c.setLineDash([]);
+    for (k = 0; k < lanes.length; k++) {
+      X = R.X(w.x0 + lanes[k]);
+      c.fillStyle = 'rgba(' + GOLD + ',0.12)'; c.fillRect(X - C.laneW * u / 2, cy, C.laneW * u, yBot - cy);
+    }
+    for (k = 0; k < lanes.length; k++) {
+      X = R.X(w.x0 + lanes[k]);
+      c.fillStyle = '#F4EBDD'; c.strokeStyle = INK; c.lineWidth = 2;
+      c.fillRect(X - C.laneW * u / 2, cy - C.carLen * u / 2, C.laneW * u, C.carLen * u);
+      c.strokeRect(X - C.laneW * u / 2, cy - C.carLen * u / 2, C.laneW * u, C.carLen * u);
+    }
+  }
+
+  // The horn ring grows from Arda to r * min(1, t/T), the same radius the sim uses for its stun wave.
+  function drawHorn(c, R, w) {
+    var u = R.ppm, p = Math.min(1, w.t / w.T), r = ((kit.horn && kit.horn.r) || P.CFG.ults.horn.r) * p, X = R.X(w.x0), Y = R.Y(w.y0), rr = r * u, k, g;
+    c.strokeStyle = 'rgba(' + GOLD + ',' + (0.8 * (1 - 0.5 * p)).toFixed(3) + ')'; c.lineWidth = 6;
+    c.beginPath(); c.arc(X, Y, rr, 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,0.45)'; c.lineWidth = 2; c.beginPath();
+    for (k = 0; k < 8; k++) {
+      g = k * Math.PI / 4 + p * 0.5;
+      c.moveTo(X + Math.cos(g) * rr * 0.8, Y + Math.sin(g) * rr * 0.8); c.lineTo(X + Math.cos(g) * rr, Y + Math.sin(g) * rr);
+    }
+    c.stroke();
   }
 
   // ---------- over the hero: ultimate eye, nazar dodge eye, frenzy aura, vacuum ring ----------

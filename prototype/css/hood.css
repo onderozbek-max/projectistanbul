@@ -1,1 +1,25 @@
-/* Hood title card (v0.5, workstream F). */
+/* Hood title card (workstream F, v0.5). Classes are hc-*. Sits inside #phone (390 x 844, position absolute).
+   Motion is off when the body/overlay has .hc-still (P.Settings.reduceMotion). */
+.hc-overlay { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  font-family: "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif; color: #14151F; }
+.hc-overlay.hc-big { background: rgba(10, 12, 18, 0.62); animation: hc-fade 0.3s ease-out both; }
+.hc-overlay.hc-small { align-items: flex-start; justify-content: stretch; pointer-events: none; padding-top: 56px; box-sizing: border-box; }
+.hc-overlay.hc-still, .hc-overlay.hc-still * { animation: none !important; transition: none !important; }
+
+.hc-card { position: relative; width: 300px; padding: 12px 12px 14px; background: #F4EBDD; border: 6px solid #FFFFFF;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); transform: rotate(-1.2deg); animation: hc-in 0.4s cubic-bezier(.2, .8, .2, 1) both; }
+.hc-art { display: block; width: 300px; height: 170px; background: #E9DCC4; }
+.hc-district { margin-top: 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #C0392B; }
+.hc-name { font-size: 34px; line-height: 1; font-weight: 900; font-style: italic; letter-spacing: 0.02em; color: #14151F; }
+.hc-km { margin-top: 4px; font-size: 15px; font-weight: 800; color: #1B4965; }
+.hc-fact { margin-top: 8px; font-size: 15px; line-height: 1.3; color: #14151F; }
+.hc-fact b { font-size: 11px; letter-spacing: 0.14em; color: #C0392B; }
+.hc-skip { margin-top: 8px; text-align: right; font-size: 11px; color: #6B6E78; letter-spacing: 0.06em; }
+
+.hc-banner { pointer-events: none; margin: 0 12px; padding: 8px 12px; background: rgba(20, 21, 31, 0.88); color: #FFD166;
+  border-left: 4px solid #E9A23B; border-radius: 6px; font-size: 14px; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4); animation: hc-slide 0.35s ease-out both; }
+
+@keyframes hc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hc-in { from { opacity: 0; transform: translateY(14px) rotate(-1.2deg) scale(0.96); } to { opacity: 1; transform: rotate(-1.2deg); } }
+@keyframes hc-slide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }

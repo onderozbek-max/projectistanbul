@@ -1,5 +1,7 @@
-// XP, run levels, level-up card offers, evolutions and chests (GD 4.5, 5.3-5.7; mirrors game/core/card_offer.gd).
-// Unlocks: P.CFG.unlock (journey level index). Evolutions: P.CFG.evolutions, offered by chests when eligible.
+// XP, run levels, level-up card offers, weapon mod forks, evolutions and chests (GD 4.5, 5.3-5.7; mirrors
+// game/core/card_offer.gd). Unlocks: P.CFG.unlock (journey level index). Evolutions: P.CFG.evolutions.
+// Forks (v0.5): an upgrade to L3 or L5 of a weapon carries card.fork ('L3'|'L5'), card.mods (2 mod ids, plus
+// 'usta' at mastery rank 3+) and card.pick (default 0, set by the UI). choose() stores the pick in hero.mods[fam].
 P.Hero = {};
 P.Hero.speed = function (s) {
   return P.CFG.hero.speed * (1 + (s.hero.passives.shoes || 0) * P.CFG.passives.shoes.movePct);
@@ -7,14 +9,25 @@ P.Hero.speed = function (s) {
 
 P.Progression = {};
 
+// Level-up heal + douse (kolonya): fire near Arda goes out.
+P.Progression.levelHeal = function (s) {
+  var h = s.hero, lv = h.passives.kolonya || 0, K = P.CFG.passives.kolonya;
+  if (!lv) return;
+  var heal = K.healBase + lv * K.healPerLevel;
+  h.hp = Math.min(h.maxHp, h.hp + heal);
+  P.Mods.douse(s, h.x, h.y, K.radius);
+  s.events.push({ type: 'kolonya', x: h.x, y: h.y, r: K.radius, heal: heal });
+};
+
 P.Progression.addXp = function (s, v) {
-  s.xp += v;
+  s.xp += v * (1 + (s.hero.passives.lokum || 0) * P.CFG.passives.lokum.xpPerLevel);
   while (s.xp >= P.xpNeed(s.level)) {
     s.xp -= P.xpNeed(s.level);
     s.level++;
     s.pendingLevels++;
     s.levelUps.push(s.runT);
     s.events.push({ type: 'levelup', level: s.level });
+    P.Progression.levelHeal(s);
     P.Progression.shock(s);
   }
 };
@@ -45,14 +58,49 @@ P.Progression.evolutionFor = function (s) {
   return null;
 };
 
+// ---------- mod forks ----------
+function branchOf(picks) {
+  var d = picks[0] && P.CFG.modDefs[picks[0]];
+  return d ? d.branch : 'U';
+}
+
+// Options for an upgrade to level `next`: L3 offers A/B; L5 offers the pair under the first pick (U when the
+// first pick was usta or none). Mastery rank 3+ adds 'usta' (every 4th action doubled) until it is taken.
+function forkOptions(s, fam, next) {
+  var C = P.CFG, picks = (s.hero.mods || {})[fam] || [], opts;
+  opts = next === 3 ? C.mods[fam].L3.slice() : C.mods[fam].L5[branchOf(picks)].slice();
+  if (P.Mastery.runRank(s, fam) >= C.mastery.thirdOptionRank && picks.indexOf('usta') < 0) opts.push('usta');
+  return opts;
+}
+
+P.Progression.upgradeCard = function (s, id, next, w) {
+  var card = { id: 'w:' + id, item: id, next: next, w: w || 0 };
+  if (next === 3 || next === 5) {
+    card.fork = next === 3 ? 'L3' : 'L5';
+    card.mods = forkOptions(s, id, next);
+    card.pick = 0;
+  }
+  return card;
+};
+
+// Store the picked mod (card.pick indexes card.mods) for the family.
+P.Progression.pickMod = function (s, card) {
+  var h = s.hero, id = (card.mods || [])[card.pick || 0];
+  if (!id) return;
+  h.mods = h.mods || {};
+  h.mods[card.item] = (h.mods[card.item] || []).concat([id]);
+  s.events.push({ type: 'modChosen', weapon: card.item, mod: id, level: card.next, fork: card.fork });
+};
+
 P.Progression.candidates = function (s) {
   var C = P.CFG, h = s.hero, out = [], max = C.maxItemLevel, c = C.cards, evo = h.evolved || {};
   var wCount = Object.keys(h.weapons).length, pCount = Object.keys(h.passives).length;
   C.arsenal.weapons.forEach(function (id) {
     if (evo[id] || !P.Progression.unlocked(s, 'weapons', id)) return;
     var lv = h.weapons[id] || 0;
-    if (lv > 0 && lv < max) out.push({ id: 'w:' + id, item: id, next: lv + 1, w: c.wUpgradeWeapon });
-    else if (lv === 0 && id !== C.pool.signature && wCount < c.slotsWeapon) out.push({ id: 'w:' + id, item: id, next: 1, w: c.wNewWeapon });
+    var road = lv + 1 <= 3 ? C.forkRoadBoost : 1;
+    if (lv > 0 && lv < max) out.push(P.Progression.upgradeCard(s, id, lv + 1, c.wUpgradeWeapon * road));
+    else if (lv === 0 && id !== C.pool.signature && wCount < c.slotsWeapon) out.push(P.Progression.upgradeCard(s, id, 1, c.wNewWeapon));
   });
   C.arsenal.passives.forEach(function (id) {
     if (!P.Progression.unlocked(s, 'passives', id)) return;
@@ -86,8 +134,9 @@ P.Progression.makeOffer = function (s) {
 P.Progression.cardFor = function (s, id) {
   var parts = id.split(':'), item = parts[1];
   if (parts[0] === 'f') return { id: id, item: item, next: 0 };
-  var owned = parts[0] === 'w' ? s.hero.weapons : s.hero.passives;
-  return { id: id, item: item, next: (owned[item] || 0) + 1 };
+  var max = P.CFG.maxItemLevel;
+  if (parts[0] === 'w') return P.Progression.upgradeCard(s, item, Math.min(max, (s.hero.weapons[item] || 0) + 1));
+  return { id: id, item: item, next: Math.min(max, (s.hero.passives[item] || 0) + 1) };
 };
 
 // Weapon swap: the evolved weapon takes the base weapon's slot (the base is removed).
@@ -104,7 +153,11 @@ P.Progression.evolve = function (s, card) {
 P.Progression.choose = function (s, card) {
   var h = s.hero, parts = card.id.split(':'), pc = P.CFG.passives;
   if (card.evo) P.Progression.evolve(s, card);
-  else if (parts[0] === 'w') { h.weapons[card.item] = card.next; if (card.next === 1) P.Weapons.onAcquire(s, card.item); }
+  else if (parts[0] === 'w') {
+    h.weapons[card.item] = card.next;
+    if (card.next === 1) P.Weapons.onAcquire(s, card.item);
+    if (card.fork) P.Progression.pickMod(s, card);
+  }
   else if (parts[0] === 'p') {
     h.passives[card.item] = card.next;
     if (card.item === 'medkit') h.hp = Math.min(h.maxHp, h.hp + pc.medkit.healOnPick);
@@ -157,6 +210,11 @@ function passiveStats(item, lv) {
     case 'medkit': return [['stat.regen', (lv * pc.medkit.regenPerLevel).toFixed(1) + '/s'], ['stat.heal', '+' + pc.medkit.healOnPick]];
     case 'nazar': return [['stat.crit', '+' + pct(lv * pc.nazar.critPerLevel)], ['stat.dodge', pct(Math.min(pc.nazar.dodgeCap, lv * pc.nazar.dodgePerLevel))]];
     case 'magnet': return [['stat.pickup', '+' + (lv * pc.magnet.radiusPerLevel).toFixed(1) + ' m'], ['stat.pulse', P.Skills.magnetInterval(lv).toFixed(0) + ' s']];
+    case 'kolonya': return [['stat.heal', '+' + (pc.kolonya.healBase + lv * pc.kolonya.healPerLevel)], ['stat.douse', pc.kolonya.radius + ' m']];
+    case 'cay': return [['stat.regen', (lv * pc.cay.regenPerLevel).toFixed(1) + '/s'], ['stat.still', pc.cay.delay + ' s']];
+    case 'lokum': return [['stat.xp', '+' + pct(lv * pc.lokum.xpPerLevel)]];
+    case 'powerbank': return [['stat.cd', '-' + pct(lv * pc.powerbank.cdPerLevel)], ['stat.dash', '-' + pct(lv * pc.powerbank.dashPerLevel)]];
+    case 'kask': return [['stat.bigHit', '-' + (lv * pc.kask.reducePerLevel) + ' (≥' + pc.kask.minHit + ')']];
   }
   return [];
 }
@@ -210,8 +268,8 @@ P.Progression.openChest = function (s, card) {
   s.events.push({ type: 'chestOpened', item: card.item, level: card.next, evo: card.evo || null });
 };
 
-// Debug grant (tools/test-arsenal.js, ?arsenal=1 tooling): { weapons: {id: lvl}, passives: {id: lvl} }.
-// Evolution ids in weapons grant the evolved weapon and remove its base weapon.
+// Debug grant (tools/test-arsenal.js, ?arsenal=1 tooling): { weapons: {id: lvl}, passives: {id: lvl},
+// mods: {fam: [modId, ...]} }. Evolution ids in weapons grant the evolved weapon and remove its base weapon.
 P.Progression.debugGrant = function (s, grant) {
   var h = s.hero;
   h.evolved = h.evolved || {};
@@ -228,6 +286,10 @@ P.Progression.debugGrant = function (s, grant) {
   });
   Object.keys(grant.passives || {}).forEach(function (id) {
     h.passives[id] = Math.min(P.CFG.maxItemLevel, grant.passives[id]);
+  });
+  Object.keys(grant.mods || {}).forEach(function (fam) {
+    h.mods = h.mods || {};
+    h.mods[fam] = grant.mods[fam].slice();
   });
   return s;
 };

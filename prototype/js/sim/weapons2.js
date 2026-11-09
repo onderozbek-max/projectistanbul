@@ -1,9 +1,11 @@
-// Heavy, fire and sky weapons (workstream E1): Sledgehammer (balyoz), Molotov, Fireworks (havai fişek)
-// and Wedding Finale (the fireworks evolution). Each fires on a timer and resolves later (windup,
-// flight, fall) so the view can animate anticipation -> action -> impact. Visuals: weapons-fx2.js.
+// Heavy, fire and sky weapons (workstream E1, v0.5 mods by A): Sledgehammer (tamirci çekici), Molotov (ateş şişesi),
+// Fireworks (havai fişek) and Wedding Finale (the fireworks evolution). Each fires on a timer and resolves later
+// (windup, flight, fall) so the view can animate anticipation -> action -> impact. Impacts go through P.Mods.blast.
+// Visuals: weapons-fx2.js (events: sledgeWindup, sledgeSlam, flaskThrow, flaskShatter, poolBurn, rocketLaunch,
+// rocketBurst, finaleStart).
 P.Weapons2 = {};
 
-// Area damage around a point (knockback outward). Returns how many enemies were hit.
+// Area damage around a point (knockback outward). Kept for other modules; the arsenal uses P.Mods.blast.
 P.Weapons2.aoe = function (s, x, y, r, dmg, kb, src) {
   var hits = 0;
   s.enemies.forEach(function (e) {
@@ -29,9 +31,9 @@ function nearestFree(s, x, y, range, taken) {
 }
 P.Weapons2.nearestFree = nearestFree;
 
-// ---------- Sledgehammer: windup -> slam (ring, stun, knockback) ----------
-function queueSlam(s, x, y, lv, left, windup) {
-  P.Weapons.state(s).slams.push({ x: x, y: y, t: windup, T: windup, lv: lv, left: left });
+// ---------- Sledgehammer: windup -> slam (ring, stun, knockback). Signature "quake" stuns longer. ----------
+function queueSlam(s, x, y, lv, left, windup, A) {
+  P.Weapons.state(s).slams.push({ x: x, y: y, t: windup, T: windup, lv: lv, left: left, A: A, first: left === lv.slams });
   s.events.push({ type: 'sledgeWindup', x: s.hero.x, y: s.hero.y, tx: x, ty: y, T: windup, n: left });
 }
 
@@ -40,20 +42,23 @@ function fireSledge(s, dt) {
   if (!lv || !P.Weapons.ready(h, 'sledge', dt)) return;
   var t = P.Weapons.densest(s, cfg.range, cfg.clusterR, []);
   if (!t) return;
-  h.cds.sledge = cfg.cooldown * lv.cdMult * P.Weapons.cdMult(s);
-  queueSlam(s, t.x, t.y, lv, lv.slams, cfg.windup);
+  var A = P.Mods.act(s, 'sledge');
+  h.cds.sledge = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'sledge');
+  queueSlam(s, t.x, t.y, lv, lv.slams, cfg.windup, A);
 }
 
 function impactSlam(s, sl) {
-  var lv = sl.lv, cfg = P.CFG.weapons.sledge;
-  var hits = P.Weapons2.aoe(s, sl.x, sl.y, lv.r, P.Weapons.dmg(s, lv.dmg), lv.kb * P.Weapons.kbMult(s), 'sledge');
+  var lv = sl.lv, cfg = P.CFG.weapons.sledge, A = sl.A, r = lv.r * A.area, stun = A.sig && A.sig.stun ? A.sig.stun : lv.stun;
+  var dmg = P.Weapons.dmgFor(s, 'sledge', lv.dmg) * A.dmg;
+  var hits = P.Mods.blast(s, sl.x, sl.y, r, dmg, lv.kb * P.Weapons.kbMult(s), 'sledge', A);
   s.enemies.forEach(function (e) {
-    if (!e.dead && e.state === 'active' && Math.hypot(e.x - sl.x, e.y - sl.y) - e.r <= lv.r) P.Status.apply(e, 'stun', lv.stun, 1);
+    if (!e.dead && e.state === 'active' && Math.hypot(e.x - sl.x, e.y - sl.y) - e.r <= r) P.Status.apply(e, 'stun', stun, 1);
   });
-  s.events.push({ type: 'sledgeSlam', x: sl.x, y: sl.y, r: lv.r, stun: lv.stun, hits: hits, n: sl.left, heavy: true });
+  s.events.push({ type: 'sledgeSlam', x: sl.x, y: sl.y, r: r, stun: stun, hits: Math.max(0, hits), n: sl.left, heavy: true });
+  if (sl.first) P.Mods.announce(s, A, sl.x, sl.y, r);
   if (sl.left > 1) {
     var nt = P.Weapons.densest(s, cfg.range, cfg.clusterR, []) || { x: sl.x, y: sl.y };
-    queueSlam(s, nt.x, nt.y, lv, sl.left - 1, cfg.slamGap);
+    queueSlam(s, nt.x, nt.y, lv, sl.left - 1, cfg.slamGap, A);
   }
 }
 
@@ -68,25 +73,29 @@ function updateSlams(s, dt) {
   }
 }
 
-// ---------- Molotov: arcing bottle -> fire pool that applies Burn ----------
+// ---------- Molotov: arcing bottle -> fire pool that applies Burn. Signature "lake" = a long, wide pool. ----------
 function fireMolotov(s, dt) {
   var h = s.hero, cfg = P.CFG.weapons.molotov, lv = P.Weapons.level(h, 'molotov');
   if (!lv || !P.Weapons.ready(h, 'molotov', dt)) return;
-  var chosen = P.Weapons.pickClusters(s, cfg.range, cfg.clusterR, lv.bottles, cfg.flight);
+  var M = P.Mods.of(s, 'molotov'), chosen = P.Weapons.pickClusters(s, cfg.range, cfg.clusterR, lv.bottles + M.count, cfg.flight);
   if (!chosen.length) return;
-  h.cds.molotov = cfg.cooldown * lv.cdMult * P.Weapons.cdMult(s);
+  var A = P.Mods.act(s, 'molotov');
+  h.cds.molotov = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'molotov');
   var list = P.Weapons.state(s).flasks;
-  chosen.forEach(function (c) {
-    list.push({ x0: h.x, y0: h.y, x1: c.x, y1: c.y, t: 0, T: cfg.flight, lv: lv, spin: s.rng.combat.range(0, 6) });
+  chosen.forEach(function (c, i) {
+    list.push({ x0: h.x, y0: h.y, x1: c.x, y1: c.y, t: 0, T: cfg.flight, lv: lv, spin: s.rng.combat.range(0, 6), A: A, first: i === 0 });
   });
   s.events.push({ type: 'flaskThrow', x: h.x, y: h.y, n: chosen.length });
 }
 
 function shatter(s, f) {
-  var lv = f.lv, cfg = P.CFG.weapons.molotov;
-  P.Weapons2.aoe(s, f.x1, f.y1, cfg.clusterR * 0.8, P.Weapons.dmg(s, lv.dmg), 0.4, 'molotov');
-  P.Weapons.state(s).pools.push({ x: f.x1, y: f.y1, r: lv.r, t: lv.life, T: lv.life, tick: cfg.burnTick });
-  s.events.push({ type: 'flaskShatter', x: f.x1, y: f.y1, r: lv.r, life: lv.life, spin: f.spin });
+  var lv = f.lv, cfg = P.CFG.weapons.molotov, A = f.A, sig = A.sig;
+  var dmg = P.Weapons.dmgFor(s, 'molotov', lv.dmg) * A.dmg;
+  P.Mods.blast(s, f.x1, f.y1, cfg.clusterR * 0.8 * A.area, dmg, 0.4, 'molotov', A);
+  var life = lv.life * A.M.life * (sig && sig.life ? sig.life : 1);
+  P.Weapons.state(s).pools.push({ x: f.x1, y: f.y1, r: lv.r * A.area, t: life, T: life, tick: cfg.burnTick, A: A });
+  s.events.push({ type: 'flaskShatter', x: f.x1, y: f.y1, r: lv.r * A.area, life: life, spin: f.spin });
+  if (f.first) P.Mods.announce(s, A, f.x1, f.y1, lv.r * A.area);
 }
 
 function updateFlasks(s, dt) {
@@ -100,7 +109,7 @@ function updateFlasks(s, dt) {
   }
 }
 
-// Fire pools re-apply Burn every burnTick while enemies stand inside.
+// Fire pools re-apply Burn every burnTick while enemies stand inside (Flame Tongue adds stacks).
 function updatePools(s, dt) {
   var list = P.Weapons.state(s).pools, cfg = P.CFG.weapons.molotov;
   for (var i = list.length - 1; i >= 0; i--) {
@@ -110,10 +119,11 @@ function updatePools(s, dt) {
     p.tick -= dt;
     if (p.tick > 0) continue;
     p.tick += cfg.burnTick;
-    var n = 0;
+    var n = 0, extra = p.A ? p.A.M.burn : 0;
     s.enemies.forEach(function (e) {
       if (e.dead || e.state !== 'active' || Math.hypot(e.x - p.x, e.y - p.y) - e.r > p.r) return;
       P.Combat.addBurn(e); n++;
+      for (var k = 0; k < extra; k++) P.Combat.addBurn(e);
     });
     if (n > 0) s.events.push({ type: 'poolBurn', x: p.x, y: p.y, n: n });
   }
@@ -123,18 +133,24 @@ function updatePools(s, dt) {
 function fireFireworks(s, dt) {
   var h = s.hero, cfg = P.CFG.weapons.fireworks, lv = P.Weapons.level(h, 'fireworks');
   if (!lv || !P.Weapons.ready(h, 'fireworks', dt)) return;
-  var taken = [];
-  for (var k = 0; k < lv.rockets; k++) {
+  var M = P.Mods.of(s, 'fireworks'), want = lv.rockets + M.count, taken = [];
+  for (var k = 0; k < want; k++) {
     var t = nearestFree(s, h.x, h.y, cfg.seekRange, taken);
     if (!t) break;
     taken.push(t);
   }
   if (!taken.length) return;
-  h.cds.fireworks = cfg.cooldown * lv.cdMult * P.Weapons.cdMult(s);
-  var list = P.Weapons.state(s).rockets, col = s.rng.combat.int(0, 5), dmg = P.Weapons.dmg(s, lv.dmg);
+  var A = P.Mods.act(s, 'fireworks');
+  h.cds.fireworks = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'fireworks');
+  if (A.sig && A.sig.extra === 'rain') {          // signature: a sky rain of rockets over the screen
+    var F = P.CFG.weapons.finale.levels[0];
+    castFinale(s, A.sig.n, { spanX: F.spanX, spanY: F.spanY, r: lv.r, dmg: lv.dmg }, P.CFG.weapons.finale, A);
+    return;
+  }
+  var list = P.Weapons.state(s).rockets, col = s.rng.combat.int(0, 5), dmg = P.Weapons.dmgFor(s, 'fireworks', lv.dmg) * A.dmg;
   taken.forEach(function (t, j) {
     var a0 = Math.atan2(t.y - h.y, t.x - h.x) + (s.rng.combat.next() - 0.5) * 0.9;
-    list.push({ x: h.x, y: h.y, a: a0, tgt: t, life: cfg.life, dmg: dmg, r: lv.r, col: (col + j) % 6, trail: [] });
+    list.push({ x: h.x, y: h.y, a: a0, tgt: t, life: cfg.life, dmg: dmg, r: lv.r * A.area, col: (col + j) % 6, trail: [], A: A, first: j === 0 });
   });
   s.events.push({ type: 'rocketLaunch', x: h.x, y: h.y, n: taken.length });
 }
@@ -167,22 +183,32 @@ function updateRockets(s, dt) {
     r.y += Math.sin(r.a) * cfg.speed * dt;
     if (r.life > 0 && !touchesEnemy(s, r)) continue;
     list.splice(i, 1);
-    P.Weapons2.aoe(s, r.x, r.y, r.r, r.dmg, 0.5, 'fireworks');
+    P.Mods.blast(s, r.x, r.y, r.r, r.dmg, 0.5, 'fireworks', r.A);
+    if (r.first) P.Mods.announce(s, r.A, r.x, r.y, r.r);
     s.events.push({ type: 'rocketBurst', x: r.x, y: r.y, r: r.r, col: r.col, big: false });
   }
 }
 
-// ---------- Wedding Finale: sky barrage over the screen (fireworks evolution) ----------
+// ---------- Wedding Finale: sky barrage over the screen (fireworks evolution). Signature "rain" uses it too. ----------
 function fireFinale(s, dt) {
   var h = s.hero, cfg = P.CFG.weapons.finale, lv = P.Weapons.level(h, 'finale');
   if (!lv || !P.Weapons.ready(h, 'finale', dt)) return;
-  h.cds.finale = cfg.cooldown * P.Weapons.cdMult(s);
-  var list = P.Weapons.state(s).finale, rng = s.rng.combat, dmg = P.Weapons.dmg(s, lv.dmg);
-  for (var i = 0; i < lv.rockets; i++) {
+  var A = P.Mods.act(s, 'fireworks');
+  h.cds.finale = cfg.cooldown * A.cd * P.Weapons.cdMult(s, 'fireworks');
+  var n = lv.rockets;
+  if (A.sig && A.sig.extra === 'rain') n = A.sig.n;
+  castFinale(s, n, lv, cfg, A);
+}
+
+// Rockets fall over the spanX x spanY zone in front of Arda; each one bursts with the family's mods.
+function castFinale(s, n, lv, cfg, A) {
+  var h = s.hero, list = P.Weapons.state(s).finale, rng = s.rng.combat, dmg = P.Weapons.dmgFor(s, 'fireworks', lv.dmg) * A.dmg;
+  for (var i = 0; i < n; i++) {
     list.push({ x: h.x + rng.range(-lv.spanX, lv.spanX), y: h.y + rng.range(-lv.spanY * 0.4, lv.spanY),
-      t: -i * cfg.gap, T: cfg.fall, dmg: dmg, r: lv.r, col: rng.int(0, 5) });
+      t: -i * cfg.gap, T: cfg.fall, dmg: dmg, r: lv.r * A.area, col: rng.int(0, 5), A: A, first: i === 0 });
   }
-  s.events.push({ type: 'finaleStart', x: h.x, y: h.y, n: lv.rockets, T: cfg.fall + lv.rockets * cfg.gap });
+  s.events.push({ type: 'finaleStart', x: h.x, y: h.y, n: n, T: cfg.fall + n * cfg.gap, spanX: lv.spanX, spanY: lv.spanY });
+  P.Mods.announce(s, A, h.x, h.y, 0);
 }
 
 function updateFinale(s, dt) {
@@ -192,7 +218,7 @@ function updateFinale(s, dt) {
     f.t += dt;
     if (f.t < f.T) continue;
     list.splice(i, 1);
-    P.Weapons2.aoe(s, f.x, f.y, f.r, f.dmg, 0.6, 'finale');
+    P.Mods.blast(s, f.x, f.y, f.r, f.dmg, 0.6, 'finale', f.A);
     s.events.push({ type: 'rocketBurst', x: f.x, y: f.y, r: f.r, col: f.col, big: true, heavy: true });
   }
 }

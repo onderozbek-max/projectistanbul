@@ -49,7 +49,7 @@ are in `journey.js` (`map: [x, y]`).
 | 17 | `bakirkoy` | Bakırköy Çarşı | Bakırköy | 14.0 | 1.0 | L81–85 | bakirkoy | brute | The Principal (Müdür) |
 | 18 | `bakirkoysahil` | Bakırköy Sahil | Bakırköy | 15.0 | 1.0 | L86–90 | sahil | bloater | The Ice-Cream Man (Dondurmacı) |
 | 19 | `atakoysahil` | Ataköy Marina | Bakırköy | 16.2 | 1.2 | L91–95 | marina | brute | The Yacht Owner (Yat Sahibi) |
-| 20 | `atakoy` | Ataköy | Bakırköy | 17.0 | 0.8 | L96–100 | atakoy | brute | Ahmet Abi (kapıcı) |
+| 20 | `atakoy` | Ataköy | Bakırköy | 17.0 | 0.8 | L96–100 | atakoy | brute | Sayın Abim (kapıcı; story name Ahmet Abi, D-039) |
 
 **Boss count:** 20 stage-5 bosses. Boss types are only three (brute, bloater, spitter), so each
 boss gets its own signature attack on top of the type kit (section 5).
@@ -238,7 +238,7 @@ livery.
 - **Stage 4:** the ticket queue. The horde comes from the waiting line.
 - **Boss:** The Ticket Man. Brute. "No ticket, no entry." Summons gate blocks (walls that fall) and a
   line of zombie commuters.
-- **Story beat:** the slice ends here (L30). Mom's last clear call before the signal fails. The
+- **Story beat:** the vertical-slice build milestone ends here (L30). Chapter 1 continues to L100 (D-040). Mom's last clear call before the signal fails. The
   railway clock stops.
 
 ### H07 · Kapalıçarşı (Fatih, km 5.6, L31–35)
@@ -460,7 +460,7 @@ livery.
 - **Twist:** doors open. Zombies come out of neighbours' doors (the old door-spawn rule, L1).
 - **Stage 3:** the stairwell. Clear the stairs (O12).
 - **Stage 4:** the courtyard with the laundry lines. Keys (O8) open the lobby.
-- **Boss:** Ahmet Abi, the kapıcı. Brute. Keys ring sweep. Bread basket is a shield. The fight is sad,
+- **Boss:** Sayın Abim (story name Ahmet Abi), the kapıcı. Brute. Keys ring sweep. Bread basket is a shield. The fight is sad,
   not gory.
 - **Story beat:** home. Dad's Letter #1. The apartment is empty. Mila knocks at the door (L100).
   Cliffhanger (see section 8).
@@ -506,10 +506,10 @@ These bands follow GD §7 and stretch it to 20 hoods.
 |---|---|---|---|---|
 | H01–H02 | L1–10 | ≥ 95% (L1–4), 85–90% (L6–9) | L5 ≈ 90%, L10 ≈ 85% | Teach. Mostly tutorial. |
 | H03–H04 | L11–20 | 80–90% | L15 ≈ 75%, L20 ≈ 70% | Bridge boss plus Kaan join. |
-| H05–H06 | L21–30 | 75–85% | L25 ≈ 70%, L30 ≈ 65% | Slice end at L30. |
+| H05–H06 | L21–30 | 75–85% | L25 ≈ 70%, L30 ≈ 65% | Build milestone at L30, not a chapter end. |
 | H07–H10 | L31–50 | 70–85% | 60–70% | Bazaar and Beyazıt are the hardest stages in the slice's far half. |
 | H11–H16 | L51–80 | 70–85% | 60–70% | Stage 4 holds are the spike. |
-| H17–H20 | L81–100 | 65–80% | 55–65% | Final hoods. Ahmet Abi is the emotional spike. |
+| H17–H20 | L81–100 | 65–80% | 55–65% | Final hoods. Sayın Abim is the emotional spike. |
 
 Sawtooth rule: the boss is the peak. The next stage 1 is the relief (80% spawn rate).
 
@@ -538,7 +538,7 @@ hood-stage it falls on. Future items (not in the slice) are in [weapons-skills.m
 | L16 | H04 · 1 | Fireworks (Havai Fişek) | The convoy. Bridge pickups. Config unlock L16. |
 | L21 | H05 · 1 | Live Cable (Canlı Kablo) | Tram wires and pier cables. Config unlock L21. |
 | L5 | H01 · 5 (boss) | Boss chest (evolution or upgrades) | Vatman chest |
-| L30 | H06 · 5 (boss) | Slice end. Boss chest. | Ticket Man |
+| L30 | H06 · 5 (boss) | Build milestone (not chapter end). Boss chest. | Ticket Man |
 
 **Notes**
 
@@ -557,7 +557,7 @@ hood-stage it falls on. Future items (not in the slice) are in [weapons-skills.m
 
 | Doc | Old | New (D-027) |
 |---|---|---|
-| [prd.md](prd.md) §1, §4 | Levels 1–30 = "3 districts × 10" (İstiklal → Karaköy & Galata → Galata Bridge) | **Levels 1–30 = hoods 1–6** (İstiklal → Sirkeci). The slice ends at Sirkeci (L30). |
+| [prd.md](prd.md) §1, §4 | Levels 1–30 = "3 districts × 10" (İstiklal → Karaköy & Galata → Galata Bridge) | **Levels 1–30 = hoods 1–6** (İstiklal → Sirkeci). Sirkeci (L30) is a build milestone. Chapter 1 ends at Ataköy (L100, D-040). |
 | [prd.md](prd.md) §4 | Kaan joins in L30 | Kaan joins at L20 on the bridge (proposed, open item 9.1) |
 | [product.md](product.md) §5 | Chapter = 10 districts × 10 levels, x5 mini-boss, x0 district boss (D-001) | **20 hoods × 5 levels**; stage 5 of every hood is a boss. D-001 amended by D-027. |
 | [game-design.md](game-design.md) §6 | District template: Route, Arena, Route, Arena, Mini-boss, … | **Hood template** (section 3 here). The 10-level district table is superseded. |
@@ -574,14 +574,14 @@ Old arcs are blocks of ten levels. The new blocks are by geography. Each arc kee
 |---|---|---|---|
 | A. İstiklal & Galata | H01–H02 | L1–10 | Vatman (L5), Tour Guide (L10) |
 | B. Karaköy & the Bridge | H03–H04 | L11–20 | Bride (L15), Big Fisherman (L20), **Kaan joins** |
-| C. Eminönü & Sirkeci | H05–H06 | L21–30 | Captain (L25), Ticket Man (L30, slice end) |
+| C. Eminönü & Sirkeci | H05–H06 | L21–30 | Captain (L25), Ticket Man (L30, build milestone) |
 | D. Grand Bazaar & Beyazıt | H07–H08 | L31–40 | Carpet Golem (L35), Pigeon Man (L40) |
 | E. Laleli & Aksaray | H09–H10 | L41–50 | Wholesaler (L45), campfire (L49), Dolmuş (L50) |
 | F. Kumkapı & Yenikapı | H11–H12 | L51–60 | Fish Porter (L55), Evening Crowd (L60) |
 | G. Samatya & Yedikule | H13–H14 | L61–70 | Grill Man (L65), Key Keeper (L70) |
 | H. Zeytinburnu & Kazlıçeşme | H15–H16 | L71–80 | Dye Foreman (L75), Hose Man (L80) |
 | I. Bakırköy | H17–H18 | L81–90 | Principal (L85), Ice-Cream Man (L90) |
-| J. Ataköy | H19–H20 | L91–100 | Yacht Owner (L95), Ahmet Abi (L100), Mila at the door |
+| J. Ataköy | H19–H20 | L91–100 | Yacht Owner (L95), Sayın Abim (L100; story name Ahmet Abi, D-039), Mila at the door |
 
 ### 8.3 Cliffhanger
 
@@ -595,7 +595,7 @@ Chapter 2 starts at L101 as in narrative.md.
 | # | Decision | Recommendation | Why it matters |
 |---|---|---|---|
 | 9.1 | **Kaan joins at L20** (bridge boss) instead of L30 | Yes. He is on the bridge in the story and must be there for the Captain beat in Eminönü (L25). | Moves a story beat and the squad unlock. Changes prd §4, content-catalog §6 and narrative.md *Characters*. |
-| 9.2 | **The slice ends at Sirkeci (L30)** instead of the Galata Bridge | Keep L30 as the slice end. It gives six hoods, a full arc and two bosses with comics. | prd §1 and §4 change. |
+| 9.2 | **Build milestone at Sirkeci (L30)** instead of the Galata Bridge | Keep L30 as the vertical-slice build milestone (six hoods, a full arc, two bosses with comics). Chapter 1 ends at Ataköy (L100, D-040). | prd §1 and §4 change. |
 | 9.3 | **20 bosses, one per hood** (stage 5) | Yes, with a per-hood signature attack. Three boss types are a shared kit. | Art and animation load. 20 concepts × 2–3 attacks. |
 | 9.4 | **Route order and geography** | Confirm the order against a real map before the art pass. Some legs are not the real walking order. | A local player may notice. |
 | 9.5 | **Molotov name and unlock** | Display name "Benzin Şişesi" (petrol bottle). The word molotov has a political meaning in Turkey and elsewhere. Keep "molotov" in code IDs. | Guardrails (no politics). See weapons-skills §4. |
@@ -615,7 +615,7 @@ The canonical name is in section 2. The E2 code name is in `config-levels.js` (i
 | H12 | The Evening Crowd | Limancı Ali (Harbor Ali) | Canonical name avoided: "Rush Hour" is a film title. |
 | H13 | The Grill Man | Teyze Zehra (Auntie Zehra) | |
 | H17 | The Principal | Manav Ramazan (Greengrocer) | Canonical from narrative.md |
-| H20 | Ahmet Abi | Muhtar Sadık (Headman Sadık) | **Owner decision 2026-11-09:** Sayın Abim (EN: The Honourable Big Bro). |
+| H20 | Ahmet Abi | Muhtar Sadık (Headman Sadık) | **Owner decision 2026-11-08 (D-039):** Sayın Abim (EN: The Honourable Big Bro). |
 
 Other E2 names (Kasap Hasan, Pehlivan, Balon Adam, Şoför Rıza, Tuzlu Ağa, Güvercin Amca, Valiz Ahmet,
 Bahçıvan Kadir, Kazan Hüseyin, Mangal Fatma, Şişme Can, Kaptan Osman) can stay as alternates. The lead chooses.

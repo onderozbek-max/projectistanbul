@@ -52,10 +52,28 @@ P.ArtChars = (function () {
     sailor: { top: 'stripe', col: '#2B4A6F', c2: '#F4F1EA', pants: '#F4F1EA', shoe: '#1A1A1E', hair: 'short', hc: '#2A1E16', hat: 'cap', hatC: '#2B4A6F' },
     neighbor: { top: 'robe', col: '#D9C9A8', c2: '#8A7E6B', pants: '#8A7E6B', shoe: '#8A5A34', hair: 'curl', hc: '#6B4A2E', prop: 'mug', propC: '#E9E4D8', propHand: 'R', acc: ['glasses'] },
     chef: { top: 'chef', col: '#F4F1EA', c2: '#2B2E3A', pants: '#2B2E3A', shoe: '#1A1A1E', hair: 'short', hc: '#2A1E16', hat: 'toque', hatC: '#F4F1EA', acc: ['moustache'] },
+    // Hood-typical outfits (workstream F). Generic trades; no uniforms, flags or religious dress.
+    simitci: { top: 'shirt', col: '#F4F1EA', c2: '#C0392B', pants: '#2B3346', shoe: '#2A2A2A', hair: 'short', hc: '#1E1712', hat: 'tray', hatC: '#9C6B3A' },
+    midyeci: { top: 'apron', col: '#F4F1EA', c2: '#2F5B4A', pants: '#2B2E3A', shoe: '#1A1A1E', hair: 'short', hc: '#2A1E16', hat: 'cap', hatC: '#2E7D4F', prop: 'tray', propC: '#C9CED6', propHand: 'L' },
+    balikci: { top: 'vest', col: '#E8E1D2', c2: '#E9A23B', pants: '#3A4A5A', shoe: '#4A3A2A', hair: 'short', hc: '#6B4A2E', hat: 'bucket', hatC: '#6B7A4A', prop: 'rod', propC: '#8A5A34', propHand: 'R' },
+    vapurcu: { top: 'jacket', col: '#1B4965', c2: '#F4F1EA', pants: '#1B4965', shoe: '#1A1A1E', hair: 'short', hc: '#3B2A1E', hat: 'cap', hatC: '#1B4965' },
+    halici: { top: 'shirt', col: '#7A4F8C', pants: '#3A3F4C', shoe: '#2A2A2A', hair: 'short', hc: '#2A1E16', acc: ['moustache'] },
+    kuyumcu: { top: 'suit', col: '#2B2E3A', base: '#F4F1EA', c2: '#7A2E2E', pants: '#2B2E3A', shoe: '#1A1A1E', hair: 'short', hc: '#8A8F98', acc: ['glasses'], tie: '#7A2E2E' },
+    sahaf: { top: 'cardigan', col: '#8B5A2B', c2: '#F4EBDD', pants: '#3E3A35', shoe: '#2A2A2A', hair: 'bald', hc: '#8A8F98', acc: ['glasses', 'moustache'] },
+    faslci: { top: 'vest', col: '#F4F1EA', c2: '#7A1F2B', pants: '#1E1E24', shoe: '#1A1A1E', hair: 'short', hc: '#1E1712', acc: ['moustache'], prop: 'case', propC: '#7A4A2A', propHand: 'L' },
+    arkeolog: { top: 'hivis', col: '#B8A07A', c2: '#E9A23B', pants: '#5A5040', shoe: '#4A3A2A', hair: 'short', hc: '#3B2A1E', hat: 'hardhat', hatC: '#F4F1EA' },
+    derici: { top: 'apron', col: '#6B4A2E', c2: '#3A2A1E', pants: '#2B2E3A', shoe: '#2A2A2A', hair: 'short', hc: '#1E1712' },
+    yatci: { top: 'tee', col: '#F4F1EA', c2: '#1B4965', pants: '#2B3346', shoe: '#F4F1EA', hair: 'short', hc: '#2A1E16', hat: 'cap', hatC: '#1B4965' },
+    kapici: { top: 'cardigan', col: '#5E3A23', c2: '#E9A23B', pants: '#2B2E3A', shoe: '#2A2A2A', hair: 'bald', hc: '#9A9AA0', hat: 'cap', hatC: '#2A2A2A', acc: ['moustache'] },
+    teyze: { top: 'dress', col: '#8E5BA8', c2: '#E9D9F0', pants: '#E9D9F0', shoe: '#3A2A2A', hair: 'bun', hc: '#A8A8B0', prop: 'handbag', propC: '#C0392B', propHand: 'L', acc: ['glasses'] },
+    dondurmaci: { top: 'apron', col: '#F4EBDD', c2: '#C0392B', pants: '#2B2E3A', shoe: '#1A1A1E', hair: 'short', hc: '#2A1E16', hat: 'cap', hatC: '#C0392B', acc: ['moustache'] },
+    mudur: { top: 'suit', col: '#3B4048', base: '#E8E8E8', c2: '#7A2E2E', pants: '#3B4048', shoe: '#2A2A2A', hair: 'short', hc: '#8A8F98', acc: ['glasses'], tie: '#7A2E2E' },
     hero: { top: 'hoodie', col: '#D7263D', pants: '#2B3A55', shoe: '#F4F1EA', hair: 'quiff', hc: '#2A1A12', acc: ['earbuds'] }
   };
   C.SKINS = ['waiter', 'tourist', 'shopper', 'student', 'musician', 'barista', 'fisher', 'worker', 'commuter', 'vendor', 'hamal',
-    'conductor', 'shopkeeper', 'pigeonman', 'driver', 'granny', 'gardener', 'jogger', 'picnicker', 'sailor', 'neighbor', 'chef'];
+    'conductor', 'shopkeeper', 'pigeonman', 'driver', 'granny', 'gardener', 'jogger', 'picnicker', 'sailor', 'neighbor', 'chef',
+    'simitci', 'midyeci', 'balikci', 'vapurcu', 'halici', 'kuyumcu', 'sahaf', 'faslci', 'arkeolog', 'derici', 'yatci', 'kapici',
+    'teyze', 'dondurmaci', 'mudur'];
   C.outfit = function (id) { return OUT[id] || OUT.shopper; };
   C.outfitIds = function () { return Object.keys(OUT); };
 

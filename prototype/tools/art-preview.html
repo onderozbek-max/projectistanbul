@@ -38,10 +38,17 @@
 <h2>Civilians fleeing (arms up, running)</h2>
 <div class="row" id="civ"></div>
 
+<h2>New outfits, workstream F (walker rig, one per skin)</h2>
+<div class="row" id="newskins"></div>
+
+<h2>Hood skins: six zombie outfits per neighbourhood</h2>
+<div id="hoodskins"></div>
+
 <h2>Portraits: every character x every mood</h2>
 <div id="portraits"></div>
 
 <script>window.P = window.P || {}; P.goreRGB = function (s) { return ['86,14,20', '120,20,28', '160,24,36'][s || 0]; };</script>
+<script src="../js/journey.js"></script>
 <script src="../js/view/art-rig.js"></script>
 <script src="../js/view/art-characters.js"></script>
 <script src="../js/view/art-enemies.js"></script>
@@ -116,13 +123,15 @@
     ['crawler', ['worker', 'shopper', 'student', 'chef']],
     ['spitter', ['fisher', 'vendor', 'hamal', 'driver']],
     ['brute', ['hamal', 'worker', 'conductor', 'shopkeeper']],
-    ['bloater', ['picnicker', 'gardener', 'pigeonman', 'barista']]
+    ['bloater', ['picnicker', 'gardener', 'pigeonman', 'barista']],
+    ['screamer', ['jogger', 'worker', 'arkeolog', 'commuter']],
+    ['hardhat', ['arkeolog', 'worker', 'driver', 'hamal']]
   ];
   var typesBox = document.getElementById('types');
   typeRows.forEach(function (row) {
     var r = document.createElement('div'); r.className = 'row'; r.style.marginBottom = '8px';
     row[1].forEach(function (skin, i) {
-      var sc = row[0] === 'brute' ? 1.6 : 1;
+      var sc = row[0] === 'brute' ? 1.6 : row[0] === 'hardhat' ? 1.2 : 1;
       cell(r, row[0] + ' / ' + skin, W, H, sc, enemyFn(row[0], skin, i, sc));
     });
     typesBox.appendChild(r);
@@ -154,6 +163,18 @@
   var civBox = document.getElementById('civ');
   ['tourist', 'shopper', 'student', 'commuter', 'granny', 'jogger', 'picnicker', 'sailor'].forEach(function (s, i) {
     cell(civBox, 'civilian / ' + s, W, H, 1, civFn(s, i, 1));
+  });
+
+  // New outfits (walker rig) and the hood skin table (P.ArtEnemies.hoodSkins via skinsFor).
+  var nb = document.getElementById('newskins');
+  ['simitci', 'midyeci', 'balikci', 'vapurcu', 'halici', 'kuyumcu', 'sahaf', 'faslci', 'arkeolog', 'derici', 'yatci', 'kapici', 'teyze', 'dondurmaci', 'mudur'].forEach(function (s, i) {
+    cell(nb, 'walker / ' + s, W, H, 1, enemyFn('walker', s, i, 1));
+  });
+  var hb = document.getElementById('hoodskins');
+  P.Journey.hoods.forEach(function (h) {
+    var r = document.createElement('div'); r.className = 'row'; r.style.marginBottom = '6px';
+    P.ArtEnemies.skinsFor(h.id).forEach(function (sk, i) { cell(r, h.name + ' / ' + sk, 110, 120, 0.9, enemyFn('walker', sk, i, 0.9)); });
+    hb.appendChild(r);
   });
 
   // Portraits: DOM canvases, every who x every mood.

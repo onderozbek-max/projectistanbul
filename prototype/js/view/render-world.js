@@ -75,6 +75,7 @@ P.RenderWorld = (function () {
     for (i = -1; i <= 1; i += 2) drawFacade(R, i, y0, y1);
     P.World.doors().forEach(function (d) { if (d.y > y0 - 2 && d.y < y1 + 2) drawDoor(R, d); });
     drawShutter(R, s);
+    P.Landmarks.draw(R, s, y0, y1);
     for (var py = Math.ceil(y0 / 12) * 12; py < y1; py += 12) if (py > 4 && py < 228) { lamp(R, -4.85, py); lamp(R, 4.85, py + 6); }
   };
 
@@ -214,9 +215,8 @@ P.RenderWorld = (function () {
     for (var x = -7; x < 7; x += 1.2) { c.beginPath(); c.moveTo(R.X(x), R.Y(y - 0.5)); c.lineTo(R.X(x + 0.9), R.Y(y + 1.2)); c.stroke(); }
   };
 
-  // ---------- generated levels (levelIndex > 1): theme ground, sides, water, blocks, landmarks, exit ----------
-  // gate/arena landmarks from E2 are covered by the exit gate and the boss arena, so they are not drawn as landmarks.
-  var CROSS = { gateArch: 1, vault: 1, exitGate: 1 }, SKIP_LM = { gate: 1, arena: 1 }, ambTheme = null, ferryCycle = {};
+  // ---------- generated levels (levelIndex > 1): theme ground, sides, water, blocks, exit (landmarks in istanbul-landmarks.js) ----------
+  var ambTheme = null, ferryCycle = {};
   function isL1(s) { return !s.levelIndex || s.levelIndex === 1; }
   function themeOf(s) { return P.Themes.get(s.theme || (s.levelInfo && s.levelInfo.hood && s.levelInfo.hood.theme) || 'istiklal'); }
   function hoodPos(s) {
@@ -252,6 +252,7 @@ P.RenderWorld = (function () {
       kerb(R, sd, ya, yb, th);
     });
     if (th.tracks) tramRails(R, ya, yb);
+    P.Landmarks.draw(R, s, y0, y1);
   }
   function sideGround(R, th, sd, ya, yb) {
     var kind = sd > 0 ? th.R : th.L, t = pattern(R, th, sd > 0 ? 'R' : 'L');
@@ -327,11 +328,6 @@ P.RenderWorld = (function () {
         var car = b.kind === 'car' || b.kind === 'taxi' || b.kind === 'dolmus';
         P.Props.draw(b.kind, R, b.x, b.y, { w: b.w, h: b.h, k: 0, alarm: car && hash(b.y * 3.7 + b.x) < 0.4 });
       });
-    (g.landmarks || []).forEach(function (lm, i) {
-      if (SKIP_LM[lm.kind] || Math.abs(lm.y - cy) > half + 6 || !P.Props.has(lm.kind)) return;
-      var sd = lm.side ? lm.side : (hash(lm.y * 0.37 + i) < 0.5 ? -1 : 1);
-      P.Props.draw(lm.kind, R, CROSS[lm.kind] ? 0 : sd * 5.9, lm.y, { style: th.exit, open: true, k: i, span: 9.2 });
-    });
     if (typeof g.exitY === 'number' && Math.abs(g.exitY - cy) < half + 6) P.Props.draw('exitGate', R, 0, g.exitY, { style: th.exit, open: !!(s.props.shutterOpen || g.exitOpen) });
   }
   function genLights(R, s, y0, y1) {
@@ -348,13 +344,14 @@ P.RenderWorld = (function () {
       c.beginPath(); c.arc(R.X(ex), R.Y(ey), 0.05 * u, 0, Math.PI * 2); c.fill();
     }
     c.restore();
+    P.Landmarks.weather(R, s, y0, y1);
     if (th.fog && hp >= 6) for (i = 0; i < 4; i++) {
       c.fillStyle = 'rgba(170,182,198,0.07)'; c.beginPath();
       c.ellipse(R.X(Math.sin(t * 0.05 + i * 2.1) * 3), R.Y(y0 + ((i * 7.3 + t * 0.6) % (y1 - y0))), 5 * u, 2.5 * u, 0, 0, Math.PI * 2); c.fill();
     }
   }
   W.themeOf = themeOf; W.hoodPos = hoodPos;
-  W.screenLight = function (s) { return P.Themes.tint(hoodPos(s)); };
+  W.screenLight = function (s) { return P.Themes.tintFor(hoodPos(s), P.Themes.subOf(themeOf(s), P.Themes.subIndex(s)).wx); };
   W.vignette = function (s) { return P.Themes.vignette(hoodPos(s)); };
 
   return W;

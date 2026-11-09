@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Comic preview (workstream G)</title>
+<title>Comic and barks preview (workstream D, v0.5)</title>
 <link rel="stylesheet" href="../css/proto.css">
 <link rel="stylesheet" href="../css/comic.css">
 <style>
@@ -12,17 +12,23 @@
   #phone { position: relative; left: auto; top: auto; transform: none; flex: none; }
   .dummy { position: absolute; inset: 0; background: linear-gradient(#262B3D, #14151F); color: #5c6378;
            display: grid; place-items: center; font: 600 14px system-ui; }
-  .ctl { width: 330px; display: grid; gap: 8px; }
+  #barkCv { position: absolute; left: 0; top: 0; width: 390px; height: 844px; pointer-events: none; z-index: 70; }
+  .ctl { width: 350px; display: grid; gap: 8px; }
   .ctl h3 { margin: 10px 0 0; font-size: 13px; color: #FFD166; text-transform: uppercase; letter-spacing: .06em; }
   .ctl button, .ctl select, .ctl input { font: inherit; padding: 6px 8px; background: #1F2130; color: #eee; border: 1px solid #444; border-radius: 4px; }
   .ctl .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .ctl .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .ctl label { display: flex; gap: 6px; align-items: center; }
-  #log { white-space: pre-wrap; font: 12px/1.35 ui-monospace, Menlo, monospace; background: #0F1018; padding: 8px;
-         min-height: 90px; border: 1px solid #222; }
+  .out { white-space: pre-wrap; font: 12px/1.35 ui-monospace, Menlo, monospace; background: #0F1018; padding: 8px;
+         border: 1px solid #222; overflow: auto; }
+  #log { min-height: 60px; }
+  #barkLog { min-height: 90px; max-height: 160px; }
+  #audit { min-height: 120px; max-height: 240px; }
+  #gl { background: #14151F; display: block; }
 </style>
 </head>
 <body>
-<div id="phone"><div class="dummy">game screen (dummy)</div></div>
+<div id="phone"><div class="dummy">game screen (dummy)</div><canvas id="barkCv" width="390" height="844"></canvas></div>
 
 <div class="ctl">
   <h3>Pages</h3>
@@ -40,34 +46,82 @@
   </div>
   <h3>Beats for a level</h3>
   <div class="row">
-    <label>Level <input id="lvl" type="text" value="1" size="10"></label>
+    <label>Level <input id="lvl" type="text" value="1" size="6"></label>
     <select id="when"><option>intro</option><option selected>start</option><option>mid</option><option>boss</option><option>end</option></select>
   </div>
   <div class="row">
     <button type="button" id="playBeat">Play beat</button>
     <button type="button" id="walk">Walk all beats</button>
   </div>
+
+  <h3>Barks tester (P.Barks)</h3>
+  <div class="row">
+    <label>Level <input id="bLvl" type="text" value="1" size="4"></label>
+    <label>Stage <select id="bStage"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <button type="button" id="bEnter">Enter level</button>
+  </div>
+  <div class="grid">
+    <button type="button" data-t="walker">Kill walker</button>
+    <button type="button" data-t="runner">Kill runner</button>
+    <button type="button" data-t="streak">Streak 10 kills</button>
+    <button type="button" data-t="hit">Hero hit (low hp)</button>
+    <button type="button" data-t="levelup">Level up</button>
+    <button type="button" data-t="boss">Boss intro</button>
+    <button type="button" data-t="hack">Hack ATM</button>
+    <button type="button" data-t="sig">No signal</button>
+    <button type="button" data-t="zombie">Zombie close 30 s</button>
+    <button type="button" data-t="idle">Stand still 10 s</button>
+  </div>
+  <div class="row">
+    <label><input id="bOn" type="checkbox" checked> barks on</label>
+    <button type="button" id="bAuto">Auto play 60 s</button>
+    <button type="button" id="bReset">Reset run</button>
+  </div>
+  <div id="barkLog" class="out">barks: ready. Bubbles show on the phone; each change is logged here.</div>
+
+  <h3>Fit audit (P.Comic.audit + P.Barks.audit)</h3>
+  <div class="row">
+    <button type="button" data-lang="tr">Audit TR</button>
+    <button type="button" data-lang="en">Audit EN</button>
+    <button type="button" data-lang="both">Audit TR + EN</button>
+    <label><input id="showAll" type="checkbox"> show all rows</label>
+  </div>
+  <div id="audit" class="out">Audit not run yet. Flags: CUT (ellipsized) or text at the 12 px minimum.</div>
+
+  <h3>Glyphs and casing (font stack check)</h3>
+  <div class="row"><button type="button" id="glyphs">Run glyph test</button></div>
+  <canvas id="gl" width="356" height="132"></canvas>
+  <div id="glOut" class="out">Not run yet.</div>
+
   <h3>Options</h3>
   <div class="row">
     <label><input id="reduce" type="checkbox"> reduce motion</label>
     <button type="button" id="lang">Language: TR</button>
   </div>
-  <div id="log">Ready. Works from file://.</div>
+  <div id="log" class="out">Ready. Works from file://.</div>
 </div>
 
 <script src="../js/strings.js"></script>
 <script src="../js/journey.js"></script>
+<script src="../js/strings-journey.js"></script>
 <script src="../js/story/strings-story.js"></script>
+<script src="../js/story/strings-barks.js"></script>
+<script src="../js/view/art-rig.js"></script>
+<script src="../js/view/art-characters.js"></script>
 <script src="../js/view/portraits.js"></script>
 <script src="../js/view/comic-art.js"></script>
 <script src="../js/view/comic.js"></script>
 <script src="../js/story/story-data.js"></script>
+<script src="../js/story/barks.js"></script>
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var log = $('log');
+  var log = $('log'), barkLog = $('barkLog');
   function say(msg) { log.textContent = msg + '\n' + log.textContent.slice(0, 600); }
+  function barkSay(msg) { barkLog.textContent = (msg + '\n' + barkLog.textContent).slice(0, 2400); }
   P.Settings = P.Settings || {};
+
+  // ----- pages, pops, calls, beats (unchanged behaviour)
   Object.keys(P.Story.pages).sort().forEach(function (id) {
     var o = document.createElement('option'); o.textContent = id; $('pageSel').appendChild(o);
   });
@@ -94,7 +148,6 @@
     P.Story.play(level, when, done || function () {});
   }
   $('playBeat').onclick = function () { playBeat($('lvl').value.trim(), $('when').value); };
-  // Walks intro, start, mid, boss, end for one level; waits for pages and calls, and a short beat for pops.
   var WHENS = ['intro', 'start', 'mid', 'boss', 'end'];
   $('walk').onclick = function () {
     var level = $('lvl').value.trim(), i = 0;
@@ -106,6 +159,121 @@
     }
     next();
   };
+
+  // ----- barks tester: a fake sim state, the real P.Barks, drawn on the phone canvas each frame
+  var cv = $('barkCv'), ctx = cv.getContext('2d');
+  var R = { ctx: ctx, dpr: 1, W: 390, H: 844, X: function (x) { return x; }, Y: function (y) { return y; },
+            toScreen: function (x, y) { return { x: 195 + x, y: 520 + y }; } };
+  function freshState() {
+    return { hero: { x: 0, y: 0, hp: 80, maxHp: 100, moving: false }, enemies: [], level: 1, levelIndex: 1,
+             levelInfo: null, dir: { barks: { cur: null } } };
+  }
+  var S = freshState(), lastId = null, autoUntil = 0, autoT = 0, lastT = performance.now();
+  function enter(n, stage) {
+    var info = P.Journey.level(n);
+    if (!info) return barkSay('no level ' + n);
+    if (stage) info.stage = stage;
+    S.level = n; S.levelIndex = n; S.levelInfo = info;
+    barkSay('enter level ' + n + ' (' + info.hood.name + ', stage ' + info.stage + ')');
+  }
+  enter(1, 1);
+  $('bEnter').onclick = function () { enter(parseInt($('bLvl').value, 10) || 1, parseInt($('bStage').value, 10)); };
+  function kill(enemy) { P.Barks.onEvent({ type: 'kill', enemy: enemy, elite: false, boss: false, src: 'hero' }, S); }
+  var TRIG = {
+    walker: function () { kill('walker'); },
+    runner: function () { kill('runner'); },
+    streak: function () { for (var i = 0; i < 10; i++) kill(i % 2 ? 'walker' : 'runner'); },
+    hit: function () { S.hero.hp = 22; P.Barks.onEvent({ type: 'heroHit', hp: 22 }, S); },
+    levelup: function () { P.Barks.onEvent({ type: 'levelup', level: 3 }, S); },
+    boss: function () { P.Barks.onEvent({ type: 'bossIntro' }, S); },
+    hack: function () {
+      P.Barks.onEvent({ type: 'hackStart', kind: 'atm' }, S);
+      setTimeout(function () { P.Barks.onEvent({ type: 'hackDone', kind: 'atm' }, S); }, 2000);
+    },
+    sig: function () { P.Barks.onEvent({ type: 'signalLost' }, S); autoUntil = performance.now() + 20000; },
+    zombie: function () { S.enemies = [{ x: 40, y: 0, dead: false, boss: false, state: 'walk', kind: 'walker' }]; autoUntil = performance.now() + 30000; },
+    idle: function () { S.hero.moving = false; autoUntil = performance.now() + 10000; }
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (b) {
+    b.onclick = function () { barkSay('trigger ' + b.getAttribute('data-t')); TRIG[b.getAttribute('data-t')](); };
+  });
+  $('bAuto').onclick = function () { autoUntil = performance.now() + 60000; barkSay('auto play 60 s (hero walks, random kills)'); };
+  $('bReset').onclick = function () {
+    P.Barks.reset(1337); S = freshState(); S.enemies = []; enter(1, 1); P.Barks.clear(); barkSay('run reset (seed 1337)');
+  };
+  $('bOn').onchange = function () { P.Barks.setEnabled($('bOn').checked); };
+
+  function frame(now) {
+    var dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+    if (now < autoUntil) {
+      S.hero.moving = true; autoT += dt;
+      S.hero.x = Math.cos(autoT * 0.6) * 60; S.hero.y = Math.sin(autoT * 0.6) * 40;
+      if (Math.random() < dt * 0.4) kill(Math.random() < 0.5 ? 'walker' : 'runner');
+    } else if (autoUntil) {
+      autoUntil = 0; S.hero.moving = false; S.enemies = [];
+    }
+    P.Barks.update(dt, S);
+    var cur = P.Barks.current();
+    if (cur && (!lastId || lastId !== cur.id)) {
+      barkSay(cur.id + ' [' + cur.who + '] ' + P.line(cur.id).text);
+    }
+    lastId = cur ? cur.id : null;
+    ctx.clearRect(0, 0, 390, 844);
+    P.Barks.draw(R, S);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ----- fit audit: runs P.Comic.audit and P.Barks.audit for each language and lists the rows that need a look
+  function runAudit(langs) {
+    var prev = P.lang, rows = [];
+    langs.forEach(function (L) {
+      P.lang = L;
+      P.Comic.audit().forEach(function (r) { r.lang = L; rows.push(r); });
+      P.Barks.audit().forEach(function (r) { r.lang = L; rows.push(r); });
+    });
+    P.lang = prev;
+    var flagged = rows.filter(function (r) { return r.cut || r.px <= 12; });
+    var show = $('showAll').checked ? rows : flagged;
+    var text = 'rows ' + rows.length + ', flagged ' + flagged.length + ' (CUT = ellipsized, or at the 12 px minimum)\n';
+    text += show.map(function (r) {
+      return r.lang + '  ' + r.kind + '  ' + r.id + '  px ' + r.px + (r.cut ? '  CUT' : '');
+    }).join('\n');
+    $('audit').textContent = text;
+    say('audit ' + langs.join('+') + ': ' + flagged.length + ' flagged of ' + rows.length);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-lang]'), function (b) {
+    b.onclick = function () {
+      var m = b.getAttribute('data-lang');
+      runAudit(m === 'both' ? ['tr', 'en'] : [m]);
+    };
+  });
+
+  // ----- glyphs: width of each Turkish glyph in each stack, against a generic control font
+  $('glyphs').onclick = function () {
+    var g = document.getElementById('gl').getContext('2d'), m = document.createElement('canvas').getContext('2d');
+    var GLYPHS = 'ğĞüÜşŞıİöÖçÇ', CONTROL = '600 18px sans-serif';
+    var STACKS = [['speech', P.ComicArt.font('speech', 18)], ['title', P.ComicArt.font('title', 18)],
+                  ['hand', P.ComicArt.font('hand', 18)]];
+    var out = 'glyph  ' + STACKS.map(function (s) { return s[0]; }).join('  ') + '  control\n';
+    Array.prototype.forEach.call(GLYPHS, function (ch) {
+      m.font = CONTROL; var base = m.measureText(ch).width;
+      var ws = STACKS.map(function (s) { m.font = s[1]; return m.measureText(ch).width.toFixed(1); });
+      var same = STACKS.some(function (s, i) { m.font = s[1]; return Math.abs(m.measureText(ch).width - base) < 0.05; });
+      out += ch + '      ' + ws.join('   ') + '   ' + base.toFixed(1) + (same ? '   (= control: check visually)' : '') + '\n';
+    });
+    g.fillStyle = '#14151F'; g.fillRect(0, 0, 356, 132);
+    STACKS.forEach(function (s, i) {
+      g.font = s[1]; g.fillStyle = '#FFF8EC';
+      g.fillText('ÇĞÜŞİÖ çğüşıö 0123', 10, 30 + i * 40);
+    });
+    var casing = P.upper('istanbul ıİi');
+    out += '\nP.upper("istanbul ıİi") in tr-TR = ' + casing + '  (expect İSTANBUL IİİI-style: ı→I, i→İ)\n';
+    out += 'A.TYPE: ' + JSON.stringify(P.ComicArt.TYPE);
+    $('glOut').textContent = out;
+  };
+
+  // ----- options
   $('reduce').onchange = function () { P.Settings.reduceMotion = $('reduce').checked; };
   $('lang').onclick = function () {
     P.lang = P.lang === 'tr' ? 'en' : 'tr';

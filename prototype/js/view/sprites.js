@@ -158,7 +158,7 @@ P.Sprites = (function () {
 
   // Zombie recipe. Outfit from e.skin, else the L1 crowd by variant. Colours are desaturated for zombies.
   function zombieRc(e, def, human, f) {
-    var v = (e.variant | 0) & 7, skinId = e.skin || EN.L1[v], O = CH.outfit(skinId), T = human ? function (x) { return x; } : R.tint;
+    var v = (e.variant | 0) & 7, skinId = e.skin || def.skin || EN.L1[v], O = CH.outfit(skinId), T = human ? function (x) { return x; } : R.tint;
     var sc = O.top === 'overall' ? O.base : O.col, windupQ = Math.round(clamp(e.windup || 0, 0, 1) * 3) / 3, swellQ = Math.round(clamp(e.swell || 0, 0, 1) * 4) / 4;
     // Brutes keep dull eyes until the wind-up turns them red.
     var eyeC = def.body === 'brute' && windupQ <= 0 ? '#A8382C' : def.eyes;

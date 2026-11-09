@@ -1,16 +1,16 @@
-// Meta layer data (no DOM): named constants, save state, economy, gear, loadout and map geometry.
-// Save key 'nsi.meta.v1'. The rest of the meta layer reads and writes state only through P.Meta.
-// Economy and gear numbers follow docs/game-design.md 8.6-8.7 unless marked PROTO.
+// Meta layer data (no DOM): constants, save state, economy, gear, loadout and map geometry.
+// Save v2 lives in meta-save.js ('nsi.meta.v2', migrates v1). The rest of the meta layer reads and writes
+// state only through P.Meta. Economy and gear numbers follow docs/game-design.md 8.6-8.7 unless marked PROTO.
 P.Meta = P.Meta || {};
 (function (M) {
-  var J = P.Journey, KEY = 'nsi.meta.v1', LEVELS = J.hoods.length * J.levelsPerHood;
+  var J = P.Journey, LEVELS = J.hoods.length * J.levelsPerHood;
   var num = function (x) { return Number(x) || 0; };
   var round3 = function (x) { return Math.round(x * 1000) / 1000; };
 
   // ---- Named constants (economy, progression, gear) ----
   M.CFG = {
-    storageKey: KEY, levelCount: LEVELS, levelsPerHood: J.levelsPerHood, hoodCount: J.hoods.length,
-    totalKm: J.totalKm, startWeapon: 'knife', starsMax: 3,
+    storageKey: 'nsi.meta.v2', levelCount: LEVELS, levelsPerHood: J.levelsPerHood, hoodCount: J.hoods.length,
+    totalKm: J.totalKm, startWeapon: 'knife', starsMax: 3, masteryBadgeRank: 5,
     coins: {
       clearBase: 40,        // clear reward = clearBase + clearPerLevel * level (GD 8.7)
       clearPerLevel: 6,
@@ -19,7 +19,9 @@ P.Meta = P.Meta || {};
       lossKeep: 0.5,        // a lost run keeps half its run coins (same as the pause copy)
       debugGrant: 2000      // PROTO: P.Meta.debugUnlockAll
     },
-    gear: { maxLevel: 10, costPerLevel: 20, startFraction: 0.4, maxStatPct: 0.25 }   // cost = 20 * level (GD 8.6)
+    gear: { maxLevel: 10, costPerLevel: 20, startFraction: 0.4, maxStatPct: 0.25 },   // cost = 20 * level (GD 8.6)
+    // Ult unlock by lifetime kills, by ult index in P.CFG.ults (PROTO). Index past the list reuses the last value.
+    ultKills: [0, 1500, 4000, 9000, 16000, 25000]
   };
 
   // ---- Gear: four slots, two items each. Items unlock on a boss first clear (GD 8.6 "boss first-clear"). ----
@@ -58,7 +60,7 @@ P.Meta = P.Meta || {};
     fires: [[0.46, 0.42], [0.6, 0.27], [0.36, 0.48], [0.14, 0.62], [0.52, 0.36], [0.27, 0.55], [0.66, 0.14], [0.44, 0.27],
       [0.58, 0.44], [0.2, 0.58], [0.74, 0.3], [0.33, 0.3]],
     gulls: [[0.66, 0.2], [0.74, 0.42], [0.42, 0.62], [0.2, 0.66], [0.6, 0.46], [0.86, 0.6]],
-    // [stringKey, u, v, fontPx, rotationRad, colour]
+    // [stringKey, u, v, fontPx, rotationRad, colour]. Label positions chosen so no two overlap (v0.5 polish).
     labels: [
       ['meta.map.beyoglu', 0.67, 0.09, 30, 0, '#F4EBDD'],
       ['meta.map.fatih', 0.27, 0.36, 30, 0, '#F4EBDD'],
@@ -76,40 +78,12 @@ P.Meta = P.Meta || {};
   M.hoodXY = function (h) { var hd = M.hood(h); return M.HOOD_XY_OVERRIDE[hd.id] || hd.map; };
   M.levelAt = function (h, k) { return h * J.levelsPerHood + k; };   // k = 1..levelsPerHood
 
-  // ---- Save state ----
-  var mem = null;
-  function defaults() {
-    return { v: 1, unlocked: 1, stars: {}, coins: 0,
-      gear: { hoodie_sweat: { lvl: 1 }, gloves_work: { lvl: 1 }, sneak_run: { lvl: 1 }, charm_nazar: { lvl: 1 } },
-      equipped: { hoodie: 'hoodie_sweat', gloves: 'gloves_work', sneakers: 'sneak_run', charm: 'charm_nazar' },
-      pending: null };
-  }
-  function clampGear(l) { return Math.max(1, Math.min(M.CFG.gear.maxLevel, Math.round(num(l)) || 1)); }
-  function normalize(raw) {
-    var s = raw && typeof raw === 'object' ? raw : {}, out = defaults();
-    out.unlocked = Math.max(1, Math.min(LEVELS, Math.round(num(s.unlocked)) || 1));
-    out.coins = Math.max(0, Math.round(num(s.coins)));
-    Object.keys(s.stars || {}).forEach(function (k) {
-      var i = Math.round(num(k)), v = Math.round(num(s.stars[k]));
-      if (i >= 1 && i <= LEVELS && v >= 1) out.stars[i] = Math.min(M.CFG.starsMax, v);
-    });
-    Object.keys(M.ITEMS).forEach(function (id) { if (s.gear && s.gear[id]) out.gear[id] = { lvl: clampGear(s.gear[id].lvl) }; });
-    M.SLOTS.forEach(function (slot) {
-      var id = s.equipped && s.equipped[slot.id];
-      if (id && M.ITEMS[id] && M.ITEMS[id].slot === slot.id && out.gear[id]) out.equipped[slot.id] = id;
-    });
-    out.pending = s.pending && typeof s.pending === 'object' ? s.pending : null;
-    return out;
-  }
-  function load() {
-    if (!mem) {
-      var raw = null;
-      try { raw = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { raw = null; }
-      mem = normalize(raw);
-    }
-    return mem;
-  }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(mem)); } catch (e) { /* private mode: keep in memory */ } }
+  // ---- Save state (schema in meta-save.js) ----
+  var mem = null, activeRun = null;
+  function load() { if (!mem) mem = M.Save.read(); return mem; }
+  function save() { M.Save.write(mem); }
+  M.state = function () { return load(); };
+  M.save = save;
 
   // ---- Level progress (sequential: a level is cleared when it has stars) ----
   M.starsOf = function (i) { return load().stars[i] || 0; };
@@ -184,45 +158,174 @@ P.Meta = P.Meta || {};
     return added;
   }
 
-  // ---- Public state API ----
-  M.loadout = function () {
-    var s = load(), g = { maxHpPct: 0, mightPct: 0, movePct: 0, pickupPct: 0, cooldownPct: 0 };
+  // ---- Weapon mastery (A's P.Mastery supplies rank and the src mapping; lifetime kills are kept here) ----
+  M.srcWeapon = function (src) {
+    if (P.Mastery && P.Mastery.srcToWeapon) return P.Mastery.srcToWeapon(src) || null;
+    return String(src || '').replace(/^w:/, '') || null;
+  };
+  M.masteryKills = function (w) { return load().mastery[w] || 0; };
+  M.masteryRank = function (w, kills) {
+    if (!P.Mastery || !P.Mastery.rank) return 0;
+    return P.Mastery.rank(w, kills === undefined ? M.masteryKills(w) : kills) | 0;
+  };
+  // Lowest lifetime kill count that reaches the next rank (exponential search, then bisection).
+  M.masteryNext = function (w, kills) {
+    var r0 = M.masteryRank(w, kills), lo = kills, hi = Math.max(1, kills * 2), mid;
+    if (!P.Mastery || !P.Mastery.rank) return null;
+    while (M.masteryRank(w, hi) <= r0 && hi < 1e7) { lo = hi; hi *= 2; }
+    while (hi - lo > 1) { mid = Math.floor((lo + hi) / 2); if (M.masteryRank(w, mid) > r0) hi = mid; else lo = mid; }
+    return { rank: r0, next: hi, have: kills };
+  };
+  // Adds bySrc kills to weapon totals. Returns [{id, from, to}] for weapons whose rank went up.
+  function accumulateMastery(s, bySrc) {
+    var ups = {}, out = [], w, n;
+    Object.keys(bySrc || {}).forEach(function (src) {
+      w = M.srcWeapon(src); n = Math.round(num(bySrc[src]));
+      if (!w || n <= 0) return;
+      if (ups[w] === undefined) ups[w] = M.masteryRank(w, s.mastery[w] || 0);
+      s.mastery[w] = (s.mastery[w] || 0) + n;
+    });
+    Object.keys(ups).forEach(function (id) {
+      var to = M.masteryRank(id, s.mastery[id]);
+      if (to > ups[id]) out.push({ id: id, from: ups[id], to: to });
+      if (to >= M.CFG.masteryBadgeRank && P.Meta.Collect) P.Meta.Collect.badgeFor(s, id, to);
+    });
+    return out;
+  }
+
+  // ---- Ults (ids from P.CFG.ults, A's config; 'nazar' when the list is missing) ----
+  M.ultIds = function () {
+    var u = P.CFG && P.CFG.ults;
+    if (!u) return ['nazar'];
+    return Array.isArray(u) ? u.slice() : Object.keys(u);
+  };
+  M.ultUnlockKills = function (i) {
+    var t = M.CFG.ultKills;
+    return i < t.length ? t[i] : t[t.length - 1] + (i - t.length + 1) * 10000;
+  };
+  M.ults = function () {
+    var s = load(), ids = M.ultIds();
+    return ids.map(function (id, i) {
+      var need = M.ultUnlockKills(i);
+      return { id: id, index: i, need: need, unlocked: s.counters.kills >= need };
+    });
+  };
+  M.setUlt = function (id) {
+    var s = load(), hit = M.ults().filter(function (u) { return u.id === id && u.unlocked; });
+    if (!hit.length) return false;
+    s.heroes.arda.ult = id; save();
+    return true;
+  };
+
+  // ---- Stats (attribute levels, training and allocation) ----
+  M.heroStats = function (hero) { return load().heroes[hero || 'arda'].stats; };
+  M.allocate = function (draft, hero) {
+    var s = load(), h = s.heroes[hero || 'arda'], next = P.Stats.allocate(h.stats, draft);
+    if (!next) return false;
+    h.stats = next; save();
+    return true;
+  };
+
+  // ---- Run options (daily modifiers etc.) ----
+  // beginRun(opts) remembers opts for the next loadout(). openDaily() calls it. opts: {daily, modifiers, seed}.
+  M.beginRun = function (opts) { activeRun = opts && typeof opts === 'object' ? opts : null; };
+  M.endRun = function () { activeRun = null; };
+
+  // ---- Loadout for createSim (contract: gear, startWeapon, stats, mastery, ult, hero, modifiers) ----
+  function gearSum(s) {
+    var g = { maxHpPct: 0, mightPct: 0, movePct: 0, pickupPct: 0, cooldownPct: 0 };
     M.SLOTS.forEach(function (slot) {
       var id = s.equipped[slot.id], st = id ? M.itemStats(id, s.gear[id].lvl) : {};
       Object.keys(st).forEach(function (k) { g[k] = g[k] + st[k]; });
     });
     Object.keys(g).forEach(function (k) { g[k] = round3(Math.min(M.CFG.gear.maxStatPct, g[k])); });
-    return { gear: g, startWeapon: M.CFG.startWeapon };
+    return g;
+  }
+  function masteryRanks(s) {
+    var out = {};
+    Object.keys(s.mastery).forEach(function (w) { out[w] = M.masteryRank(w, s.mastery[w]); });
+    return out;
+  }
+  M.loadout = function (opts) {
+    var s = load(), hero = s.heroes.arda, o = opts || activeRun || {}, ults = M.ults(), ult = hero.ult, lo;
+    var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
+    if (!unlocked) ult = M.ultIds()[0] || 'nazar';
+    lo = { gear: gearSum(s), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
+      mastery: masteryRanks(s), ult: ult, hero: 'arda', modifiers: [] };
+    if (o.daily) { lo.modifiers = (o.modifiers || []).map(function (m) { return Object.assign({}, m); }); lo.seed = o.seed | 0; lo.daily = true; }
+    return lo;
   };
   M.progress = function () {
     var s = load(), stars = {};
     Object.keys(s.stars).forEach(function (k) { stars[k] = s.stars[k]; });
     return { unlocked: s.unlocked, stars: stars, coins: s.coins, kmWalked: M.snapshot().km };
   };
-  // Called by the game after a level. Credits coins and progress, queues the return animation.
-  M.onResults = function (r) {
-    r = r || {};
-    var s = load(), i = M.clampLevel(r.levelIndex), won = !!r.won, prev = s.stars[i] || 0;
+
+  // ---- Results: one finished level updates every system, then the next open plays the sequence ----
+  function coinBonus(s, coins) {
+    var pct = P.Stats.effects({ cha: s.heroes.arda.stats.attr.cha }).coinPct || 0;
+    return Math.round(coins * (1 + pct));
+  }
+  // Daily attempt bookkeeping: only the first run on today's planned daily counts.
+  // The run counts as the daily when opts (or the active run) say so and the day matches the plan.
+  function dailyResult(s, r, won, day) {
+    if (!(r.daily || (activeRun && activeRun.daily)) || s.daily.day !== day) return null;
+    s.daily.won = !!won;
+    if (won && s.daily.played) s.streak = P.Meta.Daily.streakAfter(s.streak, day);
+    return { won: !!won, day: day, streak: s.streak.n };
+  }
+  function apply(s, r, now) {
+    var i = M.clampLevel(r.levelIndex), won = !!r.won, prev = s.stars[i] || 0, before = M.snapshot();
     var stars = won ? Math.max(1, Math.min(M.CFG.starsMax, Math.round(num(r.stars)))) : 0;
-    var before = M.snapshot(), rw = M.rewardFor({ levelIndex: i, won: won, coins: r.coins }, prev, stars);
-    if (won) {
-      if (stars > prev) s.stars[i] = stars;
-      s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1));
-    }
+    var rw = M.rewardFor({ levelIndex: i, won: won, coins: r.coins }, prev, stars), st0 = s.heroes.arda.stats;
+    var st = P.Stats.applyLevel(st0, r.tally, won), day = P.Meta.Daily.dayKey(new Date(now)), ups, news, achieved;
+    if (won) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
+    rw.total = coinBonus(s, rw.total);
     s.coins += rw.total;
+    s.heroes.arda.stats = st.prog;
+    ups = accumulateMastery(s, r.tally && r.tally.bySrc);
+    P.Meta.Collect.bump(s, Object.assign({}, r, { won: won, levelIndex: i }));
+    var daily = dailyResult(s, r, won, day);
+    news = P.Meta.Collect.onLevel(s, { levelIndex: i, won: won, pageIds: r.pageIds }, M.snapshot().done);
+    achieved = P.Meta.Collect.checkAchievements(s);
     var newGear = unlockGear(s);
-    s.pending = { levelIndex: i, won: won, stars: stars, reward: rw, newGear: newGear, before: before, after: M.snapshot() };
+    s.lastPlayed = now;
+    return { levelIndex: i, won: won, stars: stars, reward: rw, newGear: newGear, before: before, after: M.snapshot(),
+      kills: r.kills | 0, statGains: { hero: 'arda', gains: st.gains, before: st0, after: st.prog },
+      masteryUps: ups, collected: news, achieved: achieved, daily: daily };
+  }
+  // Called by the game after a level. r: {levelIndex, won, stars, coins, kills, timeS, tally, daily, reviveUsed}.
+  M.onResults = function (r) {
+    var s = load(), now = Date.now(), p;
+    r = r || {};
+    p = apply(s, r, now);
+    s.pending = p;
+    activeRun = null;
     save();
-    return s.pending;
+    return p;
   };
   M.takePending = function () {
     var s = load(), p = s.pending;
     if (p) { s.pending = null; save(); }
     return p;
   };
+  // Welcome-back summary once per return after 12 h. Also stamps lastPlayed.
+  M.welcomeTake = function (now) {
+    var s = load(), t = now || Date.now(), day = P.Meta.Daily.dayKey(new Date(t)),
+      info = P.Meta.Daily.welcome(t, s.lastPlayed, P.Meta.Daily.liveStreak(s.streak, day));
+    s.lastPlayed = t; save();
+    return info;
+  };
+  // For other systems (lead, story D): unlock a collection item such as 'page:<id>' or 'letter:1'. True when new.
+  M.collect = function (id) {
+    var added = M.Collect.add(load(), String(id || ''));
+    if (added) save();
+    return added;
+  };
   M.reset = function () {
-    mem = normalize(null);
-    try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
+    M.Save.wipe();
+    mem = M.Save.defaults();
+    save();
     return M.progress();
   };
   M.debugUnlockAll = function () {
@@ -230,6 +333,7 @@ P.Meta = P.Meta || {};
     for (i = 1; i <= LEVELS; i++) s.stars[i] = M.CFG.starsMax;
     s.unlocked = LEVELS;
     s.coins += M.CFG.coins.debugGrant;
+    s.counters.kills = Math.max(s.counters.kills, 20000);
     unlockGear(s);
     save();
     return M.progress();

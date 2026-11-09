@@ -10,13 +10,20 @@
   select, button { font: inherit; padding: 4px 6px; }
   label { display: inline-flex; gap: 6px; align-items: center; }
   input[type=range] { width: 200px; }
+  #phone { position: relative; width: 390px; height: 844px; }
   #game { width: 390px; height: 844px; background: #14151F; display: block; border-radius: 12px; }
   #info { margin-top: 8px; font-weight: 500; }
+  h3 { margin: 24px 0 8px; }
+  .cards { display: grid; grid-template-columns: repeat(4, 300px); gap: 12px 14px; }
+  .cards figure { margin: 0; }
+  .cards canvas { display: block; width: 300px; height: 170px; border-radius: 6px; }
+  .cards figcaption { margin-top: 4px; font-weight: 500; font-size: 12px; }
 </style>
 </head>
 <body>
 <div class="bar">
-  <label>Theme <select id="theme"></select></label>
+  <label>Hood <select id="theme"></select></label>
+  <label>Stage <select id="stage"></select></label>
   <label>Scroll y <input id="y" type="range" min="0" max="240" step="0.25" value="0"> <span id="yv">0</span> m</label>
   <label>Cam x <input id="x" type="range" min="-3" max="3" step="0.1" value="0"></label>
   <label><input id="hold" type="checkbox"> hold width 12 m</label>
@@ -24,9 +31,14 @@
   <label><input id="blocks" type="checkbox" checked> blocks</label>
   <label><input id="auto" type="checkbox"> auto-scroll</label>
   <button id="prev">&lt; prev</button><button id="next">next &gt;</button>
+  <button id="card">show hood card</button>
 </div>
-<canvas id="game" width="390" height="844"></canvas>
+<div id="phone">
+  <canvas id="game" width="390" height="844"></canvas>
+</div>
 <div id="info"></div>
+<h3>Postcards: stage-1 hood card vignette for every hood</h3>
+<div class="cards" id="cards"></div>
 
 <script>window.P = {};</script>
 <!-- Real game scripts in index.html order (minus main.js, input.js, ui.js, music and audio, which the preview does not need). -->
@@ -40,6 +52,8 @@
 <script src="../js/story/strings-story.js"></script>
 <script src="../js/sim/rng.js"></script>
 <script src="../js/sim/world.js"></script>
+<script src="../js/sim/weapons.js"></script>
+<script src="../js/sim/skills.js"></script>
 <script src="../js/view/settings.js"></script>
 <script src="../js/view/sfx-bank.js"></script>
 <script src="../js/view/sfx-bank2.js"></script>
@@ -60,6 +74,8 @@
 <script src="../js/view/istanbul-props.js"></script>
 <script src="../js/view/istanbul-props2.js"></script>
 <script src="../js/view/istanbul-themes.js"></script>
+<script src="../js/view/istanbul-landmarks.js"></script>
+<script src="../js/view/hood-card.js"></script>
 <script src="../js/view/screens.js"></script>
 <script src="../js/view/coldopen.js"></script>
 
@@ -76,38 +92,39 @@
     { kind: 'tree', x: 0.6, y: 118, w: 1.0, h: 1.0 }, { kind: 'bollard', x: -0.8, y: 86, w: 0.4, h: 0.4 },
     { kind: 'mystery', x: 1.8, y: 60, w: 1, h: 1 }
   ];
-  var LANDMARKS = [ { kind: 'tower', y: 24 }, { kind: 'pillar', y: 44 }, { kind: 'mural', y: 60 }, { kind: 'clock', y: 88 },
-    { kind: 'crane', y: 70 }, { kind: 'vault', y: 110 }, { kind: 'wallSection', y: 120 }, { kind: 'playground', y: 130 },
-    { kind: 'gateArch', y: 140 }, { kind: 'pier', y: 180 } ];
-  var canvas = document.getElementById('game'), sel = document.getElementById('theme');
+  var canvas = document.getElementById('game'), sel = document.getElementById('theme'), stageSel = document.getElementById('stage');
   var ui = { y: document.getElementById('y'), x: document.getElementById('x'), hold: document.getElementById('hold'),
     exit: document.getElementById('exit'), blocks: document.getElementById('blocks'), auto: document.getElementById('auto') };
 
-  // Options: L1 (scripted) first, then one generated level per neighbourhood (first stage, hood 0 uses stage 2).
-  var OPTS = [{ label: 'L1 · İstiklal (scripted opening level)', level: 1 }];
+  // One option per neighbourhood (20) and per stage (1..5). Level index = hood * 5 + stage; level 1 is the scripted L1.
   P.Journey.hoods.forEach(function (h, hi) {
-    OPTS.push({ label: (hi + 1) + ' · ' + h.name + ' (' + h.theme + ')', level: hi === 0 ? 2 : hi * 5 + 1 });
+    var op = document.createElement('option'); op.value = hi; op.textContent = (hi + 1) + ' · ' + h.name + ' (' + h.theme + ')'; sel.appendChild(op);
   });
-  OPTS.forEach(function (o, i) { var op = document.createElement('option'); op.value = i; op.textContent = o.label; sel.appendChild(op); });
+  for (var st = 1; st <= 5; st++) { var so = document.createElement('option'); so.value = st; so.textContent = 'Stage ' + st; stageSel.appendChild(so); }
+
+  function curHood() { return parseInt(sel.value, 10); }
+  function curStage() { return parseInt(stageSel.value, 10); }
+  function curLevel() { return curHood() * 5 + curStage(); }
 
   function fakeSim(level) {
-    var li = level > 1 ? P.Journey.level(level) : null, theme = li ? li.hood.theme : 'istiklal';
+    var li = P.Journey.level(level), theme = li.hood.theme;
     return {
       seed: 1, t: 0, runT: 0, mode: 'play', levelIndex: level, levelInfo: li, theme: theme,
+      // geo.sub: stage number (1..5) exercises the sub-location path; the L1 path ignores geo.
       geo: { xMin: -4.6, xMax: 4.6, length: 230, exitY: 230, holdY: 200, holdT: 56, boss: null, exitOpen: ui.exit.checked,
-        blocks: ui.blocks.checked ? BLOCKS : [], landmarks: LANDMARKS },
+        blocks: ui.blocks.checked ? BLOCKS : [], sub: li.stage },
       hero: { x: 0, y: 0, fx: 0, fy: 1, hp: 100, maxHp: 100, moving: false, invuln: 0, pickupRadius: 1.2, sinceHit: 99,
         weapons: { knife: 1 }, passives: {}, cds: {}, chainA: 0, swingDir: 1, regenOn: false, hitFlash: 0 },
-      enemies: [], drops: [], projs: [], nails: [], zones: [], events: [],
+      enemies: [], drops: [], projs: [], nails: [], zones: [], events: [], enemyTele: [], enemyShots: [], hacks: [], ev: { list: [], helpers: [] },
       props: { carts: [], canisters: [], doorOpen: false, shutter: 0, shutterOpen: false, scaffoldDown: false },
       dir: { civilians: [], telegraphs: [], flags: {}, bubbles: [], barks: { cur: null, queue: [] }, tut: { active: null }, hold: { active: false }, zoomOut: false }
     };
   }
 
-  var sim = null, camY = 0;
-  function setTheme(i) {
-    sel.value = i;
-    sim = fakeSim(OPTS[i].level);
+  var sim = null;
+  function setLevel() {
+    var lvl = curLevel();
+    sim = fakeSim(lvl);
     sim.hero.y = 0;
     P.Fx.reset(sim);
     if (P.Sfx && P.Sfx.ambience) P.Sfx.ambience(sim.theme);
@@ -122,16 +139,41 @@
     cam.y = y; cam.x = cx; cam.w = ui.hold.checked ? P.CFG.view.holdWidthM : P.CFG.view.widthM;
     cam.ox = 0; cam.oy = 0; cam.rot = 0; cam.zoom = 1; cam.trauma = 0; cam.punchT = 0;
     P.Render.frame(sim, null);
-    var tint = P.RenderWorld.screenLight ? P.RenderWorld.screenLight(sim) : null, hp = P.RenderWorld.hoodPos ? P.RenderWorld.hoodPos(sim) : 0;
-    document.getElementById('info').textContent = OPTS[sel.value].label + ' · levelIndex ' + sim.levelIndex + ' · hood pos ' +
-      hp.toFixed(2) + (tint ? ' · tint rgba(' + tint.map(function (v, k) { return k < 3 ? Math.round(v) : v.toFixed(2); }).join(',') + ')' : '');
+    var tint = P.RenderWorld.screenLight(sim), hp = P.RenderWorld.hoodPos(sim), sub = P.Themes.subOf(P.Themes.get(sim.theme), P.Themes.subIndex(sim));
+    document.getElementById('info').textContent = sim.levelInfo.hood.name + ' · stage ' + sim.levelInfo.stage + ' · ' + sub.en +
+      ' · weather ' + sub.wx + ' · levelIndex ' + sim.levelIndex + ' · hood pos ' + hp.toFixed(2) +
+      ' · tint rgba(' + tint.map(function (v, k) { return k < 3 ? Math.round(v) : v.toFixed(2); }).join(',') + ')';
     requestAnimationFrame(frame);
   }
-  sel.addEventListener('change', function () { setTheme(parseInt(sel.value, 10)); });
-  document.getElementById('prev').addEventListener('click', function () { setTheme((parseInt(sel.value, 10) + OPTS.length - 1) % OPTS.length); });
-  document.getElementById('next').addEventListener('click', function () { setTheme((parseInt(sel.value, 10) + 1) % OPTS.length); });
+  function step(d) { var hi = (curHood() + d + 20) % 20; sel.value = hi; setLevel(); }
+
+  // Postcards: the stage-1 vignette of every hood on a sky wash from its time-of-day tint.
+  function postcards() {
+    var box = document.getElementById('cards');
+    P.Journey.hoods.forEach(function (h, hi) {
+      var fig = document.createElement('figure'), cv = document.createElement('canvas'), cap = document.createElement('figcaption');
+      cv.width = 300; cv.height = 170;
+      var c = cv.getContext('2d'), t = P.Themes.tint(hi), g = c.createLinearGradient(0, 0, 0, 170);
+      g.addColorStop(0, 'rgb(' + Math.round(t[0]) + ',' + Math.round(t[1]) + ',' + Math.round(t[2]) + ')');
+      g.addColorStop(1, '#F4EBDD');
+      c.fillStyle = g; c.fillRect(0, 0, 300, 170);
+      P.Landmarks.card(c, 300, 170, P.Themes.get(h.theme), 0);
+      cap.textContent = h.name + ' · ' + P.Themes.subOf(P.Themes.get(h.theme), 0).en + ' · ' + h.km.toFixed(1) + ' km';
+      fig.appendChild(cv); fig.appendChild(cap); box.appendChild(fig);
+    });
+  }
+
+  sel.addEventListener('change', setLevel);
+  stageSel.addEventListener('change', setLevel);
+  document.getElementById('prev').addEventListener('click', function () { step(-1); });
+  document.getElementById('next').addEventListener('click', function () { step(1); });
+  document.getElementById('card').addEventListener('click', function () {
+    P.HoodCard.show(P.Journey.level(curLevel()), { big: curStage() === 1 }, function () {});
+  });
+  postcards();
   P.Render.init(canvas); P.Render.resize(1);
-  setTheme(0);
+  sel.value = 0; stageSel.value = 1;
+  setLevel();
   requestAnimationFrame(frame);
 })();
 </script>

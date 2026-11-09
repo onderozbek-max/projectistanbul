@@ -1,27 +1,43 @@
 // Headless bot (prototype analog of tools/bot_sim.gd). Runs the pure sim with a kiting bot, no graphics.
 // Usage:
-//   node prototype/tools/bot.js [--seeds=50] [--policy=kite|straight] [--verbose]     Level 1 (scripted)
-//   node prototype/tools/bot.js --level=N [--seeds=20] [--verbose]                    one generated level (2..100)
-//   node prototype/tools/bot.js --levels=2,3,5,10,20,25,50,75,100 [--seeds=20]        summary table
-// Generated levels: generic policy (corridor centre, kite, dodge lanes/puddles/rings/stomps, pick up drops,
-// circle the hold and the boss, push through stalls). One revive is allowed (as in L1).
+//   node prototype/tools/bot.js [--seeds=30] [--policy=kite|straight] [--verbose]    Level 1 (scripted)
+//   node prototype/tools/bot.js --level=N [--seeds=8] [--verbose]                    one generated level (2..100)
+//   node prototype/tools/bot.js --levels=2,3,5,8,12,20,25,50,75,100 [--seeds=8]      summary table
+// Policies: L1 follows a fixed route with kite repulsion; generated levels use a generic policy (corridor centre,
+// kite, dodge lanes/puddles/rings/stomps, pick up drops, link hack terminals when no enemy is close, circle the hold
+// and the boss, push through stalls). Both link hacks (INT) and count events. One revive (as in L1). Exceptions are
+// caught and reported as result 'crash'.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-stats.js', 'js/config-weapons2.js', 'js/strings.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/sim/rng.js', 'js/sim/world.js', 'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/mastery.js', 'js/sim/enemies.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/levels.js', 'js/sim/events.js', 'js/sim/hack.js', 'js/sim/progression.js', 'js/sim/director.js', 'js/sim/sim.js'].forEach(function (f) {
-  vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f });
-});
+const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-stats.js', 'js/config-weapons2.js',
+  'js/strings.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/sim/rng.js', 'js/sim/world.js',
+  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/mastery.js',
+  'js/sim/enemies.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/levels.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
+  'js/sim/hack.js', 'js/sim/progression.js', 'js/sim/director.js', 'js/sim/sim.js'];
+FILES.forEach(function (f) { vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }); });
 const P = globalThis.P;
 
 const args = Object.fromEntries(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v === undefined ? true : v]));
-const SEEDS = parseInt(args.seeds || '50', 10), POLICY = args.policy || 'kite';
+// --base: switch off the v0.5 level additions (hood extras, stage events, flavour) to compare with the old generator.
+if (args.base) { P.CFG.levels.hoodExtras = {}; P.CFG.ev.mix = []; P.CFG.ev.flavour = {}; }
+const SEEDS = parseInt(args.seeds || '30', 10), POLICY = args.policy || 'kite';
 const PATH = [[-5, -1.5], [-5, 2], [0, 60], [-4, 140], [-4, 165], [-1, 192], [1.5, 206]];
 const MAX_T = 600, DT = 1 / 60, DROP_KINDS = ['xp', 'chest', 'simit', 'jeton'];
+const HACK_REACH = 7, COUNTED = ['screamStart', 'scream', 'helmetBlock', 'helmetOff', 'hackStart', 'hackNoise', 'hackDone', 'hackFail', 'signalRestored', 'signalLost', 'explode', 'screamCut', 'carQuiet', 'rescueDone', 'lootCaught'];
 const med = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : 0; };
 
-// ---------- Level 1 (unchanged behaviour) ----------
+// Event counts for the tables: eventStart per kind, plus hack, signal, blast and rescue outcomes.
+function countEvent(ev, acc) {
+  if (ev.type.startsWith('brute') || ev.type.startsWith('boss')) acc[ev.type] = (acc[ev.type] || 0) + 1;
+  const key = ev.type === 'eventStart' ? 'ev:' + ev.kind : COUNTED.includes(ev.type) ? ev.type : null;
+  if (key) acc[key] = (acc[key] || 0) + 1;
+}
+
+// ---------- Level 1 (fixed route) ----------
 function botInput(s, st) {
   const h = s.hero;
+  const threat = s.enemies.some(e => e.state === 'active' && Math.hypot(e.x - h.x, e.y - h.y) < 2.5);
   let tx, ty;
   if (s.props.shutterOpen) { tx = 7.8; ty = 226; }
   else if (!s.props.doorOpen) {
@@ -37,8 +53,9 @@ function botInput(s, st) {
   const tr = P.CFG.level.tram, inTram = x => x.x > tr.xMin - 0.5 && x.x < tr.xMax + 0.5 && x.y > tr.yMin - 0.5 && x.y < tr.yMax + 0.5;
   const near = s.drops.filter(x => Math.hypot(x.x - h.x, x.y - h.y) < 5 && x.y > h.y - 4 && !inTram(x))
     .sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y))[0];
-  const threat = s.enemies.some(e => e.state === 'active' && Math.hypot(e.x - h.x, e.y - h.y) < 2.5);
-  if (near && !threat && !s.props.shutterOpen) { tx = near.x; ty = near.y; }
+  const hk = s.hacks.filter(t => t.state !== 'done' && Math.hypot(t.x - h.x, t.y - h.y) < HACK_REACH)[0];
+  if (hk && !threat && !s.props.shutterOpen) { tx = hk.x; ty = hk.y; }
+  else if (near && !threat && !s.props.shutterOpen) { tx = near.x; ty = near.y; }
   if (h.y > tr.yMin - 0.6 && h.y < tr.yMax + 0.6 && Math.abs(h.x) > 1 && Math.sign(tx) !== Math.sign(h.x)) { tx = h.x; ty = tr.yMax + 1.2; }
   let vx = tx - h.x, vy = ty - h.y;
   const d = Math.hypot(vx, vy) || 1;
@@ -57,31 +74,34 @@ function botInput(s, st) {
 }
 
 function runL1(seed, firstRun) {
-  const s = P.createSim(seed);
-  P.startPlay(s);
-  const st = { wp: 0, ang: 0 }, dt = DT, segT = {}, deaths = [];
-  let result = 'timeout';
-  while (s.runT < MAX_T) {
-    while (s.pendingChests > 0) P.Progression.openChest(s, P.Progression.chestReward(s));
-    if (s.pendingLevels > 0) {
-      const offer = P.Progression.makeOffer(s);
-      P.Progression.choose(s, offer.cards[0]);
-      continue;
+  const st = { wp: 0, ang: 0 }, segT = {}, deaths = [], evBy = {};
+  let s = null, result = 'timeout', err = null;
+  try {
+    s = P.createSim(seed);
+    P.startPlay(s);
+    while (s.runT < MAX_T) {
+      while (s.pendingChests > 0) P.Progression.openChest(s, P.Progression.chestReward(s));
+      if (s.pendingLevels > 0) {
+        const offer = P.Progression.makeOffer(s);
+        P.Progression.choose(s, offer.cards[0]);
+        continue;
+      }
+      P.stepSim(s, DT, botInput(s, st));
+      P.drainEvents(s).forEach(ev => { if (ev.type === 'segment') segT[ev.id] = s.runT; countEvent(ev, evBy); });
+      if (s.mode === 'dead') {
+        deaths.push({ t: s.runT, cause: s.deathCause, y: s.hero.y });
+        if (firstRun && !s.secondWindUsed) P.revive(s, 'secondWind');
+        else if (!s.reviveUsed) P.revive(s, 'ad');
+        else { result = 'lose'; break; }
+      }
+      if (s.mode === 'won') { result = 'win'; break; }
     }
-    P.stepSim(s, dt, botInput(s, st));
-    P.drainEvents(s).forEach(ev => { if (ev.type === 'segment') segT[ev.id] = s.runT; });
-    if (s.mode === 'dead') {
-      deaths.push({ t: s.runT, cause: s.deathCause, y: s.hero.y });
-      if (firstRun && !s.secondWindUsed) P.revive(s, 'secondWind');
-      else if (!s.reviveUsed) P.revive(s, 'ad');
-      else { result = 'lose'; break; }
-    }
-    if (s.mode === 'won') { result = 'win'; break; }
-  }
-  const firstLvInA = s.levelUps.length && segT.A !== undefined ? s.levelUps[0] - segT.A : null;
-  return { seed, result, t: s.runT, chests: s.chestsOpened, kills: s.kills, level: s.level, levelUps: s.levelUps.length,
-    firstLvInA, peak: s.peakAlive, hp: Math.round(s.hero.hp), deaths, segT,
-    build: Object.assign({}, s.hero.weapons, s.hero.passives) };
+  } catch (e) { result = 'crash'; err = e.stack.split('\n').slice(0, 3).join(' | '); }
+  const L = s || { runT: 0, levelUps: [], peakAlive: 0, kills: 0, chestsOpened: 0, level: 1, hero: { hp: 0, weapons: {}, passives: {} }, tally: { hacks: 0, events: 0 } };
+  const firstLvInA = L.levelUps.length && segT.A !== undefined ? L.levelUps[0] - segT.A : null;
+  return { seed, result, err, t: L.runT, chests: L.chestsOpened, kills: L.kills, level: L.level, levelUps: L.levelUps.length,
+    firstLvInA, peak: L.peakAlive, hp: Math.round(L.hero.hp), deaths, segT, evBy, hacks: L.tally.hacks, events: L.tally.events,
+    build: Object.assign({}, L.hero.weapons, L.hero.passives) };
 }
 
 // ---------- Generated levels: generic kiting policy ----------
@@ -90,7 +110,7 @@ function unit(dx, dy) {
   return d < 0.3 ? { x: 0, y: 0 } : { x: dx / d, y: dy / d };
 }
 
-// Where the hero wants to go (ignoring drops and repulsion).
+// Where the hero wants to go (ignoring drops, hacks and repulsion).
 function targetOf(s, st) {
   const h = s.hero, G = s.geo, b = s.gen.boss;
   // Circle speed kept under the hero's 3.2 m/s at the circle radius (~0.5 rad/s at 6 m).
@@ -118,7 +138,8 @@ function repulsion(s, h) {
     else if (e.type === 'bloater') rep(dx, dy, e.swell > 0 ? 4.5 : 4.0, 5.0);
     else if (e.type === 'brute') rep(dx, dy, 4.0, 5.0);
     else if (e.type === 'spitter') rep(dx, dy, 2.2, 1.5);
-    else rep(dx, dy, 2.2, 1.5);   // walkers and runners: keep out of the crowd edge
+    else if (e.type === 'screamer') rep(dx, dy, 3.0, 2.0);   // stay out of its ring (windup)
+    else rep(dx, dy, 2.2, 1.5);   // walkers, runners, hardhats: keep out of the crowd edge
   }
   for (const q of s.enemyShots) rep(h.x - q.tx, h.y - q.ty, 1.6, 2);
   for (const tg of s.enemyTele) {
@@ -168,7 +189,9 @@ function genInput(s, st) {
   st.dropT = drop && drop === st.dropId ? st.dropT + 1 : 0;   // frames chasing the same drop
   st.dropId = drop;
   if (drop && st.dropT > 240) { st.skip.add(drop); drop = null; st.dropId = null; st.dropT = 0; }   // unreachable (inside a block): give up
-  const [tx, ty] = drop ? [drop.x, drop.y] : targetOf(s, st);
+  // Link a hack terminal in reach (linking needs the hero in the zone; the noise wave is fought after).
+  const hk = !drop && st.threat > 3 && !s.props.shutterOpen ? s.hacks.filter(t => t.state !== 'done' && Math.hypot(t.x - h.x, t.y - h.y) < HACK_REACH)[0] : null;
+  const [tx, ty] = drop ? [drop.x, drop.y] : hk ? [hk.x, hk.y] : targetOf(s, st);
   const u = unit(tx - h.x, ty - h.y);
   if (st.push > 0) { st.push -= DT; return { x: u.x + st.side * 0.9, y: u.y }; }
   const r = repulsion(s, h);
@@ -187,12 +210,12 @@ function snapshot(s, last) {
 }
 
 function runGen(index, seed) {
-  const s = P.createSim(seed, { levelIndex: index });
-  P.startPlay(s);
-  const st = { ang: 0, best: s.hero.y, bestT: 0, push: 0, side: 1, skip: new Set(), dropT: 0, dropId: null, threat: Infinity, last: null };
+  let s = null, st = null, result = 'timeout', err = null, revived = false, stuck = null;
   const segT = {}, deaths = [], dmgBy = {}, evBy = {};
-  let result = 'timeout', revived = false, err = null, stuck = null;
   try {
+    s = P.createSim(seed, { levelIndex: index });
+    P.startPlay(s);
+    st = { ang: 0, best: s.hero.y, bestT: 0, push: 0, side: 1, skip: new Set(), dropT: 0, dropId: null, threat: Infinity, last: null };
     while (s.runT < MAX_T) {
       while (s.pendingChests > 0) P.Progression.openChest(s, P.Progression.chestReward(s));
       if (s.pendingLevels > 0) { P.Progression.choose(s, pickCard(s, P.Progression.makeOffer(s).cards)); continue; }
@@ -201,7 +224,7 @@ function runGen(index, seed) {
       P.drainEvents(s).forEach(ev => {
         if (ev.type === 'segment') segT[ev.id] = s.runT;
         if (ev.type === 'heroHit') dmgBy[ev.cause] = (dmgBy[ev.cause] || 0) + ev.dmg;
-        if (ev.type.startsWith('brute') || ev.type.startsWith('boss')) evBy[ev.type] = (evBy[ev.type] || 0) + 1;
+        countEvent(ev, evBy);
       });
       if (s.mode === 'dead') {
         deaths.push({ t: +s.runT.toFixed(1), cause: s.deathCause, y: +s.hero.y.toFixed(1) });
@@ -211,11 +234,12 @@ function runGen(index, seed) {
       if (s.mode === 'won') { result = 'win'; break; }
     }
   } catch (e) { err = e.stack.split('\n').slice(0, 3).join(' | '); result = 'crash'; }
-  if (result === 'timeout') stuck = snapshot(s, st.last);
-  return { seed, index, id: s.levelInfo.id, result, t: s.runT, kills: s.kills, levelUps: s.levelUps.length, stuck,
-    peak: s.peakAlive, deaths, dmgBy, evBy, segT, err, bossKilled: !!(s.gen && s.gen.boss && s.gen.boss.dead),
-    hp: Math.round(s.hero.hp), exitY: s.geo.exitY, holdY: s.geo.holdY, stage: s.levelInfo.stage,
-    at: { x: +s.hero.x.toFixed(2), y: +s.hero.y.toFixed(2), hold: !!s.dir.hold.active, gate: !!s.props.shutterOpen } };
+  if (result === 'timeout' && s && st) stuck = snapshot(s, st.last);
+  const L = s || { runT: 0, kills: 0, levelUps: [], peakAlive: 0, hero: { hp: 0 }, tally: { hacks: 0, events: 0 }, geo: { exitY: 0, holdY: 0 }, dir: { hold: {} }, props: {} };
+  return { seed, index, id: P.Journey.level(index).id, result, err, t: L.runT, kills: L.kills, levelUps: L.levelUps.length, stuck,
+    peak: L.peakAlive, deaths, dmgBy, evBy, segT, hacks: L.tally.hacks, events: L.tally.events,
+    bossKilled: !!(s && s.gen && s.gen.boss && s.gen.boss.dead), hp: Math.round(L.hero.hp), exitY: L.geo.exitY, holdY: L.geo.holdY,
+    stage: P.Journey.level(index).stage, at: { x: s ? +s.hero.x.toFixed(2) : 0, y: s ? +s.hero.y.toFixed(2) : 0, hold: !!(s && s.dir.hold.active), gate: !!(s && s.props.shutterOpen) } };
 }
 
 // Generated levels: take evolutions, then weapon upgrades, then passives (medkit first when hurt).
@@ -226,11 +250,18 @@ function pickCard(s, cards) {
 }
 
 function summarize(list) {
-  const wins = list.filter(r => r.result === 'win'), noDeath = list.filter(r => r.deaths.length === 0 && r.result === 'win');
-  return { n: list.length, clear: wins.length, noDeath: noDeath.length, medT: med(list.map(r => r.t)),
-    deaths: list.reduce((a, r) => a + r.deaths.length, 0) / list.length, lvls: med(list.map(r => r.levelUps)),
-    peak: med(list.map(r => r.peak)), timeouts: list.filter(r => r.result === 'timeout').length,
-    crashes: list.filter(r => r.result === 'crash').length };
+  const n = list.length, wins = list.filter(r => r.result === 'win'), noDeath = wins.filter(r => r.deaths.length === 0);
+  return { n, clear: wins.length, noDeath: noDeath.length, medT: med(list.map(r => r.t)),
+    deaths: list.reduce((a, r) => a + r.deaths.length, 0) / n, lvls: med(list.map(r => r.levelUps)),
+    peak: med(list.map(r => r.peak)), events: med(list.map(r => r.events)), hacks: med(list.map(r => r.hacks)),
+    timeouts: list.filter(r => r.result === 'timeout').length, crashes: list.filter(r => r.result === 'crash').length };
+}
+
+// Median count per key across runs (events, hacks, signal, blasts), e.g. "ev:ambush=1 ev:loot=2".
+function medKeys(list, field) {
+  const keys = new Set();
+  list.forEach(r => Object.keys(r[field]).forEach(k => keys.add(k)));
+  return [...keys].sort().map(k => k + '=' + med(list.map(r => r[field][k] || 0))).join(' ');
 }
 
 function runLevels(indices, seeds) {
@@ -239,35 +270,37 @@ function runLevels(indices, seeds) {
     const list = [];
     const seedList = args.seed ? [parseInt(args.seed, 10)] : Array.from({ length: seeds }, (_, i) => i + 1);
     seedList.forEach(sd => list.push(runGen(idx, sd)));
-    const sm = summarize(list), info = P.Journey.level(idx);
-    rows.push({ idx, id: info.id, boss: info.boss, sm, list });
+    rows.push({ idx, id: P.Journey.level(idx).id, boss: P.Journey.level(idx).boss, sm: summarize(list), list });
   });
   console.log(`generated levels, policy=kite-generic seeds=${seeds} (clear = win with one revive)`);
-  console.log('level  id       type   clear      no-death   median s  deaths/run  lvl-ups  peak  timeouts crashes');
+  console.log('level  id       type   clear      no-death   median s  deaths/run  lvl-ups  peak  events  hacks  timeouts crashes');
   rows.forEach(r => {
     const c = r.sm;
     console.log(`${String(r.idx).padEnd(6)} ${r.id.padEnd(8)} ${(r.boss ? 'BOSS' : 'route').padEnd(6)} ` +
       `${(c.clear + '/' + c.n + ' ' + Math.round(100 * c.clear / c.n) + '%').padEnd(10)} ` +
       `${(Math.round(100 * c.noDeath / c.n) + '%').padEnd(10)} ${c.medT.toFixed(0).padStart(8)}  ` +
       `${c.deaths.toFixed(2).padStart(10)}  ${String(c.lvls).padStart(7)}  ${String(c.peak).padStart(4)}  ` +
-      `${String(c.timeouts).padStart(8)} ${String(c.crashes).padStart(7)}`);
+      `${String(c.events).padStart(6)}  ${String(c.hacks).padStart(5)}  ${String(c.timeouts).padStart(8)} ${String(c.crashes).padStart(7)}`);
   });
+  rows.forEach(r => r.list.filter(x => x.result === 'crash').slice(0, 2).forEach(x => console.log(`crash L${r.idx} seed ${x.seed}: ${x.err}`)));
   if (args.verbose) rows.forEach(r => r.list.forEach(x => console.log(JSON.stringify(x))));
 }
 
 // ---------- entry ----------
 if (args.levels || args.level) {
   const indices = args.levels ? String(args.levels).split(',').map(x => parseInt(x, 10)) : [parseInt(args.level, 10)];
-  const seeds = parseInt(args.seeds || '20', 10);
+  const seeds = parseInt(args.seeds || '8', 10);
   runLevels(indices, seeds);
 } else {
   const runs = [];
   for (let i = 1; i <= SEEDS; i++) runs.push(runL1(i, true));
-  const wins = runs.filter(r => r.result === 'win');
-  const noDeath = runs.filter(r => r.deaths.length === 0);
+  const wins = runs.filter(r => r.result === 'win'), noDeath = runs.filter(r => r.deaths.length === 0 && r.result === 'win');
+  const crashes = runs.filter(r => r.result === 'crash'), timeouts = runs.filter(r => r.result === 'timeout');
   console.log(`policy=${POLICY} seeds=${SEEDS}`);
-  console.log(`clear: ${wins.length}/${SEEDS}  clear without dying: ${noDeath.length}/${SEEDS}`);
+  console.log(`clear: ${wins.length}/${SEEDS}  clear without dying: ${noDeath.length}/${SEEDS}  timeouts: ${timeouts.length}  crashes: ${crashes.length}`);
   console.log(`median time ${med(runs.map(r => r.t)).toFixed(1)} s · kills ${med(runs.map(r => r.kills))} · level-ups ${med(runs.map(r => r.levelUps))} · peak alive ${med(runs.map(r => r.peak))} · end HP ${med(runs.map(r => r.hp))} · chests ${med(runs.map(r => r.chests))}`);
+  console.log(`median hacks ${med(runs.map(r => r.hacks))} · median events ${med(runs.map(r => r.events))}`);
+  console.log('events per run (median): ' + medKeys(runs, 'evBy'));
   const fl = runs.map(r => r.firstLvInA).filter(x => x !== null);
   console.log(`first level-up into A: median ${med(fl).toFixed(1)} s (target ≤15 s)`);
   const segs = ['A', 'B', 'C', 'D'];
@@ -275,5 +308,6 @@ if (args.levels || args.level) {
   const causes = {};
   runs.forEach(r => r.deaths.forEach(d => { causes[d.cause] = (causes[d.cause] || 0) + 1; }));
   console.log('deaths by cause: ' + JSON.stringify(causes));
+  crashes.slice(0, 2).forEach(x => console.log(`crash seed ${x.seed}: ${x.err}`));
   if (args.verbose) runs.forEach(r => console.log(JSON.stringify(r)));
 }

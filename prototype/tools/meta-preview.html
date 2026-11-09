@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>No Signal · Meta preview</title>
+<title>No Signal · Meta preview (v0.5)</title>
 <link rel="stylesheet" href="../css/proto.css">
 <link rel="stylesheet" href="../css/meta.css">
 <style>
-  .dev { position: fixed; left: 8px; bottom: 8px; z-index: 999; display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  .dev { position: fixed; left: 8px; bottom: 8px; z-index: 999; display: flex; flex-wrap: wrap; gap: 6px; max-width: 360px;
     font: 600 12px/1.2 system-ui, -apple-system, sans-serif; color: #14151F; }
-  .dev button, .dev label { font: 600 12px system-ui, sans-serif; padding: 6px 10px; border-radius: 8px; border: 1px solid #14151F;
+  .dev button, .dev label { font: 600 12px system-ui, sans-serif; padding: 6px 9px; border-radius: 8px; border: 1px solid #14151F;
     background: #F4EBDD; color: #14151F; cursor: pointer; }
 </style>
 </head>
@@ -20,22 +20,47 @@
   <button id="dev-reset" data-t="meta.dev.reset">Reset</button>
   <button id="dev-unlock" data-t="meta.dev.unlock">Unlock all</button>
   <label><input type="checkbox" id="dev-lose"> <span data-t="meta.dev.lose">Lose</span></label>
+  <button id="dev-daily">Daily</button>
+  <button id="dev-welcome">Welcome back (30 h)</button>
+  <button id="dev-sc">+5 Street Cred</button>
+  <button id="dev-mastery">Knife mastery +600</button>
+  <button id="dev-tab-attr">Character</button>
+  <button id="dev-tab-ars">Arsenal</button>
+  <button id="dev-tab-daily">Tasks</button>
+  <button id="dev-tab-coll">Memories</button>
 </div>
 
 <script src="../js/config.js"></script>
+<script src="../js/config-stats.js"></script>
 <script src="../js/strings.js"></script>
 <script src="../js/journey.js"></script>
 <script src="../js/view/settings.js"></script>
 <script src="../js/view/icons.js"></script>
 <script src="../js/meta/strings-meta.js"></script>
+<script src="../js/meta/strings-meta2.js"></script>
 <script src="../js/view/portraits.js"></script>
+<script src="../js/meta/meta-save.js"></script>
 <script src="../js/meta/meta-data.js"></script>
+<script src="../js/meta/meta-daily.js"></script>
+<script src="../js/meta/meta-collect.js"></script>
 <script src="../js/meta/meta-map.js"></script>
 <script src="../js/meta/meta-gear.js"></script>
+<script src="../js/meta/meta-stats.js"></script>
+<script src="../js/meta/meta-arsenal.js"></script>
+<script src="../js/meta/meta-hub.js"></script>
 <script src="../js/meta/meta-ui.js"></script>
 <script>
 (function () {
   var phone = document.getElementById('phone'), lose = document.getElementById('dev-lose');
+  // Stand-in for A's mastery module when js/sim/mastery.js is not loaded: 100 kills per rank doubling.
+  if (!P.Mastery) {
+    P.Mastery = {
+      list: function () { return ['knife', 'chain', 'nailgun', 'canister', 'molotov']; },
+      srcToWeapon: function (src) { return String(src).replace(/^w:/, ''); },
+      rank: function (id, kills) { return kills < 100 ? 0 : Math.min(10, Math.floor(Math.log2(kills / 100)) + 1); },
+      describeRank: function (id, r) { return r >= 3 ? 'sig.' + id : null; }
+    };
+  }
   // Scale the 390x844 phone to the window, like main.js fit().
   function fit() {
     var s = Math.min(window.innerWidth / 390, window.innerHeight / 844);
@@ -44,22 +69,43 @@
   window.addEventListener('resize', fit);
   fit();
   if (/[?&]lang=en/.test(location.search)) P.lang = 'en';
-  // Match the app (js/view/ui.js): CSS uppercase follows the document language.
   document.documentElement.lang = P.lang;
   document.querySelectorAll('[data-t]').forEach(function (n) { n.textContent = P.t(n.getAttribute('data-t')); });
 
-  // Simulated level: a result is queued, then the map reopens and plays the return.
-  function onPlay(i) {
-    P.Meta.onResults({ levelIndex: i, won: !lose.checked, stars: lose.checked ? 0 : 3, coins: 40, kills: 300, timeS: 150 });
+  // A realistic tally for one level (fields as B builds them; see docs in config-stats.js).
+  function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function fakeTally(i, won) {
+    var melee = rnd(90, 160), ranged = rnd(40, 80), gadget = rnd(20, 50);
+    return { kills: melee + ranged + gadget, bySrc: { knife: Math.round(melee * 0.6), chain: Math.round(melee * 0.4),
+      nailgun: ranged, canister: gadget }, elites: rnd(1, 3), dashes: rnd(4, 18), nearMisses: rnd(2, 9), distance: 170,
+      maxStreak: rnd(20, 90), crits: rnd(5, 20), ults: 0, hacks: rnd(0, 3), rescues: rnd(0, 2), events: rnd(0, 2),
+      dmgTaken: won ? rnd(20, 90) : rnd(120, 200), bosses: i % 5 === 0 ? 1 : 0, revives: 0 };
+  }
+  // Simulated level: a result (with tally) is queued, then the map reopens and plays the return.
+  function onPlay(i, opts) {
+    var won = !lose.checked, daily = !!(opts && opts.daily), tally = fakeTally(i, won);
+    P.Meta.onResults({ levelIndex: i, won: won, stars: won ? 3 : 0, coins: 40, kills: tally.kills, timeS: 150,
+      tally: tally, daily: daily, hero: 'arda' });
     P.Meta.open(onPlay);
   }
+  function reopen() { P.Meta.close(); P.Meta.open(onPlay); }
   document.getElementById('dev-open').addEventListener('click', function () { P.Meta.open(onPlay); });
-  document.getElementById('dev-reset').addEventListener('click', function () {
-    P.Meta.close(); P.Meta.reset(); P.Meta.open(onPlay);
+  document.getElementById('dev-reset').addEventListener('click', function () { P.Meta.close(); P.Meta.reset(); P.Meta.open(onPlay); });
+  document.getElementById('dev-unlock').addEventListener('click', function () { P.Meta.close(); P.Meta.debugUnlockAll(); P.Meta.open(onPlay); });
+  document.getElementById('dev-daily').addEventListener('click', function () { P.Meta.openDaily(); });
+  document.getElementById('dev-welcome').addEventListener('click', function () {
+    var s = P.Meta.state(); s.lastPlayed = Date.now() - 30 * 3600000; P.Meta.save(); reopen();
   });
-  document.getElementById('dev-unlock').addEventListener('click', function () {
-    P.Meta.close(); P.Meta.debugUnlockAll(); P.Meta.open(onPlay);
+  document.getElementById('dev-sc').addEventListener('click', function () {
+    var s = P.Meta.state(); s.heroes.arda.stats.sc += 5; P.Meta.save(); reopen();
   });
+  document.getElementById('dev-mastery').addEventListener('click', function () {
+    var s = P.Meta.state(); s.mastery.knife = (s.mastery.knife || 0) + 600; P.Meta.save(); reopen();
+  });
+  document.getElementById('dev-tab-attr').addEventListener('click', function () { document.querySelector('[data-tab="attr"]').click(); });
+  document.getElementById('dev-tab-ars').addEventListener('click', function () { document.querySelector('[data-tab="ars"]').click(); });
+  document.getElementById('dev-tab-daily').addEventListener('click', function () { document.querySelector('[data-tab="daily"]').click(); });
+  document.getElementById('dev-tab-coll').addEventListener('click', function () { document.querySelector('[data-tab="coll"]').click(); });
   P.Meta.open(onPlay);
 })();
 </script>

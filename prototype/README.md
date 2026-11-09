@@ -1,4 +1,14 @@
-# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.4)
+# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.5)
+
+> **v0.5 (2026-11-08):** depth and reasons to come back. 17 weapons with L3/L5 mod forks and a rank-3
+> "usta" pick; per-weapon mastery ranks I–V with rank-5 signature moves (Piknik Tüpü → MANGAL PARTİSİ!);
+> 5 new passives, 3 ults. Level 1 now has scripted beats (runner pack, loot runner, phone-shop hack that
+> restores Mom's call, Şişman Garson bloater, alley ambush, blackout, screamer). Hacking (ATM, traffic,
+> cell, shutter, car, tram). New enemies: screamer, hardhat. Attributes (Güç/Çeviklik/Öfke/Zekâ/Karizma/
+> Dayanıklılık) trained by play plus Street Cred from kills. Daily run + 7-day streak, 27 achievements,
+> Hatıralar collection. Arda barks (475 lines + 100 hood lines), Shaun-of-the-Dead tone. Hood cards with
+> landmarks and facts; comic text now always fits (bust scaling) in comic lettering. Shortcuts:
+> `?mastery=N`, `?seg=B`, `?seed=N`. Tests: `node tools/test-arsenal.js`.
 
 > **v0.4 (2026-11-08):** the journey. 20 neighbourhoods × 5 levels (D-027): Level 1 is the hand-built
 > İstiklal level; levels 2–100 are generated per neighbourhood theme and zombie roster, with a boss on stage 5.

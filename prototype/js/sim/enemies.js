@@ -18,6 +18,11 @@ P.Enemies.init = function (s, e) {
   if (e.type === 'brute') e.ai = { m: 'walk', t: 0, cd: 1.5, stompCd: 0, dir: { x: 0, y: 0 }, dist: 0, hit: false, dmg: 0, kb: 0, px: e.x, py: e.y };
   else if (e.type === 'spitter') e.ai = { m: 'approach', t: 0, cd: 1.5, side: s.rng.ai.chance(0.5) ? 1 : -1, strafeT: D.spitter.strafeTime, aimX: 0, aimY: 0 };
   else if (e.type === 'bloater') e.ai = { warned: false };
+  else if (e.type === 'screamer') e.ai = { m: 'walk', cd: D.screamer.cd * D.screamer.firstCd };
+  else if (e.type === 'hardhat') {
+    e.ai = { m: 'walk' }; e.helmet = true;
+    e.faceA = Math.atan2(s.hero.y - e.y, s.hero.x - e.x);
+  }
 };
 
 // ---------- per-step desired velocity (called from updateEnemies) ----------
@@ -25,11 +30,94 @@ P.Enemies.init = function (s, e) {
 P.Enemies.think = function (s, e, dt) {
   e.noSep = false;
   if (e.boss) return P.Bosses.think(s, e, dt);
+  if (e.lure && e.lure.t > 0) return lured(s, e, dt);
+  if (e.lootEv) return P.EventKinds.loot.think(s, e, dt);
   if (!e.ai) return false;
   if (e.type === 'brute') return brute(s, e, dt);
   if (e.type === 'spitter') return spitter(s, e, dt);
   if (e.type === 'bloater') return bloater(s, e, dt);
+  if (e.type === 'screamer') return screamer(s, e, dt);
+  if (e.type === 'hardhat') return hardhat(s, e, dt);
   return false;
+};
+
+// Lured by a hack or a car alarm: walk to the lure point (no attacks of their own until it ends).
+function lured(s, e, dt) {
+  var L = e.lure, u = unit(L.x - e.x, L.y - e.y);
+  L.t -= dt;
+  e.dvx = u.x * e.speed; e.dvy = u.y * e.speed;
+  return true;
+}
+
+// Screamer (v0.5): walks in; within sense it stops and screams. A ring telegraphs the call; at the end of the
+// windup a horde spawns off-screen (scream). Killed in the windup: no call (onDeath).
+function screamer(s, e, dt) {
+  var a = e.ai, S = P.CFG.enemies.screamer, h = s.hero;
+  a.cd = Math.max(0, a.cd - dt);
+  if (a.m === 'scream') { e.dvx = 0; e.dvy = 0; return true; }
+  if (a.cd <= 0 && dist(e, h) <= S.sense) { startScream(s, e, S); e.dvx = 0; e.dvy = 0; return true; }
+  var u = unit(h.x - e.x, h.y - e.y);
+  e.dvx = u.x * e.speed; e.dvy = u.y * e.speed;
+  return true;
+}
+
+function startScream(s, e, S) {
+  e.ai.m = 'scream'; e.ai.cd = S.cd;
+  s.enemyTele.push({ kind: 'ring', x: e.x, y: e.y, r: S.ringR, t: 0, T: S.windup, then: 'scream', owner: e.id, src: e, col: 'summon' });
+  s.events.push({ type: 'screamStart', id: e.id, x: e.x, y: e.y, T: S.windup, r: S.ringR });
+}
+
+function scream(s, tg) {
+  var S = P.CFG.enemies.screamer, e = tg.src, n = 0;
+  if (e && !e.dead) e.ai.m = 'walk';
+  for (var i = 0; i < S.call; i++) {
+    var p = P.Events.farSpot(s, tg.x, tg.y, S.callR * 0.8, S.callR * 1.2, false);
+    if (!p) continue;
+    P.Combat.spawnEnemy(s, 'walker', p.x, p.y, { skin: P.Events.skin(s) });
+    n++;
+  }
+  s.events.push({ type: 'scream', id: tg.owner, x: tg.x, y: tg.y, n: n });
+}
+
+// Dying screamer: cancel its own call (no horde) and report screamCut.
+P.Enemies.onDeath = function (s, e) {
+  if (e.type !== 'screamer') return;
+  if (e.ai && e.ai.m === 'scream') s.events.push({ type: 'screamCut', id: e.id, x: e.x, y: e.y });
+  s.enemyTele = s.enemyTele.filter(function (t) { return t.owner !== e.id; });
+};
+
+// Hardhat (v0.5): walks in, turning its face toward its heading at turnRate (so flanking works).
+function hardhat(s, e, dt) {
+  var H = P.CFG.enemies.hardhat, h = s.hero, u = unit(h.x - e.x, h.y - e.y);
+  e.dvx = u.x * e.speed; e.dvy = u.y * e.speed;
+  turnFace(e, Math.atan2(u.y, u.x), H.turnRate * dt);
+  return true;
+}
+
+function turnFace(e, target, maxStep) {
+  var d = target - (e.faceA || 0);
+  d = Math.atan2(Math.sin(d), Math.cos(d));
+  e.faceA = (e.faceA || 0) + Math.max(-maxStep, Math.min(maxStep, d));
+}
+
+// Damage factor for a hit on a hardhat: frontalMul when the hero is in front of its face (helmet on), else 1.
+P.Enemies.helmetMul = function (s, e) {
+  var H = P.CFG.enemies.hardhat, h = s.hero, dx = h.x - e.x, dy = h.y - e.y, d = Math.hypot(dx, dy) || 1;
+  var c = (dx * Math.cos(e.faceA || 0) + dy * Math.sin(e.faceA || 0)) / d;
+  return c >= H.frontalCos ? H.frontalMul : 1;
+};
+
+// After a hit on a helmeted hardhat: a frontal hit shoves it back; the helmet falls off below helmetOffAt.
+P.Enemies.helmetHit = function (s, e, frontal) {
+  var H = P.CFG.enemies.hardhat, h = s.hero, dx = e.x - h.x, dy = e.y - h.y, d = Math.hypot(dx, dy) || 1;
+  if (frontal && !e.dead) {
+    P.Combat.shove(e, dx / d, dy / d, H.frontalShove);
+    s.events.push({ type: 'helmetBlock', id: e.id, x: e.x, y: e.y });
+  }
+  if (e.hp <= e.maxHp * H.helmetOffAt) {
+    e.helmet = false;
+    s.events.push({ type: 'helmetOff', id: e.id, x: e.x, y: e.y });
+  }
 };
 
 // Brute: walk -> windup (lane or stomp telegraph) -> charge 8 m in a straight line -> recover.
@@ -118,6 +206,7 @@ function spitter(s, e, dt) {
     s.events.push({ type: 'spitWindup', x: e.x, y: e.y });
     e.dvx = 0; e.dvy = 0; return true;
   }
+  if (e.anchored) { e.dvx = 0; e.dvy = 0; return true; }   // balcony spitter (v0.5): spits, does not move
   var u = unit(h.x - e.x, h.y - e.y), radial = d > S.keep + S.band ? 1 : d < S.keep - S.band ? -1 : 0;
   var vx = u.x * radial - u.y * a.side * S.strafeMul, vy = u.y * radial + u.x * a.side * S.strafeMul;
   var v = unit(vx, vy);
@@ -260,6 +349,8 @@ P.Enemies.onTele = function (s, tg) {
     if (dist(h, tg) - hr <= tg.r) { P.Combat.damageHero(s, tg.dmg, 'bloater'); P.Combat.pushHero(s, h.x - tg.x, h.y - tg.y, tg.shove); }
   } else if (tg.then === 'summon') {
     summon(s, tg);
+  } else if (tg.then === 'scream') {
+    scream(s, tg);
   }
 };
 

@@ -4,6 +4,7 @@
 (function () {
   var M = P.Meta, J = P.Journey, Map = M.Map, Gear = M.Gear, A = M.Anim;
   var root, coinChip, coinVal, kmTxt, kmFill, nextLine, playBtn, bottom, sheet, banner, flyLayer, toastLayer, gearHost;
+  var tabsEl = null, panelOpen = null;
   var onPlay = null, opened = false, sheetHood = -1, selLevel = 1, session = 0, busy = false, active = null, announced = false;
   var cancels = [], shownCoins = 0;
   var COLOR = { walker: '#8A8F98', runner: '#FF6B3D', crawler: '#5BD16E', spitter: '#3DDCFF', brute: '#B5651D', bloater: '#E040FB', diner: '#FFD166' };
@@ -46,6 +47,7 @@
     root = el('div', 'meta-root meta-hidden', document.getElementById('phone') || document.body);
     Map.build(root, { onHood: openSheet });
     buildTop();
+    buildTabs();
     buildBottom();
     sheet = el('section', 'meta-sheet', root);
     sheet.addEventListener('click', onSheetClick);
@@ -55,6 +57,39 @@
     flyLayer = el('div', 'meta-fly', root);
     gearHost = el('div', 'meta-gearhost', root);
     Gear.build(gearHost, { onBack: hideGear, onChange: function () { renderCoins(M.snapshot().coins); } });
+    buildPanels();
+  }
+  // v0.5 tab strip under the top bar: Karakter, Silahlar, Görevler, Hatıralar.
+  function buildTabs() {
+    tabsEl = el('div', 'meta-tabs', root);
+    [['attr', 'tab.attr', function () { showPanel('attr'); }], ['ars', 'tab.ars', function () { showPanel('ars'); }],
+      ['daily', 'tab.daily', function () { showPanel('hub', 'daily'); }], ['coll', 'tab.coll', function () { showPanel('hub', 'coll'); }]
+    ].forEach(function (d) {
+      var b = el('button', 'meta-tab', tabsEl);
+      b.textContent = t(d[1]); b.setAttribute('data-tab', d[0]); b.addEventListener('click', d[2]);
+    });
+  }
+  function buildPanels() {
+    if (M.Attr) M.Attr.build(root, { onBack: hidePanel });
+    if (M.Arsenal) M.Arsenal.build(root, { onBack: hidePanel });
+    if (M.Hub) M.Hub.build(root, { onBack: hidePanel });
+  }
+  // Panels replace the map while open. name: 'attr' | 'ars' | 'hub' (hub tab: 'daily' | 'coll').
+  function showPanel(name, hubTab) {
+    sfx('uiOpen'); Map.hide(); bottom.classList.add('is-hidden'); tabsEl.classList.add('is-hidden');
+    panelOpen = name;
+    if (name === 'attr') M.Attr.show();
+    else if (name === 'ars') M.Arsenal.show();
+    else M.Hub.show(hubTab);
+  }
+  function hidePanel() {
+    if (!panelOpen) return;
+    if (M.Attr) M.Attr.hide();
+    if (M.Arsenal) M.Arsenal.hide();
+    if (M.Hub) M.Hub.hide();
+    panelOpen = null; sfx('uiBack');
+    tabsEl.classList.remove('is-hidden'); bottom.classList.remove('is-hidden');
+    Map.show(); renderAll(M.snapshot());
   }
   function buildTop() {
     var top = el('div', 'meta-top', root), g, s;
@@ -206,9 +241,13 @@
       t(won ? 'meta.ret.won' : 'meta.ret.lost') + '</p><div class="meta-ban-stars">' + st + '</div><p class="meta-ban-coins">' +
       t('meta.reward1', { n: r.total }) + '</p><p class="meta-ban-sub">' + sub + '</p></div>';
     banner.classList.add('is-in');
+    if (tabsEl) tabsEl.classList.add('is-hidden');
     for (k = 1; k <= stars; k++) schedule(session, 200 + k * 180, function () { sfx('star'); });
   }
-  function hideBanner() { if (banner) banner.classList.remove('is-in'); }
+  function hideBanner() {
+    if (banner) banner.classList.remove('is-in');
+    if (tabsEl && !panelOpen && opened) tabsEl.classList.remove('is-hidden');
+  }
 
   // ---- Return animation: banner, token walk, km tick, unlock burst, coins fly, toasts ----
   function tweenKm(a, b, ms) {
@@ -320,20 +359,34 @@
   }
 
   // ---- Public API ----
+  // Map open plays, in order: welcome-back (once per 12 h), attribute level-up, reward toasts, map walk.
+  function resumeMap(p) {
+    var v = M.snapshot();
+    if (p && p.before && p.after) { playReturn(p); return; }
+    renderAll(v);
+    Map.focusHood(v.cur, 0.42, true);
+  }
+  function playToasts(p) {
+    if (!p || !M.Hub) { resumeMap(p); return; }
+    M.Hub.toasts(toastLayer, p, function () { resumeMap(p); });
+  }
+  function afterWelcome(p) {
+    if (p && p.statGains && M.Attr) M.Attr.sequence(p, function () { playToasts(p); });
+    else playToasts(p);
+  }
   function open(cb) {
     if (typeof cb === 'function') onPlay = cb;
     ensureRoot();
+    M.endRun();
     root.classList.remove('meta-hidden');
-    opened = true; sheetHood = -1;
-    sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden');
+    opened = true; sheetHood = -1; panelOpen = null;
+    sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden'); tabsEl.classList.remove('is-hidden');
     toastLayer.innerHTML = '';
     music('map'); sfx('uiOpen');
     Map.show();
-    var p = M.takePending();
-    if (p && p.before && p.after) { playReturn(p); return; }
-    var v = M.snapshot();
-    renderAll(v);
-    Map.focusHood(v.cur, 0.42, true);
+    var p = M.takePending(), w = M.Hub ? M.Hub.welcomeInfo() : null;
+    if (w) { M.Hub.welcome(root, w, function () { afterWelcome(p); }); return; }
+    afterWelcome(p);
   }
   function close() {
     if (!opened) return;
@@ -343,7 +396,20 @@
     toastLayer.innerHTML = '';
     sheetHood = -1; sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden');
     Map.hide(); Gear.hide();
+    if (M.Attr) M.Attr.hide();
+    if (M.Arsenal) M.Arsenal.hide();
+    if (M.Hub) M.Hub.hide();
+    panelOpen = null;
+    Array.prototype.forEach.call(root.querySelectorAll('.meta-welcome'), function (n) { n.parentNode.removeChild(n); });
   }
+  // Starts today's daily: the attempt is spent at launch, then the map calls onPlay(level, {daily, modifiers, seed}).
+  M.openDaily = function () {
+    var L = M.dailyLaunch ? M.dailyLaunch() : null;
+    if (!L) { toast(t('hub.dailyUsed')); return false; }
+    sfx('uiTap'); close();
+    if (typeof onPlay === 'function') onPlay(L.level, L.opts);
+    return true;
+  };
   M.open = open;
   M.close = close;
   M.isOpen = function () { return opened; };

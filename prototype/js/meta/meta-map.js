@@ -275,6 +275,30 @@ P.Meta.Map = (function () {
   }
 
   // ---- Build and refresh ----
+  // v0.5 polish: greedy name placement. Each hood name takes the first free slot (below, above, right, left)
+  // that does not overlap a dot or a name already placed. Writes a dir-* class on each hood button.
+  var NAME_DIRS = ['below', 'above', 'right', 'left'];
+  function nameBox(p, dir, w, hgt) {
+    if (dir === 'below') return { x: p.x - w / 2, y: p.y + 23, w: w, h: hgt };
+    if (dir === 'above') return { x: p.x - w / 2, y: p.y - 23 - hgt, w: w, h: hgt };
+    if (dir === 'right') return { x: p.x + 16, y: p.y - hgt / 2, w: w, h: hgt };
+    return { x: p.x - 16 - w, y: p.y - hgt / 2, w: w, h: hgt };
+  }
+  function overlaps(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
+  function layoutNames() {
+    var placed = [], pts = J.hoods.map(function (hd, h) { return xy(h); });
+    pts.forEach(function (p) { placed.push({ x: p.x - 7, y: p.y - 7, w: 14, h: 14 }); });
+    J.hoods.forEach(function (hd, h) {
+      var p = pts[h], w = P.upper(hd.name).length * 7.4 + 14, hgt = 17, chosen = null, i, cand;
+      for (i = 0; i < NAME_DIRS.length && !chosen; i++) {
+        cand = nameBox(p, NAME_DIRS[i], w, hgt);
+        if (!placed.some(function (q) { return overlaps(cand, q); })) chosen = { dir: NAME_DIRS[i], box: cand };
+      }
+      if (!chosen) chosen = { dir: 'below', box: nameBox(p, 'below', w, hgt) };
+      placed.push(chosen.box);
+      markers[h].classList.add('dir-' + chosen.dir);
+    });
+  }
   function build(container, handlers) {
     if (view) return;
     onHood = handlers.onHood;
@@ -287,6 +311,7 @@ P.Meta.Map = (function () {
     svg = svgNode('svg', { 'class': 'meta-route', width: W, height: H, viewBox: '0 0 ' + W + ' ' + H }, world);
     drawRouteSvg();
     markers = J.hoods.map(function (hd, h) { return hoodButton(h); });
+    layoutNames();
     buildHome();
     tokenEl = el('div', 'meta-token', world);
     tokenEl.appendChild(buildTokenFace());

@@ -11,7 +11,7 @@ P.WFx = (function () {
   var INK = '#14151F', THROW_T = 0.32, MAX_PARTS = 700, HEAVY = { sledge: 1, canister: 1, cluster: 1, cleaver: 1, finale: 1 };
   var BANNERS = [[25, 'combo.25'], [50, 'combo.50'], [100, 'combo.100'], [200, 'combo.200']];
 
-  function mods() { return [P.WFx2, P.WFx3, P.SkillsFx]; }
+  function mods() { return [P.WFx2, P.WFx3, P.WFx4, P.SkillsFx]; }
 
   W.reset = function () {
     W.gunA = 0; W.recoil = 0; W.sinceFire = 9; W.throwT = 0; W.parts = []; W.hs = [];

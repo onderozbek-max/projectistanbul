@@ -1,13 +1,14 @@
-// Player skills (workstream E1): Dash (flick / double-tap / Space), Ultimate "Nazar Patlaması" (charged by
-// kills), kill-streak Frenzy, Nazar charm (crit + dodge), Magnet (pickup radius + vacuum pulse), near-miss.
-// P.Status: slow / root / stun / foam on enemies. E2 calls Skills.init, Skills.step and Status.step;
-// E2 also reads Status.speedMul / Status.rooted and calls Skills.critChance / Skills.tryDodge (see report).
+// Player skills (workstream E1 + v0.5 A): Dash (flick / double-tap / Space; powerbank shortens its cooldown),
+// Ultimates chosen in meta (loadout.ult): Nazar Patlaması (charged blast), Düğün Konvoyu (cars sweep down three
+// lanes), Vapur Düdüğü (a horn wave that stuns and scatters). Kill-streak Frenzy, Nazar charm (crit + dodge),
+// Magnet (pickup radius + vacuum pulse), kask (less from big hits), çay (regen while still), near-miss.
+// P.Status: slow / root / stun / foam on enemies. Ult events carry {id}; the sim also emits ultUsed {id}.
 P.Skills = {};
 P.Status = {};
 
 function sk(s) {
   return s.sk || (s.sk = { dash: null, nearMissDone: false, ultT: 0, ultFull: false, frenzyT: 0, streak: 0,
-    lastKillT: -99, snap: [], magnetT: null, pickAdd: 0 });
+    lastKillT: -99, snap: [], magnetT: null, pickAdd: 0, sweeps: [], still: 0 });
 }
 
 P.Skills.init = function (s) {
@@ -46,6 +47,11 @@ function tickKills(s, S) {
 }
 
 // ---------- Dash ----------
+function dashMul(s) {
+  var att = s.fx && s.fx.dashCdPct ? s.fx.dashCdPct : 0;
+  return (1 - (s.hero.passives.powerbank || 0) * P.CFG.passives.powerbank.dashPerLevel) * (1 - att);
+}
+
 function tryDash(s, S, input) {
   var h = s.hero, D = P.CFG.skills.dash;
   if (S.dash || h.dashCd > 0 || s.mode !== 'play') return;
@@ -55,7 +61,7 @@ function tryDash(s, S, input) {
   }
   S.dash = { dx: dx, dy: dy, t: 0, T: D.time, speed: D.dist / D.time };
   S.nearMissDone = false;
-  h.dashCd = D.cooldown; h.iframes = D.iframes; h.dashing = true;
+  h.dashCd = D.cooldown * dashMul(s); h.dashCdMax = h.dashCd; h.iframes = D.iframes; h.dashing = true;
   s.events.push({ type: 'dash', x: h.x, y: h.y, ax: dx, ay: dy, dist: D.dist, T: D.time });
 }
 
@@ -83,21 +89,93 @@ function nearMiss(s, S) {
   }
 }
 
-// ---------- Ultimate ----------
-function tryUlt(s, S) {
-  var h = s.hero, U = P.CFG.skills.ult, V = P.CFG.view;
-  if (h.ult < 1 || s.mode !== 'play') return;
-  h.ult = 0; S.ultFull = false; S.ultT = U.time;
-  var hw = V.widthM / 2 + U.padM, hh = P.viewHalfH(V.widthM) + U.padM, n = 0;
+// ---------- Ultimates: loadout.ult (meta), gated by journey level; Nazar is the fallback ----------
+P.Skills.ultId = function (s) {
+  var id = (s.loadout && s.loadout.ult) || 'nazar', U = P.CFG.ults[id];
+  return U && (U.unlock || 1) <= (s.levelIndex || 1) ? id : 'nazar';
+};
+
+function viewBox(s) {
+  var U = P.CFG.skills.ult, V = P.CFG.view;
+  return { hw: V.widthM / 2 + U.padM, hh: P.viewHalfH(V.widthM) + U.padM };
+}
+
+function ultNazar(s) {
+  var h = s.hero, U = P.CFG.skills.ult, B = viewBox(s), n = 0;
   s.enemies.forEach(function (e) {
     if (e.dead || e.state !== 'active') return;
     var dx = e.x - h.x, dy = e.y - h.y;
-    if (Math.abs(dx) > hw || Math.abs(dy) > hh) return;
+    if (Math.abs(dx) > B.hw || Math.abs(dy) > B.hh) return;
     var d = Math.hypot(dx, dy) || 0.01;
     n++;
     P.Combat.damageEnemy(s, e, U.damage, dx / d, dy / d, U.push, false, 'ult');
   });
-  s.events.push({ type: 'ult', x: h.x, y: h.y, hw: hw, hh: hh, n: n, slowMo: U.slowMo, T: U.time });
+  s.events.push({ type: 'ult', id: 'nazar', x: h.x, y: h.y, hw: B.hw, hh: B.hh, n: n, slowMo: U.slowMo, T: U.time });
+}
+
+// Convoy: three lanes (relative to Arda); the cars drive from the bottom of the screen up (world +y is up).
+function ultConvoy(s, S) {
+  var h = s.hero, C = P.CFG.ults.convoy, B = viewBox(s);
+  S.sweeps.push({ kind: 'convoy', t: 0, T: C.T, x0: h.x, y0: h.y - B.hh, hh: B.hh, hit: {} });
+  s.events.push({ type: 'ult', id: 'convoy', x: h.x, y: h.y, hw: B.hw, hh: B.hh, lanes: C.lanes, laneW: C.laneW,
+    carLen: C.carLen, slowMo: C.slowMo, T: C.T });
+}
+
+// Horn: a ring that grows from Arda over T seconds, stunning and scattering whatever it reaches.
+function ultHorn(s, S) {
+  var h = s.hero, C = P.CFG.ults.horn;
+  S.sweeps.push({ kind: 'horn', t: 0, T: C.T, x0: h.x, y0: h.y, hit: {} });
+  s.events.push({ type: 'ult', id: 'horn', x: h.x, y: h.y, r: C.r, T: C.T, slowMo: C.slowMo });
+}
+
+var ULT = { nazar: ultNazar, convoy: ultConvoy, horn: ultHorn };
+
+function tryUlt(s, S) {
+  var h = s.hero, U = P.CFG.skills.ult, id;
+  if (h.ult < 1 || s.mode !== 'play') return;
+  id = P.Skills.ultId(s);
+  h.ult = 0; S.ultFull = false; S.ultT = U.time;
+  ULT[id](s, S);
+  s.events.push({ type: 'ultUsed', id: id });
+}
+
+function convoyLane(s, w, lx, car) {
+  var C = P.CFG.ults.convoy;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active' || w.hit[e.id]) return;
+    var dx = e.x - lx, dy = e.y - car;
+    if (Math.abs(dx) > C.laneW / 2 + e.r || Math.abs(dy) > C.carLen / 2 + e.r) return;
+    var d = Math.hypot(dx, dy) || 0.01;
+    w.hit[e.id] = true;
+    P.Combat.damageEnemy(s, e, C.dmg, dx / d, dy / d, C.push, false, 'ult');
+  });
+}
+
+function hornWave(s, w, rad) {
+  var C = P.CFG.ults.horn;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active' || w.hit[e.id]) return;
+    var dx = e.x - w.x0, dy = e.y - w.y0, d = Math.hypot(dx, dy) || 0.01;
+    if (d > rad + e.r) return;
+    w.hit[e.id] = true;
+    P.Combat.damageEnemy(s, e, C.dmg, dx / d, dy / d, C.push, false, 'ult');
+    P.Status.apply(e, 'stun', C.stun, 1);
+  });
+}
+
+function stepSweeps(s, S, dt) {
+  var C = P.CFG.ults, i, w, car;
+  for (i = S.sweeps.length - 1; i >= 0; i--) {
+    w = S.sweeps[i];
+    w.t += dt;
+    if (w.kind === 'convoy') {
+      car = w.y0 + Math.min(1, w.t / w.T) * 2 * w.hh;
+      C.convoy.lanes.forEach(function (lane) { convoyLane(s, w, w.x0 + lane, car); });
+    } else {
+      hornWave(s, w, C.horn.r * Math.min(1, w.t / w.T));
+    }
+    if (w.t >= w.T) S.sweeps.splice(i, 1);
+  }
 }
 
 // ---------- Magnet: pickup radius + vacuum pulse ----------
@@ -122,6 +200,14 @@ function magnet(s, S, dt) {
   s.events.push({ type: 'vacuum', x: h.x, y: h.y, r: h.pickupRadius, n: s.drops.length });
 }
 
+// ---------- Çay: regen while standing still ----------
+function regenCay(s, S, input, dt) {
+  var h = s.hero, lv = h.passives.cay || 0, C = P.CFG.passives.cay;
+  var moving = !!S.dash || Math.hypot((input && input.x) || 0, (input && input.y) || 0) > C.deadzone;
+  S.still = moving ? 0 : S.still + dt;
+  if (lv && S.still >= C.delay) h.hp = Math.min(h.maxHp, h.hp + lv * C.regenPerLevel * dt);
+}
+
 // ---------- step ----------
 function tickTimers(s, S, dt) {
   if (S.frenzyT > 0) {
@@ -139,9 +225,11 @@ P.Skills.step = function (s, dt, input) {
   tickKills(s, S);
   tickTimers(s, S, dt);
   magnet(s, S, dt);
+  regenCay(s, S, input, dt);
   if (input && input.dash) tryDash(s, S, input);
   if (S.dash) stepDash(s, S, dt);
   if (input && input.ult) tryUlt(s, S);
+  stepSweeps(s, S, dt);
   nearMiss(s, S);
 };
 
@@ -175,12 +263,20 @@ P.Skills.tryDodge = function (s, raw, cause) {
   return true;
 };
 
+// Kask: big hits (raw >= minHit) lose reducePerLevel per kask level, never below minFrac of the hit.
+// Combat.damageHero should call this before armour: raw = P.Skills.hitReduce(s, raw, cause).
+P.Skills.hitReduce = function (s, raw, cause) {
+  var lv = s.hero.passives.kask || 0, K = P.CFG.passives.kask;
+  if (!lv || raw < K.minHit) return raw;
+  return Math.max(raw * K.minFrac, raw - lv * K.reducePerLevel);
+};
+
 // HUD snapshot for the lead's dash / ultimate / frenzy widgets.
 P.Skills.hud = function (s) {
   var S = sk(s), D = P.CFG.skills.dash;
-  return { dashFrac: Math.max(0, 1 - (s.hero.dashCd || 0) / D.cooldown), dashReady: !(s.hero.dashCd > 0),
-    ult: s.hero.ult || 0, ultReady: (s.hero.ult || 0) >= 1, frenzy: S.frenzyT > 0, frenzyFrac: S.frenzyT / P.CFG.skills.frenzy.time,
-    streak: S.streak };
+  return { dashFrac: Math.max(0, 1 - (s.hero.dashCd || 0) / (s.hero.dashCdMax || D.cooldown)), dashReady: !(s.hero.dashCd > 0),
+    ult: s.hero.ult || 0, ultReady: (s.hero.ult || 0) >= 1, ultId: P.Skills.ultId(s),
+    frenzy: S.frenzyT > 0, frenzyFrac: S.frenzyT / P.CFG.skills.frenzy.time, streak: S.streak };
 };
 
 // ---------- P.Status: applied by weapons; E2 uses speedMul / rooted in enemy movement ----------
