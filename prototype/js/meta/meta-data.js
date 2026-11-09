@@ -264,7 +264,7 @@ P.Meta = P.Meta || {};
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
     lo = { gear: gearSum(s), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
       mastery: masteryRanks(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
-    if (o.daily) { lo.modifiers = (o.modifiers || []).map(function (m) { return Object.assign({}, m); }); lo.seed = o.seed | 0; lo.daily = true; }
+    if (o.daily) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; lo.daily = true; }
     return lo;
   };
   M.progress = function () {
@@ -278,26 +278,35 @@ P.Meta = P.Meta || {};
     var pct = P.Stats.effects({ cha: s.heroes.arda.stats.attr.cha }).coinPct || 0;
     return Math.round(coins * (1 + pct));
   }
-  // Daily attempt bookkeeping: only the first run on today's planned daily counts.
+  // Daily attempt bookkeeping: only the first finished run on today's planned daily counts (the results screen offers
+  // Retry, which replays the same seed and modifiers, so a retry must not earn the streak or a chest: AUDIT-7 review).
   // The run counts as the daily when opts (or the active run) say so and the day matches the plan.
   function dailyResult(s, r, won, day) {
-    if (!(r.daily || (activeRun && activeRun.daily)) || s.daily.day !== day) return null;
+    if (!(r.daily || (activeRun && activeRun.daily)) || s.daily.day !== day || s.daily.ended) return null;
+    s.daily.ended = true;
     s.daily.won = !!won;
     if (won && s.daily.played) s.streak = P.Meta.Daily.streakAfter(s.streak, day);
     return { won: !!won, day: day, streak: s.streak.n };
+  }
+  // Daily Coin rush (x1.5 in D.MODS): scales the run's reward. 1 for any other run.
+  function dailyCoinMult(r) {
+    if (!r.daily || !P.Modifiers || !P.Modifiers.dailyFold) return 1;
+    return P.Modifiers.dailyFold(P.Meta.Daily.resolve(r.modifiers)).coinMult;
   }
   function apply(s, r, now) {
     var i = M.clampLevel(r.levelIndex), won = !!r.won, prev = s.stars[i] || 0, before = M.snapshot();
     var stars = won ? Math.max(1, Math.min(M.CFG.starsMax, Math.round(num(r.stars)))) : 0;
     var rw = M.rewardFor({ levelIndex: i, won: won, coins: r.coins, objective: !!(r.tally && r.tally.objDone) }, prev, stars), st0 = s.heroes.arda.stats;
-    var st = P.Stats.applyLevel(st0, r.tally, won), day = P.Meta.Daily.dayKey(new Date(now)), ups, news, achieved;
+    var st = P.Stats.applyLevel(st0, r.tally, won), day = P.Meta.Daily.dayKey(new Date(now)), ups, news, achieved, daily;
+    var hoodWas = M.hoodCleared(M.level(i).hoodIndex);
     if (won) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
-    rw.total = coinBonus(s, rw.total);
+    if (!hoodWas && M.hoodCleared(M.level(i).hoodIndex)) s.counters.hoodsCleared += 1;   // AUDIT-7 CR-8: once per hood
+    rw.total = Math.round(coinBonus(s, rw.total) * dailyCoinMult(r));
     s.coins += rw.total;
     s.heroes.arda.stats = st.prog;
     ups = accumulateMastery(s, r.tally && r.tally.bySrc);
-    P.Meta.Collect.bump(s, Object.assign({}, r, { won: won, levelIndex: i }));
-    var daily = dailyResult(s, r, won, day);
+    daily = dailyResult(s, r, won, day);
+    P.Meta.Collect.bump(s, Object.assign({}, r, { won: won, levelIndex: i, daily: !!daily }));
     news = P.Meta.Collect.onLevel(s, { levelIndex: i, won: won, pageIds: r.pageIds }, M.snapshot().done);
     achieved = P.Meta.Collect.checkAchievements(s);
     var newGear = unlockGear(s);
@@ -346,6 +355,7 @@ P.Meta = P.Meta || {};
     s.unlocked = LEVELS;
     s.coins += M.CFG.coins.debugGrant;
     s.counters.kills = Math.max(s.counters.kills, 20000);
+    s.counters.hoodsCleared = J.hoods.length;   // every hood is cleared now, so the walk counter must agree (CR-8)
     unlockGear(s);
     save();
     return M.progress();

@@ -21,15 +21,12 @@ P.LangText.en['H03i2b'] = "The cat's following us. Guide, or just nosy?";
 P.LangText.en['H05i2a'] = "My captain's boat is still tied up here. He'd never leave it.";
 P.LangText.en['H05i3b'] = "Kaan, behind you! Right there! Move!";
 P.LangText.en['H05p3'] = "Ah-choo... Still alive. Bless me, then.";
-P.LangText.en['H11i2a'] = "A meze place used to be here. I came every summer. The bill always hurt. Now it's free.";
+P.LangText.en['H09i2a'] = "A meze place used to be here. I came every summer. The bill always hurt. Now it's free.";
 P.LangText.en['H12p2'] = "They're lined up on the stairs. Hold the rail.";
 P.LangText.en['H18i2a'] = "He gave me a free ice cream once. Now I can't pay him back.";
 P.LangText.en['H19i2b'] = "Ahmet Abi's bread's in there. Stale, but a decent shield.";
 P.LangText.en['L02m'] = "Rush a dürüm, it burns. Not on my grill.";
 P.LangText.en['L07m'] = "Acid puddles. You won't slip in them, but you'll slow down.";
-P.LangText.en['FNl1'] = "Son, Mum and Dede are in Sarıyer, at Dede's place.";
-P.LangText.en['FNl2'] = "Avoid the highways. Whatever the radio says, keep out of the north.";
-P.LangText.en['FNb'] = "Mum? ...Dad?";
 
 // Mom's calls (P.LINES C-ids)
 P.LangText.en['C05d'] = "Okay, Mum. Where are you?";

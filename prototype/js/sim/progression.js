@@ -19,8 +19,15 @@ P.Progression.levelHeal = function (s) {
   s.events.push({ type: 'kolonya', x: h.x, y: h.y, r: K.radius, heal: heal });
 };
 
+// Crowd cost (config xp.crowd, AUDIT-7 G-1): gem XP is divided by 1 + mul x alive / ref, so a horde adds threat, not picks.
+// The number of level-ups per route level then stays near the pre-horde count at any hood (see tools/bot.js lvl-ups).
+P.Progression.crowdCost = function (s) {
+  var C = P.CFG.xp.crowd;
+  return 1 + C.mul * s.enemies.length / C.ref;
+};
+
 P.Progression.addXp = function (s, v) {
-  s.xp += v * (1 + (s.hero.passives.lokum || 0) * P.CFG.passives.lokum.xpPerLevel);
+  s.xp += v * (1 + (s.hero.passives.lokum || 0) * P.CFG.passives.lokum.xpPerLevel) / P.Progression.crowdCost(s);
   while (s.xp >= P.xpNeed(s.level)) {
     s.xp -= P.xpNeed(s.level);
     s.level++;

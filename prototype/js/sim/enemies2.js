@@ -16,6 +16,7 @@ P.Enemies2 = {};
   E2.init = function (s, e) {
     if (e.type === 'kasap') e.ai = { m: 'walk', cd: 1.0, t: 0 };
     else if (e.type === 'parkur') e.ai = { m: 'walk', cd: 0.8, t: 0, tx: 0, ty: 0 };
+    if (P.Horde && P.Horde.debut) P.Horde.debut(s, e);   // lane H: first sighting in a run (horde.js)
   };
 
   // Desired velocity for the two types (enemies.js think() calls this first). Returns true when it set e.dvx/e.dvy.
@@ -67,6 +68,7 @@ P.Enemies2 = {};
     if (a.cd <= 0 && d >= S.leapMin && d <= S.leapMax) {
       a.m = 'windup'; a.t = 0; a.tx = h.x; a.ty = h.y; e.dvx = 0; e.dvy = 0;
       s.enemyTele.push({ kind: 'ring', x: h.x, y: h.y, r: S.leapR, t: 0, T: S.windup, then: null, owner: e.id, src: e, col: 'danger' });
+      s.events.push({ type: 'parkurWindup', id: e.id, x: e.x, y: e.y, T: S.windup });   // the crouch: cue at the start (AUDIT-7)
       return true;
     }
     var u = unit(h.x - e.x, h.y - e.y);

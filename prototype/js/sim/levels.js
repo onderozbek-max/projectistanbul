@@ -121,27 +121,39 @@ function civilians(s) {
 // ---------- v0.5 stage events: picked from config ev.mix (no repeats), hood flavour, hack terminals by stage ----------
 // Marks { y, kind: 'event' | 'hack', ev } spread along the route. geo.events lists them (bot and view).
 function planEvents(s, rng, info, end) {
-  var EV = P.CFG.ev, M = EV.mix.filter(function (m) { return m.stage === info.stage; })[0] || { pick: 0, kinds: [] };
-  var hk = EV.hackKinds[info.stage - 1] || [], pool = M.kinds.slice(), names = (M.forced || []).slice(), F = EV.flavour[info.hood.theme], i;
-  for (i = 0; i < M.pick && pool.length; i++) names.push(takeWeighted(rng, pool));
-  if (F && info.stage >= P.CFG.levels.extraFrom) names.push(F);
-  return names.map(function (k, j) { return eventMark(s, rng, k, hk, end, j, names.length); }).filter(Boolean);
+  var EV = P.CFG.ev, hood = info.hood, M = EV.mix.filter(function (m) { return m.stage === info.stage; })[0] || { pick: 0, kinds: [] };
+  // Hack kinds the hood can use: the stage list cut down to hood.hack (journey.js), so a tram box is only on tram hoods.
+  var hk = (EV.hackKinds[info.stage - 1] || []).filter(function (k) { return (hood.hack || []).indexOf(k) >= 0; });
+  var pool = M.kinds.slice(), names = (M.forced || []).map(norm), F = EV.flavour[hood.theme], i;
+  for (i = 0; i < M.pick && pool.length; i++) names.push(norm(takeWeighted(rng, pool)));
+  if (F && info.stage >= P.CFG.levels.extraFrom) names.push(norm(F));
+  return names.map(function (e, j) { return eventMark(s, rng, e, hk, end, j, names.length); }).filter(Boolean);
 }
+
+// An event entry is a name ('loot') or { k, o } with event options (o.sub for a hazard: 'car' or 'gas').
+function norm(e) { return typeof e === 'string' ? { k: e, o: {} } : { k: e.k, o: e.o || {} }; }
 
 function takeWeighted(rng, pool) {
   var tot = 0, i, r;
   for (i = 0; i < pool.length; i++) tot += pool[i].w;
   r = rng.next() * tot;
   for (i = 0; i < pool.length - 1; i++) { r -= pool[i].w; if (r < 0) break; }
-  return pool.splice(i, 1)[0].k;
+  return pool.splice(i, 1)[0];
 }
 
-function eventMark(s, rng, k, hk, end, j, n) {
-  var sp = P.CFG.ev.span, y = end * (sp[0] + (sp[1] - sp[0]) * (j + rng.range(0.2, 0.8)) / n), isHack = k === 'hack';
-  var name = isHack ? (hk.length ? hk[rng.int(0, hk.length - 1)] : null) : k;
+function eventMark(s, rng, e, hk, end, j, n) {
+  var sp = P.CFG.ev.span, y = end * (sp[0] + (sp[1] - sp[0]) * (j + rng.range(0.2, 0.8)) / n), isHack = e.k === 'hack';
+  var name = isHack ? (hk.length ? hk[rng.int(0, hk.length - 1)] : null) : e.k;
   if (!name) return null;
-  s.geo.events.push({ kind: isHack ? 'hack' : k, name: name, y: y });
-  return { y: y, kind: isHack ? 'hack' : 'event', ev: name };
+  s.geo.events.push({ kind: isHack ? 'hack' : e.k, name: name, y: y });
+  return { y: y, kind: isHack ? 'hack' : 'event', ev: name, o: isHack ? {} : hazardOpts(s.gen.hood, e.k, e.o) };
+}
+
+// A hazard on a hood with no car or taxi (journey.js vehicles) is a gas leak. Otherwise events-kinds.js picks car or gas.
+function hazardOpts(hood, k, o) {
+  var cars = (hood.vehicles || []).some(function (v) { return v === 'car' || v === 'taxi'; });
+  if (k !== 'hazard' || o.sub || cars) return o;
+  return { sub: 'gas' };
 }
 
 // A hack terminal beside the route, ahead of the hero. Skipped if no free spot is found.
@@ -178,7 +190,7 @@ function doMark(s, m) {
   else if (m.kind === 'ambush') ambush(s);
   else if (m.kind === 'hold') startHold(s);
   else if (m.kind === 'arena') startArena(s);
-  else if (m.kind === 'event') P.Events.start(s, m.ev, {});
+  else if (m.kind === 'event') P.Events.start(s, m.ev, m.o || {});
   else if (m.kind === 'hack') hackSpot(s, m.ev);
   else if (m.kind === 'landmark') P.Layouts.trigger(s, m);
 }
@@ -254,7 +266,10 @@ function spawnBudget(s, dt, rate, mix, behind) {
   g.acc = Math.min(g.acc + rate * dt, cost + 1);
   while (g.acc >= cost && guard++ < 3) {
     if (s.enemies.length >= P.CFG.levels.cap) break;
-    if (!spawnOne(s, g.next, behind)) break;
+    s.routeSpawn = true;                                   // enemies3.js E3.entrance: a route spawn may rise from a manhole or window
+    var placed = spawnOne(s, g.next, behind);
+    s.routeSpawn = false;
+    if (!placed) break;
     g.acc -= cost;
     g.next = pickType(s, mix); cost = costOf(g.next);
   }

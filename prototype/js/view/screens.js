@@ -18,7 +18,7 @@ P.Screens = (function () {
   function iconBox(item, cls) {
     var d = document.createElement('div');
     d.className = cls + ' kind-' + (P.Progression.isWeapon(item) ? 'w' : (item === 'simit' || item === 'jeton') ? 'f' : 'p');
-    d.innerHTML = P.Icons.svg(item, cls === 'icon' ? 56 : 30);
+    d.innerHTML = P.Icons.svg(item, cls === 'icon' ? 40 : 30);
     return d;
   }
 
@@ -89,26 +89,39 @@ P.Screens = (function () {
     var pick = card.mods && card.mods[card.pick || 0];
     if (pick) t.appendChild(modChip(pick, 'chip mod-chip chosen'));
   }
-  // Locks the card row, plays the pick beat, then hands the card to onPick.
+  // Card offer state (AUDIT-7 U3, CR-3). gen counts offers on screen; curOffer is the one on screen; Reroll is refused
+  // while a pick beat runs. A pick hands onPick the card looked up by id in curOffer, and a pick whose offer was replaced
+  // during the beat is dropped (no stale card is applied after a reroll).
+  var gen = 0, curOffer = null, canReroll = false, rr = null;
+  function setRerollLock(on) { if (rr) rr.disabled = !!on || !canReroll; }
+  function liveCard(c) {
+    var cs = curOffer ? curOffer.cards : [], i;
+    for (i = 0; i < cs.length; i++) if (cs[i].id === c.id) return cs[i];
+    return null;
+  }
+  // Locks the card row, plays the pick beat, then hands the live card to onPick.
   function pickCard(box, b, c, onPick) {
     if (box.dataset.locked) return;
-    box.dataset.locked = '1'; b.classList.add('picked'); box.classList.add('has-pick'); P.Sfx.play('pick');
-    setTimeout(function () { delete box.dataset.locked; box.classList.remove('has-pick'); onPick(c); }, P.Settings.reduceMotion ? 0 : 320);
+    var g = gen;
+    box.dataset.locked = '1'; b.classList.add('picked'); box.classList.add('has-pick'); setRerollLock(true); P.Sfx.play('pick');
+    setTimeout(function () {
+      if (g !== gen) return;   // a newer offer is on screen: this pick belonged to the old one
+      var live = liveCard(c);
+      delete box.dataset.locked; box.classList.remove('has-pick'); setRerollLock(false);
+      if (live) onPick(live);
+    }, P.Settings.reduceMotion ? 0 : 320);
   }
-  // Fork rows: header with the fork icon, then the mod options side by side. onSub(i) runs on a sub-button click.
+  // Fork options (AUDIT-7 U2): the mods as two 44 pt buttons in the card's chip line. A tap on one picks it and the card.
+  // Their descriptions are in the long-press sheet. onSub(i) runs on a sub-button click.
   function modRow(c, onSub) {
-    var wrap = mk('div', 'mods'), row = mk('div', 'mods-row'), head = mk('div', 'mods-head'), opts = [];
-    head.innerHTML = P.Icons.svg('fork', 16);
-    head.appendChild(document.createTextNode(P.t('fork.pick', { lv: c.next })));
+    var wrap = mk('div', 'mods'), row = mk('div', 'mods-row'), opts = [];
     function mark() {
       opts.forEach(function (o, j) { var on = j === (c.pick || 0); o.classList.toggle('is-pick', on); o.setAttribute('aria-pressed', String(on)); });
     }
     (c.mods || []).forEach(function (id, i) {
       var o = mk('span', 'mod-opt');
       o.setAttribute('role', 'button'); o.tabIndex = 0;
-      if (id === 'usta') o.innerHTML = P.Icons.svg('usta', 18);
       o.appendChild(mk('span', 'mod-name', P.t('mod.' + id)));
-      o.appendChild(mk('span', 'mod-desc', P.t('moddesc.' + id)));
       o.addEventListener('click', function (e) { e.stopPropagation(); onSub(i); mark(); });
       o.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -116,47 +129,159 @@ P.Screens = (function () {
       });
       opts.push(o); row.appendChild(o);
     });
-    mark(); wrap.appendChild(head); wrap.appendChild(row);
+    mark(); wrap.appendChild(row);
     return wrap;
   }
-  function cardHead(s, c, kind) {
-    var head = mk('div', 'card-head');
-    head.appendChild(mk('span', 'type', P.t(kind === 'w' ? 'type.weapon' : kind === 'p' ? 'type.passive' : 'type.filler')));
-    if (c.evo) head.appendChild(mk('span', 'badge evo', P.t('evo.label')));
-    else if (c.next === 1 && kind !== 'f') head.appendChild(mk('span', 'badge', P.t('ui.cards.new')));
-    if (c.fork) head.appendChild(mk('span', 'badge mod', P.t('card.mod')));
-    head.appendChild(mk('div', 'name', P.t('item.' + c.item)));
-    var mc = masteryChip(s, c.item, c.evo); if (mc) head.appendChild(mc);
-    if (kind !== 'f') head.appendChild(pips(c.next - 1, c.next));
-    return head;
-  }
-  // One level-up card (a button): icon and head, description, stat rows, and mod options for a fork.
-  function buildCard(s, c, i, scripted, box, onPick) {
-    var kind = c.id[0], b = document.createElement('button');
-    b.className = 'card kind-' + kind + (scripted && i === 0 ? ' highlight' : '') + (c.fork ? ' fork' : '');
-    b.style.animationDelay = (P.Settings.reduceMotion ? 0 : i * 70) + 'ms';
-    var top = mk('div', 'card-top');
-    top.appendChild(iconBox(c.item, 'icon')); top.appendChild(cardHead(s, c, kind));
-    b.appendChild(top);
-    if (c.evo) b.classList.add('evo');
-    var ds = mk('div', 'desc');
-    ds.textContent = (c.evo ? P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + ' · ' : '') + P.Progression.describe(c);
-    b.appendChild(ds);
-    // Evolution hint (lane W hook, guarded): what this weapon's evolution still needs, one line per evolution.
-    var eh = kind === 'w' && !c.evo && P.Weapons && P.Weapons.evoHint ? P.Weapons.evoHint(c.item, s) : null;
-    // evoHint (weapons6.js) returns the hint line as a string; accept an array too.
-    var ehText = Array.isArray(eh) ? eh.join(' · ') : eh;
-    if (ehText) b.appendChild(mk('div', 'evo-hint', ehText));
-    var lines = P.Progression.statLines(c);
-    if (lines.length) b.appendChild(fillStats(mk('div', 'stats'), lines));
-    if (c.fork && c.mods && c.mods.length) {
-      b.appendChild(modRow(c, function (k) {
-        if (box.dataset.locked) return;
-        c.pick = k; pickCard(box, b, c, onPick);
-      }));
+  // ---------- card face (AUDIT-7 U2, T3-8): icon; name + level; one-line effect; one chip ----------
+  // Weapon stat changes come from the config levels (values read, not written); passives reuse statLines (formatted).
+  function pctOf(r) { var p = Math.round((r - 1) * 100); return p === 0 ? '' : (p > 0 ? '+' : '') + p + '%'; }
+  function signed(n) { return (n > 0 ? '+' : '') + n; }
+  function plainVal(fmt, v) {
+    switch (fmt) {
+      case 'n': return String(v);
+      case 'm': return v + ' m';
+      case 's': return v + ' s';
+      case 'deg': return v + '°';
+      case 'ms': return v + ' m/s';
+      case 'pct': return Math.round(v * 100) + '%';
     }
-    b.addEventListener('click', function () { pickCard(box, b, c, onPick); });
+    return null;   // rate and ratio have no plain value
+  }
+  function statLabel(st) { var k = 'cfx.' + st[1], t = P.t(k); return t !== k ? t : P.t(st[0]); }
+  // The changes of one weapon level as "value label" items (the first two shown on the face).
+  function weaponDeltas(c) {
+    var cfg = P.CFG.weapons[c.item], L = cfg && cfg.levels, n = c.next, out = [];
+    if (!L || !cfg.stats) return out;
+    var a = (n > 1 && !c.evo) ? L[Math.min(n, L.length) - 2] : null, b = c.evo ? L[0] : L[Math.min(n, L.length) - 1];
+    cfg.stats.forEach(function (st) {
+      var key = st[1], fmt = st[2], va = a ? a[key] : null, vb = b[key], val = null;
+      if (fmt === 'bool' || (a && va === vb)) return;
+      if (!a) { val = plainVal(fmt, vb); }
+      else if (fmt === 'rate') { val = pctOf(va / vb); }                       // a lower interval is faster
+      else if (fmt === 'ratio' || fmt === 'm' || fmt === 's' || fmt === 'deg' || fmt === 'ms') { val = va ? pctOf(vb / va) : signed(vb); }
+      else if (fmt === 'pct') { val = signed(Math.round((vb - va) * 100)) + '%'; }
+      else if (key === 'dmg') { val = pctOf(vb / va); }
+      else { val = signed(vb - va); }
+      if (val) out.push(val + ' ' + statLabel(st));
+    });
+    return out;
+  }
+  function passiveDeltas(c) {
+    return P.Progression.statLines(c).map(function (r) { return (r.b + ' ' + P.t(r.k)).trim(); });
+  }
+  function cardEffect(c) {
+    if (c.id[0] === 'f') return P.Progression.describe(c);
+    var items = c.id[0] === 'w' ? weaponDeltas(c) : passiveDeltas(c);
+    return items.length ? items.slice(0, 2).join(' · ') : P.Progression.describe(c);
+  }
+  // Evolution helpers (read-only mirror of weapons6.js evoHint): what an evolution still needs, and the first target.
+  function evoNeeds(s, id) {
+    var E = P.CFG.evolutions[id], h = s.hero, need = 0, max = P.CFG.maxItemLevel;
+    if ((h.weapons[E.from] || 0) < max) need++;
+    if (E.terrain) {
+      if (!P.Weapons6.seen(s, E.from, E.terrain)) need++;
+      if (!P.Weapons6.evoUnlocked(s, id)) need++;
+    } else if (!((h.passives[E.passive] || 0) > 0)) need++;
+    return need;
+  }
+  function evoTarget(s, base) {
+    var h = s.hero, ids = Object.keys(P.CFG.evolutions);
+    if ((h.evolved || {})[base] || !P.CFG.weapons[base] || P.CFG.weapons[base].evo || !P.Weapons6) return null;
+    for (var i = 0; i < ids.length; i++) if (P.CFG.evolutions[ids[i]].from === base && !h.weapons[ids[i]]) return ids[i];
+    return null;
+  }
+  // The chip on a card (or in the detail sheet when long): an evolution's recipe, the weapon's next evolution, or a
+  // passive's synergy with a weapon the player owns. Null when there is nothing to say.
+  function chipInfo(s, c, long) {
+    var h = s.hero, E, id, need, name, i, ids = Object.keys(P.CFG.evolutions);
+    if (c.evo) {
+      E = P.CFG.evolutions[c.item];
+      if (!E) return null;
+      var what = E.passive ? P.t('item.' + E.passive) : (E.terrain ? P.t('terrain.' + E.terrain) : '');
+      return { icons: [c.evo].concat(E.passive ? [E.passive] : []), cls: 'ready',
+        text: long ? P.t('card.recipeHead') + ': ' + what : P.t('card.recipe', { what: what }) };
+    }
+    if (c.id[0] === 'w') {
+      id = evoTarget(s, c.item);
+      if (!id) return null;
+      name = P.t('item.' + id); need = evoNeeds(s, id);
+      if (long) return { icons: [id], cls: need ? '' : 'ready', text: (P.Weapons.evoHint && P.Weapons.evoHint(c.item, s)) || name };
+      return need ? { icons: [id], cls: '', text: P.t('card.evoLeft', { name: name, n: need }) }
+        : { icons: [id], cls: 'ready', text: P.t('card.evoReady', { name: name }) };
+    }
+    if (c.id[0] === 'p') {
+      for (i = 0; i < ids.length; i++) {
+        E = P.CFG.evolutions[ids[i]];
+        if (E.passive === c.item && h.weapons[E.from] && !h.weapons[ids[i]]) {
+          return { icons: [E.from], cls: 'syn', text: P.t('card.synergy', { weapon: P.t('item.' + E.from) }) };
+        }
+      }
+    }
+    return null;
+  }
+  function cardChip(s, c) {
+    var info = chipInfo(s, c, false), ch;
+    if (!info) return null;
+    ch = mk('div', 'card-chip' + (info.cls ? ' ' + info.cls : ''));
+    info.icons.forEach(function (id) { var ic = mk('span', 'chip-ico'); ic.innerHTML = P.Icons.svg(id, 16); ch.appendChild(ic); });
+    ch.appendChild(document.createTextNode(info.text));
+    return ch;
+  }
+  function cardBadge(c, kind) {
+    var key = c.evo ? 'evo.label' : c.fork ? 'card.mod' : (c.next === 1 && kind !== 'f') ? 'ui.cards.new' : null;
+    return key ? mk('span', 'badge' + (c.evo ? ' evo' : c.fork ? ' mod' : ''), P.t(key)) : null;
+  }
+  // Long press (450 ms) opens the detail sheet and cancels the pick; a short tap picks (AUDIT-7 U2).
+  function longPress(b, onLong, onTap) {
+    var timer = null, held = false;
+    b.addEventListener('pointerdown', function () {
+      held = false; clearTimeout(timer);
+      timer = setTimeout(function () { held = true; onLong(); }, 450);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(timer); }); });
+    b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    b.addEventListener('click', function (e) {
+      if (held) { held = false; e.preventDefault(); return; }
+      onTap(e);
+    });
+  }
+  // One level-up card: icon (with its badge), then the three text lines.
+  function buildCard(s, c, i, scripted, box, onPick) {
+    var kind = c.id[0], b = document.createElement('button'), face = mk('div', 'card-face'), body = mk('div', 'card-body'), l1 = mk('div', 'card-l1');
+    b.className = 'card kind-' + kind + (scripted && i === 0 ? ' highlight' : '') + (c.fork ? ' fork' : '') + (c.evo ? ' evo' : '');
+    b.style.animationDelay = (P.Settings.reduceMotion ? 0 : i * 70) + 'ms';
+    face.appendChild(iconBox(c.item, 'icon'));
+    var badge = cardBadge(c, kind); if (badge) face.appendChild(badge);
+    l1.appendChild(mk('span', 'name', P.t('item.' + c.item)));
+    if (kind !== 'f') l1.appendChild(pips(c.next - 1, c.next));
+    body.appendChild(l1);
+    body.appendChild(mk('div', 'fx', cardEffect(c)));
+    var chip = c.fork && c.mods && c.mods.length
+      ? modRow(c, function (k) { if (box.dataset.locked) return; c.pick = k; pickCard(box, b, c, onPick); })
+      : cardChip(s, c);
+    if (chip) body.appendChild(chip);
+    b.appendChild(face); b.appendChild(body);
+    longPress(b, function () { showInfo(s, c); }, function () { pickCard(box, b, c, onPick); });
     return b;
+  }
+
+  // ---------- card detail sheet (AUDIT-7 U2): every stat row, the full text, the recipe or the fork's two options ----------
+  function hideInfo() { $('card-info').classList.add('hidden'); }
+  function showInfo(s, c) {
+    var root = $('card-info'), kind = c.id[0], chip = $('ci-chip'), desc = P.Progression.describe(c), info, mc;
+    $('ci-type').textContent = P.t('card.type.' + kind) + (c.fork ? ' · ' + P.t('card.mod') : '');
+    $('ci-name').textContent = P.t('item.' + c.item);
+    if (c.evo) desc = P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + '\n' + desc;
+    (c.mods || []).forEach(function (id) { desc += '\n' + P.t('mod.' + id) + ': ' + P.t('moddesc.' + id); });
+    $('ci-desc').textContent = desc;
+    fillStats($('ci-stats'), P.Progression.statLines(c));
+    chip.innerHTML = '';
+    mc = masteryChip(s, c.item, c.evo, 'chip mastery'); if (mc) chip.appendChild(mc);
+    info = chipInfo(s, c, true);
+    if (info) chip.appendChild(document.createTextNode((mc ? ' ' : '') + info.text));
+    $('btn-ci-close').onclick = hideInfo;
+    root.onclick = function (e) { if (e.target === root) hideInfo(); };
+    root.classList.remove('hidden');
   }
 
   S.buildSlots = function (s, container, split) {
@@ -182,14 +307,16 @@ P.Screens = (function () {
   };
 
   S.showCards = function (s, offer, onPick, onReroll) {
-    $('cards-sub').textContent = P.t('ui.cards.sub', { n: s.level });
+    gen++; curOffer = offer; hideInfo();   // a new offer on screen: picks from the previous one are dropped (CR-3)
+    $('cards-sub').textContent = P.t('ui.cards.sub', { n: s.level }) + ' · ' + P.t('ui.cards.hold');
     $('cards-tut').classList.toggle('hidden', !offer.scripted);
-    var box = $('cards'); box.innerHTML = '';
+    var box = $('cards'); box.innerHTML = ''; delete box.dataset.locked; box.classList.remove('has-pick');
     offer.cards.forEach(function (c, i) { box.appendChild(buildCard(s, c, i, offer.scripted, box, onPick)); });
-    var rr = $('btn-reroll');
+    rr = $('btn-reroll');
+    canReroll = s.rerolls > 0 && !offer.scripted;
     rr.textContent = P.t('ui.cards.reroll', { n: s.rerolls });
-    rr.disabled = s.rerolls <= 0 || offer.scripted;
-    rr.onclick = onReroll;
+    rr.disabled = !canReroll;
+    rr.onclick = function () { if (box.dataset.locked || !canReroll) return; onReroll(); };   // refused during a pick beat
     var ad = $('btn-reroll-ad');
     ad.innerHTML = ''; ad.appendChild(document.createTextNode(P.t('ui.cards.rerollAd')));
     var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = P.t('ui.cards.ad'); ad.appendChild(tag);
@@ -286,6 +413,7 @@ P.Screens = (function () {
     $('btn-revive-gold').onclick = function () { handlers.revive('gold'); };
     $('btn-giveup').textContent = P.t('ui.down.giveUp', { p: S.keepPct() });
     $('btn-giveup').onclick = handlers.giveUp;
+    $('down-revive').classList.toggle('hidden', !!(P.Modifiers && P.Modifiers.reviveBlocked && P.Modifiers.reviveBlocked(s)));   // daily Iron: no revive choices (AUDIT-7 CR-1)
     S.show('scr-down');
   };
 

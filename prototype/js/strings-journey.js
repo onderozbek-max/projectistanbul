@@ -1,6 +1,6 @@
 // Lead integration strings (v0.4): journey labels, skill HUD, results flow, boss names (E2 nameKeys).
 Object.assign(P.STR.tr, {
-  'ui.title.proto': 'Prototip v0.7 · Eve yürüyüş: İstiklal → Ataköy',
+  'ui.title.proto': 'Prototip v0.8 · Eve yürüyüş: İstiklal → Ataköy',
   'ui.pause.level': '{hood} {n}-{s} · {t}', 'ui.down.survived': '{hood} {n}-{s} · {t} dayandın',
   'ui.pause.quit': 'Haritaya dön', 'ui.res.title': 'Haritaya dön', 'ui.res.next': 'Sonraki seviye',
   'ui.res.labelHood': 'BÖLGE {n} · SEVİYE {s} · {hood}', 'ui.res.progress': '{km} / 17 km yürüdün',
@@ -9,7 +9,7 @@ Object.assign(P.STR.tr, {
   'boss.intro': 'PATRON', 'boss.rage': 'ÖFKE!',
 });
 Object.assign(P.STR.en, {
-  'ui.title.proto': 'Prototype v0.7 · The walk home: İstiklal → Ataköy',
+  'ui.title.proto': 'Prototype v0.8 · The walk home: İstiklal → Ataköy',
   'ui.pause.level': '{hood} {n}-{s} · {t}', 'ui.down.survived': '{hood} {n}-{s} · survived {t}',
   'ui.pause.quit': 'Back to map', 'ui.res.title': 'Back to map', 'ui.res.next': 'Next level',
   'ui.res.labelHood': 'DISTRICT {n} · LEVEL {s} · {hood}', 'ui.res.progress': '{km} / 17 km walked',

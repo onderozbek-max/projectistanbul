@@ -132,9 +132,10 @@ function spawnAt(s, type, opts) {
 }
 
 function runBudget(s, dt, seg, rate, total, pickType, opts) {
-  var d = s.dir;
+  var d = s.dir, k = P.Modifiers && P.Modifiers.spawnScale ? P.Modifiers.spawnScale(s) : 1;   // daily Horde (1 otherwise)
+  total *= k;
   if (d.spawned[seg] >= total) return;
-  d.acc = Math.min(d.acc + rate * dt * rhythm(s) * P.Events.spawnMul(s), 3);
+  d.acc = Math.min(d.acc + rate * k * dt * rhythm(s) * P.Events.spawnMul(s), 3);
   while (d.acc >= 1 && d.spawned[seg] < total) {
     if (!spawnAt(s, pickType(), opts)) break;
     d.acc -= 1; d.spawned[seg]++;
@@ -219,6 +220,7 @@ function scripted(s, dt) {
   if (!f.elite1 && h.y >= EL.firstY - 11) {
     f.elite1 = true;
     P.Combat.spawnEnemy(s, 'walker', EL.firstX, EL.firstY, { elite: true });
+    if (P.Modifiers && P.Modifiers.echoElites) P.Modifiers.echoElites(s, EL.firstX, EL.firstY);   // daily Elite night
     P.Director.bark(s, 'barkElite');
   }
   if (!d.hold.active && h.y >= L.holdTriggerY) startHold(s);
@@ -241,7 +243,9 @@ function updateHold(s, dt) {
   d.hold.t += dt;
   if (!d.flags.elite2 && d.hold.t >= L.elites.holdT) {
     d.flags.elite2 = true;
-    P.Combat.spawnEnemy(s, 'walker', Math.max(-5.5, Math.min(5.5, s.hero.x + 3)), s.hero.y > 216 ? s.hero.y - 7 : s.hero.y + 7, { elite: true });
+    var ex = Math.max(-5.5, Math.min(5.5, s.hero.x + 3)), ey = s.hero.y > 216 ? s.hero.y - 7 : s.hero.y + 7;
+    P.Combat.spawnEnemy(s, 'walker', ex, ey, { elite: true });
+    if (P.Modifiers && P.Modifiers.echoElites) P.Modifiers.echoElites(s, ex, ey);   // daily Elite night
   }
   s.props.shutter = Math.min(1, d.hold.t / L.holdTime);
   if (s.props.shutter >= 1 && !s.props.shutterOpen) {
@@ -323,6 +327,7 @@ P.Director.step = function (s, dt) {
   if (s.geo) {                                   // generated levels 2..100 (levels.js), then their objective (objectives.js)
     P.Levels.step(s, dt);
     if (P.Objectives) P.Objectives.step(s, dt);
+    if (P.Horde && P.Horde.step) P.Horde.step(s, dt);   // lane H: on-screen density, surges, boss-arena adds (horde.js)
     return;
   }
   var segs = P.CFG.level.segments, h = s.hero, d = s.dir;

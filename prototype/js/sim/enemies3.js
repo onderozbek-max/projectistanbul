@@ -22,6 +22,7 @@ P.Enemies3 = {};
     var K = cfg().kurye, C3 = cfg().copci;
     e.ai = e.type === 'kurye' ? { m: 'walk', cd: K.firstCd, t: 0, left: 0, dir: { x: 0, y: 0 } }
       : { m: 'walk', cd: C3.firstCd, t: 0, pushes: 0, dir: { x: 0, y: 0 } };
+    if (P.Horde && P.Horde.debut) P.Horde.debut(s, e);   // lane H: first sighting in a run (horde.js)
   };
 
   E3.think = function (s, e, dt) { return e.type === 'kurye' ? kurye(s, e, dt) : copci(s, e, dt); };
@@ -36,9 +37,9 @@ P.Enemies3 = {};
   function kurye(s, e, dt) {
     var a = e.ai, K = cfg().kurye, h = s.hero, d = dist(e, h);
     a.cd = Math.max(0, a.cd - dt);
-    if (a.m === 'tele') {
-      e.dvx = 0; e.dvy = 0; a.t += dt;
-      if (a.t >= K.tele) { a.m = 'dash'; a.left = K.dashLen; e.noSep = true; s.events.push({ type: 'kuryeDash', id: e.id, x: e.x, y: e.y }); }
+    if (a.m === 'tele') {                                 // windup: the lane on the ground, the pose leans in (AUDIT-7 telegraphs)
+      e.dvx = 0; e.dvy = 0; a.t += dt; e.windup = clamp01(a.t / K.tele);
+      if (a.t >= K.tele) { e.windup = 0; a.m = 'dash'; a.left = K.dashLen; e.noSep = true; s.events.push({ type: 'kuryeDash', id: e.id, x: e.x, y: e.y }); }
       return true;
     }
     if (a.m === 'dash') {
@@ -52,6 +53,7 @@ P.Enemies3 = {};
       a.dir = unit(side * K.cross, fy * K.forward);
       a.m = 'tele'; a.t = 0; e.dvx = 0; e.dvy = 0;
       P.Enemies.lane(s, e.x, e.y, a.dir.x, a.dir.y, K.dashLen, K.laneW, K.tele).owner = e.id;
+      s.events.push({ type: 'kuryeWindup', id: e.id, x: e.x, y: e.y, T: K.tele });
       return true;
     }
     return chase(e, h, e.speed);
@@ -152,6 +154,9 @@ P.Enemies3 = {};
     if (!s.gen || s.gen.arena || e.boss || e.state !== 'active') return;
     if (e.door) { startEntrance(s, e, openingKind(e.door.kind), cfg4().portalRise, 0); return; }
     if (e.type === 'crawler') { startEntrance(s, e, 'manhole', cfg().entrance.crawlerT, 0); return; }
+    // AUDIT-7 CR-2: only route and horde spawns move (s.routeSpawn). Set pieces keep their spot: event spawns (evId: rescue
+    // trappers, chest guards, loot runners), balconies (anchored), elites and the scripted calls. They may still rise in place.
+    if (!s.routeSpawn || e.evId || e.anchored || e.elite) return;
     var E = cfg().entrance, X4 = cfg4().entrance, rng = s.rng.ai, h = s.hero;
     var ahead = e.y > h.y + X4.aheadY, edge = Math.abs(e.x - h.x) > X4.edgeX;   // lateral offset from the hero, not from x = 0
     if (!ahead && !edge) return;                       // spawns in view (behind, or near the hero) keep their spot
@@ -159,7 +164,7 @@ P.Enemies3 = {};
     var op = openingOf(s, h), kind, k, x, y;
     if (op) { kind = op.kind; x = op.x; y = op.y; k = { T: cfg4().portalRise, drop: 0 }; }
     else {
-      kind = pickKind(rng, E); k = E.kinds[kind]; y = h.y + rng.range(E.aheadMin, E.aheadMax);
+      kind = pickKind(rng, E, s.gen.hood); k = E.kinds[kind]; y = h.y + rng.range(E.aheadMin, E.aheadMax);
       x = kind === 'manhole' ? rng.range(-E.manholeX, E.manholeX) : (rng.chance(0.5) ? -1 : 1) * (E.sideX + rng.range(-E.sideJit, E.sideJit));
     }
     if (y > s.geo.exitY - X4.exitGap || blockedAt(s.geo, x, y, E.blockR)) return;
@@ -181,8 +186,11 @@ P.Enemies3 = {};
     return best;
   }
 
-  function pickKind(rng, E) {
-    var keys = Object.keys(E.kinds), tot = 0, i, r;
+  // A tram entrance needs a tram in the hood (journey.js vehicles, read from the level's hood); the other kinds fit any hood.
+  function kindOk(k, hood) { return k !== 'tram' || (hood.vehicles || []).indexOf('tram') >= 0; }
+
+  function pickKind(rng, E, hood) {
+    var keys = Object.keys(E.kinds).filter(function (k) { return kindOk(k, hood); }), tot = 0, i, r;
     for (i = 0; i < keys.length; i++) tot += E.kinds[keys[i]].w;
     r = rng.next() * tot;
     for (i = 0; i < keys.length; i++) { r -= E.kinds[keys[i]].w; if (r < 0) return keys[i]; }
@@ -200,11 +208,11 @@ P.Enemies3 = {};
   }
 
   // ---------- roster adds (generated levels): wraps the build, levels.js stays unchanged ----------
-  // P.CFG.enemyRosterAdds is keyed by hood index (0-based); the types join the roster from stage enemyRosterFrom on.
+  // P.CFG.enemyRosterAdds is keyed by hood id; the types join the roster from stage enemyRosterFrom on.
   E3.augmentRoster = function (s) {
-    var g = s.gen, hi = g && g.info ? g.info.hoodIndex : -1, adds = P.CFG.enemyRosterAdds || {};
-    if (hi < 0 || g.stageIdx < (P.CFG.enemyRosterFrom || 1)) return;
-    (adds[hi] || []).forEach(function (t) { if (g.roster.indexOf(t) < 0) g.roster.push(t); });
+    var g = s.gen, adds = P.CFG.enemyRosterAdds || {}, list = g && g.hood ? adds[g.hood.id] : null;
+    if (!list || g.stageIdx < (P.CFG.enemyRosterFrom || 1)) return;
+    list.forEach(function (t) { if (g.roster.indexOf(t) < 0) g.roster.push(t); });
   };
   (function () {
     var build = P.Levels.build;

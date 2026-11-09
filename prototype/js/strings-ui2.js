@@ -12,6 +12,7 @@ Object.assign(P.STR.tr, {
   'tip.spitter': 'İpucu: Tükürükçü uzaktan vurur. Asit birikintisinden kaç.',
   'tip.screamer': 'İpucu: Çığlıkçı sürüyü çağırır. Önce onu vur.',
   'meta.doneHead': 'Yolculuk',
+  'ui.cards.close': 'Kapat', 'ui.cards.hold': 'Ayrıntı için basılı tut',
 });
 Object.assign(P.STR.en, {
   'ui.boot.fail': 'Could not load. Try again.',
@@ -24,4 +25,5 @@ Object.assign(P.STR.en, {
   'tip.spitter': 'Tip: the spitter shoots from range. Get out of the acid pools.',
   'tip.screamer': 'Tip: the screamer calls the horde. Take it out first.',
   'meta.doneHead': 'Journey',
+  'ui.cards.close': 'Close', 'ui.cards.hold': 'Hold a card for details',
 });

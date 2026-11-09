@@ -1,5 +1,11 @@
-# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.7)
+# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.8)
 
+> **v0.8 (2026-11-09), wave 3 integration:** walk order fixed (Kumkapı after Beyazıt; Zeytinburnu and Kazlıçeşme swapped).
+> Story ids, bark pools, hood looks, roster adds and the campfire now follow their hood (`tools/check-hood-keys.js`).
+> Route spawns use manhole, window and balcony entrances again; set pieces never move; tram entrances only in tram hoods.
+> Crowd XP cost (`xp.crowd`) keeps late levels from flooding level-ups (still 11-29 per level from L22; open). Daily No dash
+> hides the chip; Iron shows the down screen without revive; HP ticks, objective labels, letters (L50, L95) and hoodsCleared fixed.
+>
 > **v0.7 (2026-11-08):** owner feedback + AUDIT-6 player review. Comic busts redrawn with real proportions and
 > moods; humour written natively per language (`strings-barks-tr/en.js`, `story-lang-tr/en.js`, joke budget);
 > `P.Speech` stops bubble overlap; no gulls/rain indoors; random zoom/flash/speed lines removed, replaced by

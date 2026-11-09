@@ -178,8 +178,10 @@
       { stage: 4, pick: 2, kinds: [{ k: 'blackout', w: 2 }, { k: 'stampede', w: 2 }, { k: 'barricade', w: 2 }, { k: 'hazard', w: 2 }, { k: 'rescue', w: 2 }, { k: 'hack', w: 2 }] },
       { stage: 5, pick: 0, forced: ['chest'], kinds: [] },    // boss stage: the guard chest only
     ],
-    // Hood flavour (one extra event from stage 2, by theme). Themes not listed get none.
-    flavour: { bridge: 'stampede', eminonu: 'pier', bazaar: 'barricade', sahil: 'defend', zeytinburnu: 'hazard',
+    // Hood flavour (one extra event from stage 2, by theme). Themes not listed get none. An entry is a name or { k, o }.
+    // Each fits its hood: pier = the ferry arrival (Eminönü has a ferry pier); zeytinburnu's dye works leak gas (no car).
+    // 'hack' and 'hazard' in the mix are cut down per hood in sim/levels.js (hood.hack; hazards on no-car hoods are gas).
+    flavour: { bridge: 'stampede', eminonu: 'pier', bazaar: 'barricade', sahil: 'defend', zeytinburnu: { k: 'hazard', o: { sub: 'gas' } },
       yenikapi: 'blackout', kazlicesme: 'rescue', marina: 'loot', samatya: 'defend' },
     // Hack kinds per stage (generated levels). Tram and shutter are the later kinds.
     hackKinds: [['atm', 'traffic'], ['cell', 'atm', 'traffic'], ['car', 'traffic'], ['shutter', 'tram'], []],

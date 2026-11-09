@@ -315,6 +315,17 @@ const alive = list => list.filter(e => !e.dead).length;
   check(blastAt.length === 3 && perSec <= 3, 'chain: three linked canisters blast in order at most 3 per second (' + blastAt.map(t => t.toFixed(2)).join(', ') + ')');
 })();
 
+// ---------- v0.8 XP crowd cost (AUDIT-7 G-1): gem XP halves with a crowd the size of xp.crowd.ref ----------
+(function () {
+  const e = mk(79, 1);
+  e.enemies = []; e.xp = 0;
+  P.Progression.addXp(e, 1);
+  const empty = e.xp;
+  e.xp = 0; e.enemies = new Array(P.CFG.xp.crowd.ref).fill(null);
+  P.Progression.addXp(e, 1);
+  check(Math.abs(empty - 1) < 1e-9 && Math.abs(e.xp - 0.5) < 1e-9, 'xp: a crowd of ref size halves gem XP');
+})();
+
 // ---------- sim isolation and lint ----------
 (function () {
   var files = ['js/sim/env.js', 'js/sim/env-kinds.js', 'js/sim/env-zones.js', 'js/sim/env-rules.js', 'js/sim/env-portal.js'];

@@ -229,7 +229,9 @@ P.Layouts.marks = function (L) {
 // A centre landmark's event, fired when the hero reaches it: an ambush from the side, a loot runner, or a hack terminal
 // at the landmark (linked from the lane, within the terminal's reach).
 P.Layouts.trigger = function (s, m) {
-  var hk = P.CFG.layouts.centre.hack;
+  // The terminal kind is one the hood has (journey.js hack); a hood with none of the centre kinds gets the full list.
+  var all = P.CFG.layouts.centre.hack, own = s.gen.hood.hack || [], hk = all.filter(function (k) { return own.indexOf(k) >= 0; });
+  if (!hk.length) hk = all;
   if (m.ev === 'hack') P.Hack.place(s, hk[s.rng.spawn.int(0, hk.length - 1)], m.x, m.y);
   else if (m.ev === 'ambush') P.Events.start(s, 'ambush', { x: m.x });
   else P.Events.start(s, 'loot', {});

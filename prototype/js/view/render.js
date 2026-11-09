@@ -173,6 +173,7 @@ P.Render = (function () {
   function runDepth(list) { for (var i = 0; i < list.length; i++) list[i].fn(); }
 
   R.frame = function (s, extraDraw) {
+    if (P.FinaleApproach && P.FinaleApproach.active && P.FinaleApproach.active()) { P.FinaleApproach.draw(R); return; }
     var c = R.ctx, cam = P.Fx.cam;
     R.cam = cam;
     R.ppm = R.W / cam.w * cam.zoom;

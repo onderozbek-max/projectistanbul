@@ -6,13 +6,13 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-layouts.js', 'js/config-enemies3.js', 'js/config-bosses.js', 'js/config-enemies4.js', 'js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js', 'js/config-env.js',
-  'js/config-objectives.js', 'js/config-modifiers.js',
+  'js/config-objectives.js', 'js/config-modifiers.js', 'js/config-horde.js',
   'js/strings.js', 'js/strings-progress.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/strings-weapons3.js', 'js/sim/rng.js', 'js/sim/world.js',
   'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
   'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/layouts.js', 'js/sim/levels.js', 'js/sim/enemies3.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
   'js/sim/env.js', 'js/sim/env-kinds.js', 'js/sim/env-zones.js', 'js/sim/env-rules.js', 'js/sim/env-portal.js',
   'js/sim/hack.js', 'js/sim/modifiers.js', 'js/sim/objectives.js', 'js/sim/objectives-kinds.js',
-  'js/sim/progression.js', 'js/sim/weapons6.js', 'js/sim/director.js', 'js/sim/sim.js'];
+  'js/sim/progression.js', 'js/sim/weapons6.js', 'js/sim/horde.js', 'js/sim/director.js', 'js/sim/sim.js'];
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const VIEW = ['js/view/icons.js', 'js/view/icons-evo.js', 'js/view/weapons-fx.js', 'js/view/weapons-fx2.js', 'js/view/weapons-fx3.js',
   'js/view/weapons-fx4.js', 'js/view/fire-anim-prim.js', 'js/view/fire-anim-held.js', 'js/view/fire-anim-held2.js', 'js/view/fire-anim-held3.js',
@@ -190,6 +190,7 @@ function unitTests() {
   forkUnits();
   modUnits();
   passiveUnits();
+  dropReachUnits();
 
   // Determinism: the same seed and inputs replay identically.
   const runA = replay(21), runB = replay(21);
@@ -353,11 +354,11 @@ function passiveUnits() {
   q.hero.passives.kask = 5;
   check(P.Skills.hitReduce(q, 20, 'walker') === 10, 'kask never below half');
   const l = newSim(76, 1);
-  l.hero.passives.lokum = 2; l.xp = 0;
+  l.hero.passives.lokum = 2; l.xp = 0; l.enemies = [];   // no crowd cost (xp.crowd): these tests check the passives only
   P.Progression.addXp(l, 1);
   check(l.level === 1 && Math.abs(l.xp - 1.2) < 1e-9, 'lokum XP scaling');
   const kk = newSim(77, 1);
-  kk.hero.passives.kolonya = 1; kk.hero.hp = 10;
+  kk.hero.passives.kolonya = 1; kk.hero.hp = 10; kk.enemies = [];
   P.Progression.addXp(kk, P.xpNeed(kk.level));
   check(P.drainEvents(kk).some(e => e.type === 'kolonya') && kk.hero.hp > 10, 'kolonya heal on level-up');
   const pb = newSim(78, 1);
@@ -368,6 +369,20 @@ function passiveUnits() {
   c.hero.passives.cay = 2; c.hero.hp = 50;
   for (let i = 0; i < 120; i++) stepRaw(c, { x: 0, y: 0 });
   check(c.hero.hp > 50, 'cay regen while still');
+}
+
+// Side-kill gems stay inside the hero's reach (view.heroClampX) and get picked up (AUDIT-7 L22 seed 10 stall).
+function dropReachUnits() {
+  const hx = P.CFG.view.heroClampX;
+  for (const side of [1, -1]) {
+    const q = newSim(79 + side, 22);
+    q.hero.x = side * hx; q.hero.y = 52;
+    P.Combat.killEnemy(q, P.Combat.spawnEnemy(q, 'walker', side * 6.4, 52, { state: 'active' }), false, 'test');
+    const gems = q.drops.filter(d => d.kind === 'xp');
+    check(gems.length === 1 && Math.abs(gems[0].x) <= hx + 1e-9, 'XP gem from a side kill stays in hero reach');
+    for (let i = 0; i < 120; i++) stepRaw(q, { x: 0, y: 0 });
+    check(gems.every(g => !q.drops.includes(g)), 'XP gem from a side kill is collected');
+  }
 }
 
 function replay(seed) {

@@ -1,6 +1,7 @@
 // Daily challenge, streak, reward chest and welcome-back (v0.5, workstream C). Pure: no DOM.
-// A daily is one seeded level of the unlocked route with 2 modifiers. Modifiers are DATA ONLY:
-// the sim reads loadout.modifiers (fields: spawnMult, enemyHpMult, eliteMult, noDash, noRevive, coinMult).
+// A daily is one seeded level of the unlocked route with 2 modifiers. The effects live here (D.MODS); the sim applies
+// them from loadout.modifiers (fields: spawnMult, enemyHpMult, eliteMult, noDash, noRevive, coinMult; sim/modifiers.js).
+// D.resolve maps any stored list back to these definitions by id, so a damaged save cannot add an effect.
 P.Meta = P.Meta || {};
 (function (M) {
   var D = M.Daily = M.Daily || {};
@@ -90,8 +91,17 @@ P.Meta = P.Meta || {};
     if (daily.won) return 'done';
     return 'used';
   };
-  // Data for the sim: the modifiers list copied into loadout.modifiers.
+  // Stored or picked modifiers, resolved to the D.MODS definitions by id (unknown ids and extra entries are dropped).
+  D.resolve = function (list) {
+    var out = [];
+    (Array.isArray(list) ? list : []).forEach(function (m) {
+      var def = m && typeof m === 'object' ? D.MODS.filter(function (x) { return x.id === m.id; })[0] : null;
+      if (def && out.length < D.CFG.modCount) out.push(Object.assign({}, def));
+    });
+    return out;
+  };
+  // Data for the sim: the resolved modifiers copied into loadout.modifiers.
   D.loadoutFields = function (plan) {
-    return { modifiers: plan.mods.map(function (m) { return Object.assign({}, m); }), seed: plan.seed, daily: true };
+    return { modifiers: D.resolve(plan.mods), seed: plan.seed, daily: true };
   };
 })(P.Meta);

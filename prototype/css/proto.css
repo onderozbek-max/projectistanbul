@@ -1,5 +1,6 @@
 /* Level 1 prototype UI (v0.2). Tokens = docs/design-system.md §3-4, §13; layouts = design/lofi/*.html.
-   v0.2: comic-ink game UI — hard ink outlines + drop shadows, condensed italic display type, motion on every state change. */
+   v0.2: comic-ink game UI — hard ink outlines + drop shadows, condensed italic display type, motion on every state change.
+   v0.8 (AUDIT-7 lane U): HUD in two rows (T3-7), one-line level-up cards (T3-8), tap targets >= 44 px, text >= 14 px. */
 :root {
   --tram-red: #D7263D; --tram-red-d: #9E1528; --simit-gold: #E9A23B; --simit-gold-d: #A86A12; --tea-amber: #B5651D; --bosphorus: #1B4965;
   --ink: #14151F; --ink-2: #1F2130; --ink-3: #2C2F42; --paper: #F4EBDD; --paper-d: #D9CBB3; --stone: #8A8F98;
@@ -10,6 +11,9 @@
   --safe-top: 59px; --safe-bottom: 34px; --pad: 16px;
   --display: 'Avenir Next Condensed', 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', system-ui, sans-serif;
   --body: 'Avenir Next', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* AUDIT-7 U: the HUD and the level-up cards use the bundled faces (comic.css @font-face), so TR and EN metrics are fixed. */
+  --hud-display: 'CM Bangers', Bangers, Impact, 'Arial Narrow', sans-serif;
+  --hud-body: 'CM Comic Relief', 'Comic Relief', 'Comic Sans MS', system-ui, sans-serif;
   --shadow: 0 4px 0 var(--ink);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -29,7 +33,7 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .h1 { font: italic 800 28px/1.05 var(--display); margin: 0; text-transform: uppercase; }
 .title { font: 800 20px/1.15 var(--display); margin: 0; }
 .body { font-size: 15px; margin: 4px 0 0; }
-.caption { font-size: 12px; color: var(--g4); margin: 4px 0; letter-spacing: .3px; }
+.caption { font-size: 14px; color: var(--g4); margin: 4px 0; letter-spacing: .3px; }
 .caption.light, .light { color: rgba(255,255,255,.75); }
 .center { text-align: center; }
 
@@ -46,7 +50,7 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .btn.wide { width: 100%; margin-top: 10px; }
 .btn.square, .square { width: 48px; height: 48px; padding: 0; border-radius: 12px; display: grid; place-items: center; }
 .btn.grow { flex: 1; }
-.btn .tag { font: 700 11px var(--body); font-style: normal; background: var(--ink); color: #fff; border-radius: 6px; padding: 2px 6px; margin-left: 6px; vertical-align: 2px; }
+.btn .tag { font: 700 14px var(--body); font-style: normal; background: var(--ink); color: #fff; border-radius: 6px; padding: 2px 6px; margin-left: 6px; vertical-align: 2px; }
 .small-btn { min-height: 48px; font-size: 15px; }
 .link { background: none; border: 0; min-height: 48px; padding: 0 8px; color: #fff; font: 800 16px var(--display); }
 .link.on { color: var(--simit-gold); text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px; }
@@ -89,30 +93,65 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 #btn-start { margin-top: 16px; min-height: 60px; font-size: 24px; animation: breathe 1.8s ease-in-out infinite; }
 @keyframes breathe { 50% { transform: scale(1.03); } }
 
-/* ---------- HUD (04, DS 5/13) ---------- */
-.hud { position: absolute; left: 12px; right: 12px; top: 52px; color: #fff; pointer-events: none; }
-.hud-row { display: flex; align-items: flex-start; gap: 8px; }
-.hud .btn-icon { pointer-events: auto; }
-.chip { background: rgba(20,21,31,.85); color: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 3px 10px;
-  font: 800 14px var(--display); letter-spacing: .4px; white-space: nowrap; }
-.chip.small { font-size: 12px; padding: 1px 8px; align-self: flex-start; }
-.hp { display: flex; flex-direction: column; gap: 4px; width: 142px; }
-.hp-bar { position: relative; height: 14px; width: 138px; background: #2A0F16; border: 2.5px solid var(--ink); border-radius: 5px; overflow: hidden; box-shadow: 0 2px 0 var(--ink); }
+/* ---------- HUD (04, DS 5/13; AUDIT-7 U1, T3-7) ----------
+   Row 1: HP, hood, timer, pause (44 pt). XP line: level, XP, streak (22 pt). Row 2: objective, boss bar or call strip (24 pt).
+   Top 52 + 44 + 4 + 22 + 4 + 24 = 150 pt: 17.8% of 844 (the v0.7 header ran to 224 pt with the streak and objective). */
+.hud { position: absolute; left: 10px; right: 10px; top: 52px; color: #fff; pointer-events: none; display: flex; flex-direction: column; gap: 4px; }
+.hud-row { display: flex; align-items: center; gap: 6px; }
+.hud-row.top { height: 44px; }
+.hud .btn-icon { pointer-events: auto; width: 44px; height: 44px; margin-left: 0; flex: none; border-radius: 12px; }
+.chip { background: rgba(20,21,31,.85); color: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 2px 9px;
+  font: 400 16px/1.2 var(--hud-display); letter-spacing: .6px; white-space: nowrap; }
+.chip.small { font-size: 14px; padding: 1px 8px; }
+.hp { flex: 1; min-width: 0; }
+.hp-bar { position: relative; height: 22px; background: #2A0F16; border: 2.5px solid var(--ink); border-radius: 6px; overflow: hidden; box-shadow: 0 2px 0 var(--ink); }
 .hp-fill, .hp-trail { position: absolute; left: 0; top: 0; bottom: 0; }
 .hp-fill { background: linear-gradient(#FF5A6E, var(--tram-red) 60%, #A3172B); transition: width .08s; }
 .hp-trail { background: #FFE1E5; transition: width .3s ease-out .35s; }
-.hp-ticks { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 25.6px, rgba(20,21,31,.7) 25.6px 27px); }
-.call { display: inline-flex; align-items: center; gap: 6px; }
+/* Segment ticks: the bar is --hp-segs equal parts (5), so one 2 px tick tile repeats every 100% / segs of the bar's
+   width (the bar is flexible and the phone scales as a whole; percentages keep the ticks on the boundaries). */
+.hp-bar { --hp-segs: 5; }
+.hp-ticks { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(20,21,31,.7) 0 2px, transparent 2px) -1px 0 / calc(100% / var(--hp-segs)) 100% repeat-x; }
+.hp-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 400 15px/1 var(--hud-display);
+  letter-spacing: .8px; color: #fff; text-shadow: 0 2px 0 var(--ink), 0 0 4px var(--ink); white-space: nowrap; }
+.call { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 999px;
+  background: rgba(20,21,31,.85); border: 2px solid var(--ink); font: 400 15px/1 var(--hud-display); white-space: nowrap; }
+.call-ico { width: 14px; height: 14px; flex: none; color: var(--heal); }
+.call .bars { display: none; }
 .bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 12px; }
 .bars i { width: 3px; background: rgba(255,255,255,.25); border-radius: 1px; }
 .bars i.on { background: #fff; }
 .bars i:nth-child(1) { height: 3px; } .bars i:nth-child(2) { height: 6px; } .bars i:nth-child(3) { height: 9px; } .bars i:nth-child(4) { height: 12px; }
-.xp-row { margin-top: 6px; align-items: center; }
-.xp-bar { flex: 1; height: 12px; background: #0E2A14; border-radius: 6px; overflow: hidden; border: 2.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink); }
+.hud-xp { display: flex; align-items: center; gap: 6px; height: 22px; }
+.xp-bar { flex: 1; min-width: 0; height: 12px; background: #0E2A14; border-radius: 6px; overflow: hidden; border: 2.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink); }
 .xp-fill { height: 100%; width: 0; background: linear-gradient(#9BF5A9, var(--xp-small) 55%, #2E9B42); transition: width .15s; }
-#lv { background: var(--simit-gold); color: var(--ink); font-size: 15px; }
-.hud-mid { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-#timer { font-size: 18px; padding: 2px 12px; }
+#lv { background: var(--simit-gold); color: var(--ink); font-size: 15px; padding: 1px 9px; flex: none; }
+.lvl-chip { flex: none; max-width: 128px; overflow: hidden; text-overflow: ellipsis; }
+#timer { font-size: 18px; padding: 2px 10px; flex: none; }
+.hud-sub { display: flex; align-items: center; gap: 6px; min-height: 24px; }
+.obj-slot { flex: 1; min-width: 0; display: flex; }
+#hud.boss-on .obj-slot { display: none; }
+#hud.boss-on #obj-slot .obj-row { display: none !important; }
+
+/* Objective row, moved into #obj-slot by objectives-hud.js (its own stylesheet supplies the rest). One line, ellipsis. */
+#obj-slot .obj-row { position: relative; left: auto; right: auto; top: auto; flex: 1; min-width: 0; height: 24px; display: flex;
+  align-items: center; gap: 6px; padding: 0 9px; border-radius: 999px; background: rgba(20,21,31,.85); border: 2px solid var(--ink);
+  color: #F4EBDD; font: 700 14px/1 var(--hud-body); white-space: nowrap; overflow: hidden; }
+#obj-slot .obj-tag { flex: none; margin: 0; padding: 0 6px; border-radius: 4px; font: 400 14px/1.3 var(--hud-display); letter-spacing: .6px; }
+#obj-slot .obj-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 16px/1 var(--hud-display); letter-spacing: .4px; }
+#obj-slot .obj-mod { flex: none; margin: 0; padding: 0 6px; font: 700 14px/1.2 var(--hud-body); }
+#obj-slot .obj-line { flex: none; margin: 0 0 0 auto; white-space: nowrap; }
+#obj-slot .obj-bar { position: absolute; left: 8px; right: 8px; bottom: 0; height: 3px; margin: 0; border-radius: 2px; }
+
+/* Boss bar (AUDIT-6 F7, AUDIT-7 U1): replaces the objective row in boss fights. Name, then the track, on one line. */
+.boss-bar { flex: 1; min-width: 0; height: 24px; display: flex; align-items: center; gap: 7px; pointer-events: none; }
+.boss-name { flex: none; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 15px/1 var(--hud-display);
+  letter-spacing: .5px; text-transform: uppercase; color: #fff; text-shadow: 0 2px 0 var(--ink); }
+.boss-track { position: relative; flex: 1; min-width: 0; height: 14px; background: #2A0F16; border: 2.5px solid var(--ink); border-radius: 7px;
+  overflow: hidden; box-shadow: 0 2px 0 var(--ink); }
+.boss-track i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: linear-gradient(#FF8A5C, var(--danger) 55%, #B3261A); transition: width .15s linear; }
+.boss-bar.rage .boss-track { border-color: var(--simit-gold); }
 
 .subs { position: absolute; left: 20px; right: 20px; top: 188px; text-align: center; color: #fff; font-size: 15px; font-weight: 600;
   background: rgba(20,21,31,.85); border: 2px solid var(--ink); border-radius: 12px; padding: 7px 12px; pointer-events: none; }
@@ -129,11 +168,12 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
   font: italic 900 24px var(--display); border: 3px solid var(--ink); border-radius: 14px; padding: 8px 18px; text-align: center;
   pointer-events: none; box-shadow: var(--shadow); animation: pop .3s cubic-bezier(.3,1.6,.5,1); }
 @keyframes pop { from { transform: translateX(-50%) scale(.6); opacity: 0; } }
-.toast small { display: block; font: 700 12px var(--body); }
-/* Streak meter (v0.7, in the HUD): kills toward frenzy; gold and labelled while frenzy runs. */
-.streak { width: max-content; display: flex; align-items: center; gap: 8px; margin-top: 6px; background: rgba(20,21,31,.85);
-  border: 2px solid var(--ink); border-radius: 999px; padding: 3px 10px 3px 8px; font: italic 900 13px var(--display); text-transform: uppercase; }
-.streak-bar { width: 84px; height: 8px; background: #0E2A14; border-radius: 4px; overflow: hidden; border: 1.5px solid var(--ink); }
+.toast small { display: block; font: 700 14px var(--body); }
+/* Streak meter (v0.7, AUDIT-7 U1): a pill at the right end of the XP line; gold and labelled while frenzy runs. */
+.streak { flex: none; display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px 0 7px; background: rgba(20,21,31,.85);
+  border: 2px solid var(--ink); border-radius: 999px; font: 400 14px/1 var(--hud-display); letter-spacing: .6px; text-transform: uppercase; white-space: nowrap; }
+#streak-label { max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+.streak-bar { width: 44px; height: 7px; background: #0E2A14; border-radius: 4px; overflow: hidden; border: 1.5px solid var(--ink); }
 .streak-bar i { display: block; height: 100%; width: 0; background: #FFD166; transition: width .2s linear; }
 .streak.frenzy { border-color: #FFD166; color: #FFD166; }
 .streak.frenzy .streak-bar i { transition: none; }
@@ -163,57 +203,85 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
   animation: slam .35s cubic-bezier(.2,1.8,.4,1); }
 @keyframes slam { from { transform: rotate(-8deg) scale(2.2); opacity: 0; } }
 .skip { position: absolute; right: 12px; top: 64px; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 2px solid rgba(255,255,255,.5);
-  background: rgba(0,0,0,.45); color: #fff; font: 700 13px var(--body); overflow: hidden; }
+  background: rgba(0,0,0,.45); color: #fff; font: 700 14px var(--body); overflow: hidden; }
 .skip-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(255,255,255,.3); }
 .skip > span:last-child { position: relative; }
 
-/* ---------- level up (05): stacked wide cards, icon-led, stat deltas ---------- */
+/* ---------- level up (05; AUDIT-7 U2, T3-8): three stacked one-line cards. Face: icon, then name + level, one-line effect,
+   and one chip (evolution, synergy, or the fork's mod choice). Everything else sits in the long-press detail sheet. ---------- */
 #scr-cards .center-stack { gap: 10px; }
-#scr-cards .display { font-size: 50px; animation: slam .4s cubic-bezier(.2,1.8,.4,1); }
-.cards { display: flex; flex-direction: column; gap: 10px; }
-.card { position: relative; border-radius: 18px; background: linear-gradient(180deg, #2E3146, var(--ink-2)); color: #fff; border: 3px solid var(--ink);
-  padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 6px; text-align: left; box-shadow: 0 5px 0 #000, inset 0 0 0 2px var(--kc, #555);
-  animation: card-in .34s cubic-bezier(.25,1.4,.5,1) backwards; transition: transform .12s, opacity .2s, box-shadow .12s; }
+#scr-cards .display { font-size: 40px; animation: slam .4s cubic-bezier(.2,1.8,.4,1); }
+.cards { display: flex; flex-direction: column; gap: 8px; }
+.card { position: relative; width: 100%; min-height: 80px; border-radius: 16px; background: linear-gradient(180deg, #2E3146, var(--ink-2)); color: #fff;
+  border: 3px solid var(--ink); padding: 8px 10px 8px 8px; display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center;
+  text-align: left; box-shadow: 0 4px 0 #000, inset 0 0 0 2px var(--kc, #555); animation: card-in .34s cubic-bezier(.25,1.4,.5,1) backwards;
+  transition: transform .12s, opacity .2s, box-shadow .12s; -webkit-touch-callout: none; }
 .card.kind-w { --kc: var(--weapon); } .card.kind-p { --kc: var(--passive); } .card.kind-f { --kc: var(--filler); }
 @keyframes card-in { from { transform: translateY(40px) scale(.92); opacity: 0; } }
 .card:active { transform: translateY(3px); box-shadow: 0 2px 0 #000, inset 0 0 0 2px var(--kc); }
-.card.highlight { box-shadow: 0 5px 0 #000, inset 0 0 0 3px var(--simit-gold), 0 0 0 4px rgba(233,162,59,.45); animation: card-in .34s backwards, glow 1.2s ease-in-out infinite .4s; }
-@keyframes glow { 50% { box-shadow: 0 5px 0 #000, inset 0 0 0 3px var(--simit-gold), 0 0 0 8px rgba(233,162,59,.2); } }
+.card.highlight { box-shadow: 0 4px 0 #000, inset 0 0 0 3px var(--simit-gold), 0 0 0 4px rgba(233,162,59,.45); animation: card-in .34s backwards, glow 1.2s ease-in-out infinite .4s; }
+@keyframes glow { 50% { box-shadow: 0 4px 0 #000, inset 0 0 0 3px var(--simit-gold), 0 0 0 8px rgba(233,162,59,.2); } }
 .cards.has-pick .card:not(.picked) { opacity: .25; transform: scale(.96); }
-.card.picked { transform: scale(1.04); box-shadow: 0 5px 0 #000, inset 0 0 0 4px #fff, 0 0 30px var(--kc); }
-.card-top { display: flex; gap: 12px; align-items: center; }
-.card .icon { width: 68px; height: 68px; flex: none; border-radius: 16px; display: grid; place-items: center; border: 3px solid var(--ink);
+.card.picked { transform: scale(1.02); box-shadow: 0 4px 0 #000, inset 0 0 0 4px #fff, 0 0 30px var(--kc); }
+.card-face { position: relative; width: 56px; height: 56px; }
+.card .icon { width: 56px; height: 56px; flex: none; border-radius: 14px; display: grid; place-items: center; border: 3px solid var(--ink);
   background: radial-gradient(circle at 50% 40%, #FFF9EE, var(--paper-d)); box-shadow: 0 3px 0 #000; }
 .card .icon.kind-w { background: radial-gradient(circle at 50% 40%, #FFE3D6, #F2A483); }
 .card .icon.kind-p { background: radial-gradient(circle at 50% 40%, #E3F9FF, #8ED8EE); }
-.card-head { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.card .type { font: 800 11px var(--body); letter-spacing: 1.4px; color: var(--kc); }
-.card .badge { position: absolute; right: 10px; top: 10px; font: italic 900 13px var(--display); background: var(--simit-gold); color: var(--ink);
-  border: 2px solid var(--ink); border-radius: 8px; padding: 1px 7px; transform: rotate(4deg); }
-.card .name { font: italic 900 24px/1 var(--display); text-transform: uppercase; letter-spacing: .3px; }
-.card .desc { font-size: 13px; line-height: 1.3; color: rgba(255,255,255,.8); }
+.card-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.card-l1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.card .name { font: 400 22px/1.05 var(--hud-display); text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; min-width: 0; }
+.card .fx { font: 700 16px/1.25 var(--hud-body); color: #C8F7D2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .fx.plain { color: rgba(255,255,255,.85); }
+.card-chip { align-self: flex-start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 999px;
+  padding: 1px 9px; font: 700 14px/1.4 var(--hud-body); color: #E9D6FF; background: rgba(176,76,240,.22); border: 1.5px solid rgba(176,76,240,.9); }
+.card-chip.ready { color: var(--ink); background: #FFE08A; border-color: var(--ink); }
+.card-chip.syn { color: #CFF5FF; background: rgba(61,220,255,.16); border-color: rgba(61,220,255,.8); }
 .stats { display: flex; flex-wrap: wrap; gap: 5px; }
-.stat { display: inline-flex; align-items: baseline; gap: 4px; background: rgba(0,0,0,.35); border-radius: 8px; padding: 2px 8px; font: 800 14px var(--display); }
-.stat em { font: 700 10px var(--body); font-style: normal; color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: .6px; }
+.stat { display: inline-flex; align-items: baseline; gap: 4px; background: rgba(0,0,0,.35); border-radius: 8px; padding: 2px 8px; font: 800 15px var(--display); }
+.stat em { font: 700 14px var(--body); font-style: normal; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .4px; }
 .stat s { color: rgba(255,255,255,.45); text-decoration: none; }
 .stat i { color: var(--kc); font-style: normal; }
 .stat b { color: var(--xp-small); }
-.pips { display: flex; gap: 4px; }
-.pips i { width: 16px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.15); }
+.pips { display: flex; gap: 3px; flex: none; }
+.pips i { width: 12px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.15); }
 .pips i.on { background: rgba(255,255,255,.75); } .pips i.next { background: var(--simit-gold); animation: blink 0.8s steps(2) infinite; }
+.card .badge { position: absolute; left: -8px; top: -8px; font: 400 14px/1 var(--hud-display); background: var(--simit-gold); color: var(--ink);
+  border: 2px solid var(--ink); border-radius: 8px; padding: 2px 6px; transform: rotate(-6deg); }
+.card .badge.evo { background: #B04CF0; color: #fff; }
+.card .badge.mod { background: #3DDCFF; color: var(--ink); }
+.card.evo { box-shadow: 0 0 0 3px #B04CF0, 0 0 22px rgba(176,76,240,.6); }
+.card.fork { box-shadow: 0 0 0 3px #3DDCFF, 0 0 20px rgba(61,220,255,.45); }
 .tut-pill { align-self: center; background: var(--simit-gold); color: var(--ink); font: italic 900 16px var(--display); text-transform: uppercase;
   border: 2.5px solid var(--ink); border-radius: 999px; padding: 3px 14px; margin: 0; box-shadow: 0 3px 0 var(--ink); }
 .panel.build { background: rgba(20,21,31,.85); color: #fff; border-color: #000; }
-.panel.build .caption { color: rgba(255,255,255,.6); }
+.panel.build .caption { color: rgba(255,255,255,.7); }
 .build .slots, .slots { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 6px; }
 .slot { position: relative; aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,.06); border: 2px dashed rgba(127,127,127,.5);
   display: grid; place-items: center; color: var(--ink); }
 .slot.filled { border: 2.5px solid var(--ink); background: radial-gradient(circle at 50% 40%, #FFF9EE, var(--paper-d)); }
 .slot.filled.kind-w { background: radial-gradient(circle at 50% 40%, #FFE3D6, #F2A483); }
 .slot.filled.kind-p { background: radial-gradient(circle at 50% 40%, #E3F9FF, #8ED8EE); }
-.slot small { position: absolute; right: -4px; bottom: -4px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--ink); color: #fff;
-  font: 800 11px/16px var(--display); text-align: center; }
+.slot small { position: absolute; right: -4px; bottom: -4px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--ink); color: #fff;
+  font: 400 14px/18px var(--hud-display); text-align: center; }
 #btn-reroll, #btn-reroll-ad { font-size: 15px; padding: 0 10px; min-height: 46px; }
+
+/* Long-press detail sheet (AUDIT-7 U2): opened from a card, closed by its button or a tap on the scrim. */
+.card-info { position: absolute; inset: 0; z-index: 70; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.card-info-panel { width: 100%; max-width: 344px; margin: 0; text-align: left; }
+.card-info-panel .caption { margin: 0; }
+.card-info-panel .h1 { color: var(--ink); font-size: 32px; margin: 2px 0 8px; }
+.ci-desc { font: 500 16px/1.35 var(--body); margin: 0 0 8px; color: var(--ink); white-space: pre-line; }
+.chip-ico { display: inline-flex; vertical-align: middle; margin-right: 4px; }
+.chip-ico svg { display: block; }
+.ci-chip .chip.mastery { margin-right: 6px; }
+.ci-chip { font: 700 15px/1.35 var(--hud-body); margin: 8px 0 0; color: #5B2A8A; }
+.card-info-panel .stats { margin-top: 6px; }
+.card-info-panel .stat { background: rgba(20,21,31,.08); }
+.card-info-panel .stat em { color: #6B6152; }
+.card-info-panel .stat b { color: #1F8A3A; }
+.card-info-panel .btn.wide { min-height: 52px; }
 
 /* ---------- down (09) / results (08) / settings (16) ---------- */
 .icon-box { width: 64px; height: 64px; flex: none; border-radius: 14px; background: var(--g2); border: 3px solid var(--ink); display: grid; place-items: center; }
@@ -228,7 +296,7 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .kv span:last-child { font: 800 17px var(--display); }
 .list { margin-top: 14px; background: var(--paper); border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); color: var(--ink); }
 .list .kv { min-height: 58px; align-items: center; padding: 0 16px; }
-.toggle { min-width: 76px; min-height: 40px; border-radius: 999px; border: 2.5px solid var(--ink); background: #fff; font: 800 15px var(--display); text-transform: uppercase; }
+.toggle { min-width: 76px; min-height: 44px; border-radius: 999px; border: 2.5px solid var(--ink); background: #fff; font: 800 15px var(--display); text-transform: uppercase; }
 .toggle.on { background: var(--ink); color: var(--simit-gold); }
 #scr-settings .h1 { color: #fff; }
 #scr-settings .btn.ghost { border-color: #fff; color: #fff; }
@@ -241,17 +309,18 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
-/* level-up fit (390x844): title + 3 cards + reroll + build strip */
-#scr-cards { justify-content: flex-start; padding-top: 54px; }
+/* level-up fit (390x844; AUDIT-7 U3): title, three cards, reroll, build strip, all above the home-indicator inset.
+   Centred in the play height, so the cards sit within thumb reach and the strip never clips (v0.7 clipped at 857 pt). */
+#scr-cards { justify-content: center; padding-top: 54px; }
 #scr-cards .display { font-size: 40px; }
 #scr-cards .center-stack > .caption { margin: -6px 0 0; }
 #scr-cards .build { padding: 8px 10px; }
-#scr-cards .build .caption { margin: 0 0 2px; font-size: 10px; }
+#scr-cards .build .caption { margin: 0 0 2px; }
 #scr-cards .build .slots { grid-template-columns: repeat(12, 1fr); gap: 3px; margin-top: 2px; }
 #scr-cards .slot { border-radius: 6px; border-width: 1.5px; }
 #scr-cards .slot svg { width: 20px; height: 20px; }
-#scr-cards .slot small { min-width: 12px; height: 12px; font-size: 9px; line-height: 12px; right: -3px; bottom: -3px; }
-#btn-reroll, #btn-reroll-ad { white-space: nowrap; font-size: 14px; min-height: 44px; }
+#scr-cards .slot small { min-width: 18px; height: 18px; font-size: 14px; line-height: 18px; right: -5px; bottom: -5px; }
+#btn-reroll, #btn-reroll-ad { white-space: nowrap; font-size: 14px; min-height: 46px; }
 
 /* ---------- mini chest ---------- */
 .screen.chest { justify-content: flex-start; padding-top: 70px; text-align: center; background: radial-gradient(circle at 50% 45%, rgba(60,30,80,.85), rgba(8,8,14,.92)); }
@@ -285,37 +354,27 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 /* AUDIT-6 F9: the chip names the action (KAÇ) and shows the cooldown in seconds; a pulsing ring when ready. */
 .dash-chip { position: relative; width: 84px; height: 28px; border-radius: 14px; border: 3px solid var(--ink, #14151F); background: #2A2B3A; overflow: hidden; }
 .dash-chip .dash-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #5BD16E; }
-.dash-chip b { position: relative; display: block; padding-left: 10px; text-align: left; font: italic 900 14px/22px var(--display, system-ui); color: #fff; text-shadow: 0 1px 0 #14151F; }
-.dash-sec { position: absolute; right: 9px; top: 0; font: 800 12px/22px var(--display, system-ui); color: #fff; text-shadow: 0 1px 0 #14151F; font-variant-numeric: tabular-nums; }
+.dash-chip b { position: relative; display: block; padding-left: 10px; text-align: left; font: 400 16px/22px var(--hud-display); letter-spacing: .4px; color: #fff; text-shadow: 0 1px 0 #14151F; }
+.dash-sec { position: absolute; right: 8px; top: 0; font: 400 14px/22px var(--hud-display); color: #fff; text-shadow: 0 1px 0 #14151F; font-variant-numeric: tabular-nums; }
 .dash-chip.cool .dash-fill { background: #7B7F95; }
 .dash-chip.ready { border-color: #fff; animation: dash-ring 1.2s ease-in-out infinite; }
 @keyframes dash-ring { 50% { box-shadow: 0 0 0 4px rgba(255,255,255,.55), 0 0 12px rgba(91,209,110,.7); } }
 .lvl-chip:empty { display: none; }
-.card .badge.evo { background: #B04CF0; color: #fff; }
-.card.evo { box-shadow: 0 0 0 3px #B04CF0, 0 0 22px rgba(176,76,240,.6); }
 
-/* v0.5 weapon mod forks + mastery chips (screens.js) */
-.card.fork { box-shadow: 0 0 0 3px #3DDCFF, 0 0 20px rgba(61,220,255,.45); }
-.card .badge.mod { background: #3DDCFF; color: var(--ink, #14151F); }
-.mods { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
-.mods-head { font: italic 900 12px var(--display, system-ui); letter-spacing: .04em; opacity: .8; }
-.mods-row { display: flex; gap: 6px; }
-.mod-opt { flex: 1; border: 2px solid var(--ink, #14151F); border-radius: 10px; padding: 6px 7px; background: #F4EEDC; color: var(--ink, #14151F); text-align: left; }
+/* v0.5 weapon mod forks + mastery chips (screens.js). A fork's two options sit in the card's chip line, 44 pt tall. */
+.mods { display: flex; gap: 6px; width: 100%; }
+.mods-row { display: flex; gap: 6px; flex: 1; min-width: 0; }
+.mod-opt { flex: 1; min-width: 0; min-height: 44px; border: 2px solid var(--ink, #14151F); border-radius: 10px; padding: 4px 6px; background: #F4EEDC;
+  color: var(--ink, #14151F); text-align: center; display: flex; align-items: center; justify-content: center; }
 .mod-opt.is-pick { background: #FFE08A; box-shadow: inset 0 0 0 2px #E9A23B; }
-.mod-name { display: block; font: italic 900 13px var(--display, system-ui); }
-.mod-desc { display: block; font-size: 11px; line-height: 1.25; margin-top: 2px; }
+.mod-name { display: block; font: 400 16px/1.1 var(--hud-display); letter-spacing: .3px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-desc { display: none; }
 .slot-tags, .chest-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; justify-content: center; }
 .chip.mastery { background: #2B1E4A; color: #FFD66B; border-color: #FFD66B; }
 .chip.mod-chip { background: #E8F7FB; color: var(--ink, #14151F); }
 .chip.mod-chip.chosen { background: #3DDCFF; }
 
 /* ---------- AUDIT-6 lane F (v0.8 UI and flow) ---------- */
-/* F7: boss bar, a DOM bar under the XP row. Red-orange; XP stays green. Name above, track below. */
-.boss-bar { width: 300px; max-width: 100%; margin: 8px auto 0; display: flex; flex-direction: column; align-items: stretch; gap: 3px; pointer-events: none; }
-.boss-name { align-self: center; font: italic 900 14px/1 var(--display); text-transform: uppercase; color: #fff; letter-spacing: .4px; text-shadow: 0 2px 0 var(--ink); }
-.boss-track { position: relative; height: 12px; background: #2A0F16; border: 2.5px solid var(--ink); border-radius: 6px; overflow: hidden; box-shadow: 0 2px 0 var(--ink); }
-.boss-track i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: linear-gradient(#FF8A5C, var(--danger) 55%, #B3261A); transition: width .15s linear; }
-.boss-bar.rage .boss-track { border-color: var(--simit-gold); }
 /* F4: death beat. The world desaturates while the run is frozen, then the down screen opens. */
 #game { transition: filter .3s ease-out; }
 #phone.dying #game { filter: saturate(.2) brightness(.8); }
@@ -325,9 +384,7 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 #scr-down .panel .caption { margin-top: 8px; }
 /* F5: settings rows: stepped values read as buttons; the note sits under the list. */
 .toggle.step { min-width: 96px; }
-#settings-note { margin: 12px 4px 0; font-size: 12px; color: rgba(255,255,255,.7); }
-/* Evolution hint on a weapon card (screens.js, from P.Weapons.evoHint): what the evolution still needs. */
-.card .evo-hint { font: 700 12px/1.3 var(--body); color: #D9B8FF; }
+#settings-note { margin: 12px 4px 0; font-size: 14px; color: rgba(255,255,255,.7); }
 /* F5: left-handed HUD mirror (joystick side = left): the dash and nazar buttons move to the left edge. */
 #phone.lefty .skills { right: auto; left: 14px; align-items: center; }
 /* F5: reduced flashing: no blinking indicators (the hero blink itself is view code, lane G). */

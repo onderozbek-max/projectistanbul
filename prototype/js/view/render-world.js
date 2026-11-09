@@ -145,27 +145,11 @@ P.RenderWorld = (function () {
     if (s.props.shutterOpen) rect(R, sh.xMin + 0.4, sh.yMin + 0.4, sh.xMax - 0.2, sh.yMax - 0.4, 'rgba(255,209,102,0.35)');
   }
 
+  // Level 1 restaurant: the art pass lives in restaurant-art.js (AUDIT-7 T3-9). Plain fallback if it is not loaded.
   W.drawRestaurant = function (R, s) {
-    var c = R.ctx, rm = L().room, d = L().door;
+    if (P.RestaurantArt) { P.RestaurantArt.draw(R, s); return; }
+    var c = R.ctx, rm = L().room;
     rect(R, rm.xMin, rm.yMin, rm.xMax, rm.yMax, '#6B4F3A');
-    c.strokeStyle = 'rgba(0,0,0,0.12)'; c.lineWidth = 1;
-    for (var x = rm.xMin; x < rm.xMax; x += 1) { c.beginPath(); c.moveTo(R.X(x), R.Y(rm.yMin)); c.lineTo(R.X(x), R.Y(rm.yMax)); c.stroke(); }
-    rect(R, -5.2, -9.8, -2.2, -8.9, '#3A2A1E', '#14151F', 2);
-    [[-7.2, -6.2], [-4.4, -6.8], [-8.4, -3.2], [-3.8, -2.4]].forEach(function (t) {
-      c.fillStyle = '#C9B79C'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
-      c.beginPath(); c.arc(R.X(t[0]), R.Y(t[1]), 0.55 * R.ppm, 0, Math.PI * 2); c.fill(); c.stroke();
-      c.fillStyle = '#B5651D'; c.beginPath(); c.arc(R.X(t[0] + 0.15), R.Y(t[1] + 0.1), 0.12 * R.ppm, 0, Math.PI * 2); c.fill();
-    });
-    var flick = 0.55 + 0.25 * Math.sin(performance.now() / 180);
-    rect(R, -9.95, -4.2, -9.7, -2.2, 'rgba(61,139,255,' + flick + ')', '#14151F', 2);
-    c.lineWidth = Math.max(3, 0.25 * R.ppm); c.strokeStyle = '#14151F';
-    c.beginPath();
-    c.moveTo(R.X(rm.xMin), R.Y(rm.yMin)); c.lineTo(R.X(rm.xMin), R.Y(rm.yMax)); c.lineTo(R.X(d.xMin), R.Y(rm.yMax));
-    c.moveTo(R.X(d.xMax), R.Y(rm.yMax)); c.lineTo(R.X(rm.xMax), R.Y(rm.yMax)); c.lineTo(R.X(rm.xMax), R.Y(rm.yMin)); c.lineTo(R.X(rm.xMin), R.Y(rm.yMin));
-    c.stroke();
-    if (!s.props.doorOpen) rect(R, d.xMin, -0.15, d.xMax, 0.15, '#8B5A2B', '#14151F', 2);
-    c.save(); c.translate(R.X(-6), R.Y(0.75)); c.fillStyle = '#E9A23B'; c.font = 'bold ' + Math.round(0.45 * R.ppm) + 'px system-ui';
-    c.textAlign = 'center'; c.fillText('Lezzet Dürüm Salonu', 0, 0); c.restore();
   };
 
   W.drawProps = function (R, s) {
@@ -179,6 +163,7 @@ P.RenderWorld = (function () {
     // Carts and canisters are depth items (base edge = bottom of the footprint): the hero walks behind or in front of them.
     s.props.carts.forEach(function (k) { R.depth(k.y - 0.6, function () { drawCart(R, k, t); }); });
     s.props.canisters.forEach(function (k) { if (k.alive) R.depth(k.y - 0.43, function () { drawCanister(R, k); }); });
+    if (P.RestaurantArt && P.RestaurantArt.depthProps) P.RestaurantArt.depthProps(R, s);   // L1 counter, fridge, tables (AUDIT-7 T3-9)
   };
   function drawCart(R, k, t) {
     var c = R.ctx;

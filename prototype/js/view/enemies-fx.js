@@ -218,7 +218,7 @@ P.EnemyFx = (function () {
     switch (ev.type) {
       case 'spit': sfx('spit', 180, s, ev.x); break;
       case 'spitLand': EF.splats.push({ x: ev.x, y: ev.y, r: ev.r * 0.8, col: ACID, t0: s.t, dur: 1.2, a: 0 }); sfx('spitHit', 120, s, ev.x); break;
-      case 'spitWindup': break;
+      case 'spitWindup': sfx('hiss', 200, s, ev.x); break;          // AUDIT-7: every windup has a cue (sound, ring, pose)
       case 'bruteRoar': sfx('bruteRoar', 250, s, ev.x); break;
       case 'bruteCharge': sfx('bruteCharge', 250, s, ev.x); break;
       case 'bruteStomp':
@@ -259,6 +259,17 @@ P.EnemyFx = (function () {
       case 'enemyEnter': entranceFx(s, ev); break;
       case 'kuryeDash': sfx('swish', 200, s, ev.x); break;
       case 'copciPush': sfx('groan', 500, s, ev.x); break;
+      // AUDIT-7 (CR-11, telegraphs): cues for the windups and the strikes that had no view.
+      case 'kuryeWindup': sfx('rattle', 200, s, ev.x); break;
+      case 'binRoll': sfx('rattle', 200, s, ev.x); break;
+      case 'kasapWindup': sfx('swish', 200, s, ev.x); break;
+      case 'kasapSwing': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: SLAM, t0: s.t, dur: 0.4 }); sfx('cleaver', 120, s, ev.x); break;
+      case 'parkurWindup': sfx('footstep', 150, s, ev.x); break;
+      case 'parkurLeap': sfx('swish', 150, s, ev.x); break;
+      case 'parkurLand': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: DANGER, t0: s.t, dur: 0.35 }); sfx('hammer', 150, s, ev.x); break;
+      case 'hordeCue': cue(s, ev); break;                             // lane H: a surge's cause (horde.js)
+      case 'hordeSurge': P.Fx.letter(ev.x, ev.y, P.t('horde.surge')); sfx('groan', 400, s, ev.x); break;
+      case 'enemyDebut': debutFx(s, ev); break;
       case 'binDrop': EF.splats.push({ x: ev.x, y: ev.y, r: ev.r * 0.9, col: TOXIC, t0: s.t, dur: 6, a: 0 }); sfx('splat', 120, s, ev.x); break;
       case 'bossPhase':
         P.Fx.letter(ev.x, ev.y + 2.6, P.t('ev.phase' + ev.phase)); sfx('bruteRoar', 0, s, ev.x); break;
@@ -269,6 +280,20 @@ P.EnemyFx = (function () {
         sfx(ev.type === 'bossSmash' ? 'slam' : 'hammer', 150, s, ev.x); break;
     }
   };
+
+  // Surge cause (horde.js): a sound and a call-out at the side edge the surge comes from. Scream, shop alarm or horn.
+  var CUE = { scream: ['snarl', 'ev.scream'], alarm: ['bell', 'horde.alarm'], horn: ['ferryHorn', 'horde.horn'] };
+  function cue(s, ev) {
+    var c = CUE[ev.cue] || CUE.scream;
+    sfx(c[0], 0, s, ev.x);
+    P.Fx.letter(ev.x, ev.y + 1.6, P.t(c[1]));
+  }
+
+  // A type's first sighting in a run: a call-out over it. The ambient spawns pause for a moment (horde.js).
+  function debutFx(s, ev) {
+    sfx('groan', 0, s, ev.x);
+    P.Fx.letter(ev.x, ev.y + 1.4, P.t('horde.new') + ' ' + P.t('enemy.' + ev.enemy));
+  }
 
   // Spawn entrance: a cue sound, and a call-out at most every 4 s so a horde does not flood the screen.
   function entranceFx(s, ev) {

@@ -16,12 +16,14 @@
     },
   };
 
-  // Roster adds (AUDIT-6 C3): hood index (0-based, 3 = H04 Galata Köprüsü) -> new types. Read by enemies3.js
-  // augmentRoster from stage enemyRosterFrom on, for generated levels only. Stage gate: 1 = from the hood's first stage.
+  // Roster adds (AUDIT-6 C3): hood id -> new types. Read by enemies3.js augmentRoster from stage enemyRosterFrom on,
+  // for generated levels only. Stage gate: 1 = from the hood's first stage. Keyed by id (v0.8): the table used to be
+  // keyed by walk position, so the Kumkapı/Laleli/Aksaray and Zeytinburnu/Kazlıçeşme reorder would have moved the adds.
   C.enemyRosterFrom = 1;
   C.enemyRosterAdds = {
-    3: ['copci'], 4: ['kurye'], 5: ['kurye'], 6: ['kurye', 'copci'], 7: ['kurye'], 8: ['copci'], 9: ['kurye'],
-    10: ['copci'], 11: ['kurye', 'copci'], 12: ['copci'], 13: ['kurye'], 14: ['copci'], 15: ['kurye'],
-    16: ['copci', 'kurye'], 17: ['kurye'], 18: ['copci'], 19: ['kurye', 'copci'],
+    bridge: ['copci'], eminonu: ['kurye'], sirkeci: ['kurye'], kapalicarsi: ['kurye', 'copci'],
+    beyazit: ['kurye'], laleli: ['copci'], aksaray: ['kurye'], kumkapi: ['copci'], yenikapi: ['kurye', 'copci'],
+    samatya: ['copci'], yedikule: ['kurye'], zeytinburnu: ['copci'], kazlicesme: ['kurye'],
+    bakirkoy: ['copci', 'kurye'], bakirkoysahil: ['kurye'], atakoysahil: ['copci'], atakoy: ['kurye', 'copci'],
   };
 })(P.CFG);

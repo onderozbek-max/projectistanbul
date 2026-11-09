@@ -56,6 +56,7 @@ function dashMul(s) {
 function tryDash(s, S, input) {
   var h = s.hero, D = P.CFG.skills.dash;
   if (S.dash || h.dashCd > 0 || s.mode !== 'play') return;
+  if (P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s)) return;   // daily "Kaçış yok" (no dash)
   var dx = input.x || 0, dy = input.y || 0, m = Math.hypot(dx, dy);
   if (m > 0.2) { dx /= m; dy /= m; } else {
     dx = h.fx; dy = h.fy; m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
@@ -317,8 +318,8 @@ P.Skills.hitReduce = function (s, raw, cause) {
 
 // HUD snapshot for the lead's dash / ultimate / frenzy widgets.
 P.Skills.hud = function (s) {
-  var S = sk(s), D = P.CFG.skills.dash, a = S.act;
-  return { dashFrac: Math.max(0, 1 - (s.hero.dashCd || 0) / (s.hero.dashCdMax || D.cooldown)), dashReady: !(s.hero.dashCd > 0),
+  var S = sk(s), D = P.CFG.skills.dash, a = S.act, noDash = !!(P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s));
+  return { dashFrac: noDash ? 0 : Math.max(0, 1 - (s.hero.dashCd || 0) / (s.hero.dashCdMax || D.cooldown)), dashReady: !noDash && !(s.hero.dashCd > 0),
     ult: s.hero.ult || 0, ultReady: (s.hero.ult || 0) >= 1, ultId: P.Skills.ultId(s),
     frenzy: S.frenzyT > 0, frenzyFrac: S.frenzyT / P.CFG.skills.frenzy.time, streak: S.streak,
     active: { id: P.Skills.activeId(s), on: a.t > 0, onFrac: a.T > 0 ? a.t / a.T : 0,

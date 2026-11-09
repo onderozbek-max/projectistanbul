@@ -178,6 +178,8 @@ function start(s, e, name) {
         kb: 0.4, cause: e.type, col: 'slam' });
     }
   }
+  // AUDIT-7 telegraphs: every windup has a sound cue at its start (charge, combo and throw cue themselves above).
+  if (name !== 'charge' && name !== 'throw' && name !== 'combo') s.events.push({ type: 'bossWindup', id: e.id, x: e.x, y: e.y, boss: e.type, act: name, T: a.W });
 }
 
 // One swing of the kasapBoss combo: a ring on the spot in front of the boss. Swings chain from the recover state.

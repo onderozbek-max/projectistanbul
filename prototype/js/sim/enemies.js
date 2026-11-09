@@ -16,7 +16,10 @@ function dmgMul(s, e, base) {
 P.Enemies.init = function (s, e) {
   var D = P.CFG.enemies;
   if (e.type === 'brute') e.ai = { m: 'walk', t: 0, cd: 1.5, stompCd: 0, dir: { x: 0, y: 0 }, dist: 0, hit: false, dmg: 0, kb: 0, px: e.x, py: e.y };
-  else if (e.type === 'spitter' || e.type === 'zehirli') e.ai = { m: 'approach', t: 0, cd: 1.5, side: s.rng.ai.chance(0.5) ? 1 : -1, strafeT: D[e.type].strafeTime, aimX: 0, aimY: 0 };
+  else if (e.type === 'spitter' || e.type === 'zehirli') {
+    e.ai = { m: 'approach', t: 0, cd: 1.5, side: s.rng.ai.chance(0.5) ? 1 : -1, strafeT: D[e.type].strafeTime, aimX: 0, aimY: 0 };
+    if (e.type === 'zehirli' && P.Horde && P.Horde.debut) P.Horde.debut(s, e);   // lane H: first sighting in a run
+  }
   else if (e.type === 'bloater') e.ai = { warned: false };
   else if (e.type === 'screamer') e.ai = { m: 'walk', cd: D.screamer.cd * D.screamer.firstCd };
   else if (e.type === 'hardhat') {
@@ -59,7 +62,7 @@ function lured(s, e, dt) {
 function screamer(s, e, dt) {
   var a = e.ai, S = P.CFG.enemies.screamer, h = s.hero;
   a.cd = Math.max(0, a.cd - dt);
-  if (a.m === 'scream') { e.dvx = 0; e.dvy = 0; return true; }
+  if (a.m === 'scream') { e.dvx = 0; e.dvy = 0; a.t += dt; e.windup = clamp01(a.t / S.windup); return true; }   // pose: the throat fills
   if (a.cd <= 0 && dist(e, h) <= S.sense) { startScream(s, e, S); e.dvx = 0; e.dvy = 0; return true; }
   var u = unit(h.x - e.x, h.y - e.y);
   e.dvx = u.x * e.speed; e.dvy = u.y * e.speed;
@@ -67,14 +70,14 @@ function screamer(s, e, dt) {
 }
 
 function startScream(s, e, S) {
-  e.ai.m = 'scream'; e.ai.cd = S.cd;
+  e.ai.m = 'scream'; e.ai.cd = S.cd; e.ai.t = 0;
   s.enemyTele.push({ kind: 'ring', x: e.x, y: e.y, r: S.ringR, t: 0, T: S.windup, then: 'scream', owner: e.id, src: e, col: 'summon' });
   s.events.push({ type: 'screamStart', id: e.id, x: e.x, y: e.y, T: S.windup, r: S.ringR });
 }
 
 function scream(s, tg) {
   var S = P.CFG.enemies.screamer, e = tg.src, n = 0;
-  if (e && !e.dead) e.ai.m = 'walk';
+  if (e && !e.dead) { e.ai.m = 'walk'; e.windup = 0; }
   for (var i = 0; i < S.call; i++) {
     var p = P.Events.farSpot(s, tg.x, tg.y, S.callR * 0.8, S.callR * 1.2, false);
     if (!p) continue;
@@ -208,7 +211,7 @@ function spitter(s, e, dt) {
   if (a.cd <= 0 && d <= S.range && d >= S.minRange) {
     a.m = 'windup'; a.t = 0; a.aimX = h.x; a.aimY = h.y;
     P.Enemies.ring(s, h.x, h.y, S.glob.r, S.windup + S.flight, null, S.col || 'acid');
-    s.events.push({ type: 'spitWindup', x: e.x, y: e.y });
+    s.events.push({ type: 'spitWindup', x: e.x, y: e.y, T: S.windup });
     e.dvx = 0; e.dvy = 0; return true;
   }
   if (e.anchored) { e.dvx = 0; e.dvy = 0; return true; }   // balcony spitter (v0.5): spits, does not move
@@ -359,6 +362,8 @@ P.Enemies.onTele = function (s, tg) {
     summon(s, tg);
   } else if (tg.then === 'scream') {
     scream(s, tg);
+  } else if (tg.then === 'surge') {                          // lane H: a horde surge's cue has resolved (horde.js)
+    if (P.Horde && P.Horde.arrive) P.Horde.arrive(s, tg);
   }
 };
 

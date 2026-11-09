@@ -79,6 +79,14 @@ P.Combat.tallyKill = function (s, e, src, crit) {
   if (R.n > T.maxStreak) T.maxStreak = R.n;
 };
 
+// A drop must be reachable. On generated levels the hero is kept within view.heroClampX (world.js), so a gem dropped
+// beyond it (an enemy killed at the side edge) could never be collected: it sat off-screen and the bot chased it forever
+// (AUDIT-7 L22 seed 10, L4 seed 4). Clamp kill drops into that band as well as the walkable area.
+P.Combat.keepInReach = function (s, d) {
+  P.World.clampWalk(d, 0.25, s.props);
+  if (s.props.geo) { var hx = P.CFG.view.heroClampX; d.x = Math.min(Math.max(d.x, -hx), hx); }
+};
+
 P.Combat.killEnemy = function (s, e, crit, src) {
   e.dead = true;
   s.kills++;
@@ -91,7 +99,7 @@ P.Combat.killEnemy = function (s, e, crit, src) {
   var dr = P.CFG.drops, lk = 1 + s.fx.luckPct, cm = 1 + s.fx.coinPct;
   if (s.rng.loot.chance(dr.jetonChance * lk)) s.drops.push({ kind: 'jeton', value: Math.round(s.rng.loot.int(dr.jetonMin, dr.jetonMax) * cm), x: e.x - 0.2, y: e.y, mag: false, pop: 0.25 });
   if (s.rng.loot.chance(dr.simitChance * lk)) s.drops.push({ kind: 'simit', value: dr.simitHeal, x: e.x + 0.2, y: e.y, mag: false, pop: 0.25 });
-  for (var di = s.drops.length - 4 < 0 ? 0 : s.drops.length - 4; di < s.drops.length; di++) P.World.clampWalk(s.drops[di], 0.25, s.props);
+  for (var di = s.drops.length - 4 < 0 ? 0 : s.drops.length - 4; di < s.drops.length; di++) P.Combat.keepInReach(s, s.drops[di]);
   if (crit) s.events.push({ type: 'critKill' });
   if (e.boss) P.Bosses.onDeath(s, e);
   if (e.type === 'bloater') P.Enemies.burst(s, e);

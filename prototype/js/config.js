@@ -44,7 +44,10 @@ P.CFG = {
   elite: { hpMult: 4, dmgMult: 1.5, scale: 1.15, xpMult: 5, kbResist: 0.6 },     // CC 5 elite variant (V3: previewed in L1)
   levelUpShock: { radius: 3.0, knockback: 1.2 },                        // V3: level-up pushes the horde back (PROTO)
   separation: { strength: 2.0, maxNeighbors: 4 },                         // CODE swarm_default.tres
-  xp: { base: 5, mult: 5, exp: 1.6, magnetSpeed: 8, collectDist: 0.5 },   // GD 4.5 (V3 exp 1.4 -> 1.6: 9 cards + 2 chests)
+  // GD 4.5 (V3 exp 1.4 -> 1.6: 9 cards + 2 chests). crowd: gem XP divided by 1 + mul x alive / ref (v0.8, AUDIT-7 G-1
+  // horde; P.Progression.crowdCost). ref 40 keeps bot clears at 4/6 or better from L25 to L100 (ref 20 dropped L50 to 2/6);
+  // level-ups are 9-13 on L2-L12 except L9 (21), and 11-29 from L22 to L100: the 8-14 band is still open on the late levels.
+  xp: { base: 5, mult: 5, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, crowd: { mul: 1, ref: 40 } },
   drops: { jetonChance: 0.05, jetonMin: 1, jetonMax: 5, simitChance: 0.005, simitHeal: 25 }, // CC 8-9
   // V2 Level 1 kit (owner feedback: "ayran, tereyağ, çatal are meaningless"). Every weapon is a distinct verb.
   weapons: {

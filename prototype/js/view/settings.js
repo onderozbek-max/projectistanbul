@@ -9,10 +9,21 @@
   var defaults = { lang: 'tr', sound: true, subs: true, reduceMotion: false, dmgNumbers: true, blood: true,
                    firstRunDone: false, l1Cleared: false, coldOpenSeen: false, installId: null,
                    musicVol: 100, haptics: true, joySide: 'right', shake: 100, reduceFlash: false, devTools: false };
+  var LANGS = ['tr', 'en'];
+  var BOOLS = ['sound', 'subs', 'reduceMotion', 'dmgNumbers', 'blood', 'firstRunDone', 'l1Cleared', 'coldOpenSeen',
+               'haptics', 'reduceFlash', 'devTools'];
   var data = {};
   try { data = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { data = {}; }
+  // A stored value that is not a plain object (null, a number, a string, an array) counts as no settings. Before this
+  // check, 'reduceMotion' in data threw on null/5/"x" when the OS asked for reduced motion, and startup never got past
+  // settings.js (AUDIT-7 CR-4).
+  if (!data || typeof data !== 'object' || Array.isArray(data)) data = {};
   P.Settings = Object.assign({}, defaults, data);
-  if (!P.Settings.installId) P.Settings.installId = 'i-' + Math.random().toString(36).slice(2, 10);
+  // Every fixed-type key falls back to its default when the stored value has another type (a damaged save cannot break
+  // the menu, the language or startup).
+  BOOLS.forEach(function (k) { if (typeof P.Settings[k] !== 'boolean') P.Settings[k] = defaults[k]; });
+  if (LANGS.indexOf(P.Settings.lang) < 0) P.Settings.lang = defaults.lang;
+  if (typeof P.Settings.installId !== 'string' || !P.Settings.installId) P.Settings.installId = 'i-' + Math.random().toString(36).slice(2, 10);
   // Stored values outside the offered steps fall back to the default (a hand-edited save cannot break the menu).
   if (MUSIC_STEPS.indexOf(P.Settings.musicVol) < 0) P.Settings.musicVol = defaults.musicVol;
   if (SHAKE_STEPS.indexOf(P.Settings.shake) < 0) P.Settings.shake = defaults.shake;

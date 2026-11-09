@@ -236,7 +236,9 @@
   function onDeath() {
     P.Input.reset(); P.Input.enabled = false;
     P.Tel.log('death', { cause_id: sim.deathCause, t_s: +sim.runT.toFixed(1), run_level: sim.level, build: Object.keys(sim.hero.weapons).concat(Object.keys(sim.hero.passives)) });
-    if (!P.Settings.firstRunDone && !sim.secondWindUsed) {
+    // Daily Iron (no revive): no second wind; the down screen still shows, without the revive choices (AUDIT-7 CR-1).
+    var noRevive = !!(P.Modifiers && P.Modifiers.reviveBlocked && P.Modifiers.reviveBlocked(sim));
+    if (!noRevive && !P.Settings.firstRunDone && !sim.secondWindUsed) {
       P.revive(sim, 'secondWind');
       P.Tel.log('revive_used', { method: 'second_wind' });
       P.UI.toast(P.t('ui.secondWind'), P.t('ui.secondWindSub'), 2.5);
@@ -252,7 +254,7 @@
   function showDown() {
     phone.classList.remove('dying');
     state = 'down';
-    P.Tel.log('revive_offer', { methods: ['ad', 'altin'] });
+    if (!(P.Modifiers && P.Modifiers.reviveBlocked && P.Modifiers.reviveBlocked(sim))) P.Tel.log('revive_offer', { methods: ['ad', 'altin'] });
     P.Screens.showDown(sim, {
       revive: function (kind) {
         P.revive(sim, kind); P.Tel.log('revive_used', { method: kind === 'ad' ? 'ad_stub' : 'altin_stub' });
@@ -286,6 +288,7 @@
 
   function finishWin() {
     state = 'storyEnd'; P.UI.showHud(false);
+    if (P.Finale && P.Finale.start && P.Finale.start(levelIndex, sim, function () { endRun(true); })) return;
     if (P.Story) P.Story.play(levelIndex, 'end', function () { endRun(true); }); else endRun(true);
   }
 
@@ -299,7 +302,7 @@
     var km = 0;
     if (P.Meta) {
       var pend = P.Meta.onResults({ levelIndex: levelIndex, won: win, stars: nStars, coins: sim.jeton, kills: sim.kills, timeS: sim.runT,
-        tally: sim.tally, reviveUsed: !!sim.reviveUsed, daily: !!runOpts.daily, hero: 'arda' });
+        tally: sim.tally, reviveUsed: !!sim.reviveUsed, daily: !!runOpts.daily, modifiers: runOpts.modifiers || null, hero: 'arda' });
       if (pend && pend.reward) { jeton = pend.reward.total; first = pend.reward.first; }
       km = P.Meta.progress().kmWalked;
     }
@@ -374,6 +377,7 @@
     if (state === 'cold') P.ColdOpen.update(dt);
     if (state === 'play') stepPlay(dt);
     if (state === 'exit') updateExit(dt);
+    if (state === 'storyEnd' && P.Finale && P.Finale.tick) P.Finale.tick(dt);
     if (state === 'dying' && (dyingT -= dt) <= 0 && dyingNext) { var next = dyingNext; dyingNext = null; next(); }
     if (sim && state !== 'title' && state !== 'results' && state !== 'map') {
       P.Fx.update(sim, FROZEN[state] ? 0 : dt);

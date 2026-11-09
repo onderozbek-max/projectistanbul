@@ -1,6 +1,9 @@
-// Objective kinds (lane P). Each kind has: init(s, o), step(s, o, dt), won(s, o) (checked at the win),
+// Objective kinds (lane P; v0.8 lane L variants). Each kind has: init(s, o), step(s, o, dt), won(s, o) (checked at the win),
 // status(s, o) -> { line, vars, frac, hp }, items(s, o) -> HUD markers, target(s, o) -> bot waypoint or null.
-// Numbers come from config-objectives.js (types). Kinds never draw; objectives-hud.js (view) does.
+// o.kind is the kind of the id ('survive') and o.v its variant ('tram' for 'survive.tram'; undefined for a bare kind).
+// Numbers come from config-objectives.js: types.<kind>.<key>, overridden by types.<kind>.v.<variant>.<key> when set.
+// Status line keys are 'obj.<id>.line' (id = the full dotted id), so each variant has its own text.
+// Kinds never draw; objectives-hud.js (view) does.
 P.ObjKinds = (function () {
   var K = {};
   var T = function () { return P.CFG.objectives.types; };
@@ -8,6 +11,13 @@ P.ObjKinds = (function () {
   var clock = function (t) { return P.Objectives.clock(t); };
   var noItems = function () { return []; };
   var noTarget = function () { return null; };
+  var lineKey = function (o) { return 'obj.' + o.id + '.line'; };
+
+  // The value of `key` for this objective: its variant's override, else the kind's base value.
+  function vnum(o, kind, key) {
+    var base = T()[kind], v = base.v && o.v && base.v[o.v];
+    return v && v[key] !== undefined ? v[key] : base[key];
+  }
 
   // Enemies that can hit a point (active, alive).
   function enemiesNear(s, x, y, r) {
@@ -41,42 +51,42 @@ P.ObjKinds = (function () {
     return best ? [best.x, best.y] : null;
   }
 
-  // Reach the gate within the par time (bonus for speed). Judged at the win.
+  // Reach the gate within the par time (bonus for speed). Judged at the win. Also the home gate (reach.home).
   K.reach = {
     init: function (s, o) { o.par = T().reach.par[Math.min(o.stage, T().reach.par.length) - 1]; },
     step: function () {},
     won: function (s, o) { return o.t <= o.par; },
     status: function (s, o) {
-      return { line: 'obj.reach.line', vars: { t: clock(o.t), par: clock(o.par) }, frac: Math.min(1, s.hero.y / s.geo.exitY) };
+      return { line: lineKey(o), vars: { t: clock(o.t), par: clock(o.par) }, frac: Math.min(1, s.hero.y / s.geo.exitY) };
     },
     items: noItems,
     target: noTarget,
   };
 
-  // Hold out until the tram arrives (a timer). Done when it runs out with the hero still alive.
+  // Hold out until the vehicle arrives (a timer; the vehicle sets T per variant). Done when it runs out with the hero alive.
   K.survive = {
-    init: function (s, o) { o.T = T().survive.T; },
+    init: function (s, o) { o.T = vnum(o, 'survive', 'T'); },
     step: function (s, o) { if (o.t >= o.T) P.Objectives.resolve(s, o, true); },
     won: function () { return false; },
     status: function (s, o) {
-      return { line: 'obj.survive.line', vars: { t: clock(o.T - o.t) }, frac: Math.min(1, o.t / o.T) };
+      return { line: lineKey(o), vars: { t: clock(o.T - o.t) }, frac: Math.min(1, o.t / o.T) };
     },
     items: noItems,
     target: noTarget,
   };
 
-  // Supply crates spread along the route. Walk over each to take it.
+  // Supply items spread along the route (crate, cut, lamp, key, charcoal by variant). Walk over each to take it.
   K.collect = {
     init: function (s, o) {
-      // Crates sit before the hold (holdY), so the route can still reach them: the hold and the gate end the chase.
-      var C = T().collect, rng = s.rng.level, lo = s.hero.y + C.minY, hi = (s.geo.holdY || s.geo.exitY) - C.minY, i, y, p;
+      // Items sit before the hold (holdY), so the route can still reach them: the hold and the gate end the chase.
+      var C = T().collect, rng = s.rng.level, n = vnum(o, 'collect', 'n'), lo = s.hero.y + C.minY, hi = (s.geo.holdY || s.geo.exitY) - C.minY, i, y, p;
       o.items = [];
-      for (i = 0; i < C.n; i++) {
-        y = lo + (hi - lo) * (i + 0.5) / C.n;
+      for (i = 0; i < n; i++) {
+        y = lo + (hi - lo) * (i + 0.5) / n;
         p = freeSpot(s, rng.range(-C.maxX, C.maxX), y);
         o.items.push({ x: p.x, y: p.y, got: false });
       }
-      o.n = C.n;
+      o.n = n;
     },
     step: function (s, o) {
       var r = T().collect.r, h = s.hero;
@@ -88,9 +98,9 @@ P.ObjKinds = (function () {
       if (o.prog >= o.n) P.Objectives.resolve(s, o, true);
     },
     won: function () { return false; },
-    status: function (s, o) { return { line: 'obj.collect.line', vars: { n: o.prog, of: o.n }, frac: o.prog / o.n }; },
+    status: function (s, o) { return { line: lineKey(o), vars: { n: o.prog, of: o.n }, frac: o.prog / o.n }; },
     items: function (s, o) {
-      return o.items.map(function (it) { return { x: it.x, y: it.y, kind: 'crate', done: it.got, frac: it.got ? 1 : 0 }; });
+      return o.items.map(function (it) { return { x: it.x, y: it.y, kind: 'crate', label: o.v || 'crate', done: it.got, frac: it.got ? 1 : 0 }; });
     },
     target: function (s, o) {
       var h = s.hero, best = null, bd = Infinity;
@@ -120,24 +130,25 @@ P.ObjKinds = (function () {
     },
     won: function (s, o) { return o.civ.alive; },
     status: function (s, o) {
-      return { line: o.civ.alive ? 'obj.escort.line' : 'obj.escort.lost', vars: {}, frac: o.civ.hp / o.civ.max, hp: o.civ.hp / o.civ.max };
+      return { line: o.civ.alive ? lineKey(o) : 'obj.' + o.id + '.lost', vars: {}, frac: o.civ.hp / o.civ.max, hp: o.civ.hp / o.civ.max };
     },
     items: function (s, o) { return [{ x: o.civ.x, y: o.civ.y, kind: 'civ', done: !o.civ.alive, frac: o.civ.hp / o.civ.max }]; },
     target: function (s) { return nextChoke(s); },   // bot: through the next gap, so she can follow
   };
 
-  // Signal booster: stand within reach while Mom's message uploads. Zombies near it wear it down.
+  // Signal booster (or the cart or bell by variant): stand within reach while Mom's message uploads. Zombies near it wear
+  // it down. Hp and upload time come from the variant.
   K.defend = {
     init: function (s, o) {
-      var C = T().defend, p = freeSpot(s, 0, Math.min(s.geo.exitY - 6, s.hero.y + C.ahead));
-      o.b = { x: p.x, y: p.y, hp: C.hp, max: C.hp, up: 0, uploading: false };
+      var C = T().defend, hp = vnum(o, 'defend', 'hp'), p = freeSpot(s, 0, Math.min(s.geo.exitY - 6, s.hero.y + C.ahead));
+      o.b = { x: p.x, y: p.y, hp: hp, max: hp, up: 0, uploading: false };
     },
     step: function (s, o, dt) {
       var C = T().defend, b = o.b;
       if (b.hp <= 0 || b.up >= 1) return;
       b.hp = Math.max(0, b.hp - enemiesNear(s, b.x, b.y, C.hitR) * C.dps * dt);
       b.uploading = dist(s.hero, b) <= C.r;
-      if (b.uploading) b.up = Math.min(1, b.up + dt / C.uploadT);
+      if (b.uploading) b.up = Math.min(1, b.up + dt / vnum(o, 'defend', 'uploadT'));
       if (b.hp <= 0) P.Objectives.resolve(s, o, false);
       else if (b.up >= 1) P.Objectives.resolve(s, o, true);
     },
@@ -145,26 +156,27 @@ P.ObjKinds = (function () {
     status: function (s, o) {
       var b = o.b;
       return b.up > 0
-        ? { line: 'obj.defend.upload', vars: { n: Math.round(b.up * 100) }, frac: b.up, hp: b.hp / b.max }
-        : { line: 'obj.defend.go', vars: {}, frac: b.up, hp: b.hp / b.max };
+        ? { line: 'obj.' + o.id + '.upload', vars: { n: Math.round(b.up * 100) }, frac: b.up, hp: b.hp / b.max }
+        : { line: 'obj.' + o.id + '.go', vars: {}, frac: b.up, hp: b.hp / b.max };
     },
-    items: function (s, o) { return [{ x: o.b.x, y: o.b.y, kind: 'booster', done: o.b.up >= 1, frac: o.b.up }]; },
+    items: function (s, o) { return [{ x: o.b.x, y: o.b.y, kind: 'booster', label: o.v || 'booster', done: o.b.up >= 1, frac: o.b.up }]; },
     target: function (s, o) {
       var b = o.b;
       return b.up < 1 && b.hp > 0 ? [b.x, b.y - T().defend.standOff] : null;
     },
   };
 
-  // Hack the terminals ahead. The hack system (sim/hack.js) does the work; this counts the finished ones. An idle
-  // terminal the hero has walked more than `behind` m past is moved ahead again, so no terminal is left behind the route.
+  // Hack the terminals ahead (street, signal or gate by variant). The hack system (sim/hack.js) does the work; this counts
+  // the finished ones. An idle terminal the hero has walked more than `behind` m past is moved ahead again, so no terminal
+  // is left behind the route.
   K.hack = {
     init: function (s, o) {
-      var C = T().hack, rng = s.rng.level, i, y, p;
+      var C = T().hack, kinds = vnum(o, 'hack', 'kinds'), rng = s.rng.level, i, y, p;
       o.hacks = [];
       for (i = 0; i < C.n; i++) {
         y = Math.min(s.geo.exitY - 4, s.hero.y + C.ahead + i * C.gap);
         p = freeSpot(s, (i % 2 ? -1 : 1) * C.side + rng.range(-0.6, 0.6), y);
-        o.hacks.push(P.Hack.place(s, C.kinds[i % C.kinds.length], p.x, p.y));
+        o.hacks.push(P.Hack.place(s, kinds[i % kinds.length], p.x, p.y));
       }
       o.n = C.n;
     },
@@ -179,9 +191,9 @@ P.ObjKinds = (function () {
       if (o.prog >= o.n) P.Objectives.resolve(s, o, true);
     },
     won: function () { return false; },
-    status: function (s, o) { return { line: 'obj.hack.line', vars: { n: o.prog, of: o.n }, frac: o.prog / o.n }; },
+    status: function (s, o) { return { line: lineKey(o), vars: { n: o.prog, of: o.n }, frac: o.prog / o.n }; },
     items: function (s, o) {
-      return o.hacks.map(function (H) { return { x: H.x, y: H.y, kind: 'terminal', done: H.state === 'done', frac: H.prog }; });
+      return o.hacks.map(function (H) { return { x: H.x, y: H.y, kind: 'terminal', label: o.v || 'terminal', done: H.state === 'done', frac: H.prog }; });
     },
     // Nearest unfinished terminal ahead of the hero (or level with him); a terminal just behind is the fallback.
     target: function (s, o) {
@@ -211,7 +223,7 @@ P.ObjKinds = (function () {
     won: function (s, o) { return !!(s.gen && s.gen.boss && s.gen.boss.dead) && o.t0 !== null && o.t - o.t0 <= o.par; },
     status: function (s, o) {
       var b = s.gen && s.gen.boss, el = o.t0 === null ? 0 : o.t - o.t0;
-      return { line: 'obj.boss.line', vars: { t: clock(o.par - el) }, frac: b ? 1 - b.hp / b.maxHp : 0 };
+      return { line: lineKey(o), vars: { t: clock(o.par - el) }, frac: b ? 1 - b.hp / b.maxHp : 0 };
     },
     items: noItems,
     target: noTarget,

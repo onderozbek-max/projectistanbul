@@ -48,7 +48,7 @@ message log the player can open at any time. Characters appear as comic busts in
 
 ### 3.1 Format
 
-- **3–5 panels** per page (3 for most hoods, 5 for story hoods: H01, H04, H05, H06, H10, H17, H20).
+- **3–5 panels** per page (3 for most hoods, 5 for story hoods: H01, H04, H05, H06, H11, H17, H20).
 - Shown on **2 screens**, with 2–3 panels per screen (design-system §9.1 allows up to 4 per screen).
 - **Tap to advance.** Auto-advance (setting) is 4 s per panel.
 - **Ken Burns:** pan and zoom per panel (3–5%), up to 3 parallax layers.
@@ -63,7 +63,7 @@ message log the player can open at any time. Characters appear as comic busts in
 | Where | Pages | Panels |
 |---|---|---|
 | Hoods 1–6 (the slice) | 6 pages | 5 each on story hoods, 3 elsewhere |
-| Hoods 7–20 | 14 pages | 3 each, 5 on H10, H17, H20 |
+| Hoods 7–20 | 14 pages | 3 each, 5 on H11, H17, H20 |
 | Total Chapter 1 | 20 pages | About 80 panels |
 
 **Art cost:** the slice needs about 24 panels. The full chapter needs about 80. This is the largest art line in
@@ -143,7 +143,7 @@ Today the bars are decoration. Three options:
 | H03 · 2 | Mom: don't go over the bridge | "Köprüye yaklaşma." (new) |
 | H04 · 4 | Call drops in the fog | "Anne? Kesiliyorsun!" |
 | H06 · 5 | Mom's last clear call (slice end) | "...seni seviyoruz... eve gel..." |
-| H10 · 4 | Text from Mom at the campfire (no signal, so a text): asks about Mila | "Mila nasıl?" (new) |
+| H11 · 4 | Text from Mom at the campfire (no signal, so a text): asks about Mila | "Mila nasıl?" (new) |
 | H20 · 1 | Mom's voice in Dad's letter (letter, not a call) | Letter #1 |
 
 Calls become rarer after H06 (no signal). Texts and voice notes replace them (§8).
@@ -257,14 +257,14 @@ The table keeps the canon beat from narrative.md and the journey (journey.md §5
 | H06 Sirkeci | 3 panels: the railway clock stops | "Biletsiz geçilmez." (No ticket, no entry.) | Mom's last clear call | Departure board: "Sarıyer: iptal" | Polaroid: the station at dawn | The Ticket Man. Slice end. Cliffhanger (triple zoom). |
 | H07 Kapalıçarşı | 3 panels: shutters, looters' hints | Shopkeeper: "Kapıyı açmayın!" (Don't open the door!) | Text from Mom (short) | Note on the shutter | Voice note: shopkeeper | The Carpet Golem. First human threat hinted. |
 | H08 Beyazıt | 3 panels: pigeons over the square | "Güvercinler..." (The pigeons...) | Mila: "Gelirsen haber ver." (Let me know if you come.) | "Bugün kapalı" sign | Polaroid: students | The Pigeon Man feeds the birds. |
-| H09 Laleli | 3 panels: mannequins in the window | Arda: "Bunlar zombi mi?" (Are these zombies?) | Text: Kaan joking | Cartons with a note | Voice note: a hamal | The Wholesaler. "Are they zombies?" |
-| H10 Aksaray | 5 panels: campfire, crush admitted | Arda: "Mila'yı seviyorum." (I like Mila.) | Mom: "Mila nasıl?" (How's Mila?) | Bakery with the oven lit | Polaroid: Arda and Mila (before) | Dolmuş Driver. Triangle seed. Kaan goes quiet. |
-| H11 Kumkapı | 3 panels: the quay, the last meze | Porter: "Buz, buz!" (Ice, ice!) | No signal | Crates on ice | Voice note: Mom's old song | The Fish Porter. |
+| H09 Kumkapı | 3 panels: the quay, the last meze | Porter: "Buz, buz!" (Ice, ice!) | No signal | Crates on ice | Voice note: Mom's old song | The Fish Porter. |
+| H10 Laleli | 3 panels: mannequins in the window | Arda: "Bunlar zombi mi?" (Are these zombies?) | Text: Kaan joking | Cartons with a note | Voice note: a hamal | The Wholesaler. "Are they zombies?" |
+| H11 Aksaray | 5 panels: campfire, crush admitted | Arda: "Mila'yı seviyorum." (I like Mila.) | Mom: "Mila nasıl?" (How's Mila?) | Bakery with the oven lit | Polaroid: Arda and Mila (before) | Dolmuş Driver. Triangle seed. Kaan goes quiet. |
 | H12 Yenikapı | 3 panels: the tunnel and the cut | Arda: "Sinyal yok." (No signal.) | Call drops mid-line | Dead phone on the tiles | Voice note: a commuter's message | The Evening Crowd. The line goes dark. |
 | H13 Samatya | 3 panels: the sea at dawn | Radio: "Güvenli bölgeler..." (Safe zones...) | Radio | Abandoned picnic | Polaroid: a picnic | The Grill Man. Safe zones and the north. |
 | H14 Yedikule | 3 panels: walls and gardens | Arda: "Bu duvarlar hep ayakta." (These walls are still standing.) | None | Note on the gate: "Anahtarı bahçıvana verin." | Keys | The Key Keeper. |
-| H15 Zeytinburnu | 3 panels: the last shift | Foreman: "Vardiya bitmedi." (The shift isn't over.) | None | Time card | Voice note: a worker | The Dye Foreman. |
-| H16 Kazlıçeşme | 3 panels: calm morning | "Sulama mı?" (Sprinklers?) | Text from Mila: "İyi misin?" (Are you okay?) | Running shoes | Polaroid: a jogger | The Hose Man. |
+| H15 Kazlıçeşme | 3 panels: calm morning | "Sulama mı?" (Sprinklers?) | Text from Mila: "İyi misin?" (Are you okay?) | Running shoes | Polaroid: a jogger | The Hose Man. |
+| H16 Zeytinburnu | 3 panels: the last shift | Foreman: "Vardiya bitmedi." (The shift isn't over.) | None | Time card | Voice note: a worker | The Dye Foreman. |
 | H17 Bakırköy Çarşı | 5 panels: old school, old class | Principal: "Herkes sıraya!" (Everyone line up!) | None | School photo, class list | Polaroid: the class | The Principal. Arda's old school. |
 | H18 Bakırköy Sahil | 3 panels: the ice-cream man | "Bir dondurma?" (One ice cream?) | None | The bell | Voice note: the ice-cream man | The Ice-Cream Man. |
 | H19 Ataköy Marina | 3 panels: the marina, home is close | Arda: "Ev yakın." (Home is close.) | Mom's text: "Dede'ye gittik." (We went to Dede's.) | Boat names (fictional) | Polaroid: the marina | The Yacht Owner. |

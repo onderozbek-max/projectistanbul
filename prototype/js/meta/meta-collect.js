@@ -36,6 +36,8 @@ P.Meta = P.Meta || {};
     { id: 'a_collect10', type: 'collect', t: 10, coins: 150 }
   ];
   // Collection rules: which hood or level unlocks what (story pages come from P.Story.pages at runtime).
+  // Gates stay on the 100-level walk (AUDIT-7 CR-8; docs/journey.md §8.4): letter 2 at the midpoint, letter 3 on the last
+  // boss before home. Letter 1 is the flat at Ataköy (L100).
   C.LETTERS = [{ id: 'letter:1', level: 100 }, { id: 'letter:2', level: 190 }, { id: 'letter:3', level: 300 }];
 
   function heroStats(s) { var h = s.heroes && s.heroes.arda; return h && h.stats ? h.stats : null; }

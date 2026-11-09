@@ -117,6 +117,9 @@ function unit(dx, dy) {
   return d < 0.3 ? { x: 0, y: 0 } : { x: dx / d, y: dy / d };
 }
 
+// Objective waypoints this many metres behind the hero are still walked back to (a booster or terminal the route overshot).
+const OB_BACK = 8;
+
 // Where the hero wants to go (ignoring drops, hacks and repulsion).
 function targetOf(s, st) {
   const h = s.hero, G = s.geo, b = s.gen.boss;
@@ -129,11 +132,13 @@ function targetOf(s, st) {
   if (s.props.shutterOpen) return [0, G.exitY + 2.5];
   // The objective waypoint (crate, terminal, booster) wins when it is ahead and nearer than the next chokepoint. Otherwise
   // a gap on the route would pull the bot past an unfinished terminal, and it would never come back for it (L12 stall).
+  // Behind the hero it is followed only within OB_BACK m: with no chokepoint ahead, walking back for a booster 80 m away
+  // shuttled the bot until timeout (AUDIT-7 CR-7). Defend, escort and hack levels then measure the game, not the bot.
   const ob = P.Objectives.botTarget(s);            // lane P: crate, terminal or booster waypoint (objectives.js)
   const lt = P.Layouts && P.Layouts.botTarget ? P.Layouts.botTarget(s) : null;   // lane B: next chokepoint (layouts.js)
-  if (ob && ob[1] > h.y - 1 && (!lt || ob[1] <= lt[1])) return ob;
+  const behind = ob ? h.y - ob[1] : 0;             // metres the objective lies behind the hero
+  if (ob && (behind > 1 ? behind <= OB_BACK : !lt || ob[1] <= lt[1])) return ob;
   if (lt) return lt;
-  if (ob) return ob;
   return [0, Math.min(G.holdY + 1.5, h.y + 8)];
 }
 

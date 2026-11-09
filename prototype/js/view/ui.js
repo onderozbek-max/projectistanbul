@@ -4,7 +4,8 @@
 // tier labels (SÜPER, MÜTHİŞ, ...) for a moment at 25, 50, 100 and 200. It replaces the old canvas combo counter.
 // AUDIT-6 (lane F): overlays (cards, chest, pause, settings, down) take the HUD, the dash and nazar buttons and the
 // subtitle layer off screen while they are up (F1). Every bound element has a stand-in, so a missing id never stops a
-// run (F2; tools/check-ids.js catches the gap at build time). The boss bar is a DOM bar under the XP row (F7). The dash
+// run (F2; tools/check-ids.js catches the gap at build time). The boss bar is a DOM bar in HUD row 2, where it replaces
+// the objective (F7; AUDIT-7 U1 two-row header, class #hud.boss-on). The dash
 // chip shows its cooldown in seconds and a ring when ready (F9).
 P.UI = (function () {
   var U = {}, el = {}, toastT = 0, lastHp = -1, lastSub = null, tierT = 0, tierKey = null, lastN = 0;
@@ -97,6 +98,7 @@ P.UI = (function () {
     el['ult-fill'].style.height = Math.round(Math.min(1, k.ult) * 100) + '%';
     el['btn-ult'].classList.toggle('ready', k.ultReady);
     el['dash-fill'].style.width = Math.round(k.dashFrac * 100) + '%';
+    el['dash-chip'].classList.toggle('hidden', !!(P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s)));   // daily No dash: no chip (AUDIT-7 CR-1)
     el['dash-chip'].classList.toggle('cool', !k.dashReady);
     el['dash-chip'].classList.toggle('ready', !!k.dashReady);
     el['dash-sec'].textContent = k.dashReady ? '' : secs(Math.ceil(cd * 10) / 10);
@@ -112,6 +114,7 @@ P.UI = (function () {
     var b = null, i, list = s.enemies || [];
     for (i = 0; i < list.length && !b; i++) if (list[i].boss && !list[i].dead) b = list[i];
     el['boss-bar'].classList.toggle('hidden', !b);
+    el.hud.classList.toggle('boss-on', !!b);   // AUDIT-7 U1: the boss bar takes the objective's place in row 2
     if (!b) return;
     var f = b.maxHp > 0 ? Math.max(0, Math.min(1, b.hp / b.maxHp)) : 0;
     el['boss-fill'].style.width = (f * 100).toFixed(1) + '%';

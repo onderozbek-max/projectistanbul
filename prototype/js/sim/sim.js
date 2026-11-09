@@ -38,6 +38,7 @@ P.createSim = function (seed, opts) {
     });
     s.dinersSpawned = true;
   }
+  if (P.Modifiers && P.Modifiers.applyDaily) P.Modifiers.applyDaily(s);   // AUDIT-7 CR-1: daily modifiers (after the level build)
   if (P.Skills && P.Skills.init) P.Skills.init(s);
   return s;
 };
@@ -87,6 +88,7 @@ P.startPlay = function (s) {
 
 P.revive = function (s, kind) {
   var h = s.hero;
+  if (P.Modifiers && P.Modifiers.reviveBlocked && P.Modifiers.reviveBlocked(s)) return;   // daily Iron: no revive at all
   h.hp = h.maxHp;
   h.invuln = P.CFG.hero.secondWindInvuln;
   s.mode = 'play';

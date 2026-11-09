@@ -1,5 +1,5 @@
 // Level objectives (lane P). Pure: no DOM. One objective per generated level (2..100); level 1 keeps its script.
-// P.Objectives.forLevel(levelInfo) -> type id (table: config-objectives.js). Stage 5 is the boss.
+// P.Objectives.forLevel(levelInfo) -> id 'kind' or 'kind.variant' (table: config-objectives.js assign, per hood). Stage 5 is the boss.
 // P.Objectives.attach(s): after the level is built (sim.js createSim). Applies the run modifier (sim/modifiers.js) and
 // sets s.obj. P.Objectives.step(s, dt): after P.Levels.step each tick (director.js). Kinds: sim/objectives-kinds.js.
 // Objectives never gate the exit. Done or failed is final. s.tally.objDone = 1 when done, so meta pays the bonus on a win.
@@ -7,10 +7,11 @@
 P.Objectives = {};
 
 P.Objectives.forLevel = function (li) {
-  var C = P.CFG.objectives;
+  var C = P.CFG.objectives, row;
   if (!li || li.index === 1) return null;
   if (li.boss || li.stage === P.Journey.levelsPerHood) return C.bossType;
-  return C.route[(li.hoodIndex + li.stage) % C.route.length];
+  row = C.assign[li.hood && li.hood.id];
+  return (row && row[li.stage - 1]) || 'reach';   // every generated level keeps one objective
 };
 
 P.Objectives.bonusFor = function (levelIndex) {
@@ -29,8 +30,9 @@ P.Objectives.attach = function (s) {
   P.Modifiers.apply(s);
   id = P.Objectives.forLevel(s.levelInfo);
   if (!id) return null;
-  o = { id: id, state: 'active', t: 0, prog: 0, stage: s.levelInfo.stage };
-  P.ObjKinds[id].init(s, o);
+  // id 'survive.tram' -> kind 'survive', variant 'tram'. The id keys the text ('obj.<id>.title'); the kind runs the rules.
+  o = { id: id, kind: id.split('.')[0], v: id.split('.')[1], state: 'active', t: 0, prog: 0, stage: s.levelInfo.stage };
+  P.ObjKinds[o.kind].init(s, o);
   s.obj = o;
   s.tally.objDone = 0;
   s.events.push({ type: 'objStart', id: id });
@@ -48,7 +50,7 @@ P.Objectives.resolve = function (s, o, ok) {
 P.Objectives.step = function (s, dt) {
   var o = s.obj, K;
   if (!o || o.state !== 'active') return;
-  K = P.ObjKinds[o.id];
+  K = P.ObjKinds[o.kind];
   o.t += dt;
   K.step(s, o, dt);
   if (o.state === 'active' && s.mode === 'won') P.Objectives.resolve(s, o, K.won(s, o));
@@ -58,7 +60,7 @@ P.Objectives.step = function (s, dt) {
 P.Objectives.status = function (s) {
   var o = s && s.obj, st;
   if (!o) return null;
-  st = P.ObjKinds[o.id].status(s, o);
+  st = P.ObjKinds[o.kind].status(s, o);
   return { id: o.id, state: o.state, title: 'obj.' + o.id + '.title', line: st.line, vars: st.vars || {}, frac: st.frac,
     hp: st.hp === undefined ? null : st.hp, bonus: P.Objectives.bonusFor(s.levelIndex) };
 };
@@ -66,7 +68,7 @@ P.Objectives.status = function (s) {
 // World markers for the HUD: [{ x, y, kind, done, frac }].
 P.Objectives.items = function (s) {
   var o = s && s.obj;
-  return o && o.state !== 'failed' ? P.ObjKinds[o.id].items(s, o) : [];
+  return o && o.state !== 'failed' ? P.ObjKinds[o.kind].items(s, o) : [];
 };
 
 // Results row: the objective, whether it was done, and the bonus it adds on a win. A run that ends while the objective
@@ -100,6 +102,6 @@ P.Objectives.stars = function (s, won) {
 P.Objectives.botTarget = function (s) {
   var o = s && s.obj, K;
   if (!o || o.state !== 'active') return null;
-  K = P.ObjKinds[o.id];
+  K = P.ObjKinds[o.kind];
   return K.target ? K.target(s, o) : null;
 };

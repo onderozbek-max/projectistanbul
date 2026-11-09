@@ -931,83 +931,83 @@ P.BarkPools.tr = P.BarkPools.tr || {};
     { t: 'Tek lamba yanıyor. Herkes ona doğru.' },
     { t: 'Güvercinci yem torbasını açtı. Hepsi ona geliyor.' },
   ];
-  // H09 Laleli
+  // H09 Kumkapı
   T['BK.hd09.1'] = [
-    { t: 'Laleli! Her vitrinde bir manken, her birinde bir soru.', j: 1 },
-    { t: 'Koliler yığılmış. Tezgâhlar kapalı, kepenkler indi.' },
-    { t: 'Sokak lambası turuncu. Her yer de öyle.' },
-  ];
-  T['BK.hd09.2'] = [
-    { t: 'Manken bana bakıyor. Ben de ona bakıyorum.', j: 1 },
-    { t: 'Koli yığınları dar bir yol bırakmış.' },
-    { t: 'Kolilerin arkasında bir şey hareket ediyor.' },
-  ];
-  T['BK.hd09.3'] = [
-    { t: 'Kıpırdadı! Hepsi kıpırdadı!' },
-    { t: 'Vitrindeki manken yavaşça dönüyor.' },
-    { t: 'Üç metre, üç metre! Kimse yaklaşmasın.' },
-  ];
-  T['BK.hd09.4'] = [
-    { t: 'Kumaş balyaları hep bir şeyleri saklıyor.' },
-    { t: 'Kumaşların arkasında gölge var. Sayıyorum.' },
-    { t: 'Bu sokak bitmiyor. Kumaş, kumaş, kumaş.' },
-  ];
-  T['BK.hd09.5'] = [
-    { t: 'Toptancı! Valizin içinde ne var, merak ettim.', j: 1 },
-    { t: 'Sandıklar üst üste. Biri bana fırlatacak.' },
-    { t: 'Toptancı kapının arkasından çıktı. Sakin ol Arda.' },
-  ];
-  // H10 Aksaray
-  T['BK.hd10.1'] = [
-    { t: 'Dolmuşlar yolda kalmış. Hepsi yolcu bekliyor.' },
-    { t: 'Durakta bekleyen var, otobüs yok.' },
-    { t: 'Trafik konisi her yerde. Yol bitmez.' },
-  ];
-  T['BK.hd10.2'] = [
-    { t: 'Dolmuş kornası! Ben binmiyorum.', j: 1 },
-    { t: 'Meydan kalabalık. Hepsi arabaya binmek istiyor.' },
-    { t: "Aksaray'ın meydanı, bütün yollar buradan geçer." },
-  ];
-  T['BK.hd10.3'] = [
-    { t: 'Pide fırını yanıyor. Ekmek kokusu da bir silah.', j: 1 },
-    { t: 'Dolmuşlar yavaş geçiyor. Kapılar açık.' },
-    { t: 'Şerit değiştirmek bile zor. Sıkışık.' },
-  ];
-  T['BK.hd10.4'] = [
-    { t: 'Kebap kokusu geliyor. Biri hâlâ ızgara yapıyor.' },
-    { t: 'Fırının kapısı kapalı. Ocak hâlâ sıcak.' },
-    { t: 'Burada biraz dinlenelim. Kimse saldırmıyor.' },
-  ];
-  T['BK.hd10.5'] = [
-    { t: "Dolmuşçu 'atla abi' diyor. Atlamadım.", j: 1 },
-    { t: 'Korna sesi duyuluyor. Sağa dönün, geçin.' },
-    { t: 'Kavşak tıkalı. Dolmuşçu bile yerinden çıkamıyor.' },
-  ];
-  // H11 Kumkapı
-  T['BK.hd11.1'] = [
     { t: 'Kumkapı! Balıklar buzda, zombiler de bekliyor.', j: 1 },
     { t: 'Restoranların ışıkları yanıyor, müzik çalıyor.' },
     { t: 'Deniz kokusu sokağa kadar geliyor.' },
   ];
-  T['BK.hd11.2'] = [
+  T['BK.hd09.2'] = [
     { t: 'Meze masası kurulu. Rakı yok, o yüzden dikkatliyim.', j: 1 },
     { t: 'Sis kıyıya çöküyor. Denizin sesi çok yakın.' },
     { t: 'Rıhtımda tekneler sallanıyor. Dikkat et.' },
   ];
-  T['BK.hd11.3'] = [
+  T['BK.hd09.3'] = [
     { t: 'Müzik hâlâ çalıyor. Kim kapatacak şu sesi?', j: 1 },
     { t: 'Buz arabası yolda. Buzlar eriyor, dikkat.' },
     { t: 'Buz sandıkları ağır. Birini düşürmek istemem.' },
   ];
-  T['BK.hd11.4'] = [
+  T['BK.hd09.4'] = [
     { t: 'Deniz kokusu güzel. Zombi kokusu bozuyor.' },
     { t: 'Bir saz sesi geliyor. Aynı parça, hep aynı.' },
     { t: 'Müzisyen kafasını sallıyor, hiç durmuyor.' },
   ];
-  T['BK.hd11.5'] = [
+  T['BK.hd09.5'] = [
     { t: 'Balık Hamalı! Balık gibi kokuyor, sandığı bırakmıyor.', j: 1 },
     { t: 'Rıhtımın sonu. Önümde deniz, arkamda zombi.' },
     { t: 'Sandık dolu. Zombi de dolu. Hiç boş yok.' },
+  ];
+  // H10 Laleli
+  T['BK.hd10.1'] = [
+    { t: 'Laleli! Her vitrinde bir manken, her birinde bir soru.', j: 1 },
+    { t: 'Koliler yığılmış. Tezgâhlar kapalı, kepenkler indi.' },
+    { t: 'Sokak lambası turuncu. Her yer de öyle.' },
+  ];
+  T['BK.hd10.2'] = [
+    { t: 'Manken bana bakıyor. Ben de ona bakıyorum.', j: 1 },
+    { t: 'Koli yığınları dar bir yol bırakmış.' },
+    { t: 'Kolilerin arkasında bir şey hareket ediyor.' },
+  ];
+  T['BK.hd10.3'] = [
+    { t: 'Kıpırdadı! Hepsi kıpırdadı!' },
+    { t: 'Vitrindeki manken yavaşça dönüyor.' },
+    { t: 'Üç metre, üç metre! Kimse yaklaşmasın.' },
+  ];
+  T['BK.hd10.4'] = [
+    { t: 'Kumaş balyaları hep bir şeyleri saklıyor.' },
+    { t: 'Kumaşların arkasında gölge var. Sayıyorum.' },
+    { t: 'Bu sokak bitmiyor. Kumaş, kumaş, kumaş.' },
+  ];
+  T['BK.hd10.5'] = [
+    { t: 'Toptancı! Valizin içinde ne var, merak ettim.', j: 1 },
+    { t: 'Sandıklar üst üste. Biri bana fırlatacak.' },
+    { t: 'Toptancı kapının arkasından çıktı. Sakin ol Arda.' },
+  ];
+  // H11 Aksaray
+  T['BK.hd11.1'] = [
+    { t: 'Dolmuşlar yolda kalmış. Hepsi yolcu bekliyor.' },
+    { t: 'Durakta bekleyen var, otobüs yok.' },
+    { t: 'Trafik konisi her yerde. Yol bitmez.' },
+  ];
+  T['BK.hd11.2'] = [
+    { t: 'Dolmuş kornası! Ben binmiyorum.', j: 1 },
+    { t: 'Meydan kalabalık. Hepsi arabaya binmek istiyor.' },
+    { t: "Aksaray'ın meydanı, bütün yollar buradan geçer." },
+  ];
+  T['BK.hd11.3'] = [
+    { t: 'Pide fırını yanıyor. Ekmek kokusu da bir silah.', j: 1 },
+    { t: 'Dolmuşlar yavaş geçiyor. Kapılar açık.' },
+    { t: 'Şerit değiştirmek bile zor. Sıkışık.' },
+  ];
+  T['BK.hd11.4'] = [
+    { t: 'Kebap kokusu geliyor. Biri hâlâ ızgara yapıyor.' },
+    { t: 'Fırının kapısı kapalı. Ocak hâlâ sıcak.' },
+    { t: 'Burada biraz dinlenelim. Kimse saldırmıyor.' },
+  ];
+  T['BK.hd11.5'] = [
+    { t: "Dolmuşçu 'atla abi' diyor. Atlamadım.", j: 1 },
+    { t: 'Korna sesi duyuluyor. Sağa dönün, geçin.' },
+    { t: 'Kavşak tıkalı. Dolmuşçu bile yerinden çıkamıyor.' },
   ];
   // H12 Yenikapı
   T['BK.hd12.1'] = [
@@ -1087,57 +1087,57 @@ P.BarkPools.tr = P.BarkPools.tr || {};
     { t: 'Kapı kapalı. Anahtar onda, o da bize bakıyor.' },
     { t: 'Anahtarcı kapının önünde. Bu kapıyı açmayacak.' },
   ];
-  // H15 Zeytinburnu
+  // H15 Kazlıçeşme
   T['BK.hd15.1'] = [
-    { t: 'Zeytinburnu. Bidonlar renkli ama kimse boyamıyor.', j: 1 },
-    { t: 'Atölyeler sessiz. Makineler son kez çalışmış.' },
-    { t: 'Kapı açık, içerisi kumaş kokuyor.' },
-  ];
-  T['BK.hd15.2'] = [
-    { t: 'Konveyör bana yardım ediyor. Zorla ama yardım.', j: 1 },
-    { t: 'Balyalar üst üste. Biri devrilirse sorun olur.' },
-    { t: 'Bant kayıyor, ayakkabım kayıyor.' },
-  ];
-  T['BK.hd15.3'] = [
-    { t: 'Boya kokusu başımı döndürüyor. Yeşil mi mor mu?', j: 1 },
-    { t: 'Zombiler bantta hareket ediyor. Bant kendi kendine.' },
-    { t: 'Bantta bir ayakkabı. Sahibi nerede?' },
-  ];
-  T['BK.hd15.4'] = [
-    { t: 'Bidonlar patlamaya hazır. Ben de öyleyim.' },
-    { t: 'Bidonlar üst üste. Bir tanesi yeter.' },
-    { t: 'Bidon sırası uzun. Ateşe yaklaşmayın.' },
-  ];
-  T['BK.hd15.5'] = [
-    { t: 'Boyacı Ustası mesaisini uzatmış. Fazla mesai var mı?', j: 1 },
-    { t: 'Sis gibi boya dumanı. Usta da içinde.' },
-    { t: 'Usta bağırıyor. Mesai bitmedi diyor.' },
-  ];
-  // H16 Kazlıçeşme
-  T['BK.hd16.1'] = [
     { t: 'Kazlıçeşme. Çimler yeşil, sabah serin, zombiler ıslak.', j: 1 },
     { t: 'Sahil yolu uzun, kimse koşmuyor.' },
     { t: 'Deniz rüzgârı tuzlu. Burnumu ovuşturuyorum.' },
   ];
-  T['BK.hd16.2'] = [
+  T['BK.hd15.2'] = [
     { t: 'Fıskiyeler dönüyor. Hortumlar bile ayağa dolanıyor.', j: 1 },
     { t: 'Çimler ıslak. Her adımda suya basıyorum.' },
     { t: 'Bankta biri oturuyor. Başını kaldırmıyor.' },
   ];
-  T['BK.hd16.3'] = [
+  T['BK.hd15.3'] = [
     { t: 'Koşucular grup halinde. Ben de koşmak isterdim.', j: 1 },
     { t: 'Islak yolda elektrik çıtırdıyor. Dikkat.' },
     { t: 'Fıskiyeler yan yana. Bekle, sıra gelsin.' },
   ];
-  T['BK.hd16.4'] = [
+  T['BK.hd15.4'] = [
     { t: 'Bu güzel sabahta zombisiz bir kahvaltı olsa.' },
     { t: 'Koşucular paket halinde geliyor. Yan yana dur.' },
     { t: 'Dizlerim sızlıyor, deniz havası iyi geliyor.' },
   ];
-  T['BK.hd16.5'] = [
+  T['BK.hd15.5'] = [
     { t: 'Hortumcu! Hortum mu, silah mı? İkisi de.', j: 1 },
     { t: 'Hortumdan asit çıkıyor. Uzağa geçin.' },
     { t: 'Hortum uzanıyor. Ucunda biri var.' },
+  ];
+  // H16 Zeytinburnu
+  T['BK.hd16.1'] = [
+    { t: 'Zeytinburnu. Bidonlar renkli ama kimse boyamıyor.', j: 1 },
+    { t: 'Atölyeler sessiz. Makineler son kez çalışmış.' },
+    { t: 'Kapı açık, içerisi kumaş kokuyor.' },
+  ];
+  T['BK.hd16.2'] = [
+    { t: 'Konveyör bana yardım ediyor. Zorla ama yardım.', j: 1 },
+    { t: 'Balyalar üst üste. Biri devrilirse sorun olur.' },
+    { t: 'Bant kayıyor, ayakkabım kayıyor.' },
+  ];
+  T['BK.hd16.3'] = [
+    { t: 'Boya kokusu başımı döndürüyor. Yeşil mi mor mu?', j: 1 },
+    { t: 'Zombiler bantta hareket ediyor. Bant kendi kendine.' },
+    { t: 'Bantta bir ayakkabı. Sahibi nerede?' },
+  ];
+  T['BK.hd16.4'] = [
+    { t: 'Bidonlar patlamaya hazır. Ben de öyleyim.' },
+    { t: 'Bidonlar üst üste. Bir tanesi yeter.' },
+    { t: 'Bidon sırası uzun. Ateşe yaklaşmayın.' },
+  ];
+  T['BK.hd16.5'] = [
+    { t: 'Boyacı Ustası mesaisini uzatmış. Fazla mesai var mı?', j: 1 },
+    { t: 'Sis gibi boya dumanı. Usta da içinde.' },
+    { t: 'Usta bağırıyor. Mesai bitmedi diyor.' },
   ];
   // H17 Bakırköy Çarşı
   T['BK.hd17.1'] = [

@@ -6,7 +6,7 @@
 P.Story = (function () {
   var S = {}, PAD = function (n) { return n < 10 ? '0' + n : '' + n; };
   // Lines shown as Arda's thoughts (thought bubbles) rather than speech.
-  var THINK = { O1b: 1, O1c: 1, O1d: 1, E5c: 1, FNb: 1, H03i1b: 1, H13i3a: 1, H16i2a: 1, H17i2a: 1, H18i2a: 1, H20i2a: 1 };
+  var THINK = { O1b: 1, O1c: 1, O1d: 1, E5c: 1, FNb: 1, H03i1b: 1, H13i3a: 1, H15i2a: 1, H17i2a: 1, H18i2a: 1, H20i2a: 1 };
   // Mood and importance overrides by line id. Speaker keys set the portrait and side.
   var MOOD = { s2: 'happy', s3: 'scared', s4: 'shout', rule1: 'determined', rule2: 'scared', pardon: 'sad',
     barkGrab: 'determined', barkAttack: 'scared', barkDoor: 'determined', barkChestnut: 'happy', barkElite: 'scared',
@@ -25,21 +25,23 @@ P.Story = (function () {
   // Calls: [line prefix, line count, bars per line]. A last line at 0 bars ends in "Sinyal yok" (dropped).
   var CALLS = { 5: ['C05', 5, [3, 3, 2, 2, 1]], 15: ['C15', 4, [2, 2, 1, 0]], 30: ['C30', 5, [4, 4, 3, 2, 0]],
     50: ['C50', 4, [0, 1, 1, 0]], 70: ['C70', 5, [1, 2, 2, 3, 3]], 90: ['C90', 5, [3, 4, 4, 4, 4]] };
-  var PAGE_END = { 1: 'l1_outro', 5: 'l5_end', 20: 'kaan_join', 30: 'l30_end', 100: 'finale' };
-  var PAGE_MID = { 49: 'campfire' };
-  // Hood looks: three backgrounds and three tones per hood (journey order).
-  var HOOD_LOOK = [
-    'istiklal tram street|warm warm night', 'galata galata street|night night warm',
-    'cafe street yard|warm night red', 'bridge bridge bridge|night cold red',
-    'quay quay fishquay|warm warm night', 'hall tunnel hall|cold night cold',
-    'bazaar bazaar bazaar|warm warm night', 'square square square|warm cold warm',
-    'shopwin shopwin shopwin|cold night night', 'road road road|night night red',
-    'fishquay fishquay fishquay|cold warm night', 'tunnel tunnel tunnel|night cold red',
-    'sea sea sea|warm cold warm', 'walls walls walls|warm night night', 'yard yard yard|warm night red',
-    'lawn lawn lawn|cold cold red', 'arcade arcade arcade|warm cold night',
-    'promenade promenade promenade|cold warm night', 'marina marina marina|warm cold red',
-    'apartment lobby lobby|warm night red'
-  ];
+  // L100 has no end page here: P.Finale (story/finale.js) plays the arrival comic from main.js finishWin.
+  var PAGE_END = { 1: 'l1_outro', 5: 'l5_end', 20: 'kaan_join', 30: 'l30_end' };
+  // Campfire: Aksaray stage 4 (Aksaray is walk position 11 since v0.8, so its stage 4 is L54).
+  var PAGE_MID = { 54: 'campfire' };
+  // Hood looks: three backgrounds and three tones per hood, keyed by hood id so a reorder keeps each look with its hood.
+  var HOOD_LOOK = {
+    istiklal: 'istiklal tram street|warm warm night', galata: 'galata galata street|night night warm',
+    karakoy: 'cafe street yard|warm night red', bridge: 'bridge bridge bridge|night cold red',
+    eminonu: 'quay quay fishquay|warm warm night', sirkeci: 'hall tunnel hall|cold night cold',
+    kapalicarsi: 'bazaar bazaar bazaar|warm warm night', beyazit: 'square square square|warm cold warm',
+    laleli: 'shopwin shopwin shopwin|cold night night', aksaray: 'road road road|night night red',
+    kumkapi: 'fishquay fishquay fishquay|cold warm night', yenikapi: 'tunnel tunnel tunnel|night cold red',
+    samatya: 'sea sea sea|warm cold warm', yedikule: 'walls walls walls|warm night night',
+    zeytinburnu: 'yard yard yard|warm night red', kazlicesme: 'lawn lawn lawn|cold cold red',
+    bakirkoy: 'arcade arcade arcade|warm cold night', bakirkoysahil: 'promenade promenade promenade|cold warm night',
+    atakoysahil: 'marina marina marina|warm cold red', atakoy: 'apartment lobby lobby|warm night red'
+  };
 
   // ---------- lines ----------
   function bossSpeaker(key) {
@@ -80,7 +82,7 @@ P.Story = (function () {
   function hoodPages() {
     var out = {};
     P.Journey.hoods.forEach(function (h, hi) {
-      var look = HOOD_LOOK[hi].split('|'), bg = look[0].split(' '), tone = look[1].split(' '), panels = [];
+      var look = HOOD_LOOK[h.id].split('|'), bg = look[0].split(' '), tone = look[1].split(' '), panels = [];
       for (var p = 1; p <= 3; p++) panels.push(auto(bg[p - 1], tone[p - 1], linesWith('H' + PAD(hi + 1) + 'i' + p)));
       out['hood_' + h.id] = { hood: hi, panels: panels };
     });
@@ -116,13 +118,6 @@ P.Story = (function () {
         auto('campfire', 'warm', ['CMPb']),
         auto('campfire', 'warm', ['CMPc']),
         auto('campfire', 'night', ['CMPd', 'CMPe'])
-      ] },
-      finale: { panels: [
-        auto('apartment', 'cold', ['FNa']),
-        auto('apartment', 'warm', ['FNa2', 'FNb']),
-        pn('window', 'night', [], [['l', ['FNl1', 'FNl2', 'FNl3']]]),
-        pn('lobby', 'red', [['arda', 'scared', 0.3, false, 0.62], ['stranger', 'neutral', 0.72, true, 0.62]],
-           [['c', 'FNc'], ['b', 'FNd'], ['c', 'FNe']], { zoom: true })
       ] }
     };
   }

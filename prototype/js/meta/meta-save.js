@@ -2,7 +2,7 @@
 // Migrates 'nsi.meta.v1' without loss and keeps the v1 key as a backup (never deleted by migration).
 // Shape: { v:2, unlocked, stars, coins, gear, equipped, pending, heroes:{arda:{stats, ult}},
 //   mastery:{weaponId:kills}, counters:{...}, collection:{id:1}, achievements:{id:1},
-//   daily:{day, seed, level, mods, won, claimed}, streak:{n, last, best}, flags:{}, lastPlayed }
+//   daily:{day, seed, level, mods, played, won, claimed, ended}, streak:{n, last, best}, flags:{}, lastPlayed }
 P.Meta = P.Meta || {};
 (function (M) {
   var KEY = 'nsi.meta.v2', KEY_V1 = 'nsi.meta.v1', VERSION = 2;
@@ -43,8 +43,10 @@ P.Meta = P.Meta || {};
       if (i >= 1 && i <= cap && v >= 1) out.stars[i] = Math.min(M.CFG.starsMax || 3, v);
     });
   }
+  // Per-hood flawless counts live in counters.flawless (where the game writes them). A top-level flawless is read only
+  // as a fallback for older saves; reading just the top level wiped the counts on every load (AUDIT-7 CR-5).
   function normalizeCounters(src) {
-    var out = {}, f = src.flawless || {};
+    var out = {}, f = (src.counters && src.counters.flawless) || src.flawless || {};
     COUNTERS.forEach(function (c) { out[c] = Math.max(0, Math.round(num(src.counters && src.counters[c]))); });
     out.flawless = {};
     Object.keys(f).forEach(function (h) { out.flawless[h] = Math.max(0, Math.round(num(f[h]))); });
@@ -64,9 +66,9 @@ P.Meta = P.Meta || {};
     return out;
   }
   function normalizeDaily(src) {
-    var d = src.daily || {}, mods = Array.isArray(d.mods) ? d.mods.slice(0, 3) : [];
+    var d = src.daily || {}, mods = M.Daily && M.Daily.resolve ? M.Daily.resolve(d.mods) : [];
     return { day: String(d.day || ''), seed: Math.max(0, Math.round(num(d.seed))), level: Math.max(0, Math.round(num(d.level))),
-      mods: mods, played: !!d.played, won: !!d.won, claimed: !!d.claimed };
+      mods: mods, played: !!d.played, won: !!d.won, claimed: !!d.claimed, ended: !!d.ended };
   }
   function normalizeStreak(src) {
     var s = src.streak || {};

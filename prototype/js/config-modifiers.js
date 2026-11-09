@@ -13,10 +13,16 @@ P.CFG.modifiers = {
     crowd: { moveMul: 1, spawnMul: 1.5, xpMul: 1.3, dark: false },   // Kalabalık: +50% spawns, +30% XP
     quiet: { moveMul: 1, spawnMul: 1, xpMul: 1.25, dark: true },     // Sessiz gece: dark street, +25% XP (gems)
   },
-  // A rule applies when stage matches and hoodIndex % every === rem (hoodIndex 0..19).
+  // A rule applies when stage matches and hoodIndex % every === rem (hoodIndex 0..19). This is a walk-position cadence,
+  // not hood content (v0.8 check: the cadence was kept when Kumkapı and Zeytinburnu moved; it is not re-keyed by id).
   rules: [
     { stage: 2, id: 'rain', every: 3, rem: 1 },
     { stage: 3, id: 'quiet', every: 2, rem: 0 },
     { stage: 4, id: 'crowd', every: 2, rem: 1 },
   ],
+  // Daily modifiers (meta-daily.js; their effects arrive in loadout.modifiers, see sim/modifiers.js). Elite night: each
+  // route elite brings (eliteMult - 1) more, eliteGapM further up a generated route, or echoSideM / echoAheadM beside
+  // the scripted L1 elite. Every daily multiplier is clamped to [clampMin, clampMax] so a damaged save cannot zero or
+  // explode a run.
+  daily: { eliteGapM: 4, echoSideM: 1.6, echoAheadM: 1, clampMin: 0.1, clampMax: 5 },
 };

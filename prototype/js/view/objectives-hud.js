@@ -28,14 +28,14 @@ P.ObjectivesHud = (function () {
     'background:repeating-linear-gradient(104deg,rgba(200,220,235,0) 0 12px,rgba(200,220,235,.7) 12px 13px,rgba(200,220,235,0) 13px 26px);',
     'animation:obj-rain .9s linear infinite}@keyframes obj-rain{from{background-position:0 0}to{background-position:-26px 52px}}',
     '.obj-rain.still{animation:none}',
-    '.obj-res{margin:8px 0;padding:10px 12px;background:rgba(20,21,31,.06);border-radius:10px;font:13px/1.35 system-ui,sans-serif;color:#14151F}',
-    '.obj-res h4{margin:0 0 4px;font-size:11px;letter-spacing:.06em;opacity:.7}',
+    '.obj-res{margin:8px 0;padding:10px 12px;background:rgba(20,21,31,.06);border-radius:10px;font:14px/1.35 system-ui,sans-serif;color:#14151F}',
+    '.obj-res h4{margin:0 0 4px;font-size:14px;letter-spacing:.06em;opacity:.7}',
     '.obj-chips{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}',
-    '.obj-chip{border-radius:999px;padding:2px 8px;font-size:11px;background:rgba(20,21,31,.12)}',
+    '.obj-chip{border-radius:999px;padding:2px 8px;font-size:14px;background:rgba(20,21,31,.12)}',
     '.obj-chip.on{background:#E9A23B;color:#14151F}',
-    '.obj-un{display:flex;gap:6px;align-items:baseline;margin-top:3px}.obj-un b{font-size:10px;opacity:.7;min-width:62px}',
-    '.obj-un em{font-style:normal;opacity:.8;font-size:11px}',
-    '.hc-plan{margin-top:6px;font:600 11px/1.3 system-ui,sans-serif;opacity:.95}',
+    '.obj-un{display:flex;gap:6px;align-items:baseline;margin-top:3px}.obj-un b{font-size:14px;opacity:.7;min-width:72px}',
+    '.obj-un em{font-style:normal;opacity:.8;font-size:14px}',
+    '.hc-plan{margin-top:6px;font:600 14px/1.3 system-ui,sans-serif;opacity:.95}',
   ].join('');
 
   function make(tag, cls, text) {
@@ -62,7 +62,9 @@ P.ObjectivesHud = (function () {
     el.dark = make('div', 'obj-dark'); show(el.dark, false);
     el.rain = make('div', 'obj-rain'); show(el.rain, false);
     el.layer = make('div', 'obj-layer');
-    phone.appendChild(el.dark); phone.appendChild(el.rain); phone.appendChild(el.layer); phone.appendChild(el.row);
+    // AUDIT-7 U1: the row lives in HUD row 2 (#obj-slot, styled by proto.css); the tints and markers stay on the phone.
+    phone.appendChild(el.dark); phone.appendChild(el.rain); phone.appendChild(el.layer);
+    (document.getElementById('obj-slot') || phone).appendChild(el.row);
     return true;
   }
 
@@ -76,7 +78,7 @@ P.ObjectivesHud = (function () {
     var items = P.Objectives.items(sim), n = 0, h = sim.hero, c;
     var W = 390, top = 130, bot = 800, m = 24;
     items.forEach(function (it) {
-      var p, x, y, off, d, node, ch;
+      var p, x, y, off, d, node, ch, letter;
       if (it.done) return;
       p = P.Render && P.Render.toScreen ? P.Render.toScreen(it.x, it.y) : null;
       if (!p) return;
@@ -85,13 +87,14 @@ P.ObjectivesHud = (function () {
       x = Math.max(m, Math.min(W - m, x)); y = Math.max(top, Math.min(bot, y));
       node = mark(n++);
       node.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
-      ch = it.kind === 'crate' ? 'crate' : it.kind === 'civ' ? 'civ' : it.kind === 'booster' ? 'booster' : 'terminal';
-      node.textContent = tx('obj.marker.' + ch).charAt(0);
+      ch = it.label || it.kind;   // the label names the variant: Hat (cut), Panjur (gate), Araba (cart)
+      letter = tx('obj.marker.' + ch).charAt(0);
+      node.textContent = letter;
       node.className = 'obj-mark' + (off ? ' edge' : '');
       if (off) {
         d = Math.round(Math.hypot(it.x - h.x, it.y - h.y));
         node.innerHTML = '';
-        node.appendChild(document.createTextNode(node.textContent));
+        node.appendChild(document.createTextNode(letter));
         node.appendChild(make('i', null, tx('obj.marker.m', { n: d })));
       }
     });
@@ -99,8 +102,7 @@ P.ObjectivesHud = (function () {
   }
 
   function updateRow(sim, st) {
-    var hud = document.getElementById('hud'), cls = 'obj-row';
-    if (hud) el.row.style.top = (hud.offsetTop + hud.offsetHeight + 6) + 'px';   // below the HUD's bottom edge (AUDIT-6 F7)
+    var cls = 'obj-row';   // placed by the HUD layout (row 2); no per-frame top (AUDIT-7 U1)
     if (st.state === 'done') cls += ' ok';
     if (st.state === 'failed') cls += ' bad';
     if (st.hp !== null && st.hp < 0.35) cls += ' warn';
