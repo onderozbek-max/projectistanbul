@@ -99,7 +99,7 @@ P.Fx = (function () {
       case 'kill':
         F.parts.push({ kind: 'splat', x: ev.x + (ev.dx || 0) * 0.3, y: ev.y + (ev.dy || 0) * 0.3, r: 0.4 + Math.random() * 0.25, t: 10, T: 10, a: Math.random() * 6, seed: Math.random() });
         var fl = ev.src === 'canister';
-        F.parts.push({ kind: 'corpse', x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: ev.enemy || 'walker', variant: ev.variant || 0, fling: fl, t: fl ? 0.7 : 0.55, T: fl ? 0.7 : 0.55 });
+        F.parts.push({ kind: 'corpse', x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: ev.enemy || 'walker', variant: ev.variant || 0, skin: ev.skin, fling: fl, t: fl ? 0.7 : 0.55, T: fl ? 0.7 : 0.55 });
         if (ev.elite) { F.addTrauma(0.35); F.letter(ev.x, ev.y + 1.6, P.lang === 'tr' ? 'GÜM!' : 'THUD!'); }
         for (var g = 0; g < 6; g++) {
           var ga = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 2.2, gs = 2 + Math.random() * 5;

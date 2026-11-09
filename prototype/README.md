@@ -1,4 +1,27 @@
-# prototype/: Playable browser prototype of Level 1 (Phase B, v0.3)
+# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.4)
+
+> **v0.4 (2026-11-08):** the journey. 20 neighbourhoods × 5 levels (D-027): Level 1 is the hand-built
+> İstiklal level; levels 2–100 are generated per neighbourhood theme and zombie roster, with a boss on stage 5.
+> - **Meta:** illustrated Istanbul map with the 17 km home bar, level sheet and 4-slot gear (`js/meta/`).
+> - **Story:** comic pages between neighbourhoods, in-run bust pop-ins, and Mom's calls on a phone card
+>   (`js/view/comic*.js`, `js/story/`).
+> - **Characters:** cel-shaded chibi rig, a distinct Arda, 7 zombie types, 22 outfits, and comic portraits
+>   (`js/view/art-*.js`, `portraits.js`).
+> - **Arsenal:** 6 new weapons, 2 passives, 5 evolutions, dash (flick / Space), Nazar ultimate (button / Q),
+>   and frenzy (`js/sim/weapons2-3.js`, `skills.js`).
+> - **Enemies:** spitter, brute and bloater behaviours, plus bosses (`js/sim/enemies.js`, `bosses.js`, `levels.js`).
+> - **Environments:** 20 themes and 100+ local props (`js/view/istanbul-*.js`).
+> - **Sound:** 87 synthesized, layered SFX and ambience beds, plus a Suno music player (`js/view/sfx*.js`, `music.js`).
+>
+> Preview pages for review: `tools/art-preview.html`, `tools/world-preview.html`, `tools/sfx-preview.html`,
+> `tools/comic-preview.html`, `tools/meta-preview.html`. See `reviews/AUDIT-3-2026-11-08.md`.
+> New shortcuts:
+> - `?level=N` plays journey level N.
+> - `?map=1` opens the map from the title.
+> - `?arsenal=1` puts every weapon in the card pool.
+> - `?meta=unlockall` unlocks every level.
+>
+> Bot: `node tools/bot.js --levels=2,5,10,25,50 --seeds=6` and `node tools/test-arsenal.js`.
 
 > **v0.3 (2026-11-08):** distinct animation per weapon (`js/view/weapons-fx.js`), İstiklal street life
 > (`js/view/istanbul.js`), Elite + Mini Chest set piece, level-up shockwave, kill combos, blood/ink setting,

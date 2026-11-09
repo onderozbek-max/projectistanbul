@@ -55,11 +55,13 @@ P.Screens = (function () {
       var tp = document.createElement('span'); tp.className = 'type';
       tp.textContent = P.t(kind === 'w' ? 'type.weapon' : kind === 'p' ? 'type.passive' : 'type.filler');
       head.appendChild(tp);
-      if (c.next === 1 && kind !== 'f') { var bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = P.t('ui.cards.new'); head.appendChild(bd); }
+      if (c.evo) { var be = document.createElement('span'); be.className = 'badge evo'; be.textContent = P.t('evo.label'); head.appendChild(be); b.classList.add('evo'); }
+      else if (c.next === 1 && kind !== 'f') { var bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = P.t('ui.cards.new'); head.appendChild(bd); }
       var nm = document.createElement('div'); nm.className = 'name'; nm.textContent = P.t('item.' + c.item); head.appendChild(nm);
       if (kind !== 'f') head.appendChild(pips(c.next - 1, c.next));
       top.appendChild(head); b.appendChild(top);
-      var ds = document.createElement('div'); ds.className = 'desc'; ds.textContent = P.Progression.describe(c); b.appendChild(ds);
+      var ds = document.createElement('div'); ds.className = 'desc';
+      ds.textContent = (c.evo ? P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + ' · ' : '') + P.Progression.describe(c); b.appendChild(ds);
       var lines = P.Progression.statLines(c);
       if (lines.length) {
         var st = document.createElement('div'); st.className = 'stats';
@@ -96,8 +98,15 @@ P.Screens = (function () {
     S.show('scr-cards');
   };
 
+  // {hood, n (district number), s (stage)} for journey-aware labels.
+  S.levelVars = function (s, extra) {
+    var L = s.levelInfo || P.Journey.level(1), o = { hood: L.hood.name, n: L.hoodIndex + 1, s: L.stage };
+    for (var k in extra) o[k] = extra[k];
+    return o;
+  };
+
   S.showPause = function (s) {
-    $('pause-level').textContent = P.t('ui.pause.level', { t: P.UI.fmt(s.runT) });
+    $('pause-level').textContent = P.t('ui.pause.level', S.levelVars(s, { t: P.UI.fmt(s.runT) }));
     S.buildSlots(s, $('pause-build'), false);
     S.show('scr-pause');
   };
@@ -125,7 +134,7 @@ P.Screens = (function () {
   };
 
   S.showDown = function (s, keepJeton, handlers) {
-    $('down-survived').textContent = P.t('ui.down.survived', { t: P.UI.fmt(s.runT) });
+    $('down-survived').textContent = P.t('ui.down.survived', S.levelVars(s, { t: P.UI.fmt(s.runT) }));
     var cause = s.deathCause || 'walker';
     $('down-icon').innerHTML = P.Icons.svg('skull', 44);
     $('down-cause').textContent = P.t('cause.' + cause);
@@ -155,6 +164,8 @@ P.Screens = (function () {
 
   S.showResults = function (r) {
     $('res-title').textContent = P.t(r.win ? 'ui.res.clear' : 'ui.res.fail');
+    $('res-label').textContent = P.t('ui.res.labelHood', { n: r.hoodN, s: r.stage, hood: P.upper(r.hood) });
+    $('btn-next').classList.toggle('hidden', !r.win || !r.hasNext);
     var st = $('res-stars'); st.innerHTML = '';
     [48, 56, 48].forEach(function (sz, i) {
       var sv = star(sz, r.stars[i]); st.appendChild(sv);
@@ -176,7 +187,7 @@ P.Screens = (function () {
     var rn = $('res-run'); rn.innerHTML = '';
     kv(rn, P.t('ui.res.time'), P.UI.fmt(r.time));
     kv(rn, P.t('ui.res.runLevel'), String(r.level));
-    if (r.win) kv(rn, 'İstanbul', P.t('ui.res.progress'));
+    kv(rn, 'İstanbul', P.t('ui.res.progress', { km: r.km }));
     var db = $('btn-double'); db.innerHTML = ''; db.appendChild(document.createTextNode(P.t('ui.res.double')));
     var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = P.t('ui.cards.ad') + ' · ' + P.t('ui.res.notInProto'); db.appendChild(tg);
     db.classList.toggle('hidden', !r.win);

@@ -39,8 +39,8 @@ P.Render = (function () {
     c.strokeStyle = '#3DDCFF'; c.lineWidth = 3; c.stroke();
     if (h.regenOn) { c.strokeStyle = 'rgba(91,209,110,' + (0.5 + 0.3 * Math.sin(t / 150)) + ')'; c.lineWidth = 2; c.beginPath(); c.ellipse(X, Y, (ring + 0.12) * u, (ring + 0.12) * 0.4 * u, 0, 0, Math.PI * 2); c.stroke(); }
     c.globalAlpha = h.invuln > 0 && Math.floor(t / 70) % 2 ? 0.45 : 1;
-    P.Sprites.person(c, X, Y, { u: u * 1.22, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
-      arms: P.ColdOpen.hasKnife() ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving, flash: h.hitFlash || 0 });
+    P.Sprites.hero(c, X, Y, { u: u * 1.22, back: h.moving && h.fy > 0.4, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
+      arms: (s.levelIndex > 1 ? !!(h.weapons.knife || h.weapons.cleaver) : P.ColdOpen.hasKnife()) ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving, flash: h.hitFlash || 0 });
     c.globalAlpha = 1;
   }
 
@@ -218,7 +218,7 @@ P.RenderOverlay = (function () {
       bubble(R, who.x, who.y, P.line(b.id).text, 230);
     }
     P.Fx.nums.forEach(function (n) {
-      var f = 1 - n.t / n.T, size = n.crit ? 18 : 14, sc = f < 0.15 ? 1.2 - f / 0.15 * 0.2 : 1;
+      var f = 1 - n.t / n.T, size = n.crit ? 24 : 14, sc = f < 0.15 ? 1.2 - f / 0.15 * 0.2 : 1;
       c.font = 'italic 900 ' + Math.round(size * sc) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
       c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = '#14151F';
       c.globalAlpha = n.t < 0.2 ? n.t / 0.2 : 1;
@@ -267,7 +267,9 @@ P.RenderOverlay = (function () {
     c.fillStyle = 'rgba(' + Math.round(l[0]) + ',' + Math.round(l[1]) + ',' + Math.round(l[2]) + ',' + l[3].toFixed(3) + ')';
     c.fillRect(0, 0, W, H);
     var g = c.createRadialGradient(W / 2, H * 0.65, 0, W / 2, H * 0.65, H * 0.75);
-    g.addColorStop(0.6, 'rgba(27,73,101,0)'); g.addColorStop(1, 'rgba(27,73,101,0.45)');
+    var vg = (s.levelIndex > 1 && P.RenderWorld.vignette) ? P.RenderWorld.vignette(s) : [27, 73, 101, 0.45];
+    var vc = Math.round(vg[0]) + ',' + Math.round(vg[1]) + ',' + Math.round(vg[2]);
+    g.addColorStop(0.6, 'rgba(' + vc + ',0)'); g.addColorStop(1, 'rgba(' + vc + ',' + vg[3] + ')');
     c.fillStyle = g; c.fillRect(0, 0, W, H);
     if (s.hero.hp / s.hero.maxHp < P.CFG.feel.lowHpFrac && s.mode === 'play') {
       var p = 0.2 + 0.15 * Math.sin(performance.now() / 1000 * Math.PI * 2);

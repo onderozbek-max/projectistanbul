@@ -1,7 +1,7 @@
 // Strings for the arsenal (workstream E1): new weapons, evolutions, passives, skills, stats, banners.
 // Merged into P.STR (TR primary, EN). Keys follow strings.js: item.<id>, desc.<id>[.up], stat.<key>.
 Object.assign(P.STR.tr, {
-  'item.sledge': 'Balyoz', 'item.molotov': 'Molotof', 'item.fireworks': 'Havai Fişek',
+  'item.sledge': 'Varyoz', 'item.molotov': 'Ateş Şişesi', 'item.fireworks': 'Havai Fişek',
   'item.cable': 'Canlı Kablo', 'item.speargun': 'Zıpkın', 'item.extinguisher': 'Yangın Tüpü',
   'item.nazar': 'Nazar Boncuğu', 'item.magnet': 'Mıknatıs',
   'item.cleaver': "Usta'nın Satırı", 'item.nailstorm': 'Çivi Fırtınası', 'item.cluster': 'Küme Bomba',
@@ -37,7 +37,7 @@ Object.assign(P.STR.tr, {
 });
 
 Object.assign(P.STR.en, {
-  'item.sledge': 'Sledgehammer', 'item.molotov': 'Molotov', 'item.fireworks': 'Fireworks',
+  'item.sledge': 'Sledgehammer', 'item.molotov': 'Fire Bottle', 'item.fireworks': 'Fireworks',
   'item.cable': 'Live Cable', 'item.speargun': 'Speargun', 'item.extinguisher': 'Fire Extinguisher',
   'item.nazar': 'Nazar Charm', 'item.magnet': 'Magnet',
   'item.cleaver': "Usta's Cleaver", 'item.nailstorm': 'Nail Storm', 'item.cluster': 'Cluster Bomb',

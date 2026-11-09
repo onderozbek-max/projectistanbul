@@ -1,0 +1,33 @@
+// Lead integration strings (v0.4): journey labels, skill HUD, results flow, boss names (E2 nameKeys).
+Object.assign(P.STR.tr, {
+  'ui.title.proto': 'Prototip v0.4 · Eve yürüyüş: İstiklal → Ataköy',
+  'ui.pause.level': '{hood} {n}-{s} · {t}', 'ui.down.survived': '{hood} {n}-{s} · {t} dayandın',
+  'ui.pause.quit': 'Haritaya dön', 'ui.res.title': 'Haritaya dön', 'ui.res.next': 'Sonraki seviye',
+  'ui.res.labelHood': 'BÖLGE {n} · SEVİYE {s} · {hood}', 'ui.res.progress': '{km} / 17 km yürüdün',
+  'ui.hud.ult': 'Nazar patlaması', 'ui.hud.dash': 'ATIL', 'ui.hud.dashHint': 'Hızlı kaydır: atıl',
+  'ui.hud.level': '{n}-{s}',
+  'boss.intro': 'PATRON', 'boss.rage': 'ÖFKE!',
+  'boss.istiklal': 'Hamal Dev', 'boss.galata': 'Kasap Hasan', 'boss.karakoy': 'Pehlivan',
+  'boss.bridge': 'Balon Adam', 'boss.eminonu': 'Demirci Kemal', 'boss.sirkeci': 'Tokmakçı',
+  'boss.kapalicarsi': 'Tellal Nuri', 'boss.beyazit': 'Güvercin Amca', 'boss.laleli': 'Valiz Ahmet',
+  'boss.aksaray': 'Şoför Rıza', 'boss.kumkapi': 'Tuzlu Ağa', 'boss.yenikapi': 'Limancı Ali',
+  'boss.samatya': 'Zehra Teyze', 'boss.yedikule': 'Bahçıvan Kadir', 'boss.zeytinburnu': 'Kazan Hüseyin',
+  'boss.kazlicesme': 'Mangal Fatma', 'boss.bakirkoy': 'Manav Ramazan', 'boss.bakirkoysahil': 'Şişko Can',
+  'boss.atakoysahil': 'Kaptan Osman', 'boss.atakoy': 'Kapıcı Sadık',
+});
+Object.assign(P.STR.en, {
+  'ui.title.proto': 'Prototype v0.4 · The walk home: İstiklal → Ataköy',
+  'ui.pause.level': '{hood} {n}-{s} · {t}', 'ui.down.survived': '{hood} {n}-{s} · survived {t}',
+  'ui.pause.quit': 'Back to map', 'ui.res.title': 'Back to map', 'ui.res.next': 'Next level',
+  'ui.res.labelHood': 'DISTRICT {n} · LEVEL {s} · {hood}', 'ui.res.progress': '{km} / 17 km walked',
+  'ui.hud.ult': 'Evil-eye burst', 'ui.hud.dash': 'DASH', 'ui.hud.dashHint': 'Quick flick: dash',
+  'ui.hud.level': '{n}-{s}',
+  'boss.intro': 'BOSS', 'boss.rage': 'RAGE!',
+  'boss.istiklal': 'Giant Porter', 'boss.galata': 'Butcher Hasan', 'boss.karakoy': 'The Wrestler',
+  'boss.bridge': 'Balloon Man', 'boss.eminonu': 'Blacksmith Kemal', 'boss.sirkeci': 'The Mallet',
+  'boss.kapalicarsi': 'Auctioneer Nuri', 'boss.beyazit': 'Uncle Pigeon', 'boss.laleli': 'Suitcase Ahmet',
+  'boss.aksaray': 'Driver Rıza', 'boss.kumkapi': 'The Salty Lord', 'boss.yenikapi': 'Harbour Ali',
+  'boss.samatya': 'Auntie Zehra', 'boss.yedikule': 'Gardener Kadir', 'boss.zeytinburnu': 'Cauldron Hüseyin',
+  'boss.kazlicesme': 'Grill Fatma', 'boss.bakirkoy': 'Greengrocer Ramazan', 'boss.bakirkoysahil': 'Big Can',
+  'boss.atakoysahil': 'Captain Osman', 'boss.atakoy': 'Sadık the Doorman',
+});

@@ -257,3 +257,23 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .chest-info .stats { justify-content: center; }
 .chest-info .stat { --kc: var(--simit-gold); }
 .chest-info .caption { margin-top: 225px; color: #fff; font-weight: 700; animation: blink 1s steps(2) infinite; }
+
+/* v0.4 skills HUD: ultimate (nazar) button + dash cooldown chip. Bottom-right, clear of the joystick start zone. */
+.skills { position: absolute; right: 14px; bottom: 96px; display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 6; pointer-events: none; }
+.skills.hidden { display: none; }
+.btn-ult { pointer-events: auto; position: relative; width: 74px; height: 74px; border-radius: 50%; border: 4px solid var(--ink, #14151F);
+  background: #1B2A4A; overflow: hidden; box-shadow: 0 4px 0 var(--ink, #14151F); cursor: pointer; padding: 0; }
+.btn-ult:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink, #14151F); }
+.btn-ult .ult-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; background: linear-gradient(#3DDCFF, #1F6FD1); transition: height .15s; }
+.btn-ult .ult-eye { position: absolute; inset: 14px; border-radius: 50%; background: #2B6BE0; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; }
+.btn-ult .ult-eye i { width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 6px #8FD8FF, inset 0 0 0 11px #14151F; }
+.btn-ult.ready { animation: ultPulse 1.1s ease-in-out infinite; border-color: #E9A23B; }
+.btn-ult.ready .ult-fill { background: linear-gradient(#FFE08A, #E9A23B); }
+@keyframes ultPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+.dash-chip { position: relative; width: 64px; height: 22px; border-radius: 11px; border: 3px solid var(--ink, #14151F); background: #2A2B3A; overflow: hidden; }
+.dash-chip .dash-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #5BD16E; }
+.dash-chip b { position: relative; display: block; text-align: center; font: italic 900 12px/16px var(--display, system-ui); color: #fff; text-shadow: 0 1px 0 #14151F; }
+.dash-chip.cool .dash-fill { background: #7B7F95; }
+.lvl-chip:empty { display: none; }
+.card .badge.evo { background: #B04CF0; color: #fff; }
+.card.evo { box-shadow: 0 0 0 3px #B04CF0, 0 0 22px rgba(176,76,240,.6); }

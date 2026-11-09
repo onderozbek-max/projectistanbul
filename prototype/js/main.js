@@ -1,11 +1,19 @@
-// App flow + loop: title -> cold open -> run (cards / pause / down) -> exit beat -> title slam -> results.
-// Review shortcuts: ?skipintro=1  ?seg=B|C|D (jump with a typical build)  ?seed=123
+// App flow + loop: title -> (first time) L1 cold open | journey map -> level (intro comic) -> run
+// (cards / chest / pause / down / story pages) -> exit beat -> end comic -> results -> map.
+// Review shortcuts: ?skipintro=1  ?seg=B|C|D (L1 jump with a typical build)  ?seed=123  ?level=N (play journey
+// level N directly)  ?map=1 (title opens the map)  ?arsenal=1 (all weapons in the card pool)  ?meta=unlockall
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var phone = $('phone'), params = new URLSearchParams(location.search);
-  var scale = 1, sim = null, state = 'title', acc = 0, last = 0, timeScale = 1, slowMo = -1, hitStop = 0, lastHitStop = -9;
+  var scale = 1, sim = null, state = 'title', acc = 0, last = 0, timeScale = 1, slowMo = -1, hitStop = 0;
   var offer = null, settingsReturn = null, exitT = 0, perf = { t: 0, frames: [] }, rerolled = false;
+  var levelIndex = 1, fxSlow = { t: 0, T: 1, k: 1 };
   var STEP = 1 / P.CFG.sim.hz, SEG_TEL = { A: 'seg_a', B: 'seg_b', C: 'seg_c', D: 'seg_d' };
+  var FROZEN = { paused: 1, cards: 1, down: 1, chest: 1, story: 1, storyRun: 1, storyEnd: 1 };
+  var music = function (id) { if (P.Music) P.Music.play(id); };
+
+  if (params.get('arsenal')) P.CFG.debugAllWeapons = true;
+  if (params.get('meta') === 'unlockall' && P.Meta) P.Meta.debugUnlockAll();
 
   function fit() {
     scale = Math.min(window.innerWidth / 390, window.innerHeight / 844);
@@ -14,17 +22,47 @@
   }
   function toLocal(e) { var r = phone.getBoundingClientRect(); return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale }; }
 
-  function newRun() {
+  function newRun(idx) {
+    if (idx) levelIndex = idx;
     var seed = params.get('seed') ? parseInt(params.get('seed'), 10) : (Date.now() % 100000);
-    sim = P.createSim(seed); P.Fx.reset(sim); P.Tel.setSeed(seed);
-    acc = 0; timeScale = 1; slowMo = -1; hitStop = 0; rerolled = false;
-    P.Tel.log('level_start', { level_type: 'route', hero_ids: ['arda'], hero_levels: [1], gear_power: 0 });
+    sim = P.createSim(seed, { levelIndex: levelIndex, loadout: P.Meta ? P.Meta.loadout() : null });
+    P.Fx.reset(sim); P.Tel.setSeed(seed);
+    acc = 0; timeScale = 1; slowMo = -1; hitStop = 0; rerolled = false; fxSlow.t = 0; P.HitStop = 0;
+    if (P.Comic) P.Comic.clearPops();
+    P.Tel.log('level_start', { level_type: levelIndex === 1 ? 'route' : 'journey', level_id: sim.levelInfo.id,
+      hero_ids: ['arda'], hero_levels: [1], gear_power: 0 });
   }
 
   function startGame() {
-    P.Sfx.unlock(); newRun();
+    P.Sfx.unlock(); if (P.Music) P.Music.unlock();
+    var direct = parseInt(params.get('level') || '0', 10);
+    if (direct > 0) { playLevel(direct); return; }
+    if (P.Meta && (P.Settings.l1Cleared || params.get('map')) && !params.get('seg')) { openMap(); return; }
+    playLevel(1);
+  }
+
+  // ---------- journey map ----------
+  function openMap() {
+    if (!P.Meta) { toTitle(); return; }
+    state = 'map'; P.UI.showHud(false); P.Input.enabled = false; P.Screens.hideAll();
+    if (P.Comic) P.Comic.clearPops();
+    if (P.Sfx.ambience) P.Sfx.ambience(null);
+    music('map');
+    P.Meta.open(playLevel);
+  }
+
+  function playLevel(i) {
+    if (P.Meta && P.Meta.isOpen()) P.Meta.close();
+    newRun(i);
+    P.Screens.hideAll(); P.UI.showHud(false);
+    if (levelIndex === 1) { coldOpenOrPlay(); return; }
+    state = 'story';
+    if (P.Story) P.Story.play(levelIndex, 'intro', beginPlay); else beginPlay();
+  }
+
+  function coldOpenOrPlay() {
     if (params.get('skipintro') || params.get('seg')) { beginPlay(); return; }
-    state = 'cold'; P.Screens.show('scr-cold'); P.UI.showHud(false);
+    state = 'cold'; P.Screens.show('scr-cold');
     P.ColdOpen.start(sim, function (skipped, t) {
       P.Tel.log('cinematic', { id: 'l1_cold_open', action: skipped ? 'skip' : 'complete', t_s: +t.toFixed(1) });
       P.Settings.coldOpenSeen = true; P.saveSettings();
@@ -35,9 +73,10 @@
   function beginPlay() {
     P.Screens.hideAll(); P.UI.showHud(true);
     P.startPlay(sim);
-    if (params.get('seg')) jumpTo(params.get('seg').toUpperCase());
+    if (levelIndex === 1 && params.get('seg')) jumpTo(params.get('seg').toUpperCase());
     P.Tel.log('segment_reached', { segment_id: 'restaurant', t_s: 0 });
-    state = 'play'; P.Input.enabled = true;
+    state = 'play'; P.Input.enabled = true; last = performance.now();
+    music('run_calm');
     handleEvents();
   }
 
@@ -57,17 +96,14 @@
     P.Fx.reset(sim);
   }
 
-  // ---------- events -> feel, audio, telemetry ----------
+  // ---------- events -> feel, audio, telemetry (weapon/enemy sounds are played by their view modules) ----------
+  function slow(T, k) { if (P.Settings.reduceMotion || !T) return; fxSlow = { t: T, T: T, k: k }; }
+
   function handleEvents() {
     P.drainEvents(sim).forEach(function (ev) {
       P.Fx.onEvent(ev, sim);
       switch (ev.type) {
-        case 'swing': P.Sfx.play('swish', 90); break;
-        case 'nailFire': P.Sfx.play('nail', 70); break;
-        case 'canisterThrow': P.Sfx.play('lob', 100); break;
-        case 'blast': P.Sfx.play('blast', 80); break;
         case 'kill': P.Sfx.play('splat', 45); break;
-        case 'hit': if (ev.src === 'chain') P.Sfx.play('chain', 60); break;
         case 'pickup': P.Sfx.play(ev.kind === 'xp' ? 'tink' : 'click', 30); break;
         case 'shockwave': P.Sfx.play('shock'); break;
         case 'eliteSpawn': P.Sfx.play('elite'); P.Tel.log('elite_spawn', { t_s: +sim.runT.toFixed(1) }); break;
@@ -76,25 +112,37 @@
           P.Sfx.play('hurt', 120);
           if (ev.dmg >= 0.1 * sim.hero.maxHp) P.Tel.log('player_hit', { source_id: ev.cause, damage: ev.dmg, hp_after: ev.hp });
           break;
-        case 'critKill':
-          if (!P.Settings.reduceMotion && sim.t - lastHitStop >= P.CFG.feel.hitStopMinGap) { hitStop = P.CFG.feel.hitStopCritKill; lastHitStop = sim.t; }
-          break;
         case 'levelup':
           P.Tel.log('level_up', { run_level: ev.level, t_s: +sim.runT.toFixed(1) });
           if (slowMo < 0) { slowMo = 0; P.Sfx.play('level'); }
           break;
-        case 'segment': P.Tel.log('segment_reached', { segment_id: SEG_TEL[ev.id], t_s: +sim.runT.toFixed(1) }); break;
+        case 'nearMiss': slow(ev.slowMo || 0.25, 0.3); break;
+        case 'ult': slow(ev.slowMo || 0.3, 0.25); P.Tel.log('ult_used', { t_s: +sim.runT.toFixed(1) }); break;
+        case 'evolve': slow(ev.T || 1.6, 0.2); P.Tel.log('evolve', { from: ev.from, to: ev.to }); break;
+        case 'bossIntro': music('boss'); P.Tel.log('boss_intro', { boss: ev.nameKey, t_s: +sim.runT.toFixed(1) }); break;
+        case 'bossDie': music('run_calm'); break;
+        case 'story': storyBeat(ev.when); break;
+        case 'segment': P.Tel.log('segment_reached', { segment_id: SEG_TEL[ev.id] || ev.id, t_s: +sim.runT.toFixed(1) }); break;
         case 'tutorial': P.Tel.log('tutorial_step', { step_id: ev.id, t_s: +sim.runT.toFixed(1) }); break;
         case 'catHiss': P.Sfx.play('hiss'); P.Sfx.play('rattle'); break;
         case 'scaffold': P.Sfx.play('boom'); break;
         case 'holdStart': P.Sfx.play('shutter'); break;
-        case 'shutterOpen': P.Sfx.play('bell'); break;
+        case 'shutterOpen': P.Sfx.play(levelIndex === 1 ? 'bell' : 'doorSlam'); break;
         case 'doorOpen': P.Sfx.play('click'); break;
         case 'propBreak': P.Sfx.play('glass'); break;
         case 'death': onDeath(); break;
         case 'win': onWin(); break;
       }
     });
+  }
+
+  // Mid-run story beats: pops and calls run over play; a comic page pauses the run until it closes.
+  function storyBeat(when) {
+    if (!P.Story || when === 'end') return;
+    var opened = P.Story.play(levelIndex, when, function () {
+      if (state === 'storyRun') { P.Screens.hideAll(); state = 'play'; P.Input.enabled = true; last = performance.now(); }
+    });
+    if (opened && state === 'play') { state = 'storyRun'; P.Input.reset(); P.Input.enabled = false; }
   }
 
   // ---------- level-up cards ----------
@@ -114,13 +162,13 @@
     P.Screens.hideAll(); state = 'play'; P.Input.enabled = true;
   }
 
-  // ---------- mini chest ----------
+  // ---------- chest ----------
   function openChest() {
     state = 'chest'; P.Input.reset(); P.Input.enabled = false;
     var card = P.Progression.chestReward(sim);
     P.Screens.showChest(sim, card, function (c) {
       P.Progression.openChest(sim, c);
-      P.Tel.log('chest_opened', { item: c.id, level: c.next, t_s: +sim.runT.toFixed(1) });
+      P.Tel.log('chest_opened', { item: c.id, level: c.next, evo: !!c.evo, t_s: +sim.runT.toFixed(1) });
       handleEvents();
       if (sim.pendingChests > 0) { openChest(); return; }
       if (sim.pendingLevels > 0) { openCards(); return; }
@@ -143,8 +191,11 @@
   function resume() { P.Screens.hideAll(); state = 'play'; P.Input.enabled = true; last = performance.now(); }
   function openSettings(from) {
     settingsReturn = from;
+    if (from === 'map' && P.Meta) P.Meta.close();
     P.Screens.showSettings(function () {
-      if (settingsReturn === 'pause') P.Screens.showPause(sim); else P.Screens.show('scr-title');
+      if (settingsReturn === 'pause') P.Screens.showPause(sim);
+      else if (settingsReturn === 'map') openMap();
+      else P.Screens.show('scr-title');
     }, function () { P.UI.applyI18n(); });
   }
 
@@ -174,34 +225,55 @@
   function onWin() {
     state = 'exit'; exitT = 0; P.Input.reset(); P.Input.enabled = false;
     P.Tel.log('segment_reached', { segment_id: 'exit', t_s: +sim.runT.toFixed(1) });
-    P.Sfx.play('slam');
-    sim.props.shutterOpen = false; sim.props.shutter = 0;
+    if (P.Comic) P.Comic.clearPops();
+    if (levelIndex === 1) { P.Sfx.play('slam'); sim.props.shutterOpen = false; sim.props.shutter = 0; return; }
+    P.Sfx.play('levelClear'); music('victory');
+    P.UI.toast(P.t('ui.res.clear'), P.upper(sim.levelInfo.hood.name), 1.6);
   }
 
+  // L1 keeps its scripted "no signal" exit; journey levels get a short clear beat. Both end on the 'end' story beat.
   function updateExit(dt) {
     var before = exitT; exitT += dt;
-    P.Combat.updateEnemies(sim, dt);
     var at = function (t) { return before < t && exitT >= t; };
+    if (levelIndex !== 1) { if (at(1.6)) finishWin(); return; }
+    P.Combat.updateEnemies(sim, dt);
     if (at(0.6)) { sim.dir.call.sub = { id: 'exit1', t: 2.0 }; sim.dir.call.bars = 0; P.Sfx.play('nosignal'); }
     if (at(2.6)) sim.dir.call.sub = { id: 'exit2', t: 2.0 };
     if (at(4.8)) { P.UI.showHud(false); P.Screens.show('scr-slam'); P.Sfx.play('slam'); }
-    if (at(7.8)) endRun(true);
+    if (at(7.8)) finishWin();
     if (sim.dir.call.sub) { sim.dir.call.sub.t -= dt; if (sim.dir.call.sub.t <= 0) sim.dir.call.sub = null; }
   }
 
+  function finishWin() {
+    state = 'storyEnd'; P.UI.showHud(false);
+    if (P.Story) P.Story.play(levelIndex, 'end', function () { endRun(true); }); else endRun(true);
+  }
+
   function endRun(win) {
-    var C = P.CFG.rewards, h = sim.hero, first = win && !P.Settings.l1Cleared, mult = first ? C.firstClearMult : 1;
+    var C = P.CFG.rewards, h = sim.hero, L = sim.levelInfo;
     var stars = win ? [true, !sim.reviveUsed, h.hp / h.maxHp >= 0.5] : [false, false, false];
-    var jeton = win ? (C.jetonBase + C.jetonPerLevel * 1) * mult + sim.jeton : Math.floor(sim.jeton * C.loseKeep);
-    var r = { win: win, stars: stars, jeton: jeton, hurda: C.hurdaBase * mult, kills: sim.kills, firstClear: first,
-              time: sim.runT, level: sim.level, hpPct: Math.round(h.hp / h.maxHp * 100) };
-    P.Tel.log('level_end', { result: win ? 'win' : 'lose', t_s: +sim.runT.toFixed(1), stars: stars.filter(Boolean).length, kills: sim.kills, rewards: { jeton: jeton, hurda: win ? r.hurda : 0 } });
-    P.Settings.firstRunDone = true; if (win) P.Settings.l1Cleared = true; P.saveSettings();
+    var nStars = stars.filter(Boolean).length, first = win && !P.Settings.l1Cleared && levelIndex === 1;
+    var jeton = win ? (C.jetonBase + C.jetonPerLevel * levelIndex) * (first ? C.firstClearMult : 1) + sim.jeton : Math.floor(sim.jeton * C.loseKeep);
+    var km = 0;
+    if (P.Meta) {
+      var pend = P.Meta.onResults({ levelIndex: levelIndex, won: win, stars: nStars, coins: sim.jeton, kills: sim.kills, timeS: sim.runT });
+      if (pend && pend.reward) { jeton = pend.reward.total; first = pend.reward.first; }
+      km = P.Meta.progress().kmWalked;
+    }
+    var r = { win: win, stars: stars, jeton: jeton, hurda: C.hurdaBase * (first ? C.firstClearMult : 1), kills: sim.kills, firstClear: first,
+              time: sim.runT, level: sim.level, hpPct: Math.round(h.hp / h.maxHp * 100),
+              hood: L.hood.name, hoodN: L.hoodIndex + 1, stage: L.stage, km: (+km || 0).toFixed(1), hasNext: levelIndex < P.Journey.count() };
+    P.Tel.log('level_end', { result: win ? 'win' : 'lose', level_id: L.id, t_s: +sim.runT.toFixed(1), stars: nStars, kills: sim.kills, rewards: { jeton: jeton, hurda: win ? r.hurda : 0 } });
+    P.Settings.firstRunDone = true; if (win && levelIndex === 1) P.Settings.l1Cleared = true; P.saveSettings();
     state = 'results'; P.UI.showHud(false);
+    if (P.Comic) P.Comic.clearPops();
+    if (P.Sfx.ambience) P.Sfx.ambience(null);
+    music(win ? 'victory' : 'defeat'); P.Sfx.play(win ? 'star' : 'levelFail');
     P.Screens.showResults(r);
   }
 
-  function toTitle() { state = 'title'; P.UI.showHud(false); P.Input.enabled = false; P.Screens.show('scr-title'); }
+  function toTitle() { state = 'title'; P.UI.showHud(false); P.Input.enabled = false; P.Screens.show('scr-title'); music('title'); }
+  function quitToMap() { P.Tel.log('level_end', { result: 'quit', t_s: +sim.runT.toFixed(1) }); openMap(); }
 
   // ---------- loop ----------
   function perfSample(dt) {
@@ -212,6 +284,15 @@
     perf.t = 0; perf.frames = [];
   }
 
+  // Extra time scaling from feel systems: near-miss/ult/evolve slow-mo, boss-death beat, important story pops.
+  function feelScale(dt) {
+    var k = 1;
+    if (fxSlow.t > 0) { fxSlow.t -= dt; k *= 1 - (1 - fxSlow.k) * Math.min(1, Math.max(0, fxSlow.t / fxSlow.T) * 1.6); }
+    if (P.Fx.timeScale) k *= P.Fx.timeScale();
+    if (P.Comic && P.Comic.timeScale) k *= P.Comic.timeScale();
+    return k;
+  }
+
   function stepPlay(dt) {
     if (sim.pendingChests > 0 && slowMo < 0 && sim.pendingLevels === 0) { openChest(); return; }
     if (slowMo >= 0) {
@@ -220,8 +301,9 @@
       timeScale = T > 0 ? Math.max(0, 1 - slowMo / T) : 0;
       if (slowMo >= T) { openCards(); return; }
     }
+    if (P.HitStop > 0) { if (!P.Settings.reduceMotion) hitStop = Math.max(hitStop, P.HitStop); P.HitStop = 0; }
     if (hitStop > 0) { hitStop -= dt; return; }
-    acc += dt * timeScale;
+    acc += dt * timeScale * feelScale(dt);
     var steps = 0;
     while (acc >= STEP && steps < P.CFG.sim.maxStepsPerFrame) {
       P.stepSim(sim, STEP, P.Input.get());
@@ -230,6 +312,7 @@
       if (state !== 'play' || slowMo >= 0) break;
     }
     if (steps === P.CFG.sim.maxStepsPerFrame) acc = 0;
+    if (P.Music && P.Music.intensity) P.Music.intensity(Math.min(1, sim.enemies.length / 90));
     perfSample(dt);
   }
 
@@ -239,9 +322,9 @@
     if (state === 'cold') P.ColdOpen.update(dt);
     if (state === 'play') stepPlay(dt);
     if (state === 'exit') updateExit(dt);
-    if (sim && state !== 'title' && state !== 'results') {
-      P.Fx.update(sim, state === 'paused' || state === 'cards' || state === 'down' || state === 'chest' ? 0 : dt);
-      P.Render.frame(sim, P.ColdOpen.draw);
+    if (sim && state !== 'title' && state !== 'results' && state !== 'map') {
+      P.Fx.update(sim, FROZEN[state] ? 0 : dt);
+      P.Render.frame(sim, levelIndex === 1 ? P.ColdOpen.draw : null);
       if (state === 'play' || state === 'exit') P.UI.update(sim); else document.getElementById('prompt').classList.add('hidden');
     }
     P.UI.tick(dt);
@@ -254,21 +337,24 @@
   P.Input.init(phone, toLocal); P.Input.onPause = pause;
   P.UI.applyI18n(); P.Screens.drawKeyArt($('keyart'));
   $('btn-title-settings').innerHTML = P.Icons.svg('gear', 30);
+  if (P.Meta) P.Meta.onSettings = function () { openSettings('map'); };
   document.querySelectorAll('[data-lang]').forEach(function (b) {
     b.addEventListener('click', function () { P.lang = P.Settings.lang = b.getAttribute('data-lang'); P.saveSettings(); P.UI.applyI18n(); });
   });
   on('btn-start', startGame);
   on('btn-title-settings', function () { openSettings('title'); });
   on('btn-pause', pause);
+  on('btn-ult', function () { if (state === 'play' && P.Input.requestUlt) P.Input.requestUlt(); });
   on('btn-resume', resume);
   on('btn-pause-settings', function () { openSettings('pause'); });
   on('btn-restart', function () { P.Tel.log('level_end', { result: 'quit', t_s: +sim.runT.toFixed(1) }); newRun(); beginPlay(); });
-  on('btn-quit', function () { P.Tel.log('level_end', { result: 'quit', t_s: +sim.runT.toFixed(1) }); toTitle(); });
+  on('btn-quit', function () { if (P.Meta) quitToMap(); else toTitle(); });
   on('btn-export', function () { P.Tel.exportJsonl(); });
+  on('btn-next', function () { playLevel(levelIndex + 1); });
   on('btn-retry', function () { newRun(); beginPlay(); });
-  on('btn-to-title', toTitle);
+  on('btn-to-title', function () { if (P.Meta) openMap(); else toTitle(); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });
   P.Screens.show('scr-title');
   requestAnimationFrame(frame);
-  P.debug = { get sim() { return sim; }, get state() { return state; } };
+  P.debug = { get sim() { return sim; }, get state() { return state; }, playLevel: playLevel, openMap: openMap };
 })();

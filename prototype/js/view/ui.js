@@ -1,6 +1,6 @@
 // HUD, prompts, subtitles, toasts (design/lofi/04-run-hud.html; DS 5, 13; LD 9).
 P.UI = (function () {
-  var U = {}, el = {}, toastT = 0, lastHp = -1;
+  var U = {}, el = {}, toastT = 0, lastHp = -1, lastSub = null;
 
   U.fmt = function (t) {
     t = Math.max(0, Math.floor(t));
@@ -9,7 +9,7 @@ P.UI = (function () {
 
   U.init = function () {
     ['hud', 'hp-fill', 'hp-trail', 'hp-text', 'timer', 'call', 'call-label', 'call-time', 'bars', 'xp-fill', 'lv',
-     'subs', 'subs-speaker', 'subs-text', 'prompt', 'prompt-text', 'toast'].forEach(function (id) { el[id] = document.getElementById(id); });
+     'subs', 'subs-speaker', 'subs-text', 'prompt', 'prompt-text', 'toast', 'skills', 'btn-ult', 'ult-fill', 'dash-chip', 'dash-fill', 'lvl-chip'].forEach(function (id) { el[id] = document.getElementById(id); });
   };
 
   U.applyI18n = function () {
@@ -19,7 +19,10 @@ P.UI = (function () {
     document.querySelectorAll('[data-lang]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-lang') === P.lang); });
   };
 
-  U.showHud = function (on) { el.hud.classList.toggle('hidden', !on); if (!on) { el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); } };
+  U.showHud = function (on) {
+    el.hud.classList.toggle('hidden', !on); el.skills.classList.toggle('hidden', !on);
+    if (!on) { el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); lastSub = null; }
+  };
 
   U.update = function (s) {
     var h = s.hero, frac = h.hp / h.maxHp;
@@ -30,7 +33,10 @@ P.UI = (function () {
     el['hp-text'].textContent = Math.ceil(h.hp) + ' / ' + h.maxHp;
     var hold = s.dir.hold;
     el.timer.textContent = hold.active && !s.props.shutterOpen
-      ? U.fmt(Math.ceil(P.CFG.level.holdTime - hold.t)) + ' ' + P.t('ui.hud.hold') : U.fmt(s.runT);
+      ? U.fmt(Math.ceil((hold.T || P.CFG.level.holdTime) - hold.t)) + ' ' + P.t('ui.hud.hold') : U.fmt(s.runT);
+    var L = s.levelInfo;
+    el['lvl-chip'].textContent = L ? P.upper(L.hood.name) + ' ' + P.t('ui.hud.level', { n: L.hoodIndex + 1, s: L.stage }) : '';
+    updateSkills(s);
     var call = s.dir.call;
     el.call.classList.toggle('hidden', !call.active);
     if (call.active) {
@@ -45,8 +51,24 @@ P.UI = (function () {
     updatePrompt(s);
   };
 
+  function updateSkills(s) {
+    if (!P.Skills || !P.Skills.hud) return;
+    var k = P.Skills.hud(s);
+    el['ult-fill'].style.height = Math.round(Math.min(1, k.ult) * 100) + '%';
+    el['btn-ult'].classList.toggle('ready', k.ultReady);
+    el['dash-fill'].style.width = Math.round(k.dashFrac * 100) + '%';
+    el['dash-chip'].classList.toggle('cool', !k.dashReady);
+  }
+
+  // L1 dialogue lines now present as comic pop-ins (P.Story.forLine picks bust, side, mood).
   function updateSubs(s) {
     var sub = s.dir.call.sub;
+    if (P.Comic && P.Story) {
+      el.subs.classList.add('hidden');
+      if (sub && sub.id !== lastSub && P.LINES[sub.id]) P.Comic.pop(sub.id, P.Story.forLine(sub.id) || {});
+      lastSub = sub ? sub.id : null;
+      return;
+    }
     if (!sub || !P.Settings.subs) { el.subs.classList.add('hidden'); return; }
     var l = P.line(sub.id);
     el['subs-speaker'].textContent = l.speaker + ':';

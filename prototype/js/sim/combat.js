@@ -31,7 +31,8 @@ P.Combat.might = function (s) {
 
 P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
   if (e.dead || e.state === 'dormant') return;
-  var crit = canCrit && s.rng.combat.chance(P.CFG.hero.critChance);
+  var cc = P.Skills && P.Skills.critChance ? P.Skills.critChance(s) : P.CFG.hero.critChance;
+  var crit = canCrit && s.rng.combat.chance(cc);
   var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1);
   e.hp -= dmg;
   e.flash = P.CFG.feel.hitFlash;
@@ -200,6 +201,7 @@ P.Combat.explodeCanister = function (s, c) {
 P.Combat.damageHero = function (s, raw, cause) {
   var h = s.hero, hc = P.CFG.hero;
   if (h.invuln > 0 || (h.iframes || 0) > 0 || s.mode !== 'play') return;
+  if (P.Skills && P.Skills.tryDodge && P.Skills.tryDodge(s, raw, cause)) return;
   var jc = P.CFG.passives.jacket, armor = Math.min(jc.armorCap, (h.passives.jacket || 0) * jc.armorPerLevel);
   var dmg = Math.max(1, raw - armor);
   h.hp -= dmg;

@@ -569,6 +569,16 @@ P.SfxRecipes = (function () {
     parts.push([0.7, mul(filt(white(n, r), sr, 'hp', 6000, 0.7), env(n, sr, 0.01, 0.5)), 0.35]);
     return mix(sr, 2.6, parts);
   });
+  // ---- Lead additions: nazar dodge shimmer, distant ferry horn ----
+  def('nazar', { p: 2, m: 2, g: 250, db: -17, v: 3, r: 0.2 }, function (r, sr) { return D.bell(sr, 1568 * K(r), 0.9, r, 0.5); });
+  def('ferryHorn', { c: 'sfx', p: 0, m: 1, g: 6000, db: -20, v: 2, r: 0.3 }, function (r, sr) {
+    var T = 2.4, n = len(T, sr), x = new Float32Array(n), f = 98 * K(r), t, a, ph;
+    for (var i = 0; i < n; i++) {
+      t = i / sr; a = Math.min(1, t / 0.15) * Math.min(1, (T - t) / 0.6); ph = TAU * f * t;
+      x[i] = a * (Math.sin(ph) + 0.5 * Math.sin(2 * ph) + 0.33 * Math.sin(3 * ph) + 0.4 * Math.sin(1.26 * ph) + 0.2 * Math.sin(2.52 * ph));
+    }
+    return filt(x, sr, 'lp', 900, 0.7);
+  });
   // ---- Render ----
   // Renders one variant: recipe -> loudness-normalised (META.db = loudest 50 ms RMS, peak <= -1.5 dBFS),
   // edge-faded samples. Returns null for unknown names.
