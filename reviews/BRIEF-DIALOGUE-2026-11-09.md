@@ -1,6 +1,8 @@
 # BRIEF: Dialogue overhaul: two native scripts, one dialogue system (end to end)
 
-**For:** the implementation agent. **From:** lead, 2026-11-09. **Baseline:** prototype v0.7 (`cda14b3`).
+**For:** the implementation agent. **From:** lead, 2026-11-09. **Baseline:** prototype v0.7 (`cda14b3`). The build is moving
+in parallel (D-049 character bible, D-050 animation pass were added today), so **re-verify every file:line and count in §2 at
+the current HEAD before Phase 1**, and report any differences.
 **Read with:** `AGENTS.md`, `docs/narrative.md` (Tone, Characters, Writer Guardrails), `docs/hoods-bible.md`,
 `docs/story-presentation.md`, `docs/product.md` D-035 / D-036 / D-046 / D-048, `reviews/AUDIT-7-2026-11-08.md` (T0-7, T1-7, T3-8).
 
@@ -11,7 +13,8 @@
 - The voice is **Shaun of the Dead**: smart, funny, sarcastic, deadpan. **Dialogue is one of the game's main differentiators.**
 - Jokes, idioms and slang don't survive translation. So **each language gets its own native script**, written from shared story
   beats, never translated line by line. **The phone's language picks the script** (the player can override it).
-- This amends D-035 ("Turkish spine with English gloss"). Record the new decision as **D-049** (wording in §9).
+- This amends D-035 ("Turkish spine with English gloss"). Record the new decision under the **next free D-number** (D-051 at time
+  of writing; D-049 and D-050 are taken). Wording in §9.
 
 ## 2. What exists today (facts; verify before you change anything)
 Voice text runs through **four stacked mechanisms**, so the truth for any line is unclear:
@@ -148,9 +151,9 @@ the first bark, Mom's first call, the first comic page, the L5 boss pop, a level
 | **4. Batch B, then C** | Same process, one hood group per pass | §6 passes after each pass; CSVs per pass |
 
 ## 9. Docs to update
-- `docs/product.md`: add **D-049**: "Two native scripts from shared beats. Turkish is the master. English is written from the beat,
+- `docs/product.md`: add the next free D-number (D-051 at time of writing): "Two native scripts from shared beats. Turkish is the master. English is written from the beat,
   not translated. The device language picks the script; the player can override it. Class A/B text is translated precisely;
-  class C is native only." Mark D-035's "Turkish spine with English gloss" as superseded by D-049.
+  class C is native only." Mark D-035's "Turkish spine with English gloss" as superseded by it.
 - `docs/narrative.md`: link both voice bibles from Tone.
 - `docs/story-presentation.md`: the bubble count per panel can vary by language.
 - `AGENTS.md`: a new hard rule: "Voice text lives only in `js/dialogue/`, written natively per language from the beat table. Never
