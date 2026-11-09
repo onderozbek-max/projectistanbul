@@ -101,7 +101,7 @@
       'boss.bakirkoy': { tr: 'Manav Ramazan', en: 'Greengrocer Ramazan' },
       'boss.bakirkoysahil': { tr: 'Şişme Can', en: 'Inflatable Can' },
       'boss.atakoysahil': { tr: 'Kaptan Osman', en: 'Captain Osman' },
-      'boss.atakoy': { tr: 'Muhtar Sadık', en: 'Headman Sadık' },
+      'boss.atakoy': { tr: 'Sayın Abim', en: 'The Honourable Big Bro' },
     },
   };
   // Spawn-director budget cost for types without a `budget` field (walker, runner, crawler: CC 5).

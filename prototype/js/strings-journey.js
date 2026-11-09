@@ -13,7 +13,7 @@ Object.assign(P.STR.tr, {
   'boss.aksaray': 'Şoför Rıza', 'boss.kumkapi': 'Tuzlu Ağa', 'boss.yenikapi': 'Limancı Ali',
   'boss.samatya': 'Zehra Teyze', 'boss.yedikule': 'Bahçıvan Kadir', 'boss.zeytinburnu': 'Kazan Hüseyin',
   'boss.kazlicesme': 'Mangal Fatma', 'boss.bakirkoy': 'Manav Ramazan', 'boss.bakirkoysahil': 'Şişko Can',
-  'boss.atakoysahil': 'Kaptan Osman', 'boss.atakoy': 'Kapıcı Sadık',
+  'boss.atakoysahil': 'Kaptan Osman', 'boss.atakoy': 'Sayın Abim',
 });
 Object.assign(P.STR.en, {
   'ui.title.proto': 'Prototype v0.4 · The walk home: İstiklal → Ataköy',
@@ -29,5 +29,5 @@ Object.assign(P.STR.en, {
   'boss.aksaray': 'Driver Rıza', 'boss.kumkapi': 'The Salty Lord', 'boss.yenikapi': 'Harbour Ali',
   'boss.samatya': 'Auntie Zehra', 'boss.yedikule': 'Gardener Kadir', 'boss.zeytinburnu': 'Cauldron Hüseyin',
   'boss.kazlicesme': 'Grill Fatma', 'boss.bakirkoy': 'Greengrocer Ramazan', 'boss.bakirkoysahil': 'Big Can',
-  'boss.atakoysahil': 'Captain Osman', 'boss.atakoy': 'Sadık the Doorman',
+  'boss.atakoysahil': 'Captain Osman', 'boss.atakoy': 'The Honourable Big Bro',
 });

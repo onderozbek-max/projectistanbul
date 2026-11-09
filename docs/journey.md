@@ -615,7 +615,7 @@ The canonical name is in section 2. The E2 code name is in `config-levels.js` (i
 | H12 | The Evening Crowd | Limancı Ali (Harbor Ali) | Canonical name avoided: "Rush Hour" is a film title. |
 | H13 | The Grill Man | Teyze Zehra (Auntie Zehra) | |
 | H17 | The Principal | Manav Ramazan (Greengrocer) | Canonical from narrative.md |
-| H20 | Ahmet Abi | Muhtar Sadık (Headman Sadık) | **Flag.** A muhtar is a local government office. Guardrail: no government roles. Use Ahmet Abi (kapıcı). |
+| H20 | Ahmet Abi | Muhtar Sadık (Headman Sadık) | **Owner decision 2026-11-09:** Sayın Abim (EN: The Honourable Big Bro). |
 
 Other E2 names (Kasap Hasan, Pehlivan, Balon Adam, Şoför Rıza, Tuzlu Ağa, Güvercin Amca, Valiz Ahmet,
 Bahçıvan Kadir, Kazan Hüseyin, Mangal Fatma, Şişme Can, Kaptan Osman) can stay as alternates. The lead chooses.
