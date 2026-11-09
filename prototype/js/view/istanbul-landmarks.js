@@ -413,15 +413,17 @@ P.Landmarks = (function () {
 
   L.draw = function (R, s, y0, y1) {
     if (isL1(s)) { washL1(R, y0, y1); drawItems(R, L1_ITEMS, y0, y1, s); return; }
+    if (P.LayoutsFx) P.LayoutsFx.ground(R, s, y0, y1);   // layout zone floors (AUDIT-6 B2), under the street items
     drawItems(R, planFor(s).items, y0, y1, s);
   };
   // Weather for generated levels: rain streaks, brazier fire glow on the sidewalks, fog bands.
   L.weather = function (R, s, y0, y1) {
     if (isL1(s)) return;
     var sub = P.Themes.subOf(P.RenderWorld.themeOf(s), P.Themes.subIndex(s)), t = performance.now() / 1000;
-    if (sub.wx === 'rain') rain(R, y0, y1, t);
+    var covered = !!(P.Indoor && P.Indoor.level(s));   // rain and fog stay outside; braziers may burn indoors
+    if (sub.wx === 'rain' && !covered) rain(R, y0, y1, t);
     else if (sub.wx === 'fire') fires(R, y0, y1, t);
-    else if (sub.wx === 'fog') fog(R, y0, y1, t);
+    else if (sub.wx === 'fog' && !covered) fog(R, y0, y1, t);
   };
   function rain(R, y0, y1, t) {
     var c = R.ctx, span = y1 - y0 + 1;

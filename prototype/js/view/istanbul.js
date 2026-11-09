@@ -1,7 +1,9 @@
 // İstiklal street life (view only, no collision): sidewalk vendors and café tables, hanging Turkish shop signs,
 // overhead string lights, seagulls overhead, pigeons that scatter when Arda gets close. Generic, brand-free (guardrails).
+// v0.7: no gulls, gull calls or pigeons under a roof (P.Indoor); the gulls fade out as Arda goes in. Shop signs fade
+// under bubbles (P.Speech.label) and never move.
 P.Decor = (function () {
-  var D = { pig: {}, gullCd: 6 }, INK = '#14151F';
+  var D = { pig: {}, gullCd: 6, gullA: 1, gullT: 0 }, INK = '#14151F';
   var KINDS = ['cafe', 'shoeshine', 'corn', 'flowers', 'nazar', 'lokum', 'carpet', 'books', 'pomegranate', 'cafe', 'tea'];
   var SIGNS_TR = ['LOKANTA', 'BÜFE', 'KURUYEMİŞ', 'ÇAY OCAĞI', 'LOKUMCU', 'SAHAF', 'BERBER', 'TERZİ', 'KUYUMCU', 'MİDYECİ', 'PLAK', 'BAKLAVA', 'KUNDURACI', 'ECZANE', 'DÖNER', 'ÇİÇEKÇİ'];
   var SIGN_COL = [['#14151F', '#FFD166'], ['#C0392B', '#F4EBDD'], ['#1B4965', '#F4EBDD'], ['#2E7D4F', '#FFE2A8'], ['#F4EBDD', '#14151F']];
@@ -116,7 +118,7 @@ P.Decor = (function () {
   }
 
   D.drawStreet = function (R, s, y0, y1) {
-    if (isGen(s)) { genStreet(R, s, y0, y1); gullShadows(R); return; }
+    if (isGen(s)) { genStreet(R, s, y0, y1); gullShadows(R, s); return; }
     l1Extras(R, s, y0, y1);
     l1Street(R, s, y0, y1);
   };
@@ -138,6 +140,7 @@ P.Decor = (function () {
   function pigeons(R, s, y0, y1) {
     var c = R.ctx, u = R.ppm, now = performance.now() / 1000, h = s.hero;
     blocks(y0, y1, function (y) {
+      if (P.Indoor && P.Indoor.at(s, y)) return;
       if (hash(y * 5.3) < 0.55) return;
       var key = y, st = D.pig[key] || (D.pig[key] = { fly: 0 }), cx = -3 + hash(y * 2.2) * 6, cy = y + 1.5;
       if (!st.fly && Math.hypot(h.x - cx, h.y - cy) < 3.5) { st.fly = now; }
@@ -166,12 +169,24 @@ P.Decor = (function () {
     var x = ((t * speed + i * 9) % span) - span / 2, y = cam.y + 4 - i * 5 + Math.sin(t * 0.7 + i) * 1.5;
     return { x: (i % 2 ? -x : x), y: y, flap: Math.sin(t * 9 + i * 2), dir: i % 2 ? -1 : 1 };
   }
-  function gullShadows(R) {
-    var c = R.ctx, u = R.ppm;
-    for (var i = 0; i < 3; i++) {
+  // Seagull visibility: 1 outdoors, 0 under a roof (P.Indoor.near), eased over about 0.2 s of real time.
+  function gullFade(s) {
+    var now = performance.now() / 1000, dt = Math.min(0.1, Math.max(0, now - D.gullT)), target = P.Indoor && P.Indoor.near(s) ? 0 : 1;
+    D.gullT = now;
+    D.gullA += (target - D.gullA) * (1 - Math.exp(-dt / 0.2));
+    return D.gullA;
+  }
+  // World signs fade under a placed bubble (P.Speech.label); they never move.
+  function signAlpha(key, X, Y, w, hh) { return P.Speech ? P.Speech.label(key, X - w / 2, Y - hh / 2, w, hh) : 1; }
+  function gullShadows(R, s) {
+    var c = R.ctx, u = R.ppm, a = gullFade(s), i;
+    if (a < 0.02) return;
+    c.save(); c.globalAlpha = a;
+    for (i = 0; i < 3; i++) {
       var g = gull(i, R.cam);
       c.fillStyle = 'rgba(0,0,0,0.18)'; c.beginPath(); c.ellipse(R.X(g.x + 1.2), R.Y(g.y - 2.2), 0.45 * u, 0.12 * u, 0, 0, Math.PI * 2); c.fill();
     }
+    c.restore();
   }
 
   D.drawOverhead = function (R, s, y0, y1) {
@@ -185,11 +200,13 @@ P.Decor = (function () {
       [-1, 1].forEach(function (side) {
         if (hash(y * 1.7 + side) < 0.35) return;
         var txt = SIGNS_TR[Math.floor(hash(y * 9 + side * 3) * SIGNS_TR.length)], col = SIGN_COL[Math.floor(hash(y + side * 5) * SIGN_COL.length)];
-        var X = R.X(side * 5.35), Y = R.Y(y + 1.2), w = 1.5 * u, hh = 0.55 * u;
+        var X = R.X(side * 5.35), Y = R.Y(y + 1.2), w = 1.5 * u, hh = 0.55 * u, la = signAlpha('sign' + side + ':' + y, X, Y, w, hh);
+        c.save(); c.globalAlpha = la;
         c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(R.X(side * 7.05), Y - hh * 0.6); c.lineTo(X - side * w * 0.45, Y - hh * 0.6); c.stroke();
         c.fillStyle = col[0]; c.fillRect(X - w / 2, Y - hh / 2, w, hh); c.strokeRect(X - w / 2, Y - hh / 2, w, hh);
         c.font = 'italic 900 ' + Math.round(0.26 * u) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
         c.fillStyle = col[1]; c.fillText(txt, X, Y + 1, w - 6);
+        c.restore();
       });
     });
     var tt = performance.now() / 1000;
@@ -209,16 +226,20 @@ P.Decor = (function () {
     gullsDraw(R, s);
   };
   function gullsDraw(R, s) {
-    var c = R.ctx, u = R.ppm, i;
-    for (i = 0; i < 3; i++) {
-      var gl = gull(i, R.cam), X = R.X(gl.x), Yg = R.Y(gl.y), wsp = 0.55 * u, fl = gl.flap * 0.25 * u;
-      c.fillStyle = '#F4F6F8'; c.strokeStyle = INK; c.lineWidth = 1.6;
-      c.beginPath(); c.moveTo(X - wsp, Yg - fl); c.quadraticCurveTo(X - wsp * 0.4, Yg - 0.2 * u - fl * 0.5, X, Yg); c.quadraticCurveTo(X + wsp * 0.4, Yg - 0.2 * u - fl * 0.5, X + wsp, Yg - fl);
-      c.quadraticCurveTo(X + wsp * 0.4, Yg - 0.05 * u, X, Yg + 0.08 * u); c.quadraticCurveTo(X - wsp * 0.4, Yg - 0.05 * u, X - wsp, Yg - fl); c.fill(); c.stroke();
-      c.fillStyle = '#F2C14E'; c.beginPath(); c.arc(X + gl.dir * 0.08 * u, Yg + 0.02 * u, 0.03 * u, 0, Math.PI * 2); c.fill();
+    var c = R.ctx, u = R.ppm, i, a = gullFade(s);
+    if (a >= 0.02) {
+      c.save(); c.globalAlpha = a;
+      for (i = 0; i < 3; i++) {
+        var gl = gull(i, R.cam), X = R.X(gl.x), Yg = R.Y(gl.y), wsp = 0.55 * u, fl = gl.flap * 0.25 * u;
+        c.fillStyle = '#F4F6F8'; c.strokeStyle = INK; c.lineWidth = 1.6;
+        c.beginPath(); c.moveTo(X - wsp, Yg - fl); c.quadraticCurveTo(X - wsp * 0.4, Yg - 0.2 * u - fl * 0.5, X, Yg); c.quadraticCurveTo(X + wsp * 0.4, Yg - 0.2 * u - fl * 0.5, X + wsp, Yg - fl);
+        c.quadraticCurveTo(X + wsp * 0.4, Yg - 0.05 * u, X, Yg + 0.08 * u); c.quadraticCurveTo(X - wsp * 0.4, Yg - 0.05 * u, X - wsp, Yg - fl); c.fill(); c.stroke();
+        c.fillStyle = '#F2C14E'; c.beginPath(); c.arc(X + gl.dir * 0.08 * u, Yg + 0.02 * u, 0.03 * u, 0, Math.PI * 2); c.fill();
+      }
+      c.restore();
     }
     D.gullCd -= 1 / 60;
-    if (D.gullCd <= 0 && s.mode === 'play') { D.gullCd = 14 + Math.random() * 10; if (P.Sfx) P.Sfx.play('gull'); }
+    if (D.gullCd <= 0 && s.mode === 'play') { D.gullCd = 14 + Math.random() * 10; if (P.Sfx && a > 0.5) P.Sfx.play('gull'); }
   };
 
   // ---------- L1 enrichment: a few local props at fixed, unscripted spots (non-colliding, outside beats) ----------
@@ -249,12 +270,13 @@ P.Decor = (function () {
     return st.t ? now - st.t : 0;
   }
   function genStreet(R, s, y0, y1) {
-    var th = P.RenderWorld.themeOf(s), seed = s.levelIndex * 131, h = s.hero;
+    var th = P.RenderWorld.themeOf(s), seed = s.levelIndex * 131, h = s.hero, covered = !!(P.Indoor && P.Indoor.level(s));
     var props = P.Themes.propsFor(th, P.Themes.subOf(th, P.Themes.subIndex(s)));
     if (!props || !Object.keys(props).length) return;
     for (var y = Math.floor(y0 / SLOT) * SLOT; y < y1; y += SLOT) [-1, 1].forEach(function (sd) {
       if (hash(seed + y * 3.1 + sd * 7.7) < 0.4) return;
       var kind = pick(props, hash(seed + y * 5.3 + sd * 2.1)), x = sd * (BIG[kind] ? 6.2 : 5.3 + hash(y * 2.3 + sd));
+      if (covered && (kind === 'gull' || kind === 'pigeon')) return;   // no birds under a roof
       var yy = y + hash(y * 4.7 + sd) * 2.5, o = { k: Math.floor(hash(y * 9.1 + sd) * 4) };
       if (kind === 'cat' || kind === 'catbox') o.alert = Math.hypot(h.x - x, h.y - yy) < 2.2;
       if (kind === 'pigeon') o.fly = flyFor(seed + ':' + y + ':' + sd, x, yy, s);
@@ -282,7 +304,8 @@ P.Decor = (function () {
       if (hash(y * 1.7 + side) < 0.45) return;
       var txt = th.sign[Math.floor(hash(y * 9 + side * 3) * n)], col = SIGN_COL[Math.floor(hash(y + side * 5) * SIGN_COL.length)];
       var X = R.X(side * 5.35), Y = R.Y(y + 1.2), w = 1.5 * u, hh = 0.55 * u;
-      c.globalAlpha = hash(y * 4.4 + side) < 0.2 && Math.sin(t * 37 + y) > 0.2 ? 0.25 : 1;
+      var flick = hash(y * 4.4 + side) < 0.2 && Math.sin(t * 37 + y) > 0.2 ? 0.25 : 1;
+      c.globalAlpha = flick * signAlpha('sign' + side + ':' + y, X, Y, w, hh);
       c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(R.X(side * 7.05), Y - hh * 0.6); c.lineTo(X - side * w * 0.45, Y - hh * 0.6); c.stroke();
       c.fillStyle = col[0]; c.fillRect(X - w / 2, Y - hh / 2, w, hh); c.strokeRect(X - w / 2, Y - hh / 2, w, hh);
       c.font = 'italic 900 ' + Math.round(0.26 * u) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';

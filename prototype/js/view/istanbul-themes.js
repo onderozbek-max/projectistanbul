@@ -20,14 +20,16 @@ P.Themes = (function () {
   var WX = { clear: null, rain: [70, 90, 115, 0.14], fog: [185, 195, 205, 0.16], fire: [255, 120, 50, 0.1],
     dawn: [255, 170, 120, 0.12], dusk: [110, 70, 130, 0.14] };
 
-  // Sub-locations, one row per stage 1..5: "TR|EN|weather|landmark kinds|prop weight overrides".
+  // Sub-locations, one row per stage 1..5: "TR|EN|weather|landmark kinds|prop weight overrides|flags".
+  // Flags: 'indoor' = covered space (no gulls, pigeons, rain, fog or weather wash; see indoor.js). A theme with
+  // indoor: true makes every sub indoor.
   // Kinds: tram | arch:(glass|tunnel|metro|stone|classical|street|vault) | facade:(bay|glass|brick|wood|station|block|estate|mural|stone)
   // | tower | steps | stall:(music|lamp|carpet|textile|leather|book|fish|spice|fasil) | park:(plane|palm|bostan|coast|square|grill|sprinkler)
   // | pier:(pier|deck|boat|terminal|promenade|yachts|boardwalk) | board:(kadikoy|uskudar|aksaray|bilet) | crane | dig | overpass | minibus
   // | wall:(curtain|tower) | playground (P.Props fallback). Stage 1 of istiklal is the scripted L1 (segments in landmarks).
   var SUB = {
-    istiklal: ['Taksim Girişi|Taksim Entrance|clear|tram,facade:bay', 'Pasaj Sokağı|Passage Street|dusk|arch:glass,facade:glass|cat:3,pigeon:1',
-      'Tramvay Hattı|Tram Line|rain|tram,stall:music|pigeon:0', 'Tünel Ağzı|Tünel Mouth|fog|arch:tunnel,facade:bay|lamp:4',
+    istiklal: ['Taksim Girişi|Taksim Entrance|clear|tram,facade:bay', 'Pasaj Sokağı|Passage Street|dusk|arch:glass,facade:glass|cat:3,pigeon:1|indoor',
+      'Tramvay Hattı|Tram Line|rain|tram,stall:music|pigeon:0', 'Tünel Ağzı|Tünel Mouth|fog|arch:tunnel,facade:bay|lamp:4|indoor',
       'Opera Meydanı|Opera Square|dawn|arch:metro,facade:glass'],
     galata: ['Galata Kulesi|Galata Tower|clear|tower,stall:music', 'Yüksek Kaldırım|High Pavement|rain|stall:music,facade:stone|music:5',
       'Kamondo Merdiveni|Kamondo Steps|fog|steps,tower', 'Büyük Hendek|Great Ditch|dusk|facade:stone,stall:music|cat:3',
@@ -40,7 +42,7 @@ P.Themes = (function () {
     eminonu: ['Eminönü İskelesi|Eminönü Pier|clear|board:kadikoy,pier:boat', 'Balık Ekmek|Fish Sandwich|fire|pier:boat,stall:fish',
       'Mısır Çarşısı|Spice Arcade|clear|stall:spice,board:uskudar', 'Güvercin Meydanı|Pigeon Square|dawn|park:square,board:uskudar|pigeon:6',
       'Simitçi Sokağı|Simit Lane|fog|park:plane,stall:spice|simit:3'],
-    sirkeci: ['Sirkeci Garı|Sirkeci Station|clear|facade:station,park:square', 'Peron|Platform|rain|arch:classical,facade:station',
+    sirkeci: ['Sirkeci Garı|Sirkeci Station|clear|facade:station,park:square', 'Peron|Platform|rain|arch:classical,facade:station||indoor',
       'Banliyö Hattı|Commuter Line|fog|facade:station,board:bilet', 'Gar Kapısı|Station Gate|dusk|arch:classical,board:bilet',
       'Gar Saati|Station Clock|dawn|facade:station,park:plane'],
     bazaar: ['Kapalıçarşı Kapısı|Bazaar Gate|clear|arch:stone,stall:lamp', 'Kuyumcular|Jewellers|dusk|arch:vault,stall:lamp',
@@ -74,7 +76,7 @@ P.Themes = (function () {
       'Sprinkler Çimleri|Sprinkled Lawns|rain|park:sprinkler,park:coast', 'Piknik Alanı|Picnic Lawn|dusk|park:grill,park:sprinkler',
       'Kıyı Sabahı|Coast Dawn|dawn|park:coast,pier:promenade'],
     bakirkoy: ['Bakırköy Çarşı|Bakırköy Market|clear|arch:street,park:square', 'Yaya Caddesi|Pedestrian Street|rain|arch:street,facade:stone',
-      'Eski Meydan|Old Square|dusk|park:square,arch:street', 'Pasaj|Arcade|fog|arch:glass,facade:stone',
+      'Eski Meydan|Old Square|dusk|park:square,arch:street', 'Pasaj|Arcade|fog|arch:glass,facade:stone||indoor',
       'Çarşı Sabahı|Market Dawn|dawn|arch:street,park:square'],
     sahil: ['Sahil Yolu|Promenade|clear|pier:promenade,park:palm', 'Deniz Duvarı|Sea Wall|rain|pier:promenade',
       'Bisiklet Yolu|Bike Path|dusk|pier:boardwalk,park:palm', 'Plaj Girişi|Beach Gate|fog|park:palm,pier:promenade',
@@ -94,7 +96,8 @@ P.Themes = (function () {
   }
   function mkSub(row) {
     var p = row.split('|');
-    return { tr: p[0], en: p[1], wx: p[2] || 'clear', lm: (p[3] || '').split(','), pr: parseW(p[4]), _p: null, _t: null };
+    return { tr: p[0], en: p[1], wx: p[2] || 'clear', lm: (p[3] || '').split(','), pr: parseW(p[4]), indoor: (p[5] || '').indexOf('indoor') >= 0,
+             _p: null, _t: null };
   }
 
   // Theme record. Keys not given take the defaults. Chapter 2 hoods add a theme with this same call.
@@ -102,7 +105,7 @@ P.Themes = (function () {
     var d = { id: id, ground: 'cobble', gc: '#4F5058', gj: '#3B3D46', walk: 'stone', wc: '#5E6068', L: 'facade', R: 'facade',
       fac: 'belle', pal: BELLE, trim: '#E9DCC4', awn: AW.mix, sign: ['LOKANTA', 'BÜFE'], props: { cat: 1, pigeon: 1, bin: 1, lamp: 2 },
       wprops: [], overhead: 'strings', exit: 'arch', shop: 0.4, rail: false, tracks: false, lanes: false, bays: false,
-      fog: false, wat: '#2C4658' };
+      fog: false, wat: '#2C4658', indoor: false };
     for (var k in o) d[k] = o[k];
     d.subs = o && o.subs ? o.subs : (SUB[id] || []).map(mkSub);
     DEF[id] = d;
@@ -127,7 +130,7 @@ P.Themes = (function () {
   def('sirkeci', { ground: 'tile', gc: '#5E6068', gj: '#4A4D55', walk: 'platform', wc: '#6F7178', R: 'tracks', fac: 'station', pal: STA,
     trim: '#C8C2B4', awn: ['#2B4C6F', '#B5651D'], sign: ['GAR', 'BİLET', 'KAHVE', 'KİOSK', 'BAGAJ'], overhead: 'lamps',
     props: { bench: 2, bin: 1, kiosk: 1, cay: 1, pigeon: 3, bags: 2, lamp: 2, planter: 1 }, exit: 'station', shop: 0.3 });
-  def('bazaar', { ground: 'bazaar', gc: '#6B5A4A', gj: '#4B3F34', walk: 'bazaar', wc: '#7A6758', fac: 'arcade',
+  def('bazaar', { indoor: true, ground: 'bazaar', gc: '#6B5A4A', gj: '#4B3F34', walk: 'bazaar', wc: '#7A6758', fac: 'arcade',
     pal: ['#7A5636', '#8B6A44', '#6A4E3A', '#9A7650'], trim: '#E9C46A', awn: ['#9E2B25', '#1B4965', GOLD],
     sign: ['HALI', 'ÇİNİ', 'KUYUMCU', 'BAHARAT', 'SEDEF', 'KAHVE'], overhead: 'vault',
     props: { hali: 2, cini: 2, baharat: 2, lokum: 2, cay: 2, samovar: 1, cat: 1, crates: 1, bags: 1 }, exit: 'gate', shop: 0.7 });
@@ -203,6 +206,8 @@ P.Themes = (function () {
     return sub._p;
   };
   T.weather = function (wx) { return WX[wx] || null; };
+  // Covered space: the theme or the sub-location says so. Indoor sub-locations drop outdoor-only ambience.
+  T.isIndoor = function (th, sub) { return !!((th && th.indoor) || (sub && sub.indoor)); };
 
   // ---- pre-rendered tiles ----
   function hsh(n) { var x = Math.sin(n * 91.7 + 13.1) * 43758.5453; return x - Math.floor(x); }

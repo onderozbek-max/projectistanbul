@@ -39,13 +39,14 @@ function fireCable(s, dt) {
 
 // ---------- Speargun: a harpoon that flies along a line, pierces, pins the last, pulls the rest ----------
 // Twin spear (count) fans two; signature "triple" fires three. Each spear carries its action.
+// The owned variant runs this code: speargun, or Zıpkın Ağı (netspear: pinned enemies are roped together).
 function fireSpear(s, dt) {
-  var h = s.hero, cfg = P.CFG.weapons.speargun, lv = P.Weapons.level(h, 'speargun');
-  if (!lv || !P.Weapons.ready(h, 'speargun', dt)) return;
+  var h = s.hero, id = P.Weapons.variantOf(h, 'speargun'), cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id);
+  if (!lv || !P.Weapons.ready(h, id, dt)) return;
   var t = P.Weapons.nearestEnemy(s, h.x, h.y, cfg.range);
   if (!t) return;
   var A = P.Mods.act(s, 'speargun'), M = A.M;
-  h.cds.speargun = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'speargun');
+  h.cds[id] = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'speargun');
   var a0 = Math.atan2(t.y - h.y, t.x - h.x), n = A.sig ? 3 : 1 + M.count, spread = A.sig ? 0.2 : 0.14;
   for (var k = 0; k < n; k++) {
     var a = a0 + (k - (n - 1) / 2) * spread;
@@ -54,7 +55,7 @@ function fireSpear(s, dt) {
       dmg: P.Weapons.dmgFor(s, 'speargun', lv.dmg) * A.dmg, root: lv.root + M.root, primary: k === 0 });
   }
   s.events.push({ type: 'spearFire', x: h.x, y: h.y, a: a0 });
-  P.Weapons.fired(s, 'speargun', a0, n);
+  P.Weapons.fired(s, 'speargun', a0, n, id);
   P.Mods.announce(s, A, h.x, h.y, cfg.range);
 }
 
@@ -85,6 +86,7 @@ function stickSpear(s, sp) {
     P.Weapons.shove(o, (pin.x - o.x) / d, (pin.y - o.y) / d, cfg.pinPullM);
   });
   s.events.push({ type: 'spearPin', x: pin.x, y: pin.y, id: pin.id, root: sp.root });
+  if (sp.lv.netShare) P.Weapons6.netGroup(s, pin, sp.lv, sp.root);
 }
 
 function updateSpears(s, dt) {
@@ -104,19 +106,21 @@ function updateSpears(s, dt) {
 }
 
 // ---------- Fire Extinguisher: a cone that sprays three times, slows and pushes back. Usta/echo repeat the spray. ----------
+// The owned variant runs this code: extinguisher, or Köpük Fırtınası (foamstorm: the foam wall blocks spit).
 function fireExtinguisher(s, dt) {
-  var h = s.hero, cfg = P.CFG.weapons.extinguisher, lv = P.Weapons.level(h, 'extinguisher');
-  if (!lv || !P.Weapons.ready(h, 'extinguisher', dt)) return;
+  var h = s.hero, id = P.Weapons.variantOf(h, 'extinguisher'), cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id);
+  if (!lv || !P.Weapons.ready(h, id, dt)) return;
   var M = P.Mods.of(s, 'extinguisher'), range = lv.range * M.area;
   var t = P.Weapons.nearestEnemy(s, h.x, h.y, range);
   if (!t) return;
   var A = P.Mods.act(s, 'extinguisher'), sig = A.sig;
-  h.cds.extinguisher = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'extinguisher');
+  h.cds[id] = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'extinguisher');
   var a = Math.atan2(t.y - h.y, t.x - h.x), arc = sig ? sig.arc : lv.arcDeg;
   spray(s, a, lv, A, range, arc, 0);
   if (M.echo) spray(s, a, lv, A, range, arc, M.echo.delay);
+  if (lv.spitBlock) P.Weapons6.foamWall(s, a, arc, range, lv.spitBlock);
   s.events.push({ type: 'extSpray', x: h.x, y: h.y, a: a, range: range, arc: arc, n: cfg.ticks });
-  P.Weapons.fired(s, 'extinguisher', a, 1);
+  P.Weapons.fired(s, 'extinguisher', a, 1, id);
   P.Mods.announce(s, A, h.x, h.y, range);
 }
 

@@ -3,7 +3,7 @@
 // Tapping during the return skips to the final state.
 (function () {
   var M = P.Meta, J = P.Journey, Map = M.Map, Gear = M.Gear, A = M.Anim;
-  var root, coinChip, coinVal, kmTxt, kmFill, nextLine, playBtn, bottom, sheet, banner, flyLayer, toastLayer, gearHost;
+  var root, coinChip, coinVal, kmTxt, kmFill, nextHead, nextLine, playBtn, bottom, sheet, banner, flyLayer, toastLayer, gearHost;
   var tabsEl = null, panelOpen = null;
   var onPlay = null, opened = false, sheetHood = -1, selLevel = 1, session = 0, busy = false, active = null, announced = false;
   var cancels = [], shownCoins = 0;
@@ -111,7 +111,7 @@
     kmTxt = el('div', 'meta-kmtxt', km);
     kmFill = el('div', 'meta-kmfill', el('div', 'meta-kmbar', km));
     var nx = el('div', 'meta-next', bottom);
-    el('div', 'meta-nexthead', nx).textContent = t('meta.next');
+    nextHead = el('div', 'meta-nexthead', nx); nextHead.textContent = t('meta.next');
     nextLine = el('div', 'meta-nextline', nx);
     playBtn = el('button', 'meta-btn meta-play', nx);
     playBtn.addEventListener('click', function () { startLevel(M.currentLevel()); });
@@ -123,11 +123,15 @@
     kmTxt.textContent = t('meta.km', { a: fmtKm(v), b: fmtKm(J.totalKm) });
     kmFill.style.width = (v / J.totalKm * 100).toFixed(2) + '%';
   }
+  // Journey complete (every hood done): there is no next level, so the card says so and the play button is hidden.
+  // The line and the button never disagree (AUDIT-6 F8).
   function renderBottom(v) {
-    var lv = M.level(M.currentLevel());
+    var lv = M.level(M.currentLevel()), done = v.done >= J.hoods.length;
     setKm(v.km);
-    nextLine.textContent = v.done >= J.hoods.length ? t('meta.allDone') : t('meta.nextLine', { hood: P.upper(lv.hood.name), n: lv.stage });
-    playBtn.textContent = t('meta.playLevel', { n: lv.stage });
+    nextHead.textContent = t(done ? 'meta.doneHead' : 'meta.next');
+    nextLine.textContent = done ? t('meta.allDone') : t('meta.nextLine', { hood: P.upper(lv.hood.name), n: lv.stage });
+    playBtn.classList.toggle('hidden', done);
+    if (!done) playBtn.textContent = t('meta.playLevel', { n: lv.stage });
   }
   function renderAll(v) {
     renderCoins(v.coins); renderBottom(v); Map.refresh(v);

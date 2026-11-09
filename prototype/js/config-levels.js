@@ -90,7 +90,7 @@
     holdRate: [1.6, 2.6, 3.4],         // hold phases (until 15 s, 30 s, then): rate multipliers
     holdPhaseT: [15, 30],
     holdStopBefore: 6,                 // no spawns in the last 6 s of a hold
-    bossAddRate: 0.6,                  // boss-fight adds: share of stage rate
+    bossAddRate: 1.08,                 // boss-fight adds: share of stage rate (AUDIT-6 B4: x1.8 from 0.6 for arena density)
     bossAddStart: 6,                   // adds around the boss on intro
     cap: 140,                          // max alive (perf and readability)
     spawnAhead: { gap: 0.5, depth: 7 }, spawnBehind: { gap: 1.0, depth: 6 }, sideX: 6.2,
@@ -98,15 +98,13 @@
     introCount: 3, eliteLead: 8, crawlerTelegraph: 1.0, arenaBossAhead: 13, bossIntro: 1.6,
     civilians: { groups: 2, perGroup: 3, fleeSpeed: 4.0, life: 8 },
     // Blocks: AABB obstacles, central lane |x| < laneClear stays open for pathing.
-    block: { laneClear: 1.6, sideMin: 2.2, sideMax: 6.6, slot: 9, startClear: 8, sideChance: 0.75 },
+    block: { laneClear: 1.6, sideMin: 2.2, sideMax: 6.6, slot: 9, startClear: 8, sideChance: 0.75,
+      slotJit: 6, endClear: 6, yJit: 1, sideJit: 0.8, wallEdge: 0.5 },   // street blocks: spacing and placement jitter (m)
     kinds: {                       // kind -> size [w (x), h (y)] in m (F renders by kind)
       car: [1.9, 4.2], taxi: [1.9, 4.2], dolmus: [2.2, 5.0], bus: [2.6, 9.0], barrier: [3.0, 0.6],
       kiosk: [1.6, 1.6], bench: [0.6, 1.8], bin: [0.6, 0.6], planter: [1.2, 1.2], crates: [1.0, 1.0],
       tables: [1.2, 1.2], cart: [1.4, 0.9], tree: [0.8, 0.8], bollard: [0.35, 0.35],
     },
-    wideKinds: ['car', 'taxi', 'dolmus', 'bus', 'kiosk', 'planter', 'crates', 'tables', 'cart'],
-    smallKinds: ['bench', 'bin', 'tree', 'bollard'],
-    landmarks: ['shopfront', 'cafe', 'tram_stop', 'fountain', 'lamp_row', 'bus_stop', 'kebab', 'flower_stand', 'billboard', 'tea_garden'],
     // v0.5 · extra roster types per hood id (added from stage 2), weight = extraShare x segment share.
     hoodExtras: {
       galata: ['screamer'], karakoy: ['hardhat'], bridge: ['screamer'], eminonu: ['hardhat'], kapalicarsi: ['screamer'],
@@ -127,7 +125,6 @@
     ],
     extraTypes: ['screamer', 'hardhat'],   // weight extraShare x segment share
     newTypes: ['parkur', 'kasap', 'zehirli'], newGrow: 0.1,   // v0.6 types: same weight, times (1 + newGrow x hood index)
-    subCount: 3,                       // geo.sub: 0..2 sub-location per stage (F varies scenery by it)
     // Boss names are NOT here (AUDIT-5 D-8/H2, owner 2026-11-08): one set lives in js/story/strings-story.js (spk.b.*,
     // Turkish title + canon English gloss). js/strings-journey.js copies it to boss.<hood> for the boss banner.
   };

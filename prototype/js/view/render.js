@@ -29,18 +29,27 @@ P.Render = (function () {
     return a + w.dir * (half - 2 * half * Math.min(1, p * 1.6));
   }
 
+  // Invulnerability blink (G5): a 1.5 Hz alpha pulse between 0.6 and 1.0, never a fast toggle. Off under "reduce flashes".
+  function blinkAlpha(h, t) {
+    if (!(h.invuln > 0) || P.Settings.reduceFlash) return 1;
+    var V = P.CFG.view, mid = (1 + V.blinkMinAlpha) / 2, amp = (1 - V.blinkMinAlpha) / 2;
+    return mid + amp * Math.sin(t / 1000 * Math.PI * 2 * V.blinkHz);
+  }
+
   function drawHero(s) {
-    var h = s.hero, c = R.ctx, u = R.ppm, t = performance.now();
+    var h = s.hero, c = R.ctx, u = R.ppm, t = performance.now(), V = P.CFG.view;
     heroAnim.walk += Math.hypot(h.x - heroAnim.x, h.y - heroAnim.y); heroAnim.x = h.x; heroAnim.y = h.y;
     var X = R.X(h.x), Y = R.Y(h.y - 0.25), face = h.fx >= 0 ? 1 : -1;
     c.setLineDash([3, 6]); circle(h.x, h.y, h.pickupRadius, null, 'rgba(61,220,255,0.45)', 1.2); c.setLineDash([]);
+    P.Sprites.contact(c, X, Y, V.heroShadow.radius * u, V.heroShadow.alpha, V.heroShadow.aspect);   // soft shadow under the feet
     var ring = 0.5 + 0.03 * Math.sin(t / 300);
     c.strokeStyle = '#14151F'; c.lineWidth = 6; c.beginPath(); c.ellipse(X, Y, ring * u, ring * 0.4 * u, 0, 0, Math.PI * 2); c.stroke();
     c.strokeStyle = '#3DDCFF'; c.lineWidth = 3; c.stroke();
     if (h.regenOn) { c.strokeStyle = 'rgba(91,209,110,' + (0.5 + 0.3 * Math.sin(t / 150)) + ')'; c.lineWidth = 2; c.beginPath(); c.ellipse(X, Y, (ring + 0.12) * u, (ring + 0.12) * 0.4 * u, 0, 0, Math.PI * 2); c.stroke(); }
-    c.globalAlpha = h.invuln > 0 && Math.floor(t / 70) % 2 ? 0.45 : 1;
-    var so = { u: u * 1.22, back: h.moving && h.fy > 0.4, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
-      arms: (s.levelIndex > 1 ? !!(h.weapons.knife || h.weapons.cleaver) : P.ColdOpen.hasKnife()) ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving, flash: h.hitFlash || 0 };
+    c.globalAlpha = blinkAlpha(h, t);
+    var so = { u: u * V.spriteScale.hero, back: h.moving && h.fy > 0.4, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
+      arms: (s.levelIndex > 1 ? !!(h.weapons.knife || h.weapons.cleaver) : P.ColdOpen.hasKnife()) ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving,
+      flash: P.Fx.heroFlash ? P.Fx.heroFlash() : 0 };   // the white hit flash is gated to 3 per second in fx.js (G3)
     if (P.FireAnim) P.FireAnim.heroOpts(s, so);   // a shot's pose (or the chainsaw rev) draws the arms itself
     P.Sprites.hero(c, X, Y, so);
     c.globalAlpha = 1;
@@ -150,6 +159,14 @@ P.Render = (function () {
   function hook(obj, fn, s) { if (obj && obj[fn]) obj[fn](R, s); }
   R.hook = hook;
 
+  // Depth queue (rebuilt each frame). R.depth(y, fn, occludes): y = base (south) edge in metres; larger y is farther
+  // and drawn first. occludes (default true) marks scenery that can hide the hero: it is drawn after him when its base
+  // is in front of him. Actors pass false, so the hero stays above the crowd (DS 6.2).
+  var depthQ = [];
+  R.depth = function (y, fn, occludes) { depthQ.push({ y: y, fn: fn, occ: occludes !== false }); };
+  function byDepth(a, b) { return b.y - a.y; }
+  function runDepth(list) { for (var i = 0; i < list.length; i++) list[i].fn(); }
+
   R.frame = function (s, extraDraw) {
     var c = R.ctx, cam = P.Fx.cam;
     R.cam = cam;
@@ -163,33 +180,47 @@ P.Render = (function () {
     var L1 = !s.levelIndex || s.levelIndex === 1;
     if (L1 && y0 < 1) P.RenderWorld.drawRestaurant(R, s);
     P.Decor.drawStreet(R, s, y0, y1);
-    P.RenderWorld.drawProps(R, s);
+    hook(P.EnvFx, 'drawGround', s);              // lane A: floor decals (puddles, glass, debris), after the floor, before shadows
+    P.RenderWorld.drawShadows(R, s, y0, y1);      // ground ambient occlusion under carts, canisters and blocks
     drawGround();
     drawZonesAndTelegraphs(s);
     hook(P.WFx2, 'drawGround', s);
     hook(P.EnemyFx, 'drawGround', s);
     hook(P.EventsFx, 'drawGround', s);
     drawDrops(s);
+    hook(P.EnemiesFx2, 'drawUnder', s);           // lane C: decals under the crowd
+    // Depth pass: props, actors and civilians queue themselves, then flush far to near (see R.depth).
+    depthQ.length = 0;
+    hook(P.EnvFx, 'drawProps', s);                // lane A: props (call R.depth(y, fn) to sort them with the actors)
+    P.RenderWorld.drawProps(R, s);
     var actors = s.enemies.filter(function (e) { return Math.abs(e.y - cam.y) < half; });
-    actors.sort(function (a, b) { return b.y - a.y; });
-    s.dir.civilians.forEach(function (v) { P.Sprites.civilian(R, v); });
-    actors.forEach(function (e) { P.Sprites.enemy(R, e, s.hero); });
+    s.dir.civilians.forEach(function (v) { R.depth(v.y, function () { P.Sprites.civilian(R, v); }, false); });
+    actors.forEach(function (e) { R.depth(e.y, function () { P.Sprites.enemy(R, e, s.hero); }, false); });
+    var hy = s.hero.y, pre = [], post = [];
+    depthQ.forEach(function (d) { (d.occ && d.y <= hy ? post : pre).push(d); });   // props in front of the hero come after him
+    pre.sort(byDepth); post.sort(byDepth);
+    depthQ.length = 0;
+    runDepth(pre);
+    hook(P.EnemiesFx2, 'drawOver', s);            // lane C: decals and marks over the crowd, under the hero
     if (extraDraw) extraDraw(R, s);
     drawFx();
     P.WFx.drawParts(R);
     hook(P.SkillsFx, 'drawUnder', s);
     drawHero(s);
+    runDepth(post);
     P.WFx.drawChain(R, s);
     P.WFx.drawProjectiles(R, s);
     hook(P.FireAnim, 'drawFx', s);
     hook(P.WFx2, 'drawAir', s);
     hook(P.EnemyFx, 'drawAir', s);
     hook(P.EventsFx, 'drawAir', s);
+    hook(P.EnvFx, 'drawAir', s);                  // lane A: airborne env (debris, smoke, gulls) after the crowd
     hook(P.SkillsFx, 'drawOver', s);
     if (L1 && y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);
     if (L1 && y1 > 222) P.RenderWorld.drawScaffold(R, s);
     P.RenderWorld.drawLights(R, s, y0, y1);
     P.Decor.drawOverhead(R, s, y0, y1);
+    if (P.Speech) P.Speech.resolve(R, s);   // every bubble is placed here, after the signs (which fade under them)
     P.RenderOverlay.worldText(R, s);
     hook(P.Barks, 'draw', s);
     c.restore();
@@ -202,28 +233,53 @@ P.Render = (function () {
 
 // World-space text (bubbles, damage numbers, lettering, prompt arrows) and screen-space lighting.
 P.RenderOverlay = (function () {
-  var O = {};
-  function bubble(R, x, y, text, maxW) {
-    var c = R.ctx; c.font = '600 14px system-ui, sans-serif';
-    var words = text.split(' '), lines = [], cur = '';
-    words.forEach(function (w) { var t = cur ? cur + ' ' + w : w; if (c.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; });
-    lines.push(cur);
-    var w = Math.max.apply(null, lines.map(function (l) { return c.measureText(l).width; })) + 16, h = lines.length * 18 + 10;
-    var X = R.X(x) - w / 2, Y = R.Y(y) - h - 10;
-    c.fillStyle = '#FFFFFF'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
-    c.beginPath(); c.roundRect ? c.roundRect(X, Y, w, h, 10) : c.rect(X, Y, w, h); c.fill(); c.stroke();
-    c.beginPath(); c.moveTo(R.X(x) - 6, Y + h); c.lineTo(R.X(x), Y + h + 9); c.lineTo(R.X(x) + 6, Y + h); c.fill();
-    c.fillStyle = '#14151F'; c.textAlign = 'center'; c.textBaseline = 'top';
-    lines.forEach(function (l, i) { c.fillText(l, R.X(x), Y + 6 + i * 18); });
+  var O = {}, legacy = [];
+  // Arbiter provider for the L1 director bubbles: Arda's legacy bark (over him, or over the shop) and the cat's '!'.
+  // They keep their old wording and box; the arbiter decides where they sit.
+  function offerLegacy(R, s) {
+    var b = s.dir.barks.cur, c = R.ctx, a, who, list = [];
+    legacy = [];
+    if (b) {
+      who = b.who === 'shop' ? { x: 6.4, y: 226 } : { x: s.hero.x, y: s.hero.y + 0.8 };
+      a = R.toScreen(who.x, who.y);
+      list.push({ id: 'legacy:' + b.id, text: P.line(b.id).text, kind: 'legacy', prio: P.Speech.PRIO.legacy, ax: a.x, ay: a.y, lift: 58, maxW: 230 });
+    }
+    s.dir.bubbles.forEach(function (q, i) {
+      a = R.toScreen(q.x, q.y + 0.3);
+      list.push({ id: 'cat:' + i, text: q.text, kind: 'cat', prio: P.Speech.PRIO.cat, ax: a.x, ay: a.y, lift: 30, maxW: 60 });
+    });
+    list.forEach(function (it) {
+      var m = P.Speech.measurePlain(c, it.text, it.maxW), e = { lines: m.lines, rect: null };
+      legacy.push(e);
+      P.Speech.offer({ id: it.id, kind: it.kind, prio: it.prio, w: m.w, h: m.h, ax: it.ax, ay: it.ay, lift: it.lift,
+        place: function (slot) {
+          if (!slot) { e.rect = null; return; }
+          var tt = P.Speech.tailTarget(slot, it.lift);
+          e.rect = { x: slot.x, y: slot.y, w: m.w, h: m.h, tx: tt.tx, ty: tt.ty };
+        } });
+    });
+  }
+  function drawLegacy(R) {
+    var c = R.ctx;
+    legacy.forEach(function (e) {
+      if (!e.rect) return;
+      c.save(); c.setTransform(R.dpr || 1, 0, 0, R.dpr || 1, 0, 0);
+      P.Speech.drawPlain(c, e.rect, e.lines);
+      c.restore();
+    });
+  }
+  if (P.Speech) P.Speech.provider(offerLegacy);
+
+  // Floating callouts (event letters) are world labels: they fade while a bubble covers them.
+  function labelAlpha(R, key, x, y, w, h) {
+    if (!P.Speech) return 1;
+    var sp = R.toScreen(x, y);
+    return P.Speech.label(key, sp.x - w / 2, sp.y - h / 2, w, h);
   }
 
   O.worldText = function (R, s) {
-    var c = R.ctx, b = s.dir.barks.cur;
-    s.dir.bubbles.forEach(function (q) { bubble(R, q.x, q.y + 0.3, q.text, 60); });
-    if (b) {
-      var who = b.who === 'shop' ? { x: 6.4, y: 226 } : { x: s.hero.x, y: s.hero.y + 0.8 };
-      bubble(R, who.x, who.y, P.line(b.id).text, 230);
-    }
+    var c = R.ctx;
+    drawLegacy(R);
     P.Fx.nums.forEach(function (n) {
       var f = 1 - n.t / n.T, size = n.crit ? 24 : 14, sc = f < 0.15 ? 1.2 - f / 0.15 * 0.2 : 1;
       c.font = 'italic 900 ' + Math.round(size * sc) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
@@ -235,7 +291,8 @@ P.RenderOverlay = (function () {
     });
     P.Fx.letters.forEach(function (l) {
       c.font = 'italic 900 38px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.lineWidth = 5;
-      c.strokeStyle = '#14151F'; c.fillStyle = '#F4EBDD'; c.globalAlpha = Math.min(1, l.t / 0.3);
+      c.strokeStyle = '#14151F'; c.fillStyle = '#F4EBDD';
+      c.globalAlpha = Math.min(1, l.t / 0.3) * labelAlpha(R, P.Speech ? P.Speech.labelKey(l) : 'letter', l.x, l.y, 150, 44);
       c.strokeText(l.text, R.X(l.x), R.Y(l.y)); c.fillText(l.text, R.X(l.x), R.Y(l.y)); c.globalAlpha = 1;
     });
     var pr = s.dir.tut.active;
@@ -270,7 +327,7 @@ P.RenderOverlay = (function () {
   O.screen = function (R, s) {
     var c = R.ctx, W = R.W, H = R.H;
     var l = (s.levelIndex > 1 && P.RenderWorld.screenLight) ? P.RenderWorld.screenLight(s) : light(s.hero.y);
-    if (P.Fx.flash > 0) { c.fillStyle = 'rgba(255,240,200,' + P.Fx.flash.toFixed(3) + ')'; c.fillRect(0, 0, W, H); }
+    // No full-screen flash here (v0.7 removed the level-up and bloater flashes). Light, vignette and the low-HP beat only.
     c.fillStyle = 'rgba(' + Math.round(l[0]) + ',' + Math.round(l[1]) + ',' + Math.round(l[2]) + ',' + l[3].toFixed(3) + ')';
     c.fillRect(0, 0, W, H);
     var g = c.createRadialGradient(W / 2, H * 0.65, 0, W / 2, H * 0.65, H * 0.75);
@@ -279,12 +336,21 @@ P.RenderOverlay = (function () {
     g.addColorStop(0.6, 'rgba(' + vc + ',0)'); g.addColorStop(1, 'rgba(' + vc + ',' + vg[3] + ')');
     c.fillStyle = g; c.fillRect(0, 0, W, H);
     if (s.hero.hp / s.hero.maxHp < P.CFG.feel.lowHpFrac && s.mode === 'play') {
-      var p = 0.2 + 0.15 * Math.sin(performance.now() / 1000 * Math.PI * 2);
+      // Last stand: a dark red vignette that beats like a heart (two beats per cycle, never a flash).
+      var beat = P.Settings.reduceFlash ? 0.5 : (P.Fx.heart ? P.Fx.heart(performance.now() / 1000) : 0.5);
+      var p = 0.12 + 0.3 * beat;
       var g2 = c.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.7);
       g2.addColorStop(0, 'rgba(215,38,61,0)'); g2.addColorStop(1, 'rgba(215,38,61,' + p.toFixed(3) + ')');
       c.fillStyle = g2; c.fillRect(0, 0, W, H);
     }
-    if (s.mode === 'play') P.WFx.drawCombo(R);
+    // G3: a red wash at the screen edge on a heavy hit (fx.js gates it to once per 0.5 s and decays it in 0.25 s).
+    var ea = P.Fx.edgeAlpha ? P.Fx.edgeAlpha() : 0;
+    if (ea > 0) {
+      var ge = c.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.72);
+      ge.addColorStop(0, 'rgba(215,38,61,0)'); ge.addColorStop(1, 'rgba(215,38,61,' + ea.toFixed(3) + ')');
+      c.fillStyle = ge; c.fillRect(0, 0, W, H);
+    }
+    if (P.Speech) P.Speech.drawBanners(c, R);
     if (P.EnemyFx && P.EnemyFx.screen) P.EnemyFx.screen(R, s);
     if (P.EventsFx && P.EventsFx.screen) P.EventsFx.screen(R, s);
     if (P.SkillsFx && P.SkillsFx.screen) P.SkillsFx.screen(R, s);

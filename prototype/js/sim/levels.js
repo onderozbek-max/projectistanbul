@@ -3,6 +3,10 @@
 // hold, boss state). P.Levels.step runs each tick (called from P.Director.step for generated levels).
 // Route: segments A-D spawn from the hood roster; stages 1-4 end in a hold at the exit gate; stage 5 is a
 // boss arena (boss + adds). Win: gate open and the hero past it -> s.mode 'won' (same as L1).
+// Layouts (AUDIT-6 B1-B4): P.Layouts.plan lays the stage's zone (plaza, market, chicane, waterfront, bridge, arena) and
+// its centre landmarks before the street blocks; street blocks come from the hood's kit (journey.js) and skip zones.
+// geo.sub is the stage (1..5) so the hood's five sub-locations follow the level. Layouts own their own geometry in
+// js/sim/layouts.js; s.layout is documented there.
 P.Levels = {};
 
 var SEG_IDS = ['A', 'B', 'C', 'D'];
@@ -28,7 +32,8 @@ P.Levels.build = function (s, index) {
   var exitY = Math.round(st.len + rng.range(-6, 6));
   var holdY = boss ? st.approach : exitY - C.holdDepth;
   var geo = { xMin: G0.xMin, xMax: G0.xMax, length: exitY + 4, exitY: exitY, holdY: holdY,
-    holdT: boss ? 0 : st.holdT, boss: boss, blocks: [], landmarks: [], events: [], sub: rng.int(0, C.subCount - 1) };
+    holdT: boss ? 0 : st.holdT, boss: boss, blocks: [], landmarks: [], events: [], zones: [], sub: info.stage,
+    kit: info.hood.kit || C.defaultKit };
   s.geo = geo;
   s.diff = P.Levels.difficulty(index);
   s.props = { carts: [], canisters: [], doorOpen: true, shutter: 0, shutterOpen: false, scaffoldDown: false, geo: geo };
@@ -36,12 +41,15 @@ P.Levels.build = function (s, index) {
   s.dir.hold.T = geo.holdT;
   s.gen = { info: info, st: st, stageIdx: info.stage, hood: info.hood, roster: rosterOf(info.hood, info.stage), skins: info.hood.skins,
     marks: [], mi: 0, seg: 'A', acc: 0, next: null, arena: false, bossSpawned: false, boss: null, won: false, midDone: false, t: 0 };
+  s.layout = P.Layouts.plan(s, info, rng, geo);   // zone and centre landmarks first: street blocks keep clear of them
   layBlocks(geo, rng);
-  layLandmarks(geo, rng);
-  s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY)).sort(function (a, b) { return a.y - b.y; });
+  P.Layouts.slots(s);
+  s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY), P.Layouts.marks(s.layout))
+    .sort(function (a, b) { return a.y - b.y; });
   civilians(s);
   s.events.push({ type: 'segment', id: 'A' });
   s.events.push({ type: 'story', id: info.id, when: 'start' });
+  if (P.Env && P.Env.place) P.Env.place(s, info);   // Lane A: env props and hazards, once per level
   return s;
 };
 
@@ -70,19 +78,20 @@ function makeMarks(st, end, boss) {
 
 
 // Corridor blocks: sides only (inner edge >= sideMin) so the centre lane stays open for pathing.
+// The hood's kit (journey.js) picks the kind of each side block (B1). Layout zones are skipped (layouts.js lays them).
 function layBlocks(geo, rng) {
-  var B = P.CFG.levels.block, K = P.CFG.levels.kinds, y = B.startClear, end = geo.exitY - 6;
-  var wide = P.CFG.levels.wideKinds, small = P.CFG.levels.smallKinds;
+  var B = P.CFG.levels.block, K = P.CFG.levels.kinds, y = B.startClear, end = geo.exitY - B.endClear;
   while (y < end) {
+    if (P.Layouts.inZone(geo, y)) { y += B.slot; continue; }
     [-1, 1].forEach(function (side) {
       if (!rng.chance(B.sideChance)) return;
-      var kind = rng.chance(0.7) ? wide[rng.int(0, wide.length - 1)] : small[rng.int(0, small.length - 1)];
+      var kind = geo.kit[rng.int(0, geo.kit.length - 1)];
       var w = K[kind][0], h = K[kind][1];
-      var x = side * (B.sideMin + w / 2 + rng.range(0, 0.8)), by = y + rng.range(-1, 1);
-      if (Math.abs(x) + w / 2 > geo.xMax - 0.5) return;
+      var x = side * (B.sideMin + w / 2 + rng.range(0, B.sideJit)), by = y + rng.range(-B.yJit, B.yJit);
+      if (Math.abs(x) + w / 2 > geo.xMax - B.wallEdge) return;
       addBlock(geo, kind, x, by, w, h);
     });
-    y += B.slot + rng.range(0, 6);
+    y += B.slot + rng.range(0, B.slotJit);
   }
 }
 
@@ -93,16 +102,6 @@ function addBlock(geo, kind, x, y, w, h) {
   if (clash) return;
   geo.blocks.push({ kind: kind, x: x, y: y, w: w, h: h,
     rc: { xMin: x - w / 2, xMax: x + w / 2, yMin: y - h / 2, yMax: y + h / 2 } });
-}
-
-function layLandmarks(geo, rng) {
-  var L = P.CFG.levels.landmarks, y = 12;
-  while (y < geo.exitY - 4) {
-    geo.landmarks.push({ kind: L[rng.int(0, L.length - 1)], y: y, side: rng.chance(0.5) ? 1 : -1 });
-    y += rng.range(14, 24);
-  }
-  geo.landmarks.push({ kind: 'gate', y: geo.exitY, side: 0 });
-  if (geo.boss) geo.landmarks.push({ kind: 'arena', y: geo.holdY, side: 0 });
 }
 
 // A few fleeing civilians at the start (generic version of the L1 panic crowd).
@@ -180,6 +179,7 @@ function doMark(s, m) {
   else if (m.kind === 'arena') startArena(s);
   else if (m.kind === 'event') P.Events.start(s, m.ev, {});
   else if (m.kind === 'hack') hackSpot(s, m.ev);
+  else if (m.kind === 'landmark') P.Layouts.trigger(s, m);
 }
 
 function holdStage(s, dt) {

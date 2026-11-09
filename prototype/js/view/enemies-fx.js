@@ -7,7 +7,13 @@ P.EnemyFx = (function () {
   var COL = { danger: DANGER, acid: ACID, toxic: TOXIC, slam: SLAM, summon: SUMMON };
   var clamp01 = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
 
-  EF.reset = function () { EF.rings = []; EF.puffs = []; EF.splats = []; EF.banner = null; };
+  EF.reset = function () {
+    EF.rings = []; EF.puffs = []; EF.splats = []; EF.banner = null;
+    EF.hitX = {}; EF.hitN = 0; EF.letterT = -1e9;
+    if (P.EnemiesFx2 && P.EnemiesFx2.reset) P.EnemiesFx2.reset();
+  };
+  // Last hit's x direction per enemy id (flinch lean, art-enemies4.js). Capped so it never grows with the run.
+  EF.hitX = {}; EF.hitN = 0; EF.letterT = -1e9;
 
   function age(item, s) { return s.t - item.t0; }
   function prune(list, s) { for (var i = list.length - 1; i >= 0; i--) if (age(list[i], s) > list[i].dur) list.splice(i, 1); }
@@ -52,8 +58,17 @@ P.EnemyFx = (function () {
 
   function drawAcid(R, z, t) {
     var c = R.ctx, a = Math.min(1, z.t / 0.3), X = R.X(z.x), Y = R.Y(z.y), u = R.ppm;
-    c.fillStyle = 'rgba(124,240,142,' + (0.32 * a) + ')'; c.strokeStyle = 'rgba(20,21,31,' + (0.5 * a) + ')'; c.lineWidth = 2;
+    // Acid green by default; taxi oil is a dark slick with a sheen, the bin's trash is a brown-green stain.
+    var base = z.oil ? 'rgba(24,26,34,' : z.trash ? 'rgba(120,132,58,' : 'rgba(124,240,142,';
+    c.fillStyle = base + (z.oil ? 0.7 : 0.32) * a + ')'; c.strokeStyle = 'rgba(20,21,31,' + (0.5 * a) + ')'; c.lineWidth = 2;
     c.beginPath(); c.ellipse(X, Y, z.r * u, z.r * 0.7 * u, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+    if (z.oil) {
+      c.strokeStyle = 'rgba(255,120,200,' + (0.35 * a) + ')'; c.lineWidth = 3;
+      c.beginPath(); c.ellipse(X + 0.2 * u, Y - 0.1 * u, z.r * 0.6 * u, z.r * 0.3 * u, 0.4, 0.2, 2.6); c.stroke();
+      c.strokeStyle = 'rgba(120,230,255,' + (0.3 * a) + ')';
+      c.beginPath(); c.ellipse(X - 0.15 * u, Y + 0.1 * u, z.r * 0.45 * u, z.r * 0.25 * u, -0.3, 0.6, 3.0); c.stroke();
+      return;
+    }
     for (var i = 0; i < 3; i++) {
       var ph = (t * 1.7 + i * 0.33) % 1, bx = Math.cos(i * 2.1) * z.r * 0.5, by = Math.sin(i * 2.7) * z.r * 0.35;
       c.fillStyle = 'rgba(230,255,220,' + (a * (1 - ph) * 0.8) + ')';
@@ -242,9 +257,36 @@ P.EnemyFx = (function () {
       case 'screamCut': P.Fx.letter(ev.x, ev.y + 1, label('ev.silenced', 'Sustu!', 'Silenced!')); sfx('tink', 0, s, ev.x); break;
       case 'helmetBlock': sfx('tink', 120, s, ev.x); break;
       case 'helmetOff': P.Fx.letter(ev.x, ev.y + 1.2, label('ev.helmet', 'Kask düştü!', 'Helmet off!')); sfx('tink', 0, s, ev.x); break;
-      case 'kill': if (['bloater', 'spitter', 'brute', 'screamer', 'hardhat'].indexOf(ev.enemy) >= 0) killFx(s, ev); break;
+      case 'kill':
+        if (['bloater', 'spitter', 'brute', 'screamer', 'hardhat', 'kurye', 'copci'].indexOf(ev.enemy) >= 0) killFx(s, ev);
+        if (P.EnemiesFx2) P.EnemiesFx2.onKill(s, ev);      // v0.7: death pose and the 6 s corpse
+        break;
+      case 'hit':
+        if (ev.id !== undefined) { if (++EF.hitN > 600) { EF.hitX = {}; EF.hitN = 0; } EF.hitX[ev.id] = ev.dx || 0; }
+        break;
+      // v0.7 (lane C): spawn entrances, kurye and copci, boss phases, weak spots and attack cues.
+      case 'enemyEnter': entranceFx(s, ev); break;
+      case 'kuryeDash': sfx('swish', 200, s, ev.x); break;
+      case 'copciPush': sfx('groan', 500, s, ev.x); break;
+      case 'binDrop': EF.splats.push({ x: ev.x, y: ev.y, r: ev.r * 0.9, col: TOXIC, t0: s.t, dur: 6, a: 0 }); sfx('splat', 120, s, ev.x); break;
+      case 'bossPhase':
+        P.Fx.letter(ev.x, ev.y + 2.6, P.t('ev.phase' + ev.phase)); sfx('bruteRoar', 0, s, ev.x); break;
+      case 'bossStall': P.Fx.letter(ev.x, ev.y + 2.2, label('ev.exposed', 'Açık nokta!', 'Weak spot!')); sfx('hiss', 0, s, ev.x); break;
+      case 'bossWindup': sfx('swish', 300, s, ev.x); break;
+      case 'bossSwing': case 'bossSmash':
+        EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: SLAM, t0: s.t, dur: 0.45 });
+        sfx(ev.type === 'bossSmash' ? 'slam' : 'hammer', 150, s, ev.x); break;
     }
   };
+
+  // Spawn entrance: a cue sound, and a call-out at most every 4 s so a horde does not flood the screen.
+  function entranceFx(s, ev) {
+    var key = 'ev.' + ev.kind;
+    sfx(ev.kind === 'manhole' ? 'rattle' : 'doorSlam', 200, s, ev.x);
+    if (s.t - EF.letterT < 4 || P.t(key) === key) return;
+    EF.letterT = s.t;
+    P.Fx.letter(ev.x, ev.y + 1.4, P.t(key));
+  }
 
   function burst(s, ev) {
     EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: TOXIC, t0: s.t, dur: 0.55 });
@@ -261,7 +303,10 @@ P.EnemyFx = (function () {
     if (ev.enemy === 'brute') sfx('zombieDie', 120, s, ev.x);
   }
 
+  // v0.7 distinct deaths: the taxi blows up (fireball rings, black smoke, shards); the butcher folds over the cleaver.
   function bossDie(s, ev) {
+    if (ev.boss === 'taksici') return taxiDie(s, ev);
+    if (ev.boss === 'kasapBoss') return butcherDie(s, ev);
     EF.rings.push({ x: ev.x, y: ev.y, r: 4, col: TOXIC, t0: s.t, dur: 0.8 });
     EF.rings.push({ x: ev.x, y: ev.y, r: 2.2, col: '#FFD166', t0: s.t, dur: 0.6 });
     for (var i = 0; i < 24; i++) {
@@ -270,6 +315,33 @@ P.EnemyFx = (function () {
     }
     EF.splats.push({ x: ev.x, y: ev.y, r: 1.6, col: ACID, t0: s.t, dur: 8, a: 0 });
     sfx('bossDie', 0, s);
+  }
+
+  function taxiDie(s, ev) {
+    EF.rings.push({ x: ev.x, y: ev.y, r: 3.6, col: '#FF8A3D', t0: s.t, dur: 0.6 });
+    EF.rings.push({ x: ev.x, y: ev.y, r: 2.0, col: '#FFD166', t0: s.t, dur: 0.4 });
+    for (var i = 0; i < 18; i++) {                        // black smoke, slow and wide
+      var a = i / 18 * Math.PI * 2 + (i % 4) * 0.15, sp = 1.2 + (i % 3) * 0.7;
+      EF.puffs.push({ x: ev.x, y: ev.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 0.45 + (i % 3) * 0.15, col: '#2A2B31', t0: s.t, dur: 1.6 });
+    }
+    for (var k = 0; k < 6; k++) {                         // yellow shards
+      var b = k / 6 * Math.PI * 2;
+      EF.puffs.push({ x: ev.x, y: ev.y, vx: Math.cos(b) * 4, vy: Math.sin(b) * 4, r: 0.18, col: '#FFC93C', t0: s.t, dur: 0.9 });
+    }
+    EF.splats.push({ x: ev.x, y: ev.y, r: 2.0, col: '#1B1D26', t0: s.t, dur: 8, a: 0 });
+    P.Fx.letter(ev.x, ev.y + 2.4, label('cause.taksici', 'Taksici', 'Taxi driver'));
+    sfx('boom', 0, s, ev.x);
+  }
+
+  // The butcher folds forward: a low red spray and a cleaver clatter. Quieter than the taxi, longer on the ground.
+  function butcherDie(s, ev) {
+    EF.rings.push({ x: ev.x, y: ev.y, r: 1.6, col: '#B5361F', t0: s.t, dur: 0.5 });
+    for (var i = 0; i < 14; i++) {
+      var a = i / 14 * Math.PI * 2;
+      EF.puffs.push({ x: ev.x, y: ev.y, vx: Math.cos(a) * 2.2, vy: Math.sin(a) * 2.2, r: 0.25, col: '#8B1E1E', t0: s.t, dur: 0.9 });
+    }
+    EF.splats.push({ x: ev.x, y: ev.y, r: 1.8, col: '#7A1518', t0: s.t, dur: 8, a: 0.4 });
+    sfx('tink', 0, s, ev.x); sfx('zombieDie', 0, s, ev.x);
   }
 
   return EF;

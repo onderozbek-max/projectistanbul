@@ -17,6 +17,7 @@ P.Mods = {};
   P.Mastery.srcToWeapon = function (src) {
     if (!src) return null;
     if (Object.prototype.hasOwnProperty.call(SRC, src)) return SRC[src];
+    if (P.CFG.evolutions[src]) return P.CFG.evolutions[src].from;   // every evolution counts toward its base
     return P.CFG.arsenal.weapons.indexOf(src) >= 0 ? src : null;
   };
   P.Mastery.rank = function (id, kills) {
@@ -129,6 +130,8 @@ P.Mods = {};
     if (M.cloud) addCloud(s, x, y, r, M.cloud);
     if (M.chain && (o.depth || 0) < P.CFG.mastery.chainMaxDepth) queueChains(s, killed, dmg, kb, src, A, o.depth || 0);
     if (M.echo && !o.echo && !o.chain) scheduleEcho(s, { kind: 'blast', x: x, y: y, r: r, dmg: dmg, kb: kb, src: src, A: A }, M.echo);
+    // Area damage carries its synergy tag (fire, electric, blunt, blade, gas, water) for the environment rules (lane A).
+    s.events.push({ type: 'areaHit', x: x, y: y, r: r, src: src, tag: P.Weapons.tagOf(src), hits: hits, chain: !!o.chain });
     return hits;
   };
 

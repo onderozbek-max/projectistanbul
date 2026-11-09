@@ -26,9 +26,14 @@ P.Weapons.state = function (s) {
 
 // Generic fire event (view contract, workstream B): one per fire or attack of any weapon. w is the base family;
 // variant is the owned id (an evolution such as cleaver or cluster, else w). lv is the owned level (1..5).
+// tag = the synergy element (fire, electric, blunt, blade, gas, water) of the owned variant (config-weapons3.js).
 P.Weapons.fired = function (s, w, ang, n, variant) {
   var h = s.hero, v = variant || w;
-  s.events.push({ type: 'wfire', w: w, x: h.x, y: h.y, ang: ang, lv: h.weapons[v] || 1, n: n || 1, variant: v });
+  s.events.push({ type: 'wfire', w: w, x: h.x, y: h.y, ang: ang, lv: h.weapons[v] || 1, n: n || 1, variant: v, tag: P.Weapons.tagOf(v) });
+};
+P.Weapons.tagOf = function (id) {
+  var E = P.CFG.evolutions[id];
+  return P.CFG.tags[id] || (E && P.CFG.tags[E.from]) || 'blunt';
 };
 
 // Cooldown tick: returns true when the weapon may fire this step.
@@ -221,7 +226,10 @@ function fireCanister(s, dt) {
 
 // Lob landing: area blast with mods, optional fire zone, optional split into secondary blasts.
 function landLob(s, p) {
-  var lv = p.lv, A = p.A, r = lv.blast * A.area, dmg = P.Weapons.dmgFor(s, 'canister', lv.dmg) * A.dmg;
+  var lv = p.lv, A = p.A, r = lv.blast * A.area * (lv.blastMul || 1), dmg = P.Weapons.dmgFor(s, 'canister', lv.dmg) * A.dmg;
+  // Carbomb (terrain evolution): a landing by a car blows bigger. The terrain check also records the kind for the run.
+  var kinds = p.sub ? [] : P.Weapons6.terrainHit(s, 'canister', 'gas', p.x1, p.y1);
+  if (kinds.indexOf('car') >= 0 && lv.carMul) dmg *= lv.carMul;
   var hits = P.Mods.blast(s, p.x1, p.y1, r, dmg, p.kb, p.id, A, { noStick: !!p.sub });
   var stuck = hits < 0;
   if (lv.fire && !stuck) fireZone(s, p.x1, p.y1, r * 0.8);
@@ -282,12 +290,16 @@ P.Weapons.bladeHits = function (s, lv, angle, gap, kb, src, field, A) {
       if (e[field] && s.t - e[field] < gap) continue;
       e[field] = s.t;
       P.Mods.hit(s, e, dmg, -Math.sin(a), Math.cos(a), kb, src, A);
+      if (lv.arcN) P.Weapons6.arcFrom(s, e, lv, src, !!lv.wetArcs && P.Weapons6.terrainHit(s, 'chain', 'electric', e.x, e.y).indexOf('wet') >= 0);
     }
   }
 };
 
+// The chain runs as the base (chain) or as Elektrik Zinciri (arcchain). Cyclone has its own step (weapons3.js).
 function updateChain(s, dt) {
-  var h = s.hero, cfg = P.CFG.weapons.chain, lv = P.Weapons.level(h, 'chain'), W = P.Weapons.state(s);
+  var h = s.hero, id = P.Weapons.variantOf(h, 'chain'), W = P.Weapons.state(s);
+  if (id !== 'chain' && id !== 'arcchain') return;
+  var cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id);
   if (!lv) return;
   W.chainBoostT = Math.max(0, (W.chainBoostT || 0) - dt);
   var M = P.Mods.of(s, 'chain'), boost = W.chainBoostT > 0 ? P.CFG.sig.chain.spin : 1;
@@ -295,9 +307,9 @@ function updateChain(s, dt) {
   h.chainA = prev + lv.speed * (2 - P.Weapons.cdMult(s)) * M.spin * boost * dt;
   if (Math.floor(h.chainA / (Math.PI * 2)) > Math.floor(prev / (Math.PI * 2))) {
     P.Weapons.spinTurn(s);
-    P.Weapons.fired(s, 'chain', h.chainA, 1);
+    P.Weapons.fired(s, 'chain', h.chainA, 1, id);
   }
-  P.Weapons.bladeHits(s, lv, h.chainA, cfg.hitInterval, cfg.knockback * P.Weapons.kbMult(s), 'chain', 'chainT', P.Weapons.chainAct(s));
+  P.Weapons.bladeHits(s, lv, h.chainA, cfg.hitInterval, cfg.knockback * P.Weapons.kbMult(s), id, 'chainT', P.Weapons.chainAct(s));
 }
 
 P.Weapons.step = function (s, dt) {
@@ -311,6 +323,7 @@ P.Weapons.step = function (s, dt) {
   P.Weapons3.step(s, dt);
   if (P.Weapons4) P.Weapons4.step(s, dt);
   if (P.Weapons5) P.Weapons5.step(s, dt);
+  P.Weapons6.step(s, dt);
   P.Mods.update(s, dt);
 };
 

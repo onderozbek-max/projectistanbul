@@ -4,7 +4,7 @@ Object.assign(P.STR.tr, {
   'ui.pause.level': '{hood} {n}-{s} · {t}', 'ui.down.survived': '{hood} {n}-{s} · {t} dayandın',
   'ui.pause.quit': 'Haritaya dön', 'ui.res.title': 'Haritaya dön', 'ui.res.next': 'Sonraki seviye',
   'ui.res.labelHood': 'BÖLGE {n} · SEVİYE {s} · {hood}', 'ui.res.progress': '{km} / 17 km yürüdün',
-  'ui.hud.ult': 'Nazar patlaması', 'ui.hud.dash': 'ATIL', 'ui.hud.dashHint': 'Hızlı kaydır: atıl',
+  'ui.hud.ult': 'Nazar patlaması', 'ui.hud.dash': 'KAÇ', 'ui.hud.dashHint': 'Hızlı kaydır: kaç',
   'ui.hud.level': '{n}-{s}',
   'boss.intro': 'PATRON', 'boss.rage': 'ÖFKE!',
 });

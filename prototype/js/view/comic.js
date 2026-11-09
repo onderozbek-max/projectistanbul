@@ -8,7 +8,7 @@ P.Comic = (function () {
   var TYPE_CPS = L.CPS, POP = L.POP, POP_W = POP.w, POP_H = POP.h, POP_TOP = 150, RING_LEN = 125.66, AREA = L.AREA;
   var dpr = Math.min(2, window.devicePixelRatio || 1);
   var book = null, bookQueue = [], pops = [], calls = [], popEl = null, popCv = null;
-  var loopOn = false, last = 0, slowUntil = 0;
+  var loopOn = false, last = 0;
 
   // Copy the lettering stacks into CSS variables so comic.css and the canvas share one font config.
   (function setCssType() {
@@ -249,7 +249,6 @@ P.Comic = (function () {
     if (!j.started) {
       j.started = true; ensurePop(); popEl.style.display = '';
       sfx('comicPop', 60, j.s.who);
-      if (j.important && !reduced()) slowUntil = now() + 1100;
     }
     var before = j.T; j.T += dt;
     var tt = popTimes(j);
@@ -388,13 +387,24 @@ P.Comic = (function () {
     kick();
   };
   C.clearPops = function () { pops = []; if (popCv) popCv.c.clearRect(0, 0, POP_W, POP_H); if (popEl) popEl.style.display = 'none'; };
-  C.timeScale = function () {
-    if (reduced()) return 1;
-    var t = now();
-    if (t < slowUntil) return 0.35;
-    var k = (t - slowUntil) / 400;
-    return k >= 1 ? 1 : 0.35 + 0.65 * k;
+  // v0.7: story pops no longer slow the game (the slow-mo had no visible cause). Kept so main.js can call it.
+  C.timeScale = function () { return 1; };
+  // Arbiter provider (speech.js): the pop and the call card are fixed obstacles; other bubbles go around them.
+  C.speechOffers = function () {
+    var r;
+    if (pops.length && pops[0].started && popEl) {
+      // The balloon sits under the HUD: the streak meter can add a row, so the top follows the HUD's bottom edge.
+      var hud = P.Speech.domRect('#hud');
+      popEl.style.top = Math.max(POP_TOP, hud ? hud.y + hud.h + 6 : 0) + 'px';
+      r = P.Speech.domRect('.cm-pop');
+      if (r) P.Speech.offer({ id: 'pop', kind: 'pop', prio: P.Speech.PRIO.pop, fixed: true, rect: r });
+    }
+    if (calls.length && calls[0].el) {
+      r = P.Speech.domRect('.cm-call');
+      if (r) P.Speech.offer({ id: 'call', kind: 'pop', prio: P.Speech.PRIO.pop, fixed: true, rect: r });
+    }
   };
+  if (P.Speech) P.Speech.provider(C.speechOffers);
   C.active = function () { return !!(book || pops.length || calls.length); };
   // Dev audit: every page panel, pop and call line in the current language (needs fonts ready; see comic-layout.js).
   C.audit = function () { return L.audit(); };

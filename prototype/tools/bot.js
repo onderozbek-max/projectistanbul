@@ -12,11 +12,11 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-stats.js', 'js/config-power.js', 'js/config-weapons2.js',
-  'js/strings.js', 'js/journey.js', 'js/meta/meta-data.js', 'js/meta/meta-power.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/sim/rng.js', 'js/sim/world.js',
-  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
-  'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/levels.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
-  'js/sim/hack.js', 'js/sim/progression.js', 'js/sim/director.js', 'js/sim/sim.js'];
+// The modules come from index.html's script order (minus the view, story and flow files), so the bot runs the same
+// sim as the browser build. A new sim file only needs its script tag (AUDIT-6 F2: this list used to drift).
+const NOT_SIM = /^js\/(view|story)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|arsenal|collect|daily|save)\.js$/;
+const FILES = [...fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAll(/<script src="([^"]+)"/g)]
+  .map(m => m[1]).filter(f => !NOT_SIM.test(f));
 FILES.forEach(function (f) { vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }); });
 const P = globalThis.P;
 
@@ -29,7 +29,9 @@ const SEEDS = parseInt(args.seeds || '30', 10), POLICY = args.policy || 'kite';
 const PATH = [[-5, -1.5], [-5, 2], [0, 60], [-4, 140], [-4, 165], [-1, 192], [1.5, 206]];
 const MAX_T = 600, DT = 1 / 60, DROP_KINDS = ['xp', 'chest', 'simit', 'jeton'];
 const HACK_REACH = 7, COUNTED = ['screamStart', 'scream', 'helmetBlock', 'helmetOff', 'hackStart', 'hackNoise', 'hackDone', 'hackFail', 'signalRestored', 'signalLost', 'explode', 'screamCut', 'carQuiet', 'rescueDone', 'lootCaught',
-  'kasapWindup', 'kasapSwing', 'parkurLeap', 'parkurLand'];
+  'kasapWindup', 'kasapSwing', 'parkurLeap', 'parkurLand', 'objDone', 'objFail', 'objPickup', 'idlePack',
+  'envBreak', 'envFuse', 'envLeak', 'envChain', 'envExplode', 'envIgnite', 'envArc', 'envShock', 'envPuddle', 'envExtinguish',
+  'envPortal', 'envSpawn', 'envHit'];
 const med = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : 0; };
 
 // Event counts for the tables: eventStart per kind, plus hack, signal, blast and rescue outcomes.
@@ -125,6 +127,8 @@ function targetOf(s, st) {
   }
   if (s.dir.hold.active) { st.ang += 0.01; return [Math.cos(st.ang) * 3, G.exitY - 4 + Math.sin(st.ang) * 2.5]; }
   if (s.props.shutterOpen) return [0, G.exitY + 2.5];
+  const ob = P.Objectives.botTarget(s);            // lane P: crate, terminal or booster waypoint (objectives.js)
+  if (ob) return ob;
   return [0, Math.min(G.holdY + 1.5, h.y + 8)];
 }
 
@@ -244,7 +248,8 @@ function runGen(index, seed) {
   const L = s || { runT: 0, kills: 0, levelUps: [], peakAlive: 0, hero: { hp: 0 }, tally: { hacks: 0, events: 0 }, geo: { exitY: 0, holdY: 0 }, dir: { hold: {} }, props: {} };
   return { seed, index, id: P.Journey.level(index).id, result, err, t: L.runT, kills: L.kills, levelUps: L.levelUps.length, stuck,
     peak: L.peakAlive, deaths, dmgBy, evBy, segT, hacks: L.tally.hacks, events: L.tally.events,
-    bossKilled: !!(s && s.gen && s.gen.boss && s.gen.boss.dead), hp: Math.round(L.hero.hp), exitY: L.geo.exitY, holdY: L.geo.holdY,
+    objId: s && s.obj ? s.obj.id : null, objState: s && s.obj ? s.obj.state : null,
+    bossKilled: !!(s && s.gen && s.gen.boss && s.gen.boss.dead), hp: Math.round(L.hero.hp), exitY: (L.geo || {}).exitY || 0, holdY: (L.geo || {}).holdY || 0,
     stage: P.Journey.level(index).stage, at: { x: s ? +s.hero.x.toFixed(2) : 0, y: s ? +s.hero.y.toFixed(2) : 0, hold: !!(s && s.dir.hold.active), gate: !!(s && s.props.shutterOpen) } };
 }
 
@@ -265,7 +270,9 @@ function summarize(list) {
   return { n, clear: wins.length, noDeath: noDeath.length, medT: med(list.map(r => r.t)),
     deaths: list.reduce((a, r) => a + r.deaths.length, 0) / n, lvls: med(list.map(r => r.levelUps)),
     peak: med(list.map(r => r.peak)), events: med(list.map(r => r.events)), hacks: med(list.map(r => r.hacks)),
-    timeouts: list.filter(r => r.result === 'timeout').length, crashes: list.filter(r => r.result === 'crash').length };
+    timeouts: list.filter(r => r.result === 'timeout').length, crashes: list.filter(r => r.result === 'crash').length,
+    objDone: list.filter(r => r.objState === 'done').length, objTotal: list.filter(r => r.objId).length,
+    objType: (list.find(r => r.objId) || {}).objId || '-' };
 }
 
 // Median count per key across runs (events, hacks, signal, blasts), e.g. "ev:ambush=1 ev:loot=2".
@@ -280,11 +287,11 @@ function runLevels(indices, seeds) {
   indices.forEach(idx => {
     const list = [];
     const seedList = args.seed ? [parseInt(args.seed, 10)] : Array.from({ length: seeds }, (_, i) => i + 1);
-    seedList.forEach(sd => list.push(runGen(idx, sd)));
+    seedList.forEach(sd => list.push(idx === 1 ? runL1(sd, true) : runGen(idx, sd)));   // L1 is scripted: its own route
     rows.push({ idx, id: P.Journey.level(idx).id, boss: P.Journey.level(idx).boss, sm: summarize(list), list });
   });
   console.log(`generated levels, policy=kite-generic seeds=${seeds} (clear = win with one revive) loadout=${args.bare ? 'bare' : 'expected'}`);
-  console.log('level  id       type   clear      no-death   median s  deaths/run  lvl-ups  peak  events  hacks  timeouts crashes  power: rank attr mast might hp cdr  dmg x rate');
+  console.log('level  id       type   clear      no-death   median s  deaths/run  lvl-ups  peak  events  hacks  timeouts crashes  objective (type, done/levels)  power: rank attr mast might hp cdr  dmg x rate');
   rows.forEach(r => {
     const c = r.sm, pw = args.bare ? null : P.Power.summary(r.idx);
     const pTxt = pw ? `  ${pw.rank} ${pw.attr} ${pw.mastery} +${Math.round(pw.might * 100)}% +${Math.round(pw.hp * 100)}% ${Math.round(pw.cdr * 100)}%  x${pw.mult.toFixed(2)}` : '';
@@ -292,7 +299,7 @@ function runLevels(indices, seeds) {
       `${(c.clear + '/' + c.n + ' ' + Math.round(100 * c.clear / c.n) + '%').padEnd(10)} ` +
       `${(Math.round(100 * c.noDeath / c.n) + '%').padEnd(10)} ${c.medT.toFixed(0).padStart(8)}  ` +
       `${c.deaths.toFixed(2).padStart(10)}  ${String(c.lvls).padStart(7)}  ${String(c.peak).padStart(4)}  ` +
-      `${String(c.events).padStart(6)}  ${String(c.hacks).padStart(5)}  ${String(c.timeouts).padStart(8)} ${String(c.crashes).padStart(7)}${pTxt}`);
+      `${String(c.events).padStart(6)}  ${String(c.hacks).padStart(5)}  ${String(c.timeouts).padStart(8)} ${String(c.crashes).padStart(7)}  obj ${c.objType.padEnd(7)} ${c.objDone}/${c.objTotal}${pTxt}`);
   });
   rows.forEach(r => r.list.filter(x => x.result === 'crash').slice(0, 2).forEach(x => console.log(`crash L${r.idx} seed ${x.seed}: ${x.err}`)));
   if (args.verbose) rows.forEach(r => r.list.forEach(x => console.log(JSON.stringify(x))));

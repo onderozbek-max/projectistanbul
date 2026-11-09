@@ -1,20 +1,29 @@
-// Player-skill visuals (workstream E1): dash afterimages, speed lines and cooldown ring; the ultimate "Evil-Eye
-// Burst" (giant eye, area outline, rays); the Nazar charm dodge eye; the frenzy gold trail and banner; the magnet
-// vacuum ring; near-miss letters; and the 1.6 s evolution cutscene in screen space (the sim keeps running).
-// v0.5: the convoy ultimate (three lanes of cars, from sk.sweeps) and the horn ultimate (a ring from Arda) draw
-// under the hero; they have no eye and no full-screen flash. Screen flashes stay at or below 0.3 alpha and fire
-// at most once per ultimate.
+// Player-skill visuals (workstream E1): dash afterimages and speed lines, the dash-through callout (SIYRILDI!), the
+// cooldown ring; the ultimate "Evil-Eye Burst" (giant eye, area outline, rays); the Nazar charm dodge eye; the
+// frenzy aura and gold trail; the magnet vacuum ring; near-miss letters; and the 1.6 s evolution cutscene.
+// v0.7: no screen flashes and no random speed streaks. The frenzy trail only forms while the hero moves. Banners go
+// through P.Speech (the arbiter), with a local fallback when speech.js is absent (tests).
 P.SkillsFx = (function () {
   var F = {}, INK = '#14151F', GOLD = '255,209,102', BLUE = '150,220,255';
-  var MAX_GHOSTS = 8, MAX_TRAIL = 14, GHOST_GAP = 0.03;
-  var ghosts = [], trail = [], ult = null, eye = null, banner = null, evo = null, flash = null, vac = null, ghostT = 0, icons = {},
+  var MAX_GHOSTS = 8, MAX_TRAIL = 14, GHOST_GAP = 0.03, SLIP_R = 0.7, SLIP_N = 3;
+  var BUBBLE_R = 0.9, POP_T = 0.3;   // simit shield bubble radius and block pop time (view only, m and s)
+  var pops = [];
+  var ghosts = [], trail = [], ult = null, eye = null, banner = null, evo = null, vac = null, ghostT = 0, icons = {},
+    slipSeen = [], slipDone = false,
     kit = { convoy: null, horn: null };   // latest v0.5 ult payloads (lanes, car size, horn radius)
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function noop() {}
 
   F.reset = function () {
-    ghosts = []; trail = []; ult = null; eye = null; banner = null; evo = null; flash = null; vac = null; ghostT = 0;
+    ghosts = []; trail = []; ult = null; eye = null; banner = null; evo = null; vac = null; ghostT = 0; pops = [];
+    slipSeen = []; slipDone = false;
   };
+
+  // Banner through the arbiter; the local banner is only the fallback when P.Speech is not loaded.
+  function showBanner(key, T) {
+    if (P.Speech && P.Speech.banner) P.Speech.banner(key, T, 0.3, '#FFD166');
+    else banner = { key: key, t: T, T: T };
+  }
 
   F.onEvent = function (ev, s) {
     var h = s.hero, pn = P.WFx.pan(s, ev.x !== undefined ? ev.x : h.x);
@@ -27,7 +36,7 @@ P.SkillsFx = (function () {
         break;
       case 'ult': if (ev.id === 'convoy' || ev.id === 'horn') startSweep(ev); else startUlt(ev); break;
       case 'ultReady': P.Fx.letter(h.x, h.y + 1.4, P.t('ult.ready')); P.Sfx.play('ultReady', 300); break;
-      case 'frenzy': if (ev.on) { banner = { key: 'frenzy.on', t: 1.2, T: 1.2 }; P.Sfx.play('frenzy', 300); } break;
+      case 'frenzy': if (ev.on) { showBanner('frenzy.on', 1.2); P.Sfx.play('frenzy', 300); } break;
       case 'nazarDodge':
         eye = { t: 0.35, T: 0.35 };
         P.Fx.letter(h.x, h.y + 1.3, P.t('nazar.dodge'));
@@ -35,11 +44,22 @@ P.SkillsFx = (function () {
         break;
       case 'vacuum': vac = { x: ev.x, y: ev.y, r: ev.r, t: 0.45, T: 0.45 }; P.Sfx.play('magnet', 200, { pan: pn }); break;
       case 'evolve': evo = { from: ev.from, to: ev.to, t: ev.T, T: ev.T }; P.Sfx.play('evolve'); P.Fx.addTrauma(0.3); break;
+      // W2 active skills: the cast banner and cue, the bubble pop when the shield takes a hit.
+      case 'skillUsed':
+        showBanner('skill.' + ev.id, 1.0);
+        P.Sfx.play(ev.id === 'tea' ? 'heal' : 'nazar', 200, { pan: pn });
+        break;
+      case 'shieldBlock':
+        pops.push({ x: ev.x, y: ev.y, t: POP_T, T: POP_T });
+        P.Fx.letter(ev.x, ev.y + 1.2, P.t('shield.block'));
+        P.Sfx.play('nazar', 150, { pan: pn });
+        break;
     }
   };
 
   function dashStart(ev, s, pn) {
     var h = s.hero, tr = Math.atan2(ev.ay, ev.ax), px = -Math.sin(tr), py = Math.cos(tr), i, off, back;
+    slipSeen = []; slipDone = false;
     for (i = 0; i < 8; i++) {
       off = (i / 7 - 0.5) * 0.8; back = rnd(0.2, 0.9);
       P.WFx.add({ k: 'speed', x: h.x - Math.cos(tr) * back + px * off, y: h.y - Math.sin(tr) * back + py * off,
@@ -51,8 +71,7 @@ P.SkillsFx = (function () {
 
   function startUlt(ev) {
     ult = { x: ev.x, y: ev.y, hw: ev.hw, hh: ev.hh, n: ev.n, t: ev.T, T: ev.T };
-    flash = { t: 0.3, T: 0.3 };
-    banner = { key: 'ult.name', t: 1.2, T: 1.2 };
+    showBanner('ult.name', 1.2);
     P.Fx.addTrauma(0.5);
     P.Sfx.play('ult');
   }
@@ -60,10 +79,24 @@ P.SkillsFx = (function () {
   // Convoy and horn (v0.5): a banner, a small shake and a cue. The sweep itself is drawn from sk.sweeps in drawUnder.
   function startSweep(ev) {
     kit[ev.id] = ev;
-    banner = { key: 'ult.' + ev.id, t: 1.2, T: 1.2 };
+    showBanner('ult.' + ev.id, 1.2);
     P.Fx.addTrauma(ev.id === 'horn' ? 0.25 : 0.3);
     P.Sfx.play('ult');
     P.Sfx.play(ev.id === 'horn' ? 'ferryHorn' : 'bell', 300);
+  }
+
+  // Dash-through: each enemy the dash passes within SLIP_R gets an afterimage at the contact; the third one
+  // shouts SIYRILDI! once per dash. The cause is visible (the hero goes through the crowd, and the enemies live).
+  function slipCheck(s) {
+    var h = s.hero, list = s.enemies || [], i, e;
+    for (i = 0; i < list.length; i++) {
+      e = list[i];
+      if (e.dead || e.state === 'dormant' || slipSeen.indexOf(e) >= 0) continue;
+      if (Math.hypot(e.x - h.x, e.y - h.y) > SLIP_R) continue;
+      slipSeen.push(e);
+      if (ghosts.length < MAX_GHOSTS) ghosts.push({ x: h.x, y: h.y, fx: h.fx, t: 0.3, T: 0.3 });
+    }
+    if (!slipDone && slipSeen.length >= SLIP_N) { slipDone = true; P.Fx.letter(h.x, h.y + 1.3, P.t('fx.slip')); }
   }
 
   // ---------- per-frame timers and trails ----------
@@ -75,17 +108,20 @@ P.SkillsFx = (function () {
       ghostT -= dt;
       if (ghostT <= 0 && ghosts.length < MAX_GHOSTS) { ghostT = GHOST_GAP; ghosts.push({ x: s.hero.x, y: s.hero.y, fx: s.hero.fx, t: 0.35, T: 0.35 }); }
     } else ghostT = 0;
-    if (frenzy) {
+    // The gold trail follows the hero's path only while it moves; standing still it fades out.
+    if (frenzy && s && s.hero.moving) {
       trail.push({ x: s.hero.x, y: s.hero.y });
       if (trail.length > MAX_TRAIL) trail.shift();
-      if (Math.random() < dt * 20) P.WFx.add({ k: 'speed', x: s.hero.x + rnd(-0.4, 0.4), y: s.hero.y + rnd(-0.2, 0.2), a: rnd(0, 6.28), len: 0.5, t: 0.25, T: 0.25, gold: true });
-    } else trail = [];
-    if (flash) { flash.t -= dt; if (flash.t <= 0) flash = null; }
+    } else if (trail.length) trail.shift();
+    if (dash) slipCheck(s); else { slipSeen = []; slipDone = false; }
     if (eye) { eye.t -= dt; if (eye.t <= 0) eye = null; }
     if (ult) { ult.t -= dt; if (ult.t <= 0) ult = null; }
     if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
     if (vac) { vac.t -= dt; if (vac.t <= 0) vac = null; }
     if (evo) { evo.t -= dt; if (evo.t <= 0) evo = null; }
+    pops.forEach(function (q) { q.t -= dt; });
+    pops = pops.filter(function (q) { return q.t > 0; });
+    if (s && P.SkillButton) P.SkillButton.sync(s);
   };
 
   // ---------- under the hero: afterimages, frenzy trail, cooldown ring ----------
@@ -162,8 +198,9 @@ P.SkillsFx = (function () {
     c.save();
     if (ult) drawUlt(c, R, u, t);
     if (eye) drawEye(c, R.X(h.x), R.Y(h.y) - 1.1 * u, 0.35 * u, 1, 0.55 * (eye.t / eye.T));
+    drawActive(c, R, s, u, t);
     if (P.Skills.frenzyOn(s)) {
-      c.strokeStyle = 'rgba(' + GOLD + ',' + (0.25 + 0.1 * Math.sin(t * 4)).toFixed(3) + ')'; c.lineWidth = 3;
+      c.strokeStyle = 'rgba(' + GOLD + ',' + (0.28 + 0.08 * Math.sin(t * 3)).toFixed(3) + ')'; c.lineWidth = 3;
       c.beginPath(); c.ellipse(R.X(h.x), R.Y(h.y), 0.6 * u, 0.25 * u, 0, 0, Math.PI * 2); c.stroke();
     }
     if (vac) {
@@ -173,6 +210,28 @@ P.SkillsFx = (function () {
     }
     c.restore();
   };
+
+  // W2 active skills: the simit bubble while the shield is up (a pop ring on each block), the dashed tea aura while the
+  // tea is steeping. The aura radius is the sim's slow radius, so what you see is what slows.
+  function drawActive(c, R, s, u, t) {
+    var a = P.Skills.hud(s).active, h = s.hero, X = R.X(h.x), Y = R.Y(h.y), q, p;
+    if (a && a.on && a.id === 'shield') {
+      c.fillStyle = 'rgba(' + GOLD + ',0.12)';
+      c.strokeStyle = 'rgba(' + GOLD + ',' + (0.55 + 0.15 * Math.sin(t * 4)).toFixed(3) + ')'; c.lineWidth = 3;
+      c.beginPath(); c.arc(X, Y, BUBBLE_R * u, 0, Math.PI * 2); c.fill(); c.stroke();
+    }
+    if (a && a.on && a.id === 'tea') {
+      c.setLineDash([8, 8]);
+      c.strokeStyle = 'rgba(160,230,150,' + (0.45 + 0.1 * Math.sin(t * 3)).toFixed(3) + ')'; c.lineWidth = 2;
+      c.beginPath(); c.arc(X, Y, P.CFG.skills.active.tea.slowR * u, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+    }
+    for (q = 0; q < pops.length; q++) {
+      p = 1 - pops[q].t / pops[q].T;
+      c.strokeStyle = 'rgba(' + GOLD + ',' + (0.8 * (1 - p)).toFixed(3) + ')'; c.lineWidth = 3;
+      c.beginPath(); c.arc(R.X(pops[q].x), R.Y(pops[q].y), BUBBLE_R * u * (1 + 0.4 * p), 0, Math.PI * 2); c.stroke();
+    }
+  }
 
   // Ultimate: dashed damage area, blue-white rays and the giant eye that opens in the first 12% of its time.
   function drawUlt(c, R, u, t) {
@@ -206,11 +265,10 @@ P.SkillsFx = (function () {
     c.restore();
   }
 
-  // ---------- screen layer: flash, banner, evolve cutscene ----------
+  // ---------- screen layer: fallback banner (only without P.Speech), evolve cutscene ----------
   F.screen = function (R, s) {
     var c = R.ctx;
-    if (flash) { c.fillStyle = 'rgba(255,250,235,' + (0.3 * flash.t / flash.T).toFixed(3) + ')'; c.fillRect(0, 0, R.W, R.H); }
-    if (banner) P.WFx.banner(c, R, banner.key, banner.t, banner.T, 0.3, '#FFD166');
+    if (banner && !(P.Speech && P.Speech.banner)) P.WFx.banner(c, R, banner.key, banner.t, banner.T, 0.3, '#FFD166');
     if (evo) drawEvo(c, R, evo);
   };
 

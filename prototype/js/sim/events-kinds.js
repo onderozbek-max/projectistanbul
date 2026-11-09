@@ -163,6 +163,7 @@ EK.blast = function (s, x, y, B) {
   }
   var h = s.hero;
   if (Math.hypot(h.x - x, h.y - y) - P.CFG.hero.radius <= B.blastR) P.Combat.damageHero(s, B.heroDmg, 'car');
+  if (s.env && P.Env) P.Env.chainAt(s, x, y, B.blastR, 'chain', P.CFG.env.fuse.chain);   // lane A: this blast lights canisters and bomb cars
 };
 
 // ---------- stampede: fleeing civilians cross the street; they push the hero, and shove zombies out of the way ----------

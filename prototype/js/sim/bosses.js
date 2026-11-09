@@ -1,7 +1,10 @@
-// Boss behaviours for generated stage-5 arenas (workstream E2). One boss per hood type (journey.js):
-// brute (charges x3, stomp rings, summons), bloater (toxic pools, mini bloaters, belly slam),
-// spitter (fan spray of 5 globs, acid rain). Numbers: P.CFG.bosses (config-levels.js).
-// Every attack telegraphs >= 0.8 s (DS 6). Telegraphs carry owner = boss id and are cleared on death.
+// Boss behaviours for generated stage-5 arenas (workstream E2, lane C v0.7). Archetypes: brute (charges x3, stomp rings,
+// summons), bloater (toxic pools, mini bloaters, belly slam), spitter (fan spray of 5 globs, acid rain), and the lane C
+// additions: taksici (taxi: charges leave an oil slick; a charge that hits a wall stalls it and opens a weak spot) and
+// kasapBoss (butcher: a three-swing cleaver combo with an apron weak spot after it, a thrown cleaver, a frenzy phase).
+// The additions have three phases (P.CFG.bosses[id].phases). Hood -> archetype: P.CFG.bossByHood (config-bosses.js).
+// Numbers: P.CFG.bosses (config-levels.js and config-bosses.js). Every attack telegraphs >= 0.8 s (DS 6). Telegraphs
+// carry owner = boss id and are cleared on death.
 P.Bosses = {};
 
 var SEQ = {
@@ -12,36 +15,82 @@ var SEQ = {
 
 function def(e) { return P.CFG.bosses[e.type]; }
 
+// Archetype for a hood: the bossByHood table wins over the hood's own boss type (journey.js).
+P.Bosses.archetype = function (hoodId, type) {
+  var t = P.CFG.bossByHood && hoodId ? P.CFG.bossByHood[hoodId] : null;
+  return t && P.CFG.bosses[t] ? t : type;
+};
+
 // Spawn a boss. Intro: the boss stands still for `intro` seconds while the banner plays (bossIntro event).
 P.Bosses.spawn = function (s, type, x, y, o) {
-  var B = P.CFG.bosses[type], df = s.diff, hm = 1 + P.CFG.levels.diff.bossHoodMul * o.hoodIdx;
+  var arch = P.Bosses.archetype(o.hoodId, type), B = P.CFG.bosses[arch], df = s.diff, hm = 1 + P.CFG.levels.diff.bossHoodMul * o.hoodIdx;
   var share = P.CFG.levels.diff.bossShare;            // bosses take only part of the route HP and damage growth
-  var e = P.Combat.spawnEnemy(s, type, x, y, { state: 'turning', stateT: P.CFG.levels.bossIntro, skin: o.skin });
-  e.boss = true; e.nameKey = o.nameKey; e.r = B.radius; e.speed = B.speed; e.kbResist = B.kbResist;
+  var e = P.Combat.spawnEnemy(s, B.base || arch, x, y, { state: 'turning', stateT: P.CFG.levels.bossIntro, skin: o.skin });
+  e.type = arch; e.boss = true; e.nameKey = o.nameKey; e.r = B.radius; e.speed = B.speed; e.kbResist = B.kbResist;
   e.contact = B.contact * (df ? 1 + (df.dmg - 1) * share : 1); e.xp = B.xp;
   e.hp = B.hp * hm * (df ? 1 + (df.hp - 1) * share : 1); e.maxHp = e.hp;
+  e.armour = B.armour || 1; e.exposed = false; e.phase = 1;
   e.ai = makeAI(e);
-  s.events.push({ type: 'bossIntro', nameKey: o.nameKey, boss: type, x: x, y: y, hood: o.hoodId || null });
+  s.events.push({ type: 'bossIntro', nameKey: o.nameKey, boss: arch, x: x, y: y, hood: o.hoodId || null });
   return e;
 };
 
 function makeAI(e) {
-  return { seq: SEQ[e.type], k: 0, needPause: false, m: 'walk', t: 0, W: 0, act: null, cd: 1.0,
+  var B = P.CFG.bosses[e.type];
+  return { seq: B.phases ? B.phases[0].seq : SEQ[e.type], k: 0, needPause: false, m: 'walk', t: 0, W: 0, act: null, cd: 1.0,
     dir: { x: 0, y: 1 }, dist: 0, len: 0, spd: 0, hit: false, dmg: 0, kb: 0, shove: 0, p: { x: e.x, y: e.y }, rageOn: false,
-    side: 1, strafeT: 2.5 };
+    side: 1, strafeT: 2.5, combo: 0, exposeT: 0, wm: 1, gapMul: 1, spdMul: 1 };
 }
 
 P.Bosses.think = function (s, e, dt) {
   var a = e.ai, B = def(e);
   if (!a) return false;
-  if (!a.rageOn && e.hp <= e.maxHp * B.rageAt) { a.rageOn = true; s.events.push({ type: 'bossRage', x: e.x, y: e.y, boss: e.type }); }
+  updatePhase(s, e, a, B);
   a.cd = Math.max(0, a.cd - dt);
+  if (a.exposeT > 0) { a.exposeT -= dt; if (a.exposeT <= 0) unexpose(e, B); }
   if (a.m === 'windup') return windupStep(s, e, dt);
   if (a.m === 'charge') { chargeStep(s, e, dt); return true; }
-  if (a.m === 'pause') { a.t -= dt; e.dvx = 0; e.dvy = 0; if (a.t <= 0) a.m = 'walk'; return true; }
+  if (a.m === 'pause' || a.m === 'stall' || a.m === 'recover') {
+    a.t -= dt; e.dvx = 0; e.dvy = 0;
+    if (a.t <= 0) { if (a.m === 'recover') startSwing(s, e, a, B); else a.m = 'walk'; }
+    return true;
+  }
   if (a.cd <= 0) return nextAction(s, e, a, B);
   return move(s, e, dt, B);
 };
+
+// Classic archetypes rage once at rageAt (phase 2). The additions switch phase at phaseAt (HP share) and pause once.
+function updatePhase(s, e, a, B) {
+  var p;
+  if (!B.phases) {
+    if (!a.rageOn && e.hp <= e.maxHp * B.rageAt) {
+      a.rageOn = true; e.phase = 2;
+      s.events.push({ type: 'bossRage', x: e.x, y: e.y, boss: e.type });
+      s.events.push(phaseEv(e, 2));
+    }
+    return;
+  }
+  p = phaseOf(e, B);
+  if (p === e.phase) return;
+  e.phase = p;
+  a.seq = B.phases[p - 1].seq; a.k = 0; a.wm = B.phases[p - 1].wm; a.gapMul = B.phases[p - 1].gapMul; a.spdMul = B.phases[p - 1].spdMul;
+  a.needPause = true;
+  s.events.push(phaseEv(e, p));
+}
+
+function phaseOf(e, B) {
+  var f = e.hp / e.maxHp, p = 1, i;
+  for (i = 0; i < B.phaseAt.length; i++) if (f <= B.phaseAt[i]) p = i + 2;
+  return p;
+}
+
+function phaseEv(e, p) { return { type: 'bossPhase', id: e.id, x: e.x, y: e.y, boss: e.type, phase: p, nameKey: e.nameKey }; }
+
+function gapOf(a, B) { return (a.rageOn ? B.rageGap : B.gap) * a.gapMul; }
+
+// Weak spot: the boss takes full damage (exposedArmour) for exposeT seconds.
+function expose(e, B) { e.exposed = true; e.armour = B.exposedArmour; e.ai.exposeT = B.exposeT; }
+function unexpose(e, B) { e.exposed = false; e.armour = B.armour || 1; }
 
 function nextAction(s, e, a, B) {
   if (a.needPause) { a.needPause = false; a.m = 'pause'; a.t = a.rageOn ? B.pause * 0.5 : B.pause; e.dvx = 0; e.dvy = 0; return true; }
@@ -52,7 +101,7 @@ function nextAction(s, e, a, B) {
   return true;
 }
 
-// Movement between attacks: brute and bloater chase; spitter keeps distance (as the spitter, boss-sized).
+// Movement between attacks: brute, bloater and the additions chase; spitter keeps distance (as the spitter, boss-sized).
 function move(s, e, dt, B) {
   var h = s.hero, sp = e.speed * (e.ai.rageOn && e.type === 'brute' ? P.CFG.bosses.brute.rageSpeed : 1);
   var d = P.Enemies.dist(e, h), u = P.Enemies.unit(h.x - e.x, h.y - e.y);
@@ -71,8 +120,8 @@ function start(s, e, name) {
   a.m = 'windup'; a.t = 0; a.act = name; e.dvx = 0; e.dvy = 0;
   a.dir = P.Enemies.unit(h.x - e.x, h.y - e.y);
   if (name === 'charge') {
-    W = rage ? B.rageWindup : B.windup;
-    a.W = W; a.len = B.laneLen; a.spd = B.chargeSpeed; a.dmg = P.Enemies.dmgOf(s, e, B.chargeDmg); a.kb = B.chargeKb; a.shove = P.CFG.enemies.brute.shove;
+    W = (rage ? B.rageWindup : B.windup) * a.wm;
+    a.W = W; a.len = B.laneLen; a.spd = B.chargeSpeed * a.spdMul; a.dmg = P.Enemies.dmgOf(s, e, B.chargeDmg); a.kb = B.chargeKb; a.shove = P.CFG.enemies.brute.shove;
     P.Enemies.lane(s, e.x, e.y, a.dir.x, a.dir.y, B.laneLen, B.laneW, W).owner = e.id;
     s.events.push({ type: 'bruteRoar', x: e.x, y: e.y, boss: true });
   } else if (name === 'stomp') {
@@ -105,7 +154,35 @@ function start(s, e, name) {
       var q = spot(s, h, B.rain.span);
       addTele(s, e, { kind: 'ring', x: q.x, y: q.y, r: B.rain.r, T: a.W, then: 'puddle', T2: B.rain.t, dps: B.rain.dps, col: 'acid' });
     }
+  } else if (name === 'smash') {                       // taksici: hood smash on the spot ahead of the car
+    a.W = B.smash.windup * a.wm;
+    addTele(s, e, { kind: 'ring', x: e.x + a.dir.x * B.smash.reach, y: e.y + a.dir.y * B.smash.reach, r: B.smash.r, T: a.W,
+      then: 'smash', dmg: P.Enemies.dmgOf(s, e, B.smash.dmg), kb: B.smash.shove, cause: e.type, col: 'slam' });
+  } else if (name === 'combo') {                       // kasapBoss: three swings, one after another
+    a.combo = 3; startSwing(s, e, a, B);
+  } else if (name === 'throw') {                       // kasapBoss: the cleaver lands on the hero's spot
+    a.W = B.throw.windup * a.wm;
+    addTele(s, e, { kind: 'ring', x: h.x, y: h.y, r: B.throw.r, T: a.W, then: 'swing', dmg: P.Enemies.dmgOf(s, e, B.throw.dmg),
+      kb: 0.6, cause: e.type, col: 'danger' });
+    P.Enemies3.launchBlade(s, e.x, e.y, h.x, h.y, a.W);
+    s.events.push({ type: 'bossWindup', id: e.id, x: e.x, y: e.y, boss: e.type });
+  } else if (name === 'frenzy') {                      // kasapBoss: four small swings on the hero's area
+    a.W = B.frenzy.windup * a.wm;
+    for (var n = 0; n < B.frenzy.n; n++) {
+      var f = spot(s, h, B.frenzy.span);
+      addTele(s, e, { kind: 'ring', x: f.x, y: f.y, r: B.frenzy.r, T: a.W, then: 'swing', dmg: P.Enemies.dmgOf(s, e, B.frenzy.dmg),
+        kb: 0.4, cause: e.type, col: 'slam' });
+    }
   }
+}
+
+// One swing of the kasapBoss combo: a ring on the spot in front of the boss. Swings chain from the recover state.
+function startSwing(s, e, a, B) {
+  var i = 3 - a.combo, h = s.hero, W = B.swing.windup[i] * a.wm, dir = P.Enemies.unit(h.x - e.x, h.y - e.y);
+  a.combo--; a.m = 'windup'; a.t = 0; a.W = W; a.act = 'combo'; a.dir = dir; e.dvx = 0; e.dvy = 0;
+  addTele(s, e, { kind: 'ring', x: e.x + dir.x * B.swing.reach, y: e.y + dir.y * B.swing.reach, r: B.swing.r, T: W,
+    then: 'swing', dmg: P.Enemies.dmgOf(s, e, B.swing.dmg), kb: B.swing.kb, cause: e.type, col: 'slam' });
+  s.events.push({ type: 'bossWindup', id: e.id, x: e.x, y: e.y, boss: e.type });
 }
 
 // Stomp rings use the director's telegraph list (drawn as the standard hatched ring); the rest use enemyTele.
@@ -115,7 +192,7 @@ function addTele(s, e, t) {
 }
 
 function windupStep(s, e, dt) {
-  var a = e.ai;
+  var a = e.ai, B = def(e);
   e.dvx = 0; e.dvy = 0; a.t += dt; e.windup = P.Enemies.clamp01(a.t / a.W);
   if (a.t < a.W) return true;
   e.windup = 0;
@@ -125,21 +202,35 @@ function windupStep(s, e, dt) {
     s.events.push({ type: 'bruteCharge', x: e.x, y: e.y, dx: a.dir.x, dy: a.dir.y, boss: true });
     return true;
   }
-  a.m = 'walk'; a.cd = e.ai.rageOn ? def(e).rageGap : def(e).gap;
+  if (a.act === 'combo' && a.combo > 0) { a.m = 'recover'; a.t = B.swing.recover; return true; }
+  if (a.act === 'combo') expose(e, B);                 // the last swing opens the apron: weak spot
+  a.m = 'walk'; a.cd = gapOf(a, B);
   return true;
 }
 
 // Boss charge: straight line, shoves zombies, contact hit handled by P.Enemies.onContact (ai.m === 'charge').
+// A charge that stops against a block or wall ends blocked: archetypes with a stall (taksici) are stalled and exposed.
 function chargeStep(s, e, dt) {
   var a = e.ai, step = a.spd * dt, moved = P.Enemies.dist(a.p, e);
   a.p.x = e.x; a.p.y = e.y;
-  if (a.dist >= a.len || (a.dist > 0.3 && moved < step * 0.25)) {
-    a.m = 'pause'; a.t = 0.4; a.cd = a.rageOn ? def(e).rageGap : def(e).gap; e.dvx = 0; e.dvy = 0; e.noSep = false;
-    return;
-  }
+  var blocked = a.dist > 0.3 && moved < step * 0.25;
+  if (a.dist >= a.len || blocked) { endCharge(s, e, a, blocked); return; }
   a.dist += step;
   e.dvx = a.dir.x * a.spd; e.dvy = a.dir.y * a.spd; e.noSep = true;
   P.Enemies.shoveAside(s, e, a);
+}
+
+function endCharge(s, e, a, blocked) {
+  var B = def(e);
+  e.dvx = 0; e.dvy = 0; e.noSep = false;
+  a.cd = gapOf(a, B);
+  if (B.oil) s.zones.push({ kind: 'acid', x: e.x, y: e.y, r: B.oil.r, t: B.oil.t, T: B.oil.t, dps: B.oil.dps, heroDps: B.oil.heroDps, tick: 0, hit: {}, oil: true });
+  if (blocked && B.stall) {
+    a.m = 'stall'; a.t = B.stall.T; expose(e, B);
+    s.events.push({ type: 'bossStall', id: e.id, x: e.x, y: e.y, boss: e.type });
+    return;
+  }
+  a.m = 'pause'; a.t = 0.4;
 }
 
 // Random spot near the hero, inside the corridor and ahead of the arena entrance.

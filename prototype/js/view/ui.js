@@ -1,15 +1,42 @@
 // HUD, prompts, subtitles, toasts (design/lofi/04-run-hud.html; DS 5, 13; LD 9).
+// v0.7: the tutorial hint and the toast are arbiter candidates (speech.js), so they never cover a bark, a pop or the
+// HUD. The streak meter (#streak, in the HUD) shows the kill streak toward frenzy and the frenzy timer, with the combo
+// tier labels (SÜPER, MÜTHİŞ, ...) for a moment at 25, 50, 100 and 200. It replaces the old canvas combo counter.
+// AUDIT-6 (lane F): overlays (cards, chest, pause, settings, down) take the HUD, the dash and nazar buttons and the
+// subtitle layer off screen while they are up (F1). Every bound element has a stand-in, so a missing id never stops a
+// run (F2; tools/check-ids.js catches the gap at build time). The boss bar is a DOM bar under the XP row (F7). The dash
+// chip shows its cooldown in seconds and a ring when ready (F9).
 P.UI = (function () {
-  var U = {}, el = {}, toastT = 0, lastHp = -1, lastSub = null;
+  var U = {}, el = {}, toastT = 0, lastHp = -1, lastSub = null, tierT = 0, tierKey = null, lastN = 0;
+  var hudOn = false, overlayUp = false;
+  var TIERS = [25, 50, 100, 200];
+  var IDS = ['hud', 'hp-fill', 'hp-trail', 'hp-text', 'timer', 'call', 'call-label', 'call-time', 'bars', 'xp-fill', 'lv',
+    'subs', 'subs-speaker', 'subs-text', 'prompt', 'prompt-text', 'toast', 'skills', 'btn-ult', 'ult-fill', 'dash-chip',
+    'dash-fill', 'dash-sec', 'lvl-chip', 'streak', 'streak-label', 'streak-fill', 'boss-bar', 'boss-fill', 'boss-name'];
+  U.IDS = IDS;
+  U.missing = [];
 
   U.fmt = function (t) {
     t = Math.max(0, Math.floor(t));
     return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
   };
 
+  // A missing element gets a detached stand-in: the HUD goes quiet for that piece, the run does not stop.
+  function bind(id) {
+    var n = document.getElementById(id);
+    if (n) return n;
+    U.missing.push(id);
+    return document.createElement('div');
+  }
+  U.bootError = function (where, msg) {
+    if (P.Tel && P.Tel.log) P.Tel.log('boot_error', { where: where, message: String(msg).slice(0, 200) });
+    if (window.console && console.warn) console.warn('[boot_error]', where, msg);
+  };
+
   U.init = function () {
-    ['hud', 'hp-fill', 'hp-trail', 'hp-text', 'timer', 'call', 'call-label', 'call-time', 'bars', 'xp-fill', 'lv',
-     'subs', 'subs-speaker', 'subs-text', 'prompt', 'prompt-text', 'toast', 'skills', 'btn-ult', 'ult-fill', 'dash-chip', 'dash-fill', 'lvl-chip'].forEach(function (id) { el[id] = document.getElementById(id); });
+    IDS.forEach(function (id) { el[id] = bind(id); });
+    if (U.missing.length) U.bootError('ui.init', 'missing ids: ' + U.missing.join(','));
+    if (P.Speech) { P.Speech.provider(offerOverlays); }
   };
 
   U.applyI18n = function () {
@@ -19,10 +46,17 @@ P.UI = (function () {
     document.querySelectorAll('[data-lang]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-lang') === P.lang); });
   };
 
+  // HUD visibility = wanted by the flow (showHud) and no overlay up (setOverlay, called by Screens.show).
   U.showHud = function (on) {
-    el.hud.classList.toggle('hidden', !on); el.skills.classList.toggle('hidden', !on);
-    if (!on) { el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); lastSub = null; }
+    hudOn = !!on; applyVis();
+    if (!on) { el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); el.streak.classList.add('hidden'); lastSub = null; lastN = 0; }
   };
+  U.setOverlay = function (on) { overlayUp = !!on; applyVis(); };
+  function applyVis() {
+    var show = hudOn && !overlayUp;
+    el.hud.classList.toggle('hidden', !show); el.skills.classList.toggle('hidden', !show);
+    if (overlayUp) { el.subs.classList.add('hidden'); el.prompt.classList.add('hidden'); el.toast.classList.add('hidden'); }
+  }
 
   U.update = function (s) {
     var h = s.hero, frac = h.hp / h.maxHp;
@@ -37,6 +71,8 @@ P.UI = (function () {
     var L = s.levelInfo;
     el['lvl-chip'].textContent = L ? P.upper(L.hood.name) + ' ' + P.t('ui.hud.level', { n: L.hoodIndex + 1, s: L.stage }) : '';
     updateSkills(s);
+    updateStreak(s);
+    updateBoss(s);
     var call = s.dir.call;
     el.call.classList.toggle('hidden', !call.active);
     if (call.active) {
@@ -48,16 +84,60 @@ P.UI = (function () {
     el['xp-fill'].style.width = Math.min(100, s.xp / P.xpNeed(s.level) * 100) + '%';
     el.lv.textContent = 'Lv ' + s.level;
     updateSubs(s);
-    updatePrompt(s);
   };
 
   function updateSkills(s) {
     if (!P.Skills || !P.Skills.hud) return;
-    var k = P.Skills.hud(s);
+    var k = P.Skills.hud(s), cd = Math.max(0, s.hero.dashCd || 0);
     el['ult-fill'].style.height = Math.round(Math.min(1, k.ult) * 100) + '%';
     el['btn-ult'].classList.toggle('ready', k.ultReady);
     el['dash-fill'].style.width = Math.round(k.dashFrac * 100) + '%';
     el['dash-chip'].classList.toggle('cool', !k.dashReady);
+    el['dash-chip'].classList.toggle('ready', !!k.dashReady);
+    el['dash-sec'].textContent = k.dashReady ? '' : secs(Math.ceil(cd * 10) / 10);
+  }
+  // Seconds with the locale's decimal mark ("1,2s" in Turkish).
+  function secs(v) {
+    var t = v.toFixed(1);
+    return (P.lang === 'tr' ? t.replace('.', ',') : t) + 's';
+  }
+
+  // Boss bar (AUDIT-6 F7): the live boss as a red-orange DOM bar under the XP row. XP stays green and separate.
+  function updateBoss(s) {
+    var b = null, i, list = s.enemies || [];
+    for (i = 0; i < list.length && !b; i++) if (list[i].boss && !list[i].dead) b = list[i];
+    el['boss-bar'].classList.toggle('hidden', !b);
+    if (!b) return;
+    var f = b.maxHp > 0 ? Math.max(0, Math.min(1, b.hp / b.maxHp)) : 0;
+    el['boss-fill'].style.width = (f * 100).toFixed(1) + '%';
+    el['boss-name'].textContent = bossName(b.nameKey);
+    el['boss-bar'].classList.toggle('rage', !!(b.ai && b.ai.rageOn));
+  }
+  // The boss name comes from the narrative spk.b.<hood> set (strings-journey.js copies it to boss.<hood>).
+  function bossName(key) {
+    var alt = String(key || '').replace(/^boss\./, 'spk.b.');
+    return P.t(alt) !== alt ? P.t(alt) : P.t(String(key || ''));
+  }
+
+  // Streak meter: kills in the current streak (a kill gap longer than the frenzy window ends it) toward the frenzy
+  // threshold; while frenzy runs, the bar shows its remaining time in gold.
+  function updateStreak(s) {
+    var F = P.CFG.skills.frenzy, k = P.Skills && P.Skills.hud ? P.Skills.hud(s) : null, sk = s.sk || {};
+    if (!k || !el.streak) return;
+    var n = s.t - (sk.lastKillT === undefined ? -99 : sk.lastKillT) > F.window ? 0 : k.streak;
+    if (k.frenzy) {
+      el.streak.classList.remove('hidden'); el.streak.classList.add('frenzy');
+      el['streak-label'].textContent = P.t('streak.frenzy');
+      el['streak-fill'].style.width = Math.round(k.frenzyFrac * 100) + '%';
+      return;
+    }
+    el.streak.classList.remove('frenzy');
+    if (n < 1) { el.streak.classList.add('hidden'); lastN = 0; tierKey = null; tierT = 0; return; }
+    el.streak.classList.remove('hidden');
+    TIERS.forEach(function (t) { if (n >= t && lastN < t) { tierKey = 'combo.' + t; tierT = 1.3; } });
+    lastN = n;
+    el['streak-label'].textContent = tierT > 0 && tierKey ? P.t(tierKey) : P.t('combo.label') + ' ' + n + '/' + F.threshold;
+    el['streak-fill'].style.width = Math.min(100, n / F.threshold * 100) + '%';
   }
 
   // L1 dialogue lines now present as comic pop-ins (P.Story.forLine picks bust, side, mood).
@@ -76,14 +156,35 @@ P.UI = (function () {
     el.subs.classList.remove('hidden');
   }
 
-  function updatePrompt(s) {
-    var p = s.dir.tut.active;
-    if (!p || p.id === 't_card' || s.mode !== 'play') { el.prompt.classList.add('hidden'); return; }
-    el['prompt-text'].textContent = P.t(p.key);
-    var pt = P.Render.toScreen(s.hero.x, s.hero.y + 1.4);
-    el.prompt.style.left = Math.min(330, Math.max(60, pt.x)) + 'px';
-    el.prompt.style.top = Math.max(170, pt.y) + 'px';
-    el.prompt.classList.remove('hidden');
+  // Arbiter provider: the tutorial hint (top priority, anchored above Arda) and the toast (banner priority).
+  // Nothing from the HUD layer is offered while an overlay is up.
+  function offerOverlays(R, s) {
+    if (!s || !R || !R.toScreen) return;
+    if (overlayUp) { el.prompt.classList.add('hidden'); el.toast.classList.add('hidden'); return; }
+    var p = s.dir.tut.active, a, w, h;
+    if (p && p.id !== 't_card' && s.mode === 'play' && el.prompt) {
+      el['prompt-text'].textContent = P.t(p.key);
+      el.prompt.classList.remove('hidden');
+      w = el.prompt.offsetWidth; h = el.prompt.offsetHeight; a = R.toScreen(s.hero.x, s.hero.y);
+      P.Speech.offer({ id: 'prompt', kind: 'tutorial', prio: P.Speech.PRIO.tutorial, w: w, h: h, ax: a.x, ay: a.y, lift: 58,
+        place: function (slot) {
+          el.prompt.classList.toggle('hidden', !slot);   // no free slot this frame: hidden rather than overlapping
+          if (!slot) return;
+          el.prompt.style.left = slot.x + 'px'; el.prompt.style.top = slot.y + 'px';
+          el.prompt.classList.toggle('below', slot.n === 'below' || slot.n === 'below2');
+          el.prompt.classList.toggle('noarrow', slot.n === 'left' || slot.n === 'right' || slot.n.indexOf('scan') === 0);
+        } });
+    } else el.prompt.classList.add('hidden');
+    if (toastT > 0) {
+      el.toast.classList.remove('hidden');   // measured while shown; hidden again below when no slot is free
+      w = el.toast.offsetWidth; h = el.toast.offsetHeight;
+      P.Speech.offer({ id: 'toast', kind: 'toast', prio: P.Speech.PRIO.toast, w: w, h: h, x: (R.W - w) / 2, y: 160, age: toastT,
+        place: function (slot) {
+          el.toast.classList.toggle('hidden', !slot);
+          if (!slot) return;
+          el.toast.style.left = (slot.x + w / 2) + 'px'; el.toast.style.top = slot.y + 'px';
+        } });
+    }
   }
 
   U.toast = function (text, sub, dur) {
@@ -96,6 +197,7 @@ P.UI = (function () {
 
   U.tick = function (dt) {
     if (toastT > 0) { toastT -= dt; if (toastT <= 0) el.toast.classList.add('hidden'); }
+    if (tierT > 0) { tierT -= dt; if (tierT <= 0) tierT = 0; }
   };
 
   return U;

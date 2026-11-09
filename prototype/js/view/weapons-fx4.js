@@ -138,7 +138,9 @@ P.WFx4 = (function () {
   function masteryMove(ev, s) {
     cue('finale', 300, s, ev.x);
     shake(0.2);
-    banner = { key: 'sig.' + ev.weapon, t: 1.2, T: 1.2 };
+    // Lettering goes through the arbiter (one banner slot, never over a bark or a pop); the local banner is the fallback.
+    if (P.Speech && P.Speech.banner) P.Speech.banner('sig.' + ev.weapon, 1.2, 0.45, '#FFD166');
+    else banner = { key: 'sig.' + ev.weapon, t: 1.2, T: 1.2 };
     add({ k: 'mastery', x: ev.x, y: ev.y, r: ev.r > 0 ? ev.r : 1.5, extra: ev.extra, t: 1.0, T: 1.0 });
   }
   function modUsta(ev) { letter(ev.x, ev.y + 1.0, '2x'); ring(ev.x, ev.y, 0.6, GOLD, 0.3); }

@@ -68,6 +68,14 @@ P.World.clampGeo = function (p, r, props) {
 // Hero clamp used by movement and dashes (E1): geo-aware for generated levels, L1 walk otherwise.
 P.World.clampHero = function (s, h) {
   P.World.clampWalk(h, P.CFG.hero.radius, s.props);
+  if (s.props.geo) {                      // G1: the hero stays inside the camera's visible width (enemies are not clamped)
+    var hx = P.CFG.view.geoHeroHalfX;
+    for (var i = 0; i < 2; i++) {         // a block push can move him back out; resolve both once more
+      h.x = Math.min(Math.max(h.x, -hx), hx);
+      P.World.clampWalk(h, P.CFG.hero.radius, s.props);
+    }
+    h.x = Math.min(Math.max(h.x, -hx), hx);
+  }
 };
 
 P.World.pushOutRect = function (p, r, rc) {

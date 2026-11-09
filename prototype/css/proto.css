@@ -59,7 +59,9 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .screen { position: absolute; inset: 0; padding: var(--safe-top) var(--pad) var(--safe-bottom); display: flex; flex-direction: column; }
 .screen.dark { background: radial-gradient(120% 70% at 50% 30%, #2A2134 0%, var(--ink) 70%); color: #fff; }
 .screen.light-bg { background: radial-gradient(120% 60% at 50% 0%, #2A3550 0%, var(--ink) 75%); color: #fff; overflow-y: auto; }
-.screen.overlay { background: var(--scrim); color: #fff; justify-content: center; backdrop-filter: blur(3px) saturate(.7); -webkit-backdrop-filter: blur(3px) saturate(.7); }
+/* AUDIT-6 F1: overlays paint above the HUD, the dash/nazar buttons (z 6), the story pops (z 50) and the call card (z 55);
+   the full comic page (z 60) still sits on top of everything. */
+.screen.overlay { z-index: 58; background: var(--scrim); color: #fff; justify-content: center; backdrop-filter: blur(3px) saturate(.7); -webkit-backdrop-filter: blur(3px) saturate(.7); }
 .screen:not(.hidden) { animation: screen-in .22s ease-out; }
 @keyframes screen-in { from { opacity: 0; } to { opacity: 1; } }
 .row { display: flex; align-items: center; }
@@ -115,16 +117,26 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .subs { position: absolute; left: 20px; right: 20px; top: 188px; text-align: center; color: #fff; font-size: 15px; font-weight: 600;
   background: rgba(20,21,31,.85); border: 2px solid var(--ink); border-radius: 12px; padding: 7px 12px; pointer-events: none; }
 .subs b { color: var(--heal); margin-right: 6px; }
-.prompt { position: absolute; transform: translate(-50%, -100%); background: #fff; color: var(--ink); font: italic 900 18px var(--display);
+.prompt { position: absolute; transform: none; background: #fff; color: var(--ink); font: italic 900 18px var(--display);
   text-transform: uppercase; border: 3px solid var(--ink); border-radius: 12px; padding: 5px 14px; white-space: nowrap; pointer-events: none;
-  box-shadow: 0 3px 0 var(--ink); animation: bob 1s ease-in-out infinite; }
-@keyframes bob { 50% { margin-top: -5px; } }
+  box-shadow: 0 3px 0 var(--ink); animation: bob 1.2s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-2px); } }
+/* The arbiter (speech.js) places the top-left corner; the arrow points at Arda from above or below the box. */
 .prompt::after { content: ''; position: absolute; left: 50%; bottom: -10px; margin-left: -7px; border: 7px solid transparent; border-top-color: var(--ink); border-bottom: 0; }
+.prompt.below::after { top: -10px; bottom: auto; border-top: 0; border-bottom: 7px solid var(--ink); }
+.prompt.noarrow::after { display: none; }
 .toast { position: absolute; left: 50%; top: 160px; transform: translateX(-50%); background: var(--simit-gold); color: var(--ink);
   font: italic 900 24px var(--display); border: 3px solid var(--ink); border-radius: 14px; padding: 8px 18px; text-align: center;
   pointer-events: none; box-shadow: var(--shadow); animation: pop .3s cubic-bezier(.3,1.6,.5,1); }
 @keyframes pop { from { transform: translateX(-50%) scale(.6); opacity: 0; } }
 .toast small { display: block; font: 700 12px var(--body); }
+/* Streak meter (v0.7, in the HUD): kills toward frenzy; gold and labelled while frenzy runs. */
+.streak { width: max-content; display: flex; align-items: center; gap: 8px; margin-top: 6px; background: rgba(20,21,31,.85);
+  border: 2px solid var(--ink); border-radius: 999px; padding: 3px 10px 3px 8px; font: italic 900 13px var(--display); text-transform: uppercase; }
+.streak-bar { width: 84px; height: 8px; background: #0E2A14; border-radius: 4px; overflow: hidden; border: 1.5px solid var(--ink); }
+.streak-bar i { display: block; height: 100%; width: 0; background: #FFD166; transition: width .2s linear; }
+.streak.frenzy { border-color: #FFD166; color: #FFD166; }
+.streak.frenzy .streak-bar i { transition: none; }
 .joy { position: absolute; width: 74px; height: 74px; margin: -37px 0 0 -37px; border-radius: 50%; border: 3px solid rgba(255,255,255,.55);
   background: radial-gradient(rgba(255,255,255,.05), rgba(255,255,255,.18)); pointer-events: none; }
 .joy .knob { position: absolute; left: 50%; top: 50%; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%;
@@ -270,10 +282,14 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .btn-ult.ready { animation: ultPulse 1.1s ease-in-out infinite; border-color: #E9A23B; }
 .btn-ult.ready .ult-fill { background: linear-gradient(#FFE08A, #E9A23B); }
 @keyframes ultPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-.dash-chip { position: relative; width: 64px; height: 22px; border-radius: 11px; border: 3px solid var(--ink, #14151F); background: #2A2B3A; overflow: hidden; }
+/* AUDIT-6 F9: the chip names the action (KAÇ) and shows the cooldown in seconds; a pulsing ring when ready. */
+.dash-chip { position: relative; width: 84px; height: 28px; border-radius: 14px; border: 3px solid var(--ink, #14151F); background: #2A2B3A; overflow: hidden; }
 .dash-chip .dash-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #5BD16E; }
-.dash-chip b { position: relative; display: block; text-align: center; font: italic 900 12px/16px var(--display, system-ui); color: #fff; text-shadow: 0 1px 0 #14151F; }
+.dash-chip b { position: relative; display: block; padding-left: 10px; text-align: left; font: italic 900 14px/22px var(--display, system-ui); color: #fff; text-shadow: 0 1px 0 #14151F; }
+.dash-sec { position: absolute; right: 9px; top: 0; font: 800 12px/22px var(--display, system-ui); color: #fff; text-shadow: 0 1px 0 #14151F; font-variant-numeric: tabular-nums; }
 .dash-chip.cool .dash-fill { background: #7B7F95; }
+.dash-chip.ready { border-color: #fff; animation: dash-ring 1.2s ease-in-out infinite; }
+@keyframes dash-ring { 50% { box-shadow: 0 0 0 4px rgba(255,255,255,.55), 0 0 12px rgba(91,209,110,.7); } }
 .lvl-chip:empty { display: none; }
 .card .badge.evo { background: #B04CF0; color: #fff; }
 .card.evo { box-shadow: 0 0 0 3px #B04CF0, 0 0 22px rgba(176,76,240,.6); }
@@ -292,3 +308,29 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 .chip.mastery { background: #2B1E4A; color: #FFD66B; border-color: #FFD66B; }
 .chip.mod-chip { background: #E8F7FB; color: var(--ink, #14151F); }
 .chip.mod-chip.chosen { background: #3DDCFF; }
+
+/* ---------- AUDIT-6 lane F (v0.8 UI and flow) ---------- */
+/* F7: boss bar, a DOM bar under the XP row. Red-orange; XP stays green. Name above, track below. */
+.boss-bar { width: 300px; max-width: 100%; margin: 8px auto 0; display: flex; flex-direction: column; align-items: stretch; gap: 3px; pointer-events: none; }
+.boss-name { align-self: center; font: italic 900 14px/1 var(--display); text-transform: uppercase; color: #fff; letter-spacing: .4px; text-shadow: 0 2px 0 var(--ink); }
+.boss-track { position: relative; height: 12px; background: #2A0F16; border: 2.5px solid var(--ink); border-radius: 6px; overflow: hidden; box-shadow: 0 2px 0 var(--ink); }
+.boss-track i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: linear-gradient(#FF8A5C, var(--danger) 55%, #B3261A); transition: width .15s linear; }
+.boss-bar.rage .boss-track { border-color: var(--simit-gold); }
+/* F4: death beat. The world desaturates while the run is frozen, then the down screen opens. */
+#game { transition: filter .3s ease-out; }
+#phone.dying #game { filter: saturate(.2) brightness(.8); }
+/* F4: down screen. Buttons are at least 56 px tall; labels stay on one line. */
+#scr-down .btn { min-height: 56px; white-space: nowrap; }
+#scr-down .btn.wide { margin-top: 12px; }
+#scr-down .panel .caption { margin-top: 8px; }
+/* F5: settings rows: stepped values read as buttons; the note sits under the list. */
+.toggle.step { min-width: 96px; }
+#settings-note { margin: 12px 4px 0; font-size: 12px; color: rgba(255,255,255,.7); }
+/* F5: left-handed HUD mirror (joystick side = left): the dash and nazar buttons move to the left edge. */
+#phone.lefty .skills { right: auto; left: 14px; align-items: center; }
+/* F5: reduced flashing: no blinking indicators (the hero blink itself is view code, lane G). */
+#phone.reduce-flash .signal, #phone.reduce-flash .pips i.next, #phone.reduce-flash .chest-info .caption,
+#phone.reduce-flash .cm-call.cm-ringing { animation: none !important; }
+#phone.reduce-flash .dash-chip.ready { animation: none; box-shadow: 0 0 0 3px #fff; }
+#down-icon { width: 80px; height: 80px; padding: 0; overflow: hidden; }
+#down-icon canvas { display: block; }

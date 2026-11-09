@@ -29,6 +29,8 @@ P.createSim = function (seed, opts) {
   applyLoadout(s, o.loadout);
   if (idx > 1) {
     P.Levels.build(s, idx);
+    if (P.Objectives) P.Objectives.attach(s);   // lane P: objective and run modifier (objectives.js)
+    if (P.Env) P.Env.place(s, s.levelInfo);     // lane A: cover, canisters, cars, cables, doors (guarded; B may call it too)
   } else {
     L.diners.forEach(function (d, i) {
       var e = P.Combat.spawnEnemy(s, 'diner', d.x, d.y, { state: 'dormant' });
@@ -97,7 +99,7 @@ function stepHero(s, dt, input) {
   if (m > 1) { mx /= m; my /= m; m = 1; }
   h.moving = m > 0.08;
   if (h.moving) {
-    var sp = P.Hero.speed(s) * (1 + (h.baseMove || 0)), ox = h.x, oy = h.y;
+    var sp = P.Hero.speed(s) * (1 + (h.baseMove || 0)) * (P.Env ? P.Env.heroMul(s) : 1), ox = h.x, oy = h.y;
     h.fx = mx / m; h.fy = my / m;
     h.x += mx * sp * dt; h.y += my * sp * dt;
     P.World.clampHero(s, h);
@@ -123,6 +125,7 @@ P.stepSim = function (s, dt, input) {
   P.Hack.step(s, dt);
   P.Combat.updateEnemies(s, dt);
   P.Weapons.step(s, dt);
+  if (P.Env && s.env) P.Env.step(s, dt);   // lane A: after weapons, so this tick's molotov and canister events count
   if (P.Status && P.Status.step) P.Status.step(s, dt);
   P.Enemies.frame(s, dt);
   P.Combat.contact(s);

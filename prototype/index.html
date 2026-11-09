@@ -34,13 +34,15 @@
         <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
         <span class="chip" id="lv">Lv 1</span>
       </div>
+      <div class="boss-bar hidden" id="boss-bar" aria-hidden="true"><span class="boss-name" id="boss-name"></span><span class="boss-track"><i id="boss-fill"></i></span></div>
+      <div class="streak hidden" id="streak"><span id="streak-label"></span><span class="streak-bar"><i id="streak-fill"></i></span></div>
     </header>
     <div id="subs" class="subs hidden" aria-live="polite"><b id="subs-speaker"></b><span id="subs-text"></span></div>
     <div id="prompt" class="prompt hidden"><span id="prompt-text"></span></div>
     <div id="toast" class="toast hidden"></div>
     <div id="joy" class="joy hidden" aria-hidden="true"><div class="knob"></div></div>
     <div id="skills" class="skills hidden">
-      <div class="dash-chip" id="dash-chip" aria-hidden="true"><span class="dash-fill" id="dash-fill"></span><b data-i18n="ui.hud.dash"></b></div>
+      <div class="dash-chip" id="dash-chip" aria-hidden="true"><span class="dash-fill" id="dash-fill"></span><b data-i18n="ui.hud.dash"></b><small class="dash-sec" id="dash-sec"></small></div>
       <button class="btn-ult" id="btn-ult" data-i18n-aria="ui.hud.ult"><span class="ult-fill" id="ult-fill"></span><span class="ult-eye"><i></i></span></button>
     </div>
 
@@ -108,12 +110,12 @@
           <button class="btn secondary wide" id="btn-pause-settings" data-i18n="ui.pause.settings"></button>
           <button class="btn secondary wide" id="btn-restart" data-i18n="ui.pause.restart"></button>
           <button class="btn ghost wide" id="btn-quit" data-i18n="ui.pause.quit"></button>
-          <p class="caption" data-i18n="ui.pause.quitNote"></p>
+          <p class="caption" id="pause-quit-note"></p>
         </div>
         <div class="panel">
           <p class="caption" data-i18n="ui.pause.build"></p>
           <div class="slots" id="pause-build"></div>
-          <button class="btn ghost wide small-btn" id="btn-export" data-i18n="ui.pause.export"></button>
+          <button class="btn ghost wide small-btn hidden" id="btn-export" data-i18n="ui.pause.export"></button>
         </div>
       </div>
     </section>
@@ -123,6 +125,7 @@
       <div class="row between"><button class="btn ghost square" id="btn-settings-back" data-i18n-aria="ui.set.back">←</button>
         <h2 class="h1" data-i18n="ui.set.title"></h2><span class="square"></span></div>
       <div class="list" id="settings-list"></div>
+      <p class="caption light" id="settings-note"></p>
     </section>
 
     <!-- 09 Down / revive -->
@@ -138,7 +141,7 @@
           <p class="title" data-i18n="ui.down.keepGoing"></p>
           <button class="btn primary wide" id="btn-revive-ad"></button>
           <button class="btn secondary wide" id="btn-revive-gold"></button>
-          <p class="caption" data-i18n="ui.down.note"></p>
+          <p class="caption" id="down-note"></p>
         </div>
         <button class="btn ghost light wide" id="btn-giveup"></button>
       </div>
@@ -174,9 +177,16 @@
 <script src="js/config.js"></script>
 <script src="js/config-weapons.js"></script>
 <script src="js/config-levels.js"></script>
+<script src="js/config-layouts.js"></script>
+<script src="js/config-enemies3.js"></script>
+<script src="js/config-bosses.js"></script>
 <script src="js/config-stats.js"></script>
 <script src="js/config-power.js"></script>
 <script src="js/config-weapons2.js"></script>
+<script src="js/config-weapons3.js"></script>
+<script src="js/config-env.js"></script>
+<script src="js/config-objectives.js"></script>
+<script src="js/config-modifiers.js"></script>
 <script src="js/strings.js"></script>
 <script src="js/journey.js"></script>
 <script src="js/strings-weapons.js"></script>
@@ -184,9 +194,15 @@
 <script src="js/story/strings-story.js"></script>
 <script src="js/strings-journey.js"></script>
 <script src="js/strings-enemies3.js"></script>
+<script src="js/strings-enemies4.js"></script>
 <script src="js/strings-weapons2.js"></script>
+<script src="js/strings-weapons3.js"></script>
 <script src="js/meta/strings-meta2.js"></script>
 <script src="js/story/strings-barks.js"></script>
+<script src="js/strings-feel.js"></script>
+<script src="js/strings-env.js"></script>
+<script src="js/strings-progress.js"></script>
+<script src="js/strings-ui2.js"></script>
 <script src="js/sim/rng.js"></script>
 <script src="js/sim/world.js"></script>
 <script src="js/sim/combat.js"></script>
@@ -200,20 +216,34 @@
 <script src="js/sim/enemies2.js"></script>
 <script src="js/sim/skills.js"></script>
 <script src="js/sim/bosses.js"></script>
+<script src="js/sim/layouts.js"></script>
 <script src="js/sim/levels.js"></script>
+<script src="js/sim/enemies3.js"></script>
 <script src="js/sim/events.js"></script>
 <script src="js/sim/events-kinds.js"></script>
+<script src="js/sim/env.js"></script>
+<script src="js/sim/env-kinds.js"></script>
+<script src="js/sim/env-zones.js"></script>
+<script src="js/sim/env-rules.js"></script>
+<script src="js/sim/env-portal.js"></script>
 <script src="js/sim/hack.js"></script>
+<script src="js/sim/modifiers.js"></script>
+<script src="js/sim/objectives.js"></script>
+<script src="js/sim/objectives-kinds.js"></script>
 <script src="js/sim/progression.js"></script>
+<script src="js/sim/weapons6.js"></script>
 <script src="js/sim/director.js"></script>
 <script src="js/sim/sim.js"></script>
 <script src="js/view/settings.js"></script>
 <script src="js/view/icons.js"></script>
+<script src="js/view/icons-evo.js"></script>
 <script src="js/view/sfx-bank.js"></script>
 <script src="js/view/sfx-bank2.js"></script>
 <script src="js/view/sfx.js"></script>
 <script src="js/view/music.js"></script>
 <script src="js/view/telemetry.js"></script>
+<script src="js/view/indoor.js"></script>
+<script src="js/view/speech.js"></script>
 <script src="js/view/fx.js"></script>
 <script src="js/view/render.js"></script>
 <script src="js/view/render-world.js"></script>
@@ -222,38 +252,57 @@
 <script src="js/view/art-enemies.js"></script>
 <script src="js/view/sprites.js"></script>
 <script src="js/view/art-enemies3.js"></script>
+<script src="js/view/art-enemies4.js"></script>
+<script src="js/view/art-enemies5.js"></script>
 <script src="js/view/portraits.js"></script>
 <script src="js/view/weapons-fx.js"></script>
 <script src="js/view/weapons-fx2.js"></script>
 <script src="js/view/skills-fx.js"></script>
+<script src="js/view/skill-button.js"></script>
 <script src="js/view/weapons-fx3.js"></script>
 <script src="js/view/enemies-fx.js"></script>
+<script src="js/view/enemies-fx2.js"></script>
 <script src="js/view/weapons-fx4.js"></script>
 <script src="js/view/fire-anim-prim.js"></script>
 <script src="js/view/fire-anim-held.js"></script>
 <script src="js/view/fire-anim-held2.js"></script>
 <script src="js/view/fire-anim-fx.js"></script>
 <script src="js/view/fire-anim-fx2.js"></script>
+<script src="js/view/fire-anim-held3.js"></script>
+<script src="js/view/fire-anim-fx3.js"></script>
 <script src="js/view/fire-anim.js"></script>
 <script src="js/view/events-fx.js"></script>
 <script src="js/view/istanbul.js"></script>
 <script src="js/view/istanbul-props.js"></script>
 <script src="js/view/istanbul-props2.js"></script>
+<script src="js/view/istanbul-props-env.js"></script>
+<script src="js/view/env-fx.js"></script>
 <script src="js/view/istanbul-themes.js"></script>
 <script src="js/view/istanbul-landmarks.js"></script>
+<script src="js/view/layouts-fx.js"></script>
+<script src="js/view/layouts-centre.js"></script>
 <script src="js/view/hood-card.js"></script>
+<script src="js/view/objectives-hud.js"></script>
 <script src="js/view/input.js"></script>
 <script src="js/view/ui.js"></script>
 <script src="js/view/screens.js"></script>
 <script src="js/view/coldopen.js"></script>
+<script src="js/view/comic-busts.js"></script>
+<script src="js/view/comic-busts-cast.js"></script>
 <script src="js/view/comic-art.js"></script>
 <script src="js/view/comic-text.js"></script>
 <script src="js/view/comic-layout.js"></script>
 <script src="js/view/comic.js"></script>
+<script src="js/story/strings-barks-tr.js"></script>
+<script src="js/story/strings-barks-en.js"></script>
+<script src="js/story/story-lang-tr.js"></script>
+<script src="js/story/story-lang-en.js"></script>
+<script src="js/story/lang-apply.js"></script>
 <script src="js/story/story-data.js"></script>
 <script src="js/story/barks.js"></script>
 <script src="js/meta/meta-save.js"></script>
 <script src="js/meta/meta-data.js"></script>
+<script src="js/meta/meta-unlocks.js"></script>
 <script src="js/meta/meta-power.js"></script>
 <script src="js/meta/meta-daily.js"></script>
 <script src="js/meta/meta-collect.js"></script>

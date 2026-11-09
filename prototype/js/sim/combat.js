@@ -180,11 +180,13 @@ P.Combat.updateBurnAndZones = function (s, dt) {
 P.Combat.forEachProp = function (s, fn) {
   s.props.carts.forEach(function (c) { if (c.alive) fn(c); });
   s.props.canisters.forEach(function (c) { if (c.alive) fn(c); });
+  if (s.env) P.Env.eachProp(s, fn);   // lane A: cover and env canisters take arc, blast and nail hits like props
 };
 
 P.Combat.nearestProp = function (s, range) {
   var h = s.hero, best = null, bd = range;
   P.Combat.forEachProp(s, function (p) {
+    if (p.env) return;                // the knife does not auto-aim at cover; it only hits what its arc sweeps
     var d = Math.hypot(p.x - h.x, p.y - h.y) - p.r;
     if (d < bd) { bd = d; best = p; }
   });
@@ -192,6 +194,7 @@ P.Combat.nearestProp = function (s, range) {
 };
 
 P.Combat.damageProp = function (s, p, dmg) {
+  if (p.env) return P.Env.hitProp(s, p, dmg);
   if (!p.alive) return;
   p.hp -= dmg; p.flash = P.CFG.feel.hitFlash;
   if (p.hp > 0) return;

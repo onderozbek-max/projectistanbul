@@ -16,7 +16,7 @@ P.FireAnim = (function () {
   function defOf(id) {
     if (cache[id] !== undefined) return cache[id];
     var H = P.FireAnimHeld && P.FireAnimHeld[id], E = P.FireAnimFx && P.FireAnimFx[id];
-    return (cache[id] = H ? { T: H.T, held: H.held, rev: H.rev, fire: E && E.fire, tick: E && E.tick, revTick: E && E.revTick } : null);
+    return (cache[id] = H ? { T: H.T, held: H.held, rev: H.rev, over: H.over, fire: E && E.fire, tick: E && E.tick, revTick: E && E.revTick } : null);
   }
 
   function makeGeom() {
@@ -86,11 +86,16 @@ P.FireAnim = (function () {
       return k;
     }
 
+    // wfire: the owned variant's own pose when it has one (evolutions), else the base family (ALIAS for old names).
+    // skillUsed starts the skill's held pose ('skill_<id>'). Every other event goes to FireAnimFx.event (W3 evolution visuals).
     F.onEvent = function (ev, s) {
-      if (!ev || ev.type !== 'wfire') return;
+      if (!ev) return;
       if (s && s !== F.sim) F.reset(s);
       if (!F.sim) return;
-      var id = ALIAS[ev.w] || ev.w || '', def = defOf(id), p = F.pose;
+      if (ev.type === 'skillUsed') ev = { type: 'wfire', w: 'skill_' + ev.id, ang: F.lastAng || 0, lv: 1, n: 1 };
+      else if (ev.type !== 'wfire') { if (P.FireAnimFx && P.FireAnimFx.event) P.FireAnimFx.event(F, ev); return; }
+      else F.lastAng = +ev.ang || 0;
+      var id = ev.variant && defOf(ev.variant) ? ev.variant : ALIAS[ev.w] || ev.w || '', def = defOf(id), p = F.pose;
       if (!def) return;
       p.id = id; p.def = def; p.ang = +ev.ang || 0; p.lv = lvOf(ev.lv); p.n = Math.max(1, ev.n | 0);
       p.T = typeof def.T === 'function' ? def.T(p.lv, p.n) : def.T;
@@ -166,6 +171,7 @@ P.FireAnim = (function () {
       P.FireAnimPrim.drawParts(F, 0);
       if (P.FireAnimFx && P.FireAnimFx.draw) P.FireAnimFx.draw(F, s);
       if (p.on && p.def.draw) p.def.draw(F, setGeom(F, s.hero, p.ang), kOf(p));
+      if (p.on && p.def.over) p.def.over(F, setGeom(F, s.hero, p.ang), kOf(p));
       c.save(); c.globalCompositeOperation = 'lighter';
       P.FireAnimPrim.drawParts(F, 1);
       c.restore();

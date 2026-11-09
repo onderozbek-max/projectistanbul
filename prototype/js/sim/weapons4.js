@@ -12,7 +12,7 @@
   P.Weapons4 = {};
 
   function ws4(s) { return P.Weapons.state(s); }
-  function cdSet(s, h, id, cfg, lv, A) { h.cds[id] = cfg.cooldown * (lv.cdMult || 1) * A.cd * P.Weapons.cdMult(s, id); }
+  function cdSet(s, h, id, cfg, lv, A) { h.cds[id] = cfg.cooldown * (lv.cdMult || 1) * A.cd * P.Weapons.cdMult(s, A.fam); }
   function nearestWithin(s, x, y, r, taken) {
     var best = null, bd = r;
     s.enemies.forEach(function (e) {
@@ -24,18 +24,22 @@
   }
 
   // ---------- Testere Diski: out and back; each pass hits; sparks burst where it is caught (signature: a ring of blades) ----------
+  // The owned variant runs this code: sawblade, or İkiz Disk (twinsaw: two blades side by side, one volley).
   function fireSaw(s, dt) {
-    var h = s.hero, cfg = P.CFG.weapons.sawblade, lv = P.Weapons.level(h, 'sawblade'), W = ws4(s);
-    if (!lv || !P.Weapons.ready(h, 'sawblade', dt) || W.blades.length) return;
+    var h = s.hero, id = P.Weapons.variantOf(h, 'sawblade'), cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id), W = ws4(s);
+    if (!lv || !P.Weapons.ready(h, id, dt) || W.blades.length) return;
     var M = P.Mods.of(s, 'sawblade'), range = lv.range * M.range;
     var t = P.Weapons.nearestEnemy(s, h.x, h.y, range);
     if (!t) return;
-    var A = P.Mods.act(s, 'sawblade'), a = Math.atan2(t.y - h.y, t.x - h.x);
-    cdSet(s, h, 'sawblade', cfg, lv, A);
-    W.blades.push({ x: h.x, y: h.y, ox: h.x, oy: h.y, a: a, d: 0, out: range, phase: 'out', hit: [], lv: lv, A: A,
-      dmg: P.Weapons.dmgFor(s, 'sawblade', lv.dmg) * A.dmg, left: cfg.hitsOut + M.pierce, sparks: lv.sparks + M.count });
+    var A = P.Mods.act(s, 'sawblade'), a = Math.atan2(t.y - h.y, t.x - h.x), n = lv.blades || 1, k, ak;
+    cdSet(s, h, id, cfg, lv, A);
+    for (k = 0; k < n; k++) {
+      ak = a + (k - (n - 1) / 2) * (lv.spread || 0);
+      W.blades.push({ x: h.x, y: h.y, ox: h.x, oy: h.y, a: ak, d: 0, out: range, phase: 'out', hit: [], lv: lv, A: A,
+        dmg: P.Weapons.dmgFor(s, 'sawblade', lv.dmg) * A.dmg, left: cfg.hitsOut + M.pierce, sparks: lv.sparks + M.count });
+    }
     s.events.push({ type: 'sawThrow', x: h.x, y: h.y, a: a, range: range });
-    P.Weapons.fired(s, 'sawblade', a, 1);
+    P.Weapons.fired(s, 'sawblade', a, n, id);
     P.Mods.announce(s, A, h.x, h.y, range);
   }
 

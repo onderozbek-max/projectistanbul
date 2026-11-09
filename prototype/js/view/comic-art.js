@@ -111,13 +111,26 @@ P.ComicArt = (function () {
       c.strokeStyle = 'rgba(20,21,31,.6)'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, h * 0.12); c.quadraticCurveTo(w * 0.5, h * 0.3, w, h * 0.1); c.stroke();
       for (var l = 0; l < 7; l++) { var lxp = w * (l / 6), lyp = h * 0.12 + Math.sin(l / 6 * Math.PI) * h * 0.12; glow(c, lxp, lyp, 26, 'rgba(255,200,110,.5)'); c.fillStyle = kind === 'lanterns' ? '#FFB347' : '#FFF1C4'; c.beginPath(); c.arc(lxp, lyp, kind === 'lanterns' ? 7 : 3, 0, TAU); c.fill(); }
     }
-    if (kind === 'lines') { c.strokeStyle = 'rgba(20,21,31,.5)'; c.lineWidth = 1.5; for (var f = 0; f < 6; f++) { c.beginPath(); c.moveTo(rnd() * w, 0); c.lineTo(rnd() * w, h * 0.7); c.stroke(); } }
+    if (kind === 'lines') wires(c, w, h);
     if (kind === 'laundry') { c.strokeStyle = '#14151F'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, h * 0.2); c.lineTo(w, h * 0.28); c.stroke(); ['#E9EEF4', '#3D8BFF', '#FFD166', '#D7263D'].forEach(function (col, j) { c.fillStyle = col; c.fillRect(w * (0.12 + j * 0.22), h * 0.23, 22, 30); }); }
     if (kind === 'fog') { var fg = c.createLinearGradient(0, h * 0.3, 0, h * 0.8); fg.addColorStop(0, 'rgba(230,236,240,0)'); fg.addColorStop(0.5, 'rgba(230,236,240,.38)'); fg.addColorStop(1, 'rgba(230,236,240,0)'); c.fillStyle = fg; c.fillRect(0, h * 0.3, w, h * 0.5); }
     if (kind === 'horde') horde(c, w, h, rnd);
     if (kind === 'drums') drums(c, w, h, y);
     if (kind === 'mannequins') mannequins(c, w, h);
     if (kind === 'kilims') for (var kk = 0; kk < 4; kk++) { c.fillStyle = ['#9E1528', '#E9A23B', '#1B4965', '#14151F'][kk]; c.fillRect(w * (0.08 + kk * 0.24), 0, 30, h * 0.55); }
+  }
+  // Overhead wires: poles at fixed spacing with sagging wires between them (a street, not scratches).
+  function wires(c, w, h) {
+    var xs = [0.05, 0.36, 0.7, 1.02];
+    c.fillStyle = 'rgba(20,21,31,.7)';
+    xs.forEach(function (f) { c.fillRect(w * f - 2, 0, 4, h * 0.62); });
+    c.strokeStyle = 'rgba(20,21,31,.55)'; c.lineWidth = 1.5;
+    [0.12, 0.2].forEach(function (dy) {
+      for (var i = 0; i < xs.length - 1; i++) {
+        c.beginPath(); c.moveTo(w * xs[i], h * dy);
+        c.quadraticCurveTo(w * (xs[i] + xs[i + 1]) / 2, h * (dy + 0.07), w * xs[i + 1], h * dy); c.stroke();
+      }
+    });
   }
   function glow(c, x, y, r, col) {
     var g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -229,10 +242,10 @@ P.ComicArt = (function () {
   }
 
   // ---------- busts ----------
-  // Draws P.Portraits.draw when present, otherwise an ink silhouette bust with a coloured initial.
+  // Draws P.ComicBusts.draw (comic-busts.js) when present, otherwise an ink silhouette bust with a coloured initial.
   A.bust = function (c, who, mood, x, y, h, o) {
     o = o || {};
-    if (P.Portraits && P.Portraits.draw) { P.Portraits.draw(c, who, mood, x, y, h, o); return; }
+    if (P.ComicBusts && P.ComicBusts.draw) { P.ComicBusts.draw(c, who, mood, x, y, h, o); return; }
     c.save(); c.globalAlpha = o.alpha == null ? 1 : o.alpha; c.translate(x, y); if (o.flip) c.scale(-1, 1);
     var hr = h * 0.2, lw = Math.max(2, h * 0.025);
     c.fillStyle = PAL[who] || '#888'; c.strokeStyle = INK; c.lineWidth = lw;
@@ -245,9 +258,9 @@ P.ComicArt = (function () {
     c.fillStyle = INK; c.beginPath(); c.ellipse(0, -h * 0.61, hr * 0.32, Math.max(1, hr * 0.12 + hr * 0.3 * (o.talk || 0)), 0, 0, TAU); c.fill();
     c.restore();
   };
-  // Contact-photo canvas for the call card (P.Portraits.canvas when present).
+  // Contact-photo canvas for the call card (P.ComicBusts.canvas when present).
   A.contact = function (who, mood, size, dpr) {
-    if (P.Portraits && P.Portraits.canvas) return P.Portraits.canvas(who, mood, size);
+    if (P.ComicBusts && P.ComicBusts.canvas) return P.ComicBusts.canvas(who, mood, size, dpr);
     var cv = document.createElement('canvas'); cv.width = size * dpr; cv.height = size * dpr;
     var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.fillStyle = PAL[who] || '#888'; c.fillRect(0, 0, size, size);

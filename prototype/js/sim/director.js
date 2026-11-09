@@ -305,10 +305,29 @@ function updateDecor(s, dt) {
 }
 P.Director.decor = updateDecor;
 
+// P2 (AUDIT-6): L1 idle start. Until the first move the run clock stands still; after `after` seconds a runner pack
+// enters from the right and the tutorial prompt pulses (objectives-hud.js reads dir.idlePulse).
+function idleStart(s, dt) {
+  var d = s.dir, h = s.hero, C = P.CFG.objectives.idle, i;
+  if (d.tut.done.t_move) return;
+  if (h.moving) { d.idleT = 0; return; }
+  d.idleT = (d.idleT || 0) + dt;
+  s.runT -= dt;                                  // stepSim added dt to runT before this step: idle time is not run time
+  if (d.idleT < C.after || d.flags.idlePack) return;
+  d.flags.idlePack = true; d.idlePulse = true;
+  for (i = 0; i < C.runners; i++) P.Combat.spawnEnemy(s, 'runner', C.x, h.y + (i - (C.runners - 1) / 2) * C.gap, {});
+  s.events.push({ type: 'idlePack' });
+}
+
 P.Director.step = function (s, dt) {
-  if (s.geo) { P.Levels.step(s, dt); return; }   // generated levels 2..100 (levels.js)
+  if (s.geo) {                                   // generated levels 2..100 (levels.js), then their objective (objectives.js)
+    P.Levels.step(s, dt);
+    if (P.Objectives) P.Objectives.step(s, dt);
+    return;
+  }
   var segs = P.CFG.level.segments, h = s.hero, d = s.dir;
   for (var i = 0; i < segs.length; i++) if (!d.reached[segs[i].id] && h.y >= segs[i].y0) enterSegment(s, segs[i].id);
+  idleStart(s, dt);
   scripted(s, dt);
   runBeats(s);
   spawning(s, dt);

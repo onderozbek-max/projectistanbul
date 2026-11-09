@@ -32,34 +32,40 @@ function nearestFree(s, x, y, range, taken) {
 P.Weapons2.nearestFree = nearestFree;
 
 // ---------- Sledgehammer: windup -> slam (ring, stun, knockback). Signature "quake" stuns longer. ----------
-function queueSlam(s, x, y, lv, left, windup, A) {
-  P.Weapons.state(s).slams.push({ x: x, y: y, t: windup, T: windup, lv: lv, left: left, A: A, first: left === lv.slams });
+function queueSlam(s, x, y, lv, left, windup, A, src) {
+  P.Weapons.state(s).slams.push({ x: x, y: y, t: windup, T: windup, lv: lv, left: left, A: A, first: left === lv.slams, src: src || 'sledge' });
   s.events.push({ type: 'sledgeWindup', x: s.hero.x, y: s.hero.y, tx: x, ty: y, T: windup, n: left });
 }
 
+// The owned variant runs this code: sledge, or Demirci Vuruşu (blacksmith) which also heals per enemy hit.
 function fireSledge(s, dt) {
-  var h = s.hero, cfg = P.CFG.weapons.sledge, lv = P.Weapons.level(h, 'sledge');
-  if (!lv || !P.Weapons.ready(h, 'sledge', dt)) return;
+  var h = s.hero, id = P.Weapons.variantOf(h, 'sledge'), cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id);
+  if (!lv || !P.Weapons.ready(h, id, dt)) return;
   var t = P.Weapons.densest(s, cfg.range, cfg.clusterR, []);
   if (!t) return;
   var A = P.Mods.act(s, 'sledge');
-  h.cds.sledge = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'sledge');
-  queueSlam(s, t.x, t.y, lv, lv.slams, cfg.windup, A);
-  P.Weapons.fired(s, 'sledge', Math.atan2(t.y - h.y, t.x - h.x), lv.slams);
+  h.cds[id] = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'sledge');
+  queueSlam(s, t.x, t.y, lv, lv.slams, cfg.windup, A, id);
+  P.Weapons.fired(s, 'sledge', Math.atan2(t.y - h.y, t.x - h.x), lv.slams, id);
 }
 
 function impactSlam(s, sl) {
   var lv = sl.lv, cfg = P.CFG.weapons.sledge, A = sl.A, r = lv.r * A.area, stun = A.sig && A.sig.stun ? A.sig.stun : lv.stun;
-  var dmg = P.Weapons.dmgFor(s, 'sledge', lv.dmg) * A.dmg;
-  var hits = P.Mods.blast(s, sl.x, sl.y, r, dmg, lv.kb * P.Weapons.kbMult(s), 'sledge', A);
+  var dmg = P.Weapons.dmgFor(s, 'sledge', lv.dmg) * A.dmg, h = s.hero;
+  var hits = P.Mods.blast(s, sl.x, sl.y, r, dmg, lv.kb * P.Weapons.kbMult(s), sl.src, A);
   s.enemies.forEach(function (e) {
     if (!e.dead && e.state === 'active' && Math.hypot(e.x - sl.x, e.y - sl.y) - e.r <= r) P.Status.apply(e, 'stun', stun, 1);
   });
+  if (lv.heal && hits > 0) {                       // Demirci Vuruşu: a little life back for every enemy the slam hits
+    var heal = Math.min(lv.healMax, hits * lv.heal);
+    h.hp = Math.min(h.maxHp, h.hp + heal);
+    s.events.push({ type: 'healPulse', x: h.x, y: h.y, amount: heal });
+  }
   s.events.push({ type: 'sledgeSlam', x: sl.x, y: sl.y, r: r, stun: stun, hits: Math.max(0, hits), n: sl.left, heavy: true });
   if (sl.first) P.Mods.announce(s, A, sl.x, sl.y, r);
   if (sl.left > 1) {
     var nt = P.Weapons.densest(s, cfg.range, cfg.clusterR, []) || { x: sl.x, y: sl.y };
-    queueSlam(s, nt.x, nt.y, lv, sl.left - 1, cfg.slamGap, A);
+    queueSlam(s, nt.x, nt.y, lv, sl.left - 1, cfg.slamGap, A, sl.src);
   }
 }
 
@@ -75,28 +81,33 @@ function updateSlams(s, dt) {
 }
 
 // ---------- Molotov: arcing bottle -> fire pool that applies Burn. Signature "lake" = a long, wide pool. ----------
+// The owned variant runs this code: molotov, Ateş Gölü (lake: pools merge) or Ateş Topu (fireball: bigger, burns).
 function fireMolotov(s, dt) {
-  var h = s.hero, cfg = P.CFG.weapons.molotov, lv = P.Weapons.level(h, 'molotov');
-  if (!lv || !P.Weapons.ready(h, 'molotov', dt)) return;
+  var h = s.hero, id = P.Weapons.variantOf(h, 'molotov'), cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id);
+  if (!lv || !P.Weapons.ready(h, id, dt)) return;
   var M = P.Mods.of(s, 'molotov'), chosen = P.Weapons.pickClusters(s, cfg.range, cfg.clusterR, lv.bottles + M.count, cfg.flight);
   if (!chosen.length) return;
   var A = P.Mods.act(s, 'molotov');
-  h.cds.molotov = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'molotov');
+  h.cds[id] = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'molotov');
   var list = P.Weapons.state(s).flasks;
   chosen.forEach(function (c, i) {
-    list.push({ x0: h.x, y0: h.y, x1: c.x, y1: c.y, t: 0, T: cfg.flight, lv: lv, spin: s.rng.combat.range(0, 6), A: A, first: i === 0 });
+    list.push({ x0: h.x, y0: h.y, x1: c.x, y1: c.y, t: 0, T: cfg.flight, lv: lv, spin: s.rng.combat.range(0, 6), A: A, first: i === 0,
+      src: id, cfg: cfg });
   });
   s.events.push({ type: 'flaskThrow', x: h.x, y: h.y, n: chosen.length });
-  P.Weapons.fired(s, 'molotov', Math.atan2(chosen[0].y - h.y, chosen[0].x - h.x), chosen.length);
+  P.Weapons.fired(s, 'molotov', Math.atan2(chosen[0].y - h.y, chosen[0].x - h.x), chosen.length, id);
 }
 
 function shatter(s, f) {
-  var lv = f.lv, cfg = P.CFG.weapons.molotov, A = f.A, sig = A.sig;
-  var dmg = P.Weapons.dmgFor(s, 'molotov', lv.dmg) * A.dmg;
-  P.Mods.blast(s, f.x1, f.y1, cfg.clusterR * 0.8 * A.area, dmg, 0.4, 'molotov', A);
-  var life = lv.life * A.M.life * (sig && sig.life ? sig.life : 1);
-  P.Weapons.state(s).pools.push({ x: f.x1, y: f.y1, r: lv.r * A.area, t: life, T: life, tick: cfg.burnTick, A: A });
-  s.events.push({ type: 'flaskShatter', x: f.x1, y: f.y1, r: lv.r * A.area, life: life, spin: f.spin });
+  var lv = f.lv, cfg = f.cfg || P.CFG.weapons.molotov, A = f.A, sig = A.sig, isLake = lv.lakeLife !== undefined;
+  var rr = cfg.clusterR * 0.8 * A.area * (lv.blastMul || 1);
+  var dmg = P.Weapons.dmgFor(s, 'molotov', lv.dmg) * A.dmg * (lv.dmgMul || 1);
+  P.Weapons6.terrainHit(s, 'molotov', 'fire', f.x1, f.y1);
+  P.Mods.blast(s, f.x1, f.y1, rr, dmg, 0.4, f.src || 'molotov', A);
+  if (lv.burn) P.Weapons6.burnAround(s, f.x1, f.y1, rr, lv.burn);
+  var life = (isLake ? lv.lakeLife : lv.life) * A.M.life * (sig && sig.life ? sig.life : 1);
+  P.Weapons.state(s).pools.push({ x: f.x1, y: f.y1, r: lv.r * A.area, t: life, T: life, tick: cfg.burnTick, A: A, lv: isLake ? lv : null });
+  s.events.push({ type: 'flaskShatter', x: f.x1, y: f.y1, r: lv.r * A.area, life: life, spin: f.spin, lake: isLake });
   if (f.first) P.Mods.announce(s, A, f.x1, f.y1, lv.r * A.area);
 }
 

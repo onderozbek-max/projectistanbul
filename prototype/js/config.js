@@ -12,6 +12,18 @@ P.CFG = {
     widthM: 10, holdWidthM: 12, zoomTime: 0.6,                            // V2: closer camera (GD 2 says 12/13.5)
     aspect: 844 / 390, lookAhead: 1.5, smoothing: 0.15,                   // GD 2, LD 11
     offscreenMargin: 1.0,                                                 // PROTO
+    geoHeroHalfX: 4.6,                                                    // G1: generated levels keep the hero at |x| <= 4.6 m
+                                                                          //     (half of 10 m visible, minus the 0.4 m hero radius)
+    spriteScale: { hero: 1.22, walker: 1.15, runner: 1.15, elite: 1.25 }, // G2: draw scale on top of each rig's own scale
+                                                                          //     (collision radii are never read here)
+    anim: { bobWalk: 0.05, bobIdle: 0.012, squashWalk: 0.04, stepWidth: 0.02,   // walk cycle: body bob and squash (units)
+            hitSquashX: 0.14, hitSquashY: 0.12 },                              // hit squash (fraction of the pose)
+    blinkHz: 1.5, blinkMinAlpha: 0.6,                                     // G5: invulnerability pulse, never above 3 per s
+    contactShadow: { alpha: 0.22, radius: 0.9, aspect: 0.36 },            // G4: enemy ground shadow (x body radius)
+    heroShadow: { alpha: 0.34, radius: 0.5, aspect: 0.36 },               // soft contact shadow under the hero
+    crowdRing: { spitter: '#C6F04A', bloater: '#FF8A3D' },                 // G4: coloured base ring for readable crowds
+    eliteOutline: { color: '#FFC93C', units: 0.05 },                      // G4: gold outline on elites (units of figure height)
+    ao: { spread: [0.34, 0.18, 0.05], alpha: [0.10, 0.13, 0.16], dx: 0.08, dy: -0.12 }, // ground AO under props (m)
   },
   hero: {
     maxHp: 100, speed: 3.2, pickupRadius: 1.5, critChance: 0.05, critMult: 1.5,  // GD 4.1, CC 1
@@ -101,18 +113,23 @@ P.CFG = {
     traumaPlayerHit: 0.2, traumaDecay: 1.5, maxShakePx: 12, maxShakeDeg: 1,
     scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.03, punchTime: 0.12,
     dmgNumberLife: 0.7, dmgNumberRise: 0.6, dmgNumberMax: 40, dmgMerge: 0.2, lowHpFrac: 0.3,
+    edgePulseFrac: 0.1, edgePulseAlpha: 0.25, edgePulseLife: 0.25, edgePulseGap: 0.5,  // G3: red edge pulse on a heavy hit
+    heroFlashGap: 0.333,                                                  // G3: hero white flash at most 3 per s (60 ms each)
+    hitSparks: 3,                                                         // G3: sparks per enemy hit (view only)
+    partsMax: 500,                                                        // view: particle cap for big crowds
   },
   bark: { show: 2.5, cooldown: 14, queueExpire: 10 },                     // DS 9.3 (cooldown V2: 20 -> 14)
   rewards: { jetonBase: 40, jetonPerLevel: 6, hurdaBase: 5, firstClearMult: 2, loseKeep: 0.5 }, // GD 8.7, 3
   level: {                                                                // LD 6, design/lofi/level-001-map.svg
     corridor: { xMin: -7, xMax: 7, yMin: 0, yMax: 230 },
-    room: { xMin: -10, xMax: -2, yMin: -10, yMax: 0 },
+    room: { xMin: -10, xMax: -2, yMin: -10, yMax: 0, indoor: true },   // the restaurant interior (no gulls, no rain)
     door: { xMin: -6, xMax: -4 },
     tram: { xMin: -1.3, xMax: 1.3, yMin: 146, yMax: 158 },
     rails: [-0.7, 0.7],
     doorsRight: [15, 45, 75, 105, 135, 165, 195, 225],
     doorsLeft: [30, 60, 90, 120, 150, 180, 210],
-    segments: [ { id: 'A', y0: 0 }, { id: 'B', y0: 62 }, { id: 'C', y0: 124 }, { id: 'D', y0: 194 } ],
+    // indoor: B is the covered passage (pasaj), D the underpass (tünel). A and C are open street.
+    segments: [ { id: 'A', y0: 0 }, { id: 'B', y0: 62, indoor: true }, { id: 'C', y0: 124 }, { id: 'D', y0: 194, indoor: true } ],
     heroStart: { x: -6.2, y: -6.5 },
     doner: { x: -3.2, y: -8.6 },                                          // V2: döner spit where Arda grabs the knife
     diners: [ { x: -4.6, y: -4.4, delay: 0 }, { x: -8.8, y: -8.6, delay: 2.5 } ],  // V2 delay 4 -> 2.5

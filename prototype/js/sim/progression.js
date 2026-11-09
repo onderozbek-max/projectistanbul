@@ -4,7 +4,7 @@
 // 'usta' at mastery rank 3+) and card.pick (default 0, set by the UI). choose() stores the pick in hero.mods[fam].
 P.Hero = {};
 P.Hero.speed = function (s) {
-  return P.CFG.hero.speed * (1 + (s.hero.passives.shoes || 0) * P.CFG.passives.shoes.movePct);
+  return P.CFG.hero.speed * (1 + (s.hero.passives.shoes || 0) * P.CFG.passives.shoes.movePct) * (s.mod ? s.mod.moveMul : 1);
 };
 
 P.Progression = {};
@@ -111,13 +111,23 @@ P.Progression.candidates = function (s) {
   return out;
 };
 
+// The scripted L1 trio (config scriptedFirstCard) is the first offer of a fresh level 1 only (AUDIT-6 P1). The loadout
+// (P.Meta.loadout) says whether L1 was cleared. Without a loadout (headless bot) L1 counts as fresh.
+P.Progression.scriptedFirst = function (s) {
+  return s.levelIndex === 1 && !(s.loadout && s.loadout.l1Cleared);
+};
+
+// Every other first offer opens with the starter weapon's upgrade, then weighted picks, so it varies by seed and level.
 P.Progression.makeOffer = function (s) {
-  var C = P.CFG, rng = s.rng.cards, picks = [];
-  if (s.cardPicks === 0) {
+  var C = P.CFG, rng = s.rng.cards, picks = [], pool = P.Progression.candidates(s), start, i;
+  if (s.cardPicks === 0 && P.Progression.scriptedFirst(s)) {
     picks = C.scriptedFirstCard.map(function (id) { return P.Progression.cardFor(s, id); });
     return { cards: picks, scripted: true };
   }
-  var pool = P.Progression.candidates(s);
+  if (s.cardPicks === 0) {
+    start = 'w:' + ((s.loadout && s.loadout.startWeapon) || C.pool.signature);
+    for (i = 0; i < pool.length; i++) if (pool[i].id === start) { picks.push(pool.splice(i, 1)[0]); break; }
+  }
   while (picks.length < C.cards.count && pool.length) {
     var total = pool.reduce(function (a, b) { return a + b.w; }, 0), r = rng.next() * total, i = 0;
     while (r >= pool[i].w) { r -= pool[i].w; i++; }

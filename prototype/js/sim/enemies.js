@@ -24,6 +24,8 @@ P.Enemies.init = function (s, e) {
     e.faceA = Math.atan2(s.hero.y - e.y, s.hero.x - e.x);
   }
   else if (P.Enemies2.owns(e.type)) P.Enemies2.init(s, e);   // v0.6: kasap, parkur
+  else if (P.Enemies3.owns(e.type)) P.Enemies3.init(s, e);   // v0.7: kurye, copci
+  P.Enemies3.entrance(s, e);                                 // v0.7: manhole, window, balcony, tram entrances (generated levels)
 };
 
 // ---------- per-step desired velocity (called from updateEnemies) ----------
@@ -34,6 +36,7 @@ P.Enemies.think = function (s, e, dt) {
   if (e.lure && e.lure.t > 0) return lured(s, e, dt);
   if (e.lootEv) return P.EventKinds.loot.think(s, e, dt);
   if (P.Enemies2.owns(e.type)) return P.Enemies2.think(s, e, dt);
+  if (P.Enemies3.owns(e.type)) return P.Enemies3.think(s, e, dt);
   if (!e.ai) return false;
   if (e.type === 'brute') return brute(s, e, dt);
   if (e.type === 'spitter' || e.type === 'zehirli') return spitter(s, e, dt);
@@ -230,7 +233,7 @@ function bloater(s, e, dt) {
 // Melee contact hook (combat.js). Returns true when the contact is fully handled here.
 P.Enemies.onContact = function (s, e) {
   if (e.type === 'bloater' && !e.boss) { P.Combat.killEnemy(s, e, false, 'bloater'); return true; }
-  if (e.type === 'brute' && e.ai.m === 'charge') {
+  if ((e.type === 'brute' || e.boss) && e.ai.m === 'charge') {      // boss charges (taksici too) hit like the brute's
     if (!e.ai.hit) {
       e.ai.hit = true;
       var u = e.ai.dir;
@@ -276,6 +279,7 @@ P.Enemies.zoneHero = function (s, z, dt) {
 // ---------- telegraphs, shots and hazards: per-step runtime ----------
 P.Enemies.frame = function (s, dt) {
   var i, list = s.enemyTele;
+  P.Enemies3.frame(s, dt);                                   // v0.7: rolling bins, blades
   for (i = list.length - 1; i >= 0; i--) {
     var t = list[i];
     t.t += dt;
@@ -333,6 +337,7 @@ P.Enemies.toxicPool = function (s, x, y, r, T, dps) {
 // Telegraph resolution. Crawlers emerge (generic levels), brutes stomp, bosses slam/summon/pool/rain.
 P.Enemies.onTele = function (s, tg) {
   var h = s.hero, hr = P.CFG.hero.radius;
+  if (P.Enemies3.onTele(s, tg)) return;                      // v0.7: boss swings and smashes
   if (tg.then === 'stomp') {
     s.events.push({ type: 'bruteStomp', x: tg.x, y: tg.y, r: tg.r });
     if (dist(h, tg) - hr <= tg.r) { P.Combat.damageHero(s, tg.dmg, 'brute'); P.Combat.pushHero(s, h.x - tg.x, h.y - tg.y, tg.kb); }

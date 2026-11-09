@@ -12,6 +12,21 @@
   var STEP = 1 / P.CFG.sim.hz, SEG_TEL = { A: 'seg_a', B: 'seg_b', C: 'seg_c', D: 'seg_d' };
   var FROZEN = { paused: 1, cards: 1, down: 1, chest: 1, story: 1, storyRun: 1, storyEnd: 1 };
   var music = function (id) { if (P.Music) P.Music.play(id); };
+  var DEATH_BEAT = 0.8, dyingT = 0, dyingNext = null, frameErrs = 0;   // AUDIT-6 F4: hit-stop before the down screen
+
+  // Fail-soft flow (AUDIT-6 F2): a failing step is logged, shows a toast and falls back to the title, so Start never
+  // dies silently. Errors inside the frame loop are logged and the loop keeps running.
+  function guard(where, fn) {
+    return function () {
+      try { return fn.apply(this, arguments); } catch (e) {
+        P.UI.bootError(where, e && e.stack ? e.stack.split('\n').slice(0, 2).join(' | ') : e);
+        toTitle(); P.UI.toast(P.t('ui.boot.fail'), null, 2.5);
+        return undefined;
+      }
+    };
+  }
+  // Short vibration on a heavy hit or a frenzy start, only when the player has haptics on (AUDIT-6 F5).
+  function buzz(pattern) { if (P.Settings.haptics && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(pattern); }
 
   if (params.get('arsenal')) P.CFG.debugAllWeapons = true;
   if (params.get('meta') === 'unlockall' && P.Meta) P.Meta.debugUnlockAll();
@@ -32,7 +47,9 @@
     if (P.Barks && P.Barks.reset) P.Barks.reset(seed);
     P.Fx.reset(sim); P.Tel.setSeed(seed);
     acc = 0; timeScale = 1; slowMo = -1; hitStop = 0; rerolled = false; fxSlow.t = 0; P.HitStop = 0;
+    dyingNext = null; dyingT = 0; phone.classList.remove('dying');
     if (P.Comic) P.Comic.clearPops();
+    if (P.Speech) P.Speech.reset();
     P.Tel.log('level_start', { level_type: levelIndex === 1 ? 'route' : 'journey', level_id: sim.levelInfo.id,
       hero_ids: ['arda'], hero_levels: [1], gear_power: 0 });
   }
@@ -52,7 +69,7 @@
     if (P.Comic) P.Comic.clearPops();
     if (P.Sfx.ambience) P.Sfx.ambience(null);
     music('map');
-    P.Meta.open(playLevel);
+    P.Meta.open(playG);
   }
 
   function playLevel(i, opts) {
@@ -114,6 +131,7 @@
       P.Fx.onEvent(ev, sim);
       if (P.Barks && P.Barks.onEvent) P.Barks.onEvent(ev, sim);
       if (P.FireAnim) P.FireAnim.onEvent(ev, sim);
+      if (P.EnvFx && P.EnvFx.onEvent) P.EnvFx.onEvent(ev, sim);   // lane A: env sfx, shards and labels
       switch (ev.type) {
         case 'kill': P.Sfx.play('splat', 45); break;
         case 'pickup': P.Sfx.play(ev.kind === 'xp' ? 'tink' : 'click', 30); break;
@@ -122,13 +140,13 @@
         case 'explode': P.Sfx.play('boom'); break;
         case 'heroHit':
           P.Sfx.play('hurt', 120);
-          if (ev.dmg >= 0.1 * sim.hero.maxHp) P.Tel.log('player_hit', { source_id: ev.cause, damage: ev.dmg, hp_after: ev.hp });
+          if (ev.dmg >= 0.1 * sim.hero.maxHp) { buzz(12); P.Tel.log('player_hit', { source_id: ev.cause, damage: ev.dmg, hp_after: ev.hp }); }
           break;
+        case 'frenzy': if (ev.on) buzz([18, 40, 18]); break;
         case 'levelup':
           P.Tel.log('level_up', { run_level: ev.level, t_s: +sim.runT.toFixed(1) });
           if (slowMo < 0) { slowMo = 0; P.Sfx.play('level'); }
           break;
-        case 'nearMiss': slow(ev.slowMo || 0.25, 0.3); break;
         case 'ult': slow(ev.slowMo || 0.3, 0.25); P.Tel.log('ult_used', { t_s: +sim.runT.toFixed(1) }); break;
         case 'masteryMove': slow(ev.slowMo || 0.4, 0.25); P.Tel.log('mastery_move', { weapon: ev.weapon }); break;
         case 'modChosen': P.Tel.log('mod_chosen', { weapon: ev.weapon, mod: ev.mod }); break;
@@ -225,10 +243,17 @@
       P.Input.enabled = true; handleEvents();
       return;
     }
-    if (sim.reviveUsed) { endRun(false); return; }
+    // Death beat (AUDIT-6 F4): the world freezes and desaturates for 0.8 s, then the down screen (or results).
+    state = 'dying'; dyingT = P.Settings.reduceMotion ? 0 : DEATH_BEAT;
+    phone.classList.add('dying');
+    dyingNext = sim.reviveUsed ? function () { endRun(false); } : showDown;
+  }
+
+  function showDown() {
+    phone.classList.remove('dying');
     state = 'down';
     P.Tel.log('revive_offer', { methods: ['ad', 'altin'] });
-    P.Screens.showDown(sim, Math.floor(sim.jeton * P.CFG.rewards.loseKeep), {
+    P.Screens.showDown(sim, {
       revive: function (kind) {
         P.revive(sim, kind); P.Tel.log('revive_used', { method: kind === 'ad' ? 'ad_stub' : 'altin_stub' });
         handleEvents(); P.Screens.hideAll(); state = 'play'; P.Input.enabled = true;
@@ -333,12 +358,21 @@
     perfSample(dt);
   }
 
+  // The loop always re-arms itself: an error in one frame is logged (every 60th) and the next frame still runs.
   function frame(ts) {
+    try { tick(ts); } catch (e) {
+      if (frameErrs++ % 60 === 0) P.UI.bootError('frame', e && e.stack ? e.stack.split('\n').slice(0, 2).join(' | ') : e);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function tick(ts) {
     var dt = Math.min(0.1, (ts - (last || ts)) / 1000);
     last = ts;
     if (state === 'cold') P.ColdOpen.update(dt);
     if (state === 'play') stepPlay(dt);
     if (state === 'exit') updateExit(dt);
+    if (state === 'dying' && (dyingT -= dt) <= 0 && dyingNext) { var next = dyingNext; dyingNext = null; next(); }
     if (sim && state !== 'title' && state !== 'results' && state !== 'map') {
       P.Fx.update(sim, FROZEN[state] ? 0 : dt);
       if (P.FireAnim) P.FireAnim.update(FROZEN[state] ? 0 : dt * (P.Fx.timeScale ? P.Fx.timeScale() : 1), sim);
@@ -346,7 +380,7 @@
       if (state === 'play' || state === 'exit') P.UI.update(sim); else document.getElementById('prompt').classList.add('hidden');
     }
     P.UI.tick(dt);
-    requestAnimationFrame(frame);
+    if (P.Speech) P.Speech.tick(dt);
   }
 
   // ---------- wiring ----------
@@ -354,12 +388,15 @@
   P.Render.init($('game')); P.UI.init(); fit(); window.addEventListener('resize', fit);
   P.Input.init(phone, toLocal); P.Input.onPause = pause;
   P.UI.applyI18n(); P.Screens.drawKeyArt($('keyart'));
+  if (P.applySettings) P.applySettings();
   $('btn-title-settings').innerHTML = P.Icons.svg('gear', 30);
   if (P.Meta) P.Meta.onSettings = function () { openSettings('map'); };
   document.querySelectorAll('[data-lang]').forEach(function (b) {
     b.addEventListener('click', function () { P.lang = P.Settings.lang = b.getAttribute('data-lang'); P.saveSettings(); P.UI.applyI18n(); });
   });
-  on('btn-start', startGame);
+  // Guarded entry points (AUDIT-6 F2): the map and the buttons call these, never the raw flow functions.
+  var startG = guard('startGame', startGame), playG = guard('playLevel', playLevel);
+  on('btn-start', startG);
   on('btn-title-settings', function () { openSettings('title'); });
   on('btn-pause', pause);
   on('btn-ult', function () { if (state === 'play' && P.Input.requestUlt) P.Input.requestUlt(); });
@@ -368,11 +405,11 @@
   on('btn-restart', function () { P.Tel.log('level_end', { result: 'quit', t_s: +sim.runT.toFixed(1) }); newRun(); beginPlay(); });
   on('btn-quit', function () { if (P.Meta) quitToMap(); else toTitle(); });
   on('btn-export', function () { P.Tel.exportJsonl(); });
-  on('btn-next', function () { playLevel(levelIndex + 1, {}); });
+  on('btn-next', function () { playG(levelIndex + 1, {}); });
   on('btn-retry', function () { newRun(); beginPlay(); });
   on('btn-to-title', function () { if (P.Meta) openMap(); else toTitle(); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });
   P.Screens.show('scr-title');
   requestAnimationFrame(frame);
-  P.debug = { get sim() { return sim; }, get state() { return state; }, playLevel: playLevel, openMap: openMap };
+  P.debug = { get sim() { return sim; }, get state() { return state; }, playLevel: playG, openMap: openMap };
 })();

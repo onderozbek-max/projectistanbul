@@ -111,12 +111,14 @@ P.Meta = P.Meta || {};
     var c = M.CFG.coins, base = c.clearBase + c.clearPerLevel * M.clampLevel(i);
     return Math.round(first ? base * c.firstClearMult : base);
   };
+  // Objective bonus (lane P): a done objective on a win pays P.Objectives.bonusFor(level) coins.
   M.rewardFor = function (r, prevStars, stars) {
     var c = M.CFG.coins, won = !!r.won, first = won && !(prevStars > 0);
     var run = won ? Math.round(num(r.coins)) : Math.round(num(r.coins) * c.lossKeep);
     var clear = won ? M.clearReward(r.levelIndex, first) : 0;
     var starB = won ? Math.max(0, stars - (prevStars || 0)) * c.starBonus : 0;
-    return { won: won, first: first, run: run, clear: clear, starBonus: starB, total: run + clear + starB };
+    var objB = won && r.objective && P.Objectives ? P.Objectives.bonusFor(r.levelIndex) : 0;
+    return { won: won, first: first, run: run, clear: clear, starBonus: starB, objective: objB, total: run + clear + starB + objB };
   };
 
   // ---- Gear state and maths ----
@@ -248,7 +250,7 @@ P.Meta = P.Meta || {};
     var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
     lo = { gear: gearSum(s), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
-      mastery: masteryRanks(s), ult: ult, hero: 'arda', modifiers: [] };
+      mastery: masteryRanks(s), ult: ult, hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
     if (o.daily) { lo.modifiers = (o.modifiers || []).map(function (m) { return Object.assign({}, m); }); lo.seed = o.seed | 0; lo.daily = true; }
     return lo;
   };
@@ -274,7 +276,7 @@ P.Meta = P.Meta || {};
   function apply(s, r, now) {
     var i = M.clampLevel(r.levelIndex), won = !!r.won, prev = s.stars[i] || 0, before = M.snapshot();
     var stars = won ? Math.max(1, Math.min(M.CFG.starsMax, Math.round(num(r.stars)))) : 0;
-    var rw = M.rewardFor({ levelIndex: i, won: won, coins: r.coins }, prev, stars), st0 = s.heroes.arda.stats;
+    var rw = M.rewardFor({ levelIndex: i, won: won, coins: r.coins, objective: !!(r.tally && r.tally.objDone) }, prev, stars), st0 = s.heroes.arda.stats;
     var st = P.Stats.applyLevel(st0, r.tally, won), day = P.Meta.Daily.dayKey(new Date(now)), ups, news, achieved;
     if (won) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
     rw.total = coinBonus(s, rw.total);

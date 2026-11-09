@@ -5,15 +5,18 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-stats.js', 'js/config-weapons2.js',
-  'js/strings.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/sim/rng.js', 'js/sim/world.js',
+const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-layouts.js', 'js/config-enemies3.js', 'js/config-bosses.js', 'js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js', 'js/config-env.js',
+  'js/config-objectives.js', 'js/config-modifiers.js',
+  'js/strings.js', 'js/strings-progress.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/strings-weapons3.js', 'js/sim/rng.js', 'js/sim/world.js',
   'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
-  'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/levels.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
-  'js/sim/hack.js', 'js/sim/progression.js', 'js/sim/director.js', 'js/sim/sim.js'];
+  'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/layouts.js', 'js/sim/levels.js', 'js/sim/enemies3.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
+  'js/sim/env.js', 'js/sim/env-kinds.js', 'js/sim/env-zones.js', 'js/sim/env-rules.js', 'js/sim/env-portal.js',
+  'js/sim/hack.js', 'js/sim/modifiers.js', 'js/sim/objectives.js', 'js/sim/objectives-kinds.js',
+  'js/sim/progression.js', 'js/sim/weapons6.js', 'js/sim/director.js', 'js/sim/sim.js'];
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
-const VIEW = ['js/view/icons.js', 'js/view/weapons-fx.js', 'js/view/weapons-fx2.js', 'js/view/weapons-fx3.js',
-  'js/view/weapons-fx4.js', 'js/view/fire-anim-prim.js', 'js/view/fire-anim-held.js', 'js/view/fire-anim-held2.js',
-  'js/view/fire-anim-fx.js', 'js/view/fire-anim-fx2.js', 'js/view/fire-anim.js', 'js/view/skills-fx.js', 'js/view/input.js'];
+const VIEW = ['js/view/icons.js', 'js/view/icons-evo.js', 'js/view/weapons-fx.js', 'js/view/weapons-fx2.js', 'js/view/weapons-fx3.js',
+  'js/view/weapons-fx4.js', 'js/view/fire-anim-prim.js', 'js/view/fire-anim-held.js', 'js/view/fire-anim-held2.js', 'js/view/fire-anim-held3.js',
+  'js/view/fire-anim-fx.js', 'js/view/fire-anim-fx2.js', 'js/view/fire-anim-fx3.js', 'js/view/fire-anim.js', 'js/view/skills-fx.js', 'js/view/skill-button.js', 'js/view/input.js'];
 VIEW.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const P = globalThis.P;
 if (!P.Enemies || !P.Enemies.frame) P.Enemies = { frame: function () {} };   // E2 stub fallback (test-only)
@@ -35,7 +38,9 @@ const ALL_W_L5 = Object.fromEntries(ALL_W.map(id => [id, 5]));
 const EVOS = { cleaver: 1, nailstorm: 1, cluster: 1, cyclone: 1, finale: 1 };
 // Weapon ids for the fire-animation draw smoke (new names, workstream A renames; old names alias in fire-anim.js).
 const FIRE_IDS = ['knife', 'nailgun', 'canister', 'chain', 'sledge', 'molotov', 'fireworks', 'cable', 'speargun', 'extinguisher',
-  'sawblade', 'manhole', 'torch', 'olta', 'cardoor', 'slingshot', 'chainsaw'];
+  'sawblade', 'manhole', 'torch', 'olta', 'cardoor', 'slingshot', 'chainsaw',
+  'blacksmith', 'stormshield', 'foamstorm', 'netspear', 'lake', 'twinsaw', 'fireball', 'arcchain', 'carbomb',
+  'skill_shield', 'skill_tea'];
 
 function newSim(seed, levelIndex, loadout) {
   const s = P.createSim(seed, { levelIndex: levelIndex || 1, loadout: loadout || null });

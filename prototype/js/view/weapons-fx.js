@@ -7,15 +7,16 @@
 // extinguisher, cleaver, cyclone, cluster) and P.SkillsFx (dash, ult, frenzy, evolve). Crit feel and P.HitStop live here.
 P.WFx = (function () {
   var W = { gunA: 0, recoil: 0, sinceFire: 9, throwT: 0, throwKind: 'canister', parts: [], blastN: 0, hs: [], sim: null,
-    combo: { n: 0, t: 0, best: 0, banner: null } };
+    combo: { n: 0, t: 0, best: 0 } };
   var INK = '#14151F', THROW_T = 0.32, MAX_PARTS = 700, HEAVY = { sledge: 1, canister: 1, cluster: 1, cleaver: 1, finale: 1 };
-  var BANNERS = [[25, 'combo.25'], [50, 'combo.50'], [100, 'combo.100'], [200, 'combo.200']];
+  // v0.7: streak milestones (25/50/100/200) keep their sound cue; the HUD streak meter shows the tier label.
+  var MILESTONES = [25, 50, 100, 200];
 
   function mods() { return [P.WFx2, P.WFx3, P.WFx4, P.SkillsFx]; }
 
   W.reset = function () {
     W.gunA = 0; W.recoil = 0; W.sinceFire = 9; W.throwT = 0; W.parts = []; W.hs = [];
-    W.combo = { n: 0, t: 0, best: 0, banner: null };
+    W.combo = { n: 0, t: 0, best: 0 };
     mods().forEach(function (m) { if (m && m.reset) m.reset(); });
   };
 
@@ -118,7 +119,7 @@ P.WFx = (function () {
   function comboKill(s) {
     var c = W.combo;
     c.n = c.t > 0 ? c.n + 1 : 1; c.t = 1.4; c.best = Math.max(c.best, c.n);
-    BANNERS.forEach(function (b) { if (c.n === b[0]) { c.banner = { key: b[1], t: 1.3, T: 1.3 }; P.Sfx.play('combo', 200); } });
+    if (MILESTONES.indexOf(c.n) >= 0) P.Sfx.play('combo', 200);
   }
 
   W.update = function (dt, s) {
@@ -127,7 +128,6 @@ P.WFx = (function () {
     W.recoil = Math.max(0, W.recoil - dt * 7); W.sinceFire += dt;
     W.throwT = Math.max(0, W.throwT - dt);
     c.t = Math.max(0, c.t - dt); if (c.t === 0) c.n = 0;
-    if (c.banner) { c.banner.t -= dt; if (c.banner.t <= 0) c.banner = null; }
     if (s) s.projs.forEach(function (q) {
       if (Math.random() < 0.6) { var f = q.t / q.T; add({ k: 'puff', x: q.x0 + (q.x1 - q.x0) * f, y: q.y0 + (q.y1 - q.y0) * f, z: 4 * 1.6 * f * (1 - f), vx: rnd(-0.3, 0.3), vy: rnd(-0.3, 0.3), vz: 0.2, r: 0.12, t: 0.4, T: 0.4 }); }
     });
@@ -368,21 +368,9 @@ P.WFx = (function () {
     c.restore();
   };
 
-  // Combo counter (right edge) + milestone banners (screen space).
-  W.drawCombo = function (R) {
-    var c = R.ctx, cb = W.combo;
-    if (cb.n >= 10) {
-      var pop = cb.t > 1.3 ? 1.25 : 1, x = R.W - 20, y = 150;
-      c.save(); c.textAlign = 'right'; c.textBaseline = 'top';
-      c.font = 'italic 900 ' + Math.round(30 * pop) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
-      c.lineWidth = 6; c.strokeStyle = INK; c.fillStyle = cb.n >= 100 ? '#FF4D2E' : cb.n >= 50 ? '#E040FB' : '#FFD166';
-      c.strokeText('x' + cb.n, x, y); c.fillText('x' + cb.n, x, y);
-      c.font = '800 11px system-ui'; c.lineWidth = 3; c.strokeText(P.t('combo.label'), x, y + 32); c.fillStyle = '#fff'; c.fillText(P.t('combo.label'), x, y + 32);
-      c.fillStyle = 'rgba(20,21,31,0.8)'; c.fillRect(x - 60, y + 48, 60, 5); c.fillStyle = '#FFD166'; c.fillRect(x - 60, y + 48, 60 * cb.t / 1.4, 5);
-      c.restore();
-    }
-    if (cb.banner) W.banner(c, R, cb.banner.key, cb.banner.t, cb.banner.T, 0.32);
-  };
+  // v0.7: the canvas combo counter and its milestone banners are gone (the HUD streak meter replaces them).
+  // The function stays so existing callers keep working.
+  W.drawCombo = function () {};
 
   return W;
 })();

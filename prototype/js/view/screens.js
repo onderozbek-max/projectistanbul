@@ -3,8 +3,17 @@ P.Screens = (function () {
   var S = {}, $ = function (id) { return document.getElementById(id); };
   var ALL = ['scr-title', 'scr-cold', 'scr-cards', 'scr-chest', 'scr-pause', 'scr-settings', 'scr-down', 'scr-slam', 'scr-results'];
 
-  S.show = function (id) { ALL.forEach(function (x) { $(x).classList.toggle('hidden', x !== id); }); };
+  // Overlays take the HUD, the dash and nazar buttons and the subtitle layer off screen while they are up (AUDIT-6 F1).
+  var OVERLAYS = ['scr-cards', 'scr-chest', 'scr-pause', 'scr-settings', 'scr-down'];
+  S.show = function (id) {
+    ALL.forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
+    if (P.UI && P.UI.setOverlay) P.UI.setOverlay(OVERLAYS.indexOf(id) >= 0);
+  };
   S.hideAll = function () { S.show(null); };
+  // Dev export is for the team: ?debug=1 or the devTools setting. Players never see it (AUDIT-6 F3).
+  S.devTools = function () { return !!P.Settings.devTools || /[?&]debug=1(&|$)/.test(location.search); };
+  // The share of Jeton that survives a give-up or a quit (config: rewards.loseKeep), as a whole percent.
+  S.keepPct = function () { return Math.round(P.CFG.rewards.loseKeep * 100); };
 
   function iconBox(item, cls) {
     var d = document.createElement('div');
@@ -197,48 +206,77 @@ P.Screens = (function () {
 
   S.showPause = function (s) {
     $('pause-level').textContent = P.t('ui.pause.level', S.levelVars(s, { t: P.UI.fmt(s.runT) }));
+    $('pause-quit-note').textContent = P.t('ui.pause.quitNote', { p: S.keepPct() });
+    $('btn-export').classList.toggle('hidden', !S.devTools());
     S.buildSlots(s, $('pause-build'), false);
     S.show('scr-pause');
   };
 
+  // Settings rows (AUDIT-6 F5). Every change persists, pushes to the live hooks (P.applySettings) and redraws the list.
   S.showSettings = function (onBack, onChange) {
     var list = $('settings-list'); list.innerHTML = '';
+    function commit() { P.saveSettings(); if (P.applySettings) P.applySettings(); onChange(); S.showSettings(onBack, onChange); }
     function row(label, el) { var r = document.createElement('div'); r.className = 'kv'; var l = document.createElement('span'); l.textContent = label; r.appendChild(l); r.appendChild(el); list.appendChild(r); }
     function toggle(key) {
       var b = document.createElement('button'); b.className = 'toggle' + (P.Settings[key] ? ' on' : '');
       b.textContent = P.t(P.Settings[key] ? 'ui.set.on' : 'ui.set.off');
       b.setAttribute('aria-pressed', String(!!P.Settings[key]));
-      b.onclick = function () { P.Settings[key] = !P.Settings[key]; P.saveSettings(); onChange(); S.showSettings(onBack, onChange); };
+      b.onclick = function () { P.Settings[key] = !P.Settings[key]; commit(); };
+      return b;
+    }
+    // Stepped value: each tap moves to the next offered value (wraps around).
+    function step(key, values, fmt) {
+      var b = document.createElement('button'); b.className = 'toggle step';
+      b.textContent = fmt(P.Settings[key]);
+      b.onclick = function () { var i = values.indexOf(P.Settings[key]); P.Settings[key] = values[(i + 1) % values.length]; commit(); };
       return b;
     }
     var lang = document.createElement('button'); lang.className = 'toggle on'; lang.textContent = P.lang === 'tr' ? 'TR' : 'EN';
-    lang.onclick = function () { P.lang = P.Settings.lang = P.lang === 'tr' ? 'en' : 'tr'; P.saveSettings(); onChange(); S.showSettings(onBack, onChange); };
+    lang.onclick = function () { P.lang = P.Settings.lang = P.lang === 'tr' ? 'en' : 'tr'; commit(); };
     row(P.t('ui.set.lang'), lang);
     row(P.t('ui.set.sound'), toggle('sound'));
+    row(P.t('ui.set.music'), step('musicVol', P.SettingSteps.music, function (v) { return '%' + v; }));
     row(P.t('ui.set.subs'), toggle('subs'));
     row(P.t('ui.set.reduceMotion'), toggle('reduceMotion'));
+    row(P.t('ui.set.reduceFlash'), toggle('reduceFlash'));
+    row(P.t('ui.set.shake'), step('shake', P.SettingSteps.shake, function (v) { return '%' + v; }));
     row(P.t('ui.set.dmgNumbers'), toggle('dmgNumbers'));
     row(P.t('ui.set.blood'), toggle('blood'));
+    row(P.t('ui.set.haptics'), toggle('haptics'));
+    row(P.t('ui.set.joy'), step('joySide', ['right', 'left'], function (v) { return P.t(v === 'left' ? 'ui.set.joyL' : 'ui.set.joyR'); }));
+    $('settings-note').textContent = P.t('ui.set.note');
     $('btn-settings-back').onclick = onBack;
     S.show('scr-settings');
   };
 
-  S.showDown = function (s, keepJeton, handlers) {
+  // Cause card art (AUDIT-6 F4): the killer as a zombie figure from P.Sprites; a canister blast keeps the skull.
+  var KILLER_VARIANT = { walker: 0, diner: 1, runner: 3, crawler: 4 };
+  function killerArt(box, cause) {
+    box.innerHTML = '';
+    var sp = P.Sprites, v = KILLER_VARIANT[cause];
+    if (v === undefined || !sp || !sp.person || !sp.palette) { box.innerHTML = P.Icons.svg('skull', 44); return; }
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), cv = document.createElement('canvas'), c, pal = sp.palette(v, true);
+    cv.width = 72 * dpr; cv.height = 72 * dpr; cv.style.width = '72px'; cv.style.height = '72px';
+    c = cv.getContext('2d'); c.scale(dpr, dpr);
+    sp.person(c, 36, 70, { u: 30, face: -1, phase: 0.4, zombie: true, skin: pal.skin, shirt: pal.shirt, pants: pal.pants,
+      hair: pal.hair, arms: 'reach', eyes: '#DDF5D0', blood: 1 });
+    box.appendChild(cv);
+  }
+  // Down screen: cause card, then the revive and give-up choices in fixed labels (AUDIT-6 F4). The caller holds the
+  // 0.8 s beat before this runs (main.js). handlers: { revive(kind), giveUp() }.
+  S.showDown = function (s, handlers) {
     $('down-survived').textContent = P.t('ui.down.survived', S.levelVars(s, { t: P.UI.fmt(s.runT) }));
     var cause = s.deathCause || 'walker';
-    $('down-icon').innerHTML = P.Icons.svg('skull', 44);
+    killerArt($('down-icon'), cause);
     $('down-cause').textContent = P.t('cause.' + cause);
     $('down-tip').textContent = P.t('tip.' + cause);
-    function label(btn, key, tag) {
-      btn.innerHTML = ''; btn.appendChild(document.createTextNode(P.t(key)));
-      var t = document.createElement('span'); t.className = 'tag'; t.textContent = tag; btn.appendChild(t);
-    }
-    label($('btn-revive-ad'), 'ui.down.reviveAd', P.t('ui.cards.ad') + ' · ' + P.t('ui.down.stub'));
-    label($('btn-revive-gold'), 'ui.down.reviveGold', P.t('ui.down.stub'));
+    $('btn-revive-ad').textContent = P.t('ui.down.reviveAd');
+    $('btn-revive-gold').textContent = P.t('ui.down.reviveGold');
+    $('down-note').textContent = P.t('ui.down.note');
     $('btn-revive-ad').disabled = $('btn-revive-gold').disabled = s.reviveUsed;
     $('btn-revive-ad').onclick = function () { handlers.revive('ad'); };
     $('btn-revive-gold').onclick = function () { handlers.revive('gold'); };
-    $('btn-giveup').textContent = P.t('ui.down.giveUp', { n: keepJeton });
+    $('btn-giveup').textContent = P.t('ui.down.giveUp', { p: S.keepPct() });
     $('btn-giveup').onclick = handlers.giveUp;
     S.show('scr-down');
   };

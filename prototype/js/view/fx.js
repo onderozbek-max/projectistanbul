@@ -1,25 +1,30 @@
 // Camera + game feel (DS 7): look-ahead, zoom, trauma shake, camera punch, damage numbers, particles.
+// v0.7: the camera moves only for a visible cause. Ultimates, evolutions, the first knife stab and the boss finisher
+// punch or zoom; level-up and bloater pops no longer punch or flash. Finisher: a kill-cam on the boss's last stand
+// (zoom on the spot, 1.2 s slow, a FINISHER callout). Chain reactions (canisters, bloaters) get a callout and a rumble
+// that lands 0.3 s after the blast. Last stand: the low-HP vignette beats like a heart (F.heart).
 P.Fx = (function () {
   var F = { cam: null, nums: [], parts: [], swings: [], rings: [], bursts: [], letters: [] };
+  var CHAIN_WIN = 0.35, CHAIN_R = 6, FINISH_T = 1.2;
 
   F.reset = function (s) {
     var w = P.CFG.view.widthM;
     F.cam = { x: s.geo ? 0 : -6, y: s.hero.y, w: w, trauma: 0, punchT: 0, ox: 0, oy: 0, rot: 0, zoom: 1 };
     F.cam.y = targetY(s, w);
-    F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = []; F.flash = 0; F.beat = null;
+    F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = []; F.beat = null;
+    F.focus = null; F.later = []; F.clock = 0; F.recent = []; F.lowArmed = true; F.chainCd = 0;
+    F.edge = null; F.edgeAt = -1e9; F.heroFlashT = 0; F.heroFlashAt = -1e9;
     P.WFx.reset();
     if (P.EnemyFx && P.EnemyFx.reset) P.EnemyFx.reset();
     if (P.EventsFx && P.EventsFx.reset) P.EventsFx.reset();
-    if (P.Sfx && P.Sfx.ambience) P.Sfx.ambience(s.theme);
+    if (P.RenderWorld && P.RenderWorld.resetAmbience) P.RenderWorld.resetAmbience();
   };
 
   // Generated levels clamp the camera to the corridor (s.geo); L1 keeps its street walls and the restaurant.
   function targetX(s, w) {
     var h = s.hero, look = h.moving ? h.fx * P.CFG.view.lookAhead : 0;
-    if (s.geo) {
-      var lg = Math.max(0, (s.geo.xMax - s.geo.xMin) / 2 - w / 2);
-      return Math.min(lg, Math.max(-lg, look));
-    }
+    // G1: generated levels keep the camera centred. The hero clamp (|x| <= view.geoHeroHalfX) keeps him in the frame.
+    if (s.geo) return 0;
     if (h.y < 0) return -6;
     var lim = Math.max(0, 7 - w / 2) + 1.2;
     return Math.min(lim, Math.max(-lim, h.x + look));
@@ -34,18 +39,51 @@ P.Fx = (function () {
   }
 
   // Boss death beat: visuals (camera, particles, rings) run at k = 0.3 for 1.2 s. The sim keeps its rate;
-  // main.js may also use F.timeScale() to slow the simulation.
+  // main.js may also use F.timeScale() to slow the simulation. Off under Reduce motion.
   F.timeScale = function () { return F.beat && F.beat.t > 0 ? F.beat.k : 1; };
+  // Last-stand heartbeat: 72 beats a minute, a strong beat and a weaker one; 0..1, never a flash.
+  F.heart = function (t) {
+    var period = 60 / 72, p = (t % period) / period;
+    function bump(c) { var d = Math.abs(p - c) / 0.1; return d >= 1 ? 0 : (1 - d) * (1 - d); }
+    return Math.min(1, bump(0) + 0.6 * bump(0.18));
+  };
+
+  // Hero hit feedback (G3). The white flash is the view's own 60 ms and is gated to 3 per second; the edge pulse is a
+  // red wash at the screen edge that decays in 0.25 s and comes at most once every 0.5 s. Both are off under F5's
+  // "reduce flashes" (P.Settings.reduceFlash, read only here).
+  F.heroFlash = function () { return P.Settings.reduceFlash ? 0 : (F.heroFlashT || 0); };
+  F.edgeAlpha = function () {
+    if (!F.edge || P.Settings.reduceFlash) return 0;
+    return P.CFG.feel.edgePulseAlpha * Math.max(0, F.edge.t / F.edge.T);
+  };
+  function heroHit(ev, s) {
+    var fe = P.CFG.feel, maxHp = s.hero.maxHp;
+    if (F.clock - F.heroFlashAt >= fe.heroFlashGap) { F.heroFlashT = fe.hitFlash; F.heroFlashAt = F.clock; }
+    if (ev.dmg >= fe.edgePulseFrac * maxHp && F.clock - F.edgeAt >= fe.edgePulseGap) {
+      F.edge = { t: fe.edgePulseLife, T: fe.edgePulseLife }; F.edgeAt = F.clock;
+    }
+  }
 
   F.update = function (s, dt) {
-    var c = F.cam, v = P.CFG.view, fe = P.CFG.feel, rm = P.Settings.reduceMotion;
-    if (F.beat && F.beat.t > 0) { F.beat.t -= dt; dt *= F.beat.k; }
-    var wT = s.dir.zoomOut ? v.holdWidthM : v.widthM;
+    var c = F.cam, v = P.CFG.view, fe = P.CFG.feel, rm = P.Settings.reduceMotion, rdt = dt;
+    F.clock += rdt;
+    F.chainCd = Math.max(0, (F.chainCd || 0) - rdt);
+    F.heroFlashT = Math.max(0, (F.heroFlashT || 0) - rdt);
+    if (F.edge) { F.edge.t -= rdt; if (F.edge.t <= 0) F.edge = null; }
+    if (F.beat && F.beat.t > 0) { F.beat.t -= rdt; dt *= F.beat.k; }
+    var wT = s.dir.zoomOut ? v.holdWidthM : v.widthM, tx = targetX(s, c.w), ty = targetY(s, c.w), wf = 0;
+    if (F.focus && F.focus.t > 0 && !rm) {                       // finisher kill-cam: ease in, hold, ease out
+      F.focus.t -= rdt;
+      wf = Math.sin(Math.PI * Math.max(0, Math.min(1, 1 - F.focus.t / F.focus.T)));
+      if (!s.geo) { tx += (F.focus.x - tx) * 0.6 * wf; wT *= 1 - 0.18 * wf; }   // generated levels: no x pan or zoom
+      ty += (F.focus.y - ty) * 0.6 * wf;
+    }
+    if (F.focus && F.focus.t <= 0) F.focus = null;
     var dw = (v.holdWidthM - v.widthM) / v.zoomTime * dt;
     c.w = c.w < wT ? Math.min(wT, c.w + dw) : Math.max(wT, c.w - dw);
     var k = 1 - Math.exp(-dt / v.smoothing);
-    c.x += (targetX(s, c.w) - c.x) * k;
-    c.y += (targetY(s, c.w) - c.y) * k;
+    c.x += (tx - c.x) * k;
+    c.y += (ty - c.y) * k;
     c.trauma = Math.max(0, c.trauma - fe.traumaDecay * dt);
     var sh = rm ? 0 : c.trauma * c.trauma;
     c.ox = fe.maxShakePx * sh * (Math.random() * 2 - 1);
@@ -54,10 +92,13 @@ P.Fx = (function () {
     if (c.punchT > 0) c.punchT = Math.max(0, c.punchT - dt);
     var pp = c.punchT > 0 ? Math.sin((1 - c.punchT / (fe.punchTime * 2)) * Math.PI) : 0;
     c.zoom = 1 + (rm ? 0 : fe.punchZoom * pp);
-    F.flash = Math.max(0, (F.flash || 0) - dt * 3); P.WFx.update(dt, s);
+    P.WFx.update(dt, s);
     ageList(F.nums, dt); ageList(F.swings, dt); ageList(F.rings, dt); ageList(F.bursts, dt); ageList(F.letters, dt);
     F.parts.forEach(function (p) { p.t -= dt; p.x += (p.vx || 0) * dt; p.y += (p.vy || 0) * dt; });
     F.parts = F.parts.filter(function (p) { return p.t > 0; });
+    if (F.parts.length > fe.partsMax) F.parts.splice(0, F.parts.length - fe.partsMax);   // crowd cap: oldest go first
+    F.later = F.later.filter(function (q) { q.t -= rdt; if (q.t > 0) return true; q.fn(); return false; });
+    F.recent = F.recent.filter(function (r) { return F.clock - r.t < CHAIN_WIN * 4; });
   };
 
   function ageList(list, dt) {
@@ -67,6 +108,8 @@ P.Fx = (function () {
   F.addTrauma = function (a) { F.cam.trauma = Math.min(1, F.cam.trauma + a); };
   F.punch = function () { F.cam.punchT = P.CFG.feel.punchTime * 2; };
   F.letter = function (x, y, text) { F.letters.push({ x: x, y: y, text: text, t: 0.8, T: 0.8 }); };
+  // Runs fn after t seconds of play (pauses with the game, not with wall time).
+  F.after = function (t, fn) { F.later.push({ t: t, fn: fn }); };
 
   F.number = function (id, x, y, val, crit) {
     if (!P.Settings.dmgNumbers) return;
@@ -79,15 +122,42 @@ P.Fx = (function () {
     F.nums.push({ id: id, x: x + (Math.random() - 0.5) * 0.3, y: y, val: val, crit: crit, t: fe.dmgNumberLife, T: fe.dmgNumberLife });
   };
 
+  // Chain reactions: two blasts within a fraction of a second and a few metres of each other (a canister setting off
+  // the next, or a bloater's chain). The second one shouts CHAIN and its rumble lands 0.3 s later.
+  function chainStep(x, y) {
+    var n = 0, i;
+    F.recent.push({ x: x, y: y, t: F.clock });
+    for (i = 0; i < F.recent.length; i++) {
+      var r = F.recent[i];
+      if (F.clock - r.t <= CHAIN_WIN && Math.hypot(r.x - x, r.y - y) <= CHAIN_R) n++;
+    }
+    if (n >= 2 && !F.chainCd) {
+      F.chainCd = 0.8;
+      F.letter(x, y + 1.6, P.t('fx.chain'));
+      F.after(0.3, function () { if (P.Sfx) P.Sfx.play('boom', 0, { vol: 0.9 }); F.addTrauma(0.3); });
+    }
+  }
+
+  // Kill-cam for the boss's last stand. Respects Reduce motion (the callout stays).
+  function finisher(ev) {
+    F.addTrauma(0.6);
+    F.letter(ev.x, ev.y + 1.8, P.t('fx.finisher'));
+    if (P.Settings.reduceMotion) return;
+    F.beat = { t: FINISH_T, T: FINISH_T, k: 0.3 };
+    F.focus = { x: ev.x, y: ev.y, t: FINISH_T, T: FINISH_T };
+  }
+
   F.onEvent = function (ev, s) {
     P.WFx.onEvent(ev, s);
     if (P.EnemyFx && P.EnemyFx.onEvent) P.EnemyFx.onEvent(ev, s);
     if (P.EventsFx && P.EventsFx.onEvent) P.EventsFx.onEvent(ev, s);
     switch (ev.type) {
-      case 'shockwave': F.flash = P.Settings.reduceMotion ? 0 : 0.35; F.punch(); break;
-      case 'bloaterPop':                                    // the wow moment: punch, trauma, cream flash
-        F.addTrauma(ev.boss ? 0.8 : 0.5); F.punch(); F.flash = P.Settings.reduceMotion ? 0 : 0.3; break;
-      case 'bossDie': F.addTrauma(0.6); F.beat = { t: 1.2, T: 1.2, k: 0.3 }; break;
+      case 'shockwave': break;                             // level-up ring only: the card pick is the cause
+      case 'bloaterPop':                                    // a burst of the pop itself, no camera move
+        F.addTrauma(ev.boss ? 0.5 : 0.2);
+        chainStep(ev.x, ev.y);
+        break;
+      case 'bossDie': finisher(ev); break;
       case 'bossSlam': F.addTrauma(0.5); break;
       case 'bruteStomp': F.addTrauma(0.35); break;
       case 'eliteSpawn': F.bursts.push({ x: ev.x, y: ev.y, t: 0.5, T: 0.5 }); break;
@@ -97,12 +167,16 @@ P.Fx = (function () {
           var ha = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 1.6, hs = 3 + Math.random() * 4;
           F.parts.push({ kind: 'blood', x: ev.x, y: ev.y, vx: Math.cos(ha) * hs, vy: Math.sin(ha) * hs, t: 0.25, T: 0.25 });
         }
+        for (var sp = 0; sp < P.CFG.feel.hitSparks; sp++) {       // G3: a few sparks so each hit reads in a crowd
+          var sa = Math.random() * Math.PI * 2, ss = 2 + Math.random() * 3;
+          F.parts.push({ kind: 'spark', x: ev.x, y: ev.y, vx: Math.cos(sa) * ss, vy: Math.sin(sa) * ss, t: 0.2, T: 0.2 });
+        }
         break;
       case 'kill':
         F.parts.push({ kind: 'splat', x: ev.x + (ev.dx || 0) * 0.3, y: ev.y + (ev.dy || 0) * 0.3, r: 0.4 + Math.random() * 0.25, t: 10, T: 10, a: Math.random() * 6, seed: Math.random() });
         var fl = ev.src === 'canister';
         F.parts.push({ kind: 'corpse', x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: ev.enemy || 'walker', variant: ev.variant || 0, skin: ev.skin, fling: fl, t: fl ? 0.7 : 0.55, T: fl ? 0.7 : 0.55 });
-        if (ev.elite) { F.addTrauma(0.35); F.letter(ev.x, ev.y + 1.6, P.lang === 'tr' ? 'GÜM!' : 'THUD!'); }
+        if (ev.elite) { F.addTrauma(0.35); F.letter(ev.x, ev.y + 1.6, P.t('fx.thud')); }
         for (var g = 0; g < 6; g++) {
           var ga = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 2.2, gs = 2 + Math.random() * 5;
           F.parts.push({ kind: 'gib', x: ev.x, y: ev.y, vx: Math.cos(ga) * gs, vy: Math.sin(ga) * gs, t: 0.35 + Math.random() * 0.2, T: 0.5 });
@@ -126,9 +200,16 @@ P.Fx = (function () {
           var a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 5;
           F.parts.push({ kind: 'spark', x: ev.x, y: ev.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.4, T: 0.4 });
         }
-        F.addTrauma(ev.trauma); F.letter(ev.x, ev.y + 1, 'KÜT!');
+        F.addTrauma(ev.trauma); F.letter(ev.x, ev.y + 1, P.t('fx.boom'));
+        chainStep(ev.x, ev.y);
         break;
-      case 'heroHit': if (ev.dmg >= 0.1 * s.hero.maxHp || ev.cause !== 'canister') F.addTrauma(P.CFG.feel.traumaPlayerHit * (ev.dmg >= 10 ? 1 : 0.4)); break;
+      case 'heroHit':
+        heroHit(ev, s);
+        if (ev.dmg >= 0.1 * s.hero.maxHp || ev.cause !== 'canister') F.addTrauma(P.CFG.feel.traumaPlayerHit * (ev.dmg >= 10 ? 1 : 0.4));
+        if (s.hero.hp / s.hero.maxHp < P.CFG.feel.lowHpFrac && F.lowArmed) {
+          F.lowArmed = false; F.letter(s.hero.x, s.hero.y + 1.3, P.t('fx.lastBreath'));
+        } else if (s.hero.hp / s.hero.maxHp > 0.5) F.lowArmed = true;
+        break;
       case 'scaffold':
         F.addTrauma(ev.trauma);
         for (var j = 0; j < 20; j++) F.parts.push({ kind: 'dust', x: -6 + Math.random() * 12, y: 229 + Math.random() * 2, vx: (Math.random() - 0.5), vy: -Math.random() * 2, t: 1.5, T: 1.5 });

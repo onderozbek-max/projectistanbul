@@ -442,6 +442,12 @@ P.Icons = (function () {
       return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="' + s + '" height="' + s +
         '" aria-hidden="true" focusable="false">' + draw() + '</svg>';
     },
-    ids: Object.keys(DRAW)
+    ids: Object.keys(DRAW),
+    // Extra icons (W: evolutions and skills in icons-evo.js) register a markup function that returns the inner 48-box SVG.
+    register: function (id, fn) { if (!Object.prototype.hasOwnProperty.call(DRAW, id)) P.Icons.ids.push(id); DRAW[id] = fn; },
+    raw: function (id) { return Object.prototype.hasOwnProperty.call(DRAW, id) ? DRAW[id]() : placeholder(); },
+    // Shared drawing helpers for registered icons (same outline, fills and highlight as the set above).
+    parts: { path: path, circle: circle, line: line, pip: pip, hiLine: hiLine, INK: INK, OUT: OUT, GOLD: GOLD, CYAN: CYAN, RED: RED,
+      PAPER: PAPER, STEEL: STEEL, DSTEEL: DSTEEL, LEATHER: LEATHER, BLUE: BLUE, AMBER: AMBER, STONE: STONE }
   };
 })();

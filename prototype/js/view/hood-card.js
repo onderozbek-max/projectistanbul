@@ -31,7 +31,7 @@ P.HoodCard = (function () {
     Object.assign(P.STR.en, { 'hc.km': 'km', 'hc.fact': 'DID YOU KNOW', 'hc.skip': 'tap to skip' });
   }
 
-  function tx(k) { return P.t ? P.t(k) : k; }
+  function tx(k, v) { return P.t ? P.t(k, v) : k; }
   function upper(s) { return P.upper ? P.upper(s) : s.toUpperCase(); }
   function still() { return !!(P.Settings && P.Settings.reduceMotion); }
   function el(tag, cls, text) {
@@ -64,13 +64,26 @@ P.HoodCard = (function () {
     card.appendChild(el('div', 'hc-km', tx('hc.km') + ' ' + hood.km.toFixed(1) + ' / ' + P.Journey.totalKm));
     var fact = el('div', 'hc-fact'); fact.appendChild(el('b', null, tx('hc.fact') + '  ')); fact.appendChild(document.createTextNode(en() ? f[1] : f[0]));
     card.appendChild(fact);
+    var p = plan(li);
+    if (p) card.appendChild(p);
     card.appendChild(el('div', 'hc-skip', tx('hc.skip')));
     card.setAttribute('data-sub', en() ? sub.en : sub.tr);
     return card;
   }
+  // Objective and run condition of the level (lane P). Null on level 1, which has neither.
+  function plan(li) {
+    var ob = P.Objectives && P.Objectives.forLevel(li), md = P.Modifiers && P.Modifiers.forLevel(li), box;
+    if (!ob && !md) return null;
+    box = el('div', 'hc-plan');
+    if (ob) box.appendChild(el('div', 'hc-obj', tx('hc.obj', { name: tx('obj.' + ob + '.title') })));
+    if (md) box.appendChild(el('div', 'hc-mod', tx('hc.mod', { name: tx('hmod.' + md.id + '.name') })));
+    return box;
+  }
   function banner(li, th, hood) {
-    var stage = li.stage || 1, sub = P.Themes.subOf(th, stage - 1);
-    return el('div', 'hc-banner', upper(hood.name) + ' · ' + stage + '/5 · ' + (en() ? sub.en : sub.tr));
+    var stage = li.stage || 1, sub = P.Themes.subOf(th, stage - 1), b = el('div', 'hc-banner', upper(hood.name) + ' · ' + stage + '/5 · ' + (en() ? sub.en : sub.tr));
+    var p = plan(li);
+    if (p) b.appendChild(p);
+    return b;
   }
   function finish() {
     var c = cur; if (!c || c.done) return;

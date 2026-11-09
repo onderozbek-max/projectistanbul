@@ -1,6 +1,8 @@
 // Procedural character sprites (view only): public API over the figure rig (art-rig.js, art-characters.js,
 // art-enemies.js). Callers keep the original names and params: person, hero, enemy, civilian, corpse,
 // crawler, knifeArm, palette, shadow. Figures are pre-rendered per recipe, layer and pose, then drawImage'd.
+// G lane (render and feel): soft contact shadows from one cached radial sprite, walk-cycle bob and squash from
+// view.anim, a gold outline on elites, coloured base rings on spitters and bloaters, and view.spriteScale.
 P.Sprites = (function () {
   var S = {}, R = P.ArtRig, CH = P.ArtChars, EN = P.ArtEnemies, TAU = R.TAU, INK = R.INK;
   var SKIN = ['#F1C9A5', '#E0AC80', '#C68B5E', '#9C6B47'];
@@ -9,7 +11,9 @@ P.Sprites = (function () {
   var ZSHIRT = ['#5B7A96', '#9A5440', '#BDB4A0', '#5E7A55', '#7A6088', '#A8924E', '#4A5468', '#8C5262'];
   var PANTS = ['#2B3346', '#3E3A35', '#4A5A6E', '#1E1E24'];
   var HAIR = ['#1E1712', '#3B2A1E', '#6B4A2E', '#14151F', '#8A8F98'];
-  var ELITE_GLOW = 'rgba(224,64,251,0.9)', BOSS_GLOW = 'rgba(255,70,50,0.85)';
+  // Elite figures glow gold (G4 outline colour) so the rim reads as one gold edge; the crown and ground ring stay purple.
+  var ELITE_GLOW = 'rgba(255,201,60,0.85)', BOSS_GLOW = 'rgba(255,70,50,0.85)';
+  var contactCv = null;
 
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
   function limb(c, x0, y0, x1, y1, col, w) {
@@ -18,9 +22,32 @@ P.Sprites = (function () {
   }
   function blob(c, x, y, rx, ry, fill) { c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fillStyle = fill; c.fill(); c.strokeStyle = INK; c.lineWidth = 2; c.stroke(); }
 
-  S.shadow = function (c, X, Y, u, k) {
-    c.fillStyle = 'rgba(0,0,0,' + (0.32 * (k === undefined ? 1 : k)) + ')';
-    c.beginPath(); c.ellipse(X, Y, 0.34 * u, 0.13 * u, 0, 0, TAU); c.fill();
+  // One soft radial blob, scaled into an ellipse for every contact shadow (a single drawImage per shadow).
+  function contactSprite() {
+    if (contactCv) return contactCv;
+    var cv = document.createElement('canvas'), g;
+    cv.width = cv.height = 64; g = cv.getContext('2d');
+    var gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(0,0,0,0.85)'); gr.addColorStop(0.45, 'rgba(0,0,0,0.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    contactCv = cv; return cv;
+  }
+  // Soft contact shadow centred on the feet (X, Y). rx = half width in CSS px; the ellipse is aspect * rx tall.
+  S.contact = function (c, X, Y, rx, alpha, aspect) {
+    if (!(rx > 0) || !(alpha > 0)) return;
+    var ry = rx * (aspect === undefined ? P.CFG.view.heroShadow.aspect : aspect);
+    c.save(); c.globalAlpha *= alpha; c.drawImage(contactSprite(), X - rx, Y - ry, 2 * rx, 2 * ry); c.restore();
+  };
+  S.shadow = function (c, X, Y, u, k) { S.contact(c, X, Y, 0.34 * u, 0.32 * (k === undefined ? 1 : k), 0.38); };
+  // Coloured base ring at the feet: a dark under-stroke, then the colour, with a faint fill.
+  S.ring = function (c, X, Y, rx, col) {
+    var ry = rx * 0.36;
+    c.save();
+    c.beginPath(); c.ellipse(X, Y, rx, ry, 0, 0, TAU); c.fillStyle = col; c.globalAlpha *= 0.2; c.fill();
+    c.globalAlpha = c.globalAlpha / 0.2 * 0.9;
+    c.beginPath(); c.ellipse(X, Y, rx, ry, 0, 0, TAU); c.strokeStyle = INK; c.lineWidth = 3; c.stroke();
+    c.strokeStyle = col; c.lineWidth = 1.8; c.stroke();
+    c.restore();
   };
   S.palette = function (variant, zombie) {
     var v = variant || 0;
@@ -57,17 +84,17 @@ P.Sprites = (function () {
   function customOutfit(shirt, pants, hair) {
     return { top: 'shirt', col: shirt, pants: pants, shoe: '#2A2A2A', hair: 'short', hc: hair, sleeve: 'long', acc: [] };
   }
-  // Pose: walk frames (8) or breath frames (4) so the cache stays small.
+  // Pose: walk frames (8) or breath frames (4) so the cache stays small. Bob and squash amounts come from view.anim.
   function poseOf(rc, o, moving, t) {
-    var m = rc.mot, p = { gait: 'still', arms: rc.arms || 'idle', lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch,
+    var A = P.CFG.view.anim, m = rc.mot, p = { gait: 'still', arms: rc.arms || 'idle', lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch,
       strideK: m.strideK || 1, liftK: m.liftK || 1, limp: !!m.limp, bob: 0, walk: 0, breath: 0, back: rc.back }, bi, wi;
     if (!moving) {
-      bi = Math.floor(t / 260 + rc.seed) % 4; p.breath = bi * TAU / 4; p.bob = -0.012 * (1 + Math.sin(p.breath)) * 0.5;
+      bi = Math.floor(t / 260 + rc.seed) % 4; p.breath = bi * TAU / 4; p.bob = -A.bobIdle * (1 + Math.sin(p.breath)) * 0.5;
       if (p.arms === 'swing' || p.arms === 'run' || p.arms === 'pump') p.arms = 'idle';
       p.key = 'b' + bi;
     } else {
       wi = Math.round((((o.phase || 0) % TAU) + TAU) % TAU / TAU * 8) % 8;
-      p.gait = m.gait || 'walk'; p.walk = wi * TAU / 8; p.bob = -0.022 * Math.abs(Math.cos(p.walk));
+      p.gait = m.gait || 'walk'; p.walk = wi * TAU / 8; p.bob = -A.bobWalk * Math.abs(Math.cos(p.walk));
       p.lean += (m.sway || 0) * Math.sin(p.walk);
       if (p.arms === 'idle') p.arms = 'swing';
       p.key = 'w' + wi;
@@ -75,9 +102,10 @@ P.Sprites = (function () {
     return p;
   }
   function squash(pose, moving, hit) {
-    var sy = moving ? 1 - 0.03 * Math.abs(Math.sin(pose.walk)) : 1 + 0.008 * Math.sin(pose.breath);
-    var sx = moving ? 1 + 0.015 * Math.abs(Math.sin(pose.walk)) : 1;
-    return { x: sx * (1 + 0.14 * hit), y: sy * (1 - 0.12 * hit) };
+    var A = P.CFG.view.anim;
+    var sy = moving ? 1 - A.squashWalk * Math.abs(Math.sin(pose.walk)) : 1 + 0.008 * Math.sin(pose.breath);
+    var sx = moving ? 1 + A.stepWidth * Math.abs(Math.sin(pose.walk)) : 1;
+    return { x: sx * (1 + A.hitSquashX * hit), y: sy * (1 - A.hitSquashY * hit) };
   }
   function bakeGlow(g, rc, U) {
     if (rc.glow) { g.shadowColor = rc.glow; g.shadowBlur = 0.09 * U; } else { g.shadowBlur = 0; g.shadowColor = 'rgba(0,0,0,0)'; }
@@ -85,15 +113,34 @@ P.Sprites = (function () {
   // Point in CSS px for a unit-space joint, given the sprite's feet anchor and squash.
   function anchor(X, Y, f, sq, ox, oy, u, p) { return { x: X + ox + f * sq.x * p[0] * u, y: Y + oy + sq.y * p[1] * u }; }
 
+  // Solid-colour silhouette of a baked layer, built once per entry and colour (the elite outline uses it).
+  function silhouette(e, col) {
+    var m = e.sil || (e.sil = {});
+    if (m[col]) return m[col];
+    var cv = document.createElement('canvas'), g;
+    cv.width = e.cv.width; cv.height = e.cv.height; g = cv.getContext('2d');
+    g.drawImage(e.cv, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, cv.width, cv.height);
+    return (m[col] = { cv: cv, ax: e.ax, ay: e.ay, U: e.U, white: null });
+  }
+  // Outline: four offset copies of the tinted silhouette behind the figure (both layers, same offsets).
+  function outlineFigure(c, X, Y, u, f, low, high, sq, ox, oy, dx, dy, col, w) {
+    var L = silhouette(low, col), H = silhouette(high, col), d = w * u, k, offs = [[d, 0], [-d, 0], [0, d], [0, -d]];
+    for (k = 0; k < offs.length; k++) {
+      R.blit(c, L, X, Y, u, f, sq, ox + offs[k][0], oy + offs[k][1], 0, 0);
+      R.blit(c, H, X, Y, u, f, sq, ox + offs[k][0], oy + offs[k][1], dx, dy);
+    }
+  }
+
   // Draw one figure: cached low layer, live knife, cached head, live back-hand weapon (original z-order).
   function drawFigure(c, X, Y, u, f, rc, o, t) {
     var U = R.bucket(u * devScale(c)), moving = !rc.still, pose = poseOf(rc, o, moving, t), J = R.solve(rc.B, pose);
     var refJ = R.solve(rc.B, { lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch, arms: 'idle' });
     var hit = clamp((o.flash || 0) / 0.06, 0, 1), sq = squash(pose, moving, hit), ox = (o.recoil || 0) * hit * u, oy = 0;
-    var white = (o.flash || 0) > 0, low, high, dx, dy;
+    var white = (o.flash || 0) > 0, low, high, dx, dy, ow = o.outline ? P.CFG.view.eliteOutline.units : 0;
     rc.U = U;
     if (rc.custom) {
       low = R.bake(rc.key + '|C' + pose.key, U, EN.CRAWL_BOX, function (g) { bakeGlow(g, rc, U); EN.crawlerDraw(g, rc, pose.walk); bakeGlow(g, {}, U); });
+      if (o.outline) outlineFigure(c, X, Y, u, f, low, low, sq, ox, oy, 0, 0, o.outline, ow);
       R.blit(c, white ? R.white(low) : low, X, Y, u, f, sq, ox, oy, 0, 0);
       return;
     }
@@ -101,6 +148,7 @@ P.Sprites = (function () {
     low = R.bake(rc.key + '|L|' + pose.key + '|s' + rc.swell, U, R.LOW_BOX, function (g) { bakeGlow(g, rc, U); R.drawLow(g, rc, J, pose); bakeGlow(g, {}, U); });
     high = R.bake(rc.key + '|H|w' + rc.windup, U, R.HIGH_BOX, function (g) { bakeGlow(g, rc, U); R.drawHigh(g, rc, refJ); bakeGlow(g, {}, U); });
     dx = J.hd[0] - refJ.hd[0]; dy = J.hd[1] - refJ.hd[1];
+    if (o.outline) outlineFigure(c, X, Y, u, f, low, high, sq, ox, oy, dx, dy, o.outline, ow);
     R.blit(c, white ? R.white(low) : low, X, Y, u, f, sq, ox, oy, 0, 0);
     if (rc.live.front && !o.noArms) S.knifeArm(c, anchor(X, Y, f, sq, ox, oy, u, J.sR), u, f, o.knifeA, rc.look.skin, rc.look.shirt);
     R.blit(c, white ? R.white(high) : high, X, Y, u, f, sq, ox, oy, dx, dy);
@@ -132,19 +180,25 @@ P.Sprites = (function () {
   };
 
   // Enemy at world pos; Rd is P.Render (X/Y/ppm/ctx). Handles emerge, turning, elite, boss, crawler.
+  // Draw scale = rig scale x view.spriteScale (G2); collision radii are never read from the view.
   S.enemy = function (Rd, e, hero) {
-    var c = Rd.ctx, u = Rd.ppm, X = Rd.X(e.x), Y = Rd.Y(e.y - e.r * 0.6), f = hero.x >= e.x ? 1 : -1;
+    var c = Rd.ctx, u = Rd.ppm, V = P.CFG.view, X = Rd.X(e.x), Y = Rd.Y(e.y - e.r * 0.6), f = hero.x >= e.x ? 1 : -1;
     var human = e.state === 'dormant' || ((e.civ || e.type === 'diner') && e.state === 'turning');
-    var def = EN.def(e.type), uf = u * def.scale * (e.boss ? 2.2 : 1) * (e.elite ? 1.25 : 1);
-    var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1;
+    var def = EN.def(e.type), uf = u * def.scale * (V.spriteScale[e.type] || 1) * (e.boss ? 2.2 : 1) * (e.elite ? V.spriteScale.elite : 1);
+    var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1, er = e.r || 0.35;
     if (e.state === 'turning') X += (Math.random() - 0.5) * 3;
     c.save();
     if (emerge < 1) { c.globalAlpha = emerge; c.translate(X, Y); c.scale(0.7 + 0.3 * emerge, 0.7 + 0.3 * emerge); c.translate(-X, -Y); }
     if (e.elite) eliteAura(c, X, Y, u, e);
     if (e.boss) bossAura(c, X, Y, uf);
-    S.shadow(c, X, Y, uf, e.type === 'crawler' ? 1.3 : 1);
+    // G4: soft ground shadow sized to the body (alpha 0.22, radius 0.9 x body) and a base ring on spitters and bloaters.
+    var cs = V.contactShadow;
+    S.contact(c, X, Y, cs.radius * er * u, cs.alpha * (e.type === 'crawler' ? 1.3 : 1), cs.aspect);
+    var ring = def.ring || V.crowdRing[e.type];
+    if (ring) S.ring(c, X, Y, 1.1 * er * u, ring);
     var rc = def.custom ? crawlerRc(e) : zombieRc(e, def, human, f);
-    var o = { flash: e.flash, phase: (e.walk || 0) * 5.5, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0 };
+    var o = { flash: e.flash, phase: (e.walk || 0) * 5.5, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
+      outline: e.elite ? V.eliteOutline.color : null };
     drawFigure(c, X, Y, uf, f, rc, o, performance.now());
     if (e.elite) eliteMarks(c, X, Y, uf, e);
     if (e.boss) bossMark(c, X, Y, uf);

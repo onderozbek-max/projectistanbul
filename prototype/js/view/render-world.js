@@ -176,19 +176,45 @@ P.RenderWorld = (function () {
     if (!s.dir.flags.cat || s.dir.bubbles.length) {
       c.fillStyle = '#E9A23B'; c.beginPath(); c.ellipse(R.X(lv.cat.x), R.Y(lv.cat.y), 0.35 * R.ppm, 0.2 * R.ppm, 0, 0, Math.PI * 2); c.fill(); c.stroke();
     }
-    s.props.carts.forEach(function (k) {
-      if (!k.alive) { rect(R, k.x - 0.7, k.y - 0.4, k.x + 0.7, k.y + 0.4, 'rgba(20,21,31,0.35)'); return; }
-      var col = k.flash > 0 ? '#FFFFFF' : (k.kind === 'simit' ? '#C0392B' : '#3A2A1E');
-      rect(R, k.x - 0.9, k.y - 0.6, k.x + 0.9, k.y + 0.6, col, '#14151F', 2);
-      if (k.kind === 'simit') rect(R, k.x - 0.7, k.y - 0.1, k.x + 0.7, k.y + 0.5, 'rgba(255,255,255,0.45)', '#14151F', 1);
-      else { c.fillStyle = 'rgba(255,120,40,' + (0.6 + 0.3 * Math.sin(t * 8)) + ')'; c.beginPath(); c.arc(R.X(k.x), R.Y(k.y + 0.1), 0.3 * R.ppm, 0, Math.PI * 2); c.fill(); }
-    });
-    s.props.canisters.forEach(function (k) {
-      if (!k.alive) return;
-      rect(R, k.x - 0.28, k.y - 0.43, k.x + 0.28, k.y + 0.43, k.flash > 0 ? '#FFFFFF' : '#C0392B', '#14151F', 2);
-      rect(R, k.x - 0.12, k.y + 0.43, k.x + 0.12, k.y + 0.6, '#14151F');
-      c.fillStyle = '#14151F'; c.font = 'bold ' + Math.round(0.28 * R.ppm) + 'px system-ui'; c.textAlign = 'center';
-      c.fillText(P.lang === 'tr' ? 'TÜP' : 'GAS', R.X(k.x), R.Y(k.y - 0.75));
+    // Carts and canisters are depth items (base edge = bottom of the footprint): the hero walks behind or in front of them.
+    s.props.carts.forEach(function (k) { R.depth(k.y - 0.6, function () { drawCart(R, k, t); }); });
+    s.props.canisters.forEach(function (k) { if (k.alive) R.depth(k.y - 0.43, function () { drawCanister(R, k); }); });
+  };
+  function drawCart(R, k, t) {
+    var c = R.ctx;
+    if (!k.alive) { rect(R, k.x - 0.7, k.y - 0.4, k.x + 0.7, k.y + 0.4, 'rgba(20,21,31,0.35)'); return; }
+    var col = k.flash > 0 ? '#FFFFFF' : (k.kind === 'simit' ? '#C0392B' : '#3A2A1E');
+    rect(R, k.x - 0.9, k.y - 0.6, k.x + 0.9, k.y + 0.6, col, '#14151F', 2);
+    if (k.kind === 'simit') rect(R, k.x - 0.7, k.y - 0.1, k.x + 0.7, k.y + 0.5, 'rgba(255,255,255,0.45)', '#14151F', 1);
+    else { c.fillStyle = 'rgba(255,120,40,' + (0.6 + 0.3 * Math.sin(t * 8)) + ')'; c.beginPath(); c.arc(R.X(k.x), R.Y(k.y + 0.1), 0.3 * R.ppm, 0, Math.PI * 2); c.fill(); }
+  }
+  function drawCanister(R, k) {
+    var c = R.ctx;
+    rect(R, k.x - 0.28, k.y - 0.43, k.x + 0.28, k.y + 0.43, k.flash > 0 ? '#FFFFFF' : '#C0392B', '#14151F', 2);
+    rect(R, k.x - 0.12, k.y + 0.43, k.x + 0.12, k.y + 0.6, '#14151F');
+    c.fillStyle = '#14151F'; c.font = 'bold ' + Math.round(0.28 * R.ppm) + 'px system-ui'; c.textAlign = 'center';
+    c.fillText(P.lang === 'tr' ? 'TÜP' : 'GAS', R.X(k.x), R.Y(k.y - 0.75));
+  }
+
+  // Ground ambient occlusion (view only): soft dark pads around each footprint, drawn on the floor before props and
+  // actors. Three spreads, widest and faintest first, offset a little down-screen as if lit from above.
+  function aoPad(R, x0, x1, y0, y1, k) {
+    var c = R.ctx, a = P.CFG.view.ao, i, g;
+    for (i = 0; i < a.spread.length; i++) {
+      g = a.spread[i];
+      c.fillStyle = 'rgba(8,9,14,' + (a.alpha[i] * k).toFixed(3) + ')';
+      c.fillRect(R.X(x0 + a.dx - g), R.Y(y1 + a.dy + g), (x1 - x0 + 2 * g) * R.ppm, (y1 - y0 + 2 * g) * R.ppm);
+    }
+  }
+  W.drawShadows = function (R, s, y0, y1) {
+    if (isL1(s)) {
+      s.props.carts.forEach(function (k) { if (k.alive && k.y > y0 - 2 && k.y < y1 + 2) aoPad(R, k.x - 0.9, k.x + 0.9, k.y - 0.6, k.y + 0.6, 1); });
+      s.props.canisters.forEach(function (k) { if (k.alive && k.y > y0 - 2 && k.y < y1 + 2) aoPad(R, k.x - 0.28, k.x + 0.28, k.y - 0.43, k.y + 0.43, 0.6); });
+      return;
+    }
+    var cy = R.cam.y, half = P.viewHalfH(R.cam.w);
+    ((s.geo || {}).blocks || []).forEach(function (b) {
+      if (Math.abs(b.y - cy) < half + 3) aoPad(R, b.rc.xMin, b.rc.xMax, b.rc.yMin, b.rc.yMax, 1);
     });
   };
 
@@ -224,10 +250,13 @@ P.RenderWorld = (function () {
     if (li && li.hoodIndex !== undefined) return li.hoodIndex + ((li.stage || 1) - 1) / 5;
     return Math.max(0, ((s.levelIndex || 1) - 1) / 5);
   }
+  // The bed follows the hero's cover (P.Indoor.bed): entering the restaurant, a passage or a covered level swaps to the
+  // bazaar bed, which has no gull calls or rain. resetAmbience lets a new run re-apply the bed on its first frame.
   function ambience(s) {
-    var id = isL1(s) ? 'istiklal' : themeOf(s).id;
-    if (id !== ambTheme) { ambTheme = id; if (P.Sfx && P.Sfx.ambience) P.Sfx.ambience(id); }
+    var id = isL1(s) ? 'istiklal' : themeOf(s).id, bed = P.Indoor ? P.Indoor.bed(s, id) : id;
+    if (bed !== ambTheme) { ambTheme = bed; if (P.Sfx && P.Sfx.ambience) P.Sfx.ambience(bed); }
   }
+  W.resetAmbience = function () { ambTheme = null; };
   // Tile record for a theme role, pre-rendered per ppm step (P.Themes.tile). Its pattern is created once.
   function pattern(R, th, role) {
     var t = P.Themes.tile(th, role, Math.max(8, Math.round(R.ppm / 4) * 4));
@@ -322,16 +351,15 @@ P.RenderWorld = (function () {
   function genProps(R, s) {
     var th = themeOf(s), cy = R.cam.y, half = P.viewHalfH(R.cam.w), g = s.geo || {}, t = performance.now() / 1000;
     waterProps(R, th, cy, half, t);
-    (g.blocks || []).filter(function (b) { return Math.abs(b.y - cy) < half + 3; })
-      .sort(function (a, b) { return b.y - a.y; })
-      .forEach(function (b) {
-        var car = b.kind === 'car' || b.kind === 'taxi' || b.kind === 'dolmus';
-        P.Props.draw(b.kind, R, b.x, b.y, { w: b.w, h: b.h, k: 0, alarm: car && hash(b.y * 3.7 + b.x) < 0.4 });
-      });
+    // Blocks are depth items keyed by their base edge; the frame sorts them against the actors (see render.js).
+    (g.blocks || []).filter(function (b) { return Math.abs(b.y - cy) < half + 3; }).forEach(function (b) {
+      var car = b.kind === 'car' || b.kind === 'taxi' || b.kind === 'dolmus';
+      R.depth(b.y - b.h / 2, function () { P.Props.draw(b.kind, R, b.x, b.y, { w: b.w, h: b.h, k: 0, alarm: car && hash(b.y * 3.7 + b.x) < 0.4 }); });
+    });
     if (typeof g.exitY === 'number' && Math.abs(g.exitY - cy) < half + 6) P.Props.draw('exitGate', R, 0, g.exitY, { style: th.exit, open: !!(s.props.shutterOpen || g.exitOpen) });
   }
   function genLights(R, s, y0, y1) {
-    var c = R.ctx, th = themeOf(s), t = performance.now() / 1000, hp = hoodPos(s), u = R.ppm, i;
+    var c = R.ctx, th = themeOf(s), t = performance.now() / 1000, hp = hoodPos(s), u = R.ppm, i, covered = !!(P.Indoor && P.Indoor.level(s));
     c.save(); c.globalCompositeOperation = 'lighter';
     for (var y = Math.ceil((y0 - 3) / 6) * 6; y < y1 + 3 && th.shop > 0; y += 6) {
       [-1, 1].forEach(function (sd) {
@@ -345,13 +373,17 @@ P.RenderWorld = (function () {
     }
     c.restore();
     P.Landmarks.weather(R, s, y0, y1);
-    if (th.fog && hp >= 6) for (i = 0; i < 4; i++) {
+    if (th.fog && hp >= 6 && !covered) for (i = 0; i < 4; i++) {
       c.fillStyle = 'rgba(170,182,198,0.07)'; c.beginPath();
       c.ellipse(R.X(Math.sin(t * 0.05 + i * 2.1) * 3), R.Y(y0 + ((i * 7.3 + t * 0.6) % (y1 - y0))), 5 * u, 2.5 * u, 0, 0, Math.PI * 2); c.fill();
     }
   }
   W.themeOf = themeOf; W.hoodPos = hoodPos;
-  W.screenLight = function (s) { return P.Themes.tintFor(hoodPos(s), P.Themes.subOf(themeOf(s), P.Themes.subIndex(s)).wx); };
+  // Screen tint: no weather tint while the hero is under a roof (rain or fog would not reach the hero there).
+  W.screenLight = function (s) {
+    var wx = P.Indoor && P.Indoor.near(s) ? 'clear' : P.Themes.subOf(themeOf(s), P.Themes.subIndex(s)).wx;
+    return P.Themes.tintFor(hoodPos(s), wx);
+  };
   W.vignette = function (s) { return P.Themes.vignette(hoodPos(s)); };
 
   return W;

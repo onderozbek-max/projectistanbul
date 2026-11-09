@@ -8,7 +8,8 @@ P.Status = {};
 
 function sk(s) {
   return s.sk || (s.sk = { dash: null, nearMissDone: false, ultT: 0, ultFull: false, frenzyT: 0, streak: 0,
-    lastKillT: -99, snap: [], magnetT: null, pickAdd: 0, sweeps: [], still: 0 });
+    lastKillT: -99, snap: [], magnetT: null, pickAdd: 0, sweeps: [], still: 0,
+    act: { id: null, t: 0, T: 0, cd: 0, cdT: 0, hits: 0 } });
 }
 
 P.Skills.init = function (s) {
@@ -228,6 +229,8 @@ P.Skills.step = function (s, dt, input) {
   regenCay(s, S, input, dt);
   if (input && input.dash) tryDash(s, S, input);
   if (S.dash) stepDash(s, S, dt);
+  if (input && input.skill) tryActive(s, S);
+  stepActive(s, S, dt);
   if (input && input.ult) tryUlt(s, S);
   stepSweeps(s, S, dt);
   nearMiss(s, S);
@@ -254,14 +257,55 @@ P.Skills.critChance = function (s) {
 };
 
 // Dodge roll for an incoming hit (Nazar charm). E2: call from damageHero before applying damage.
+// The Simit Kalkanı shield (active skill) is checked first: it absorbs hits until its count runs out.
 P.Skills.tryDodge = function (s, raw, cause) {
-  var lv = s.hero.passives.nazar || 0;
+  var act = sk(s).act, h = s.hero;
+  if (P.Skills.shieldUp(s)) {
+    act.hits--;
+    if (act.hits <= 0) act.t = 0;
+    s.events.push({ type: 'shieldBlock', x: h.x, y: h.y, cause: cause, raw: raw, left: Math.max(0, act.hits) });
+    return true;
+  }
+  var lv = h.passives.nazar || 0;
   if (!lv) return false;
   var N = P.CFG.passives.nazar, p = Math.min(N.dodgeCap, lv * N.dodgePerLevel);
   if (!s.rng.combat.chance(p)) return false;
-  s.events.push({ type: 'nazarDodge', x: s.hero.x, y: s.hero.y, cause: cause, raw: raw });
+  s.events.push({ type: 'nazarDodge', x: h.x, y: h.y, cause: cause, raw: raw });
+  if (P.Weapons6 && P.Weapons6.dodgeZap) P.Weapons6.dodgeZap(s);   // stormshield: a dodge also zaps
   return true;
 };
+
+// ---------- Active skills (W2): one per loadout (loadout.active). Simit Kalkanı (shield) absorbs hits for T seconds;
+// Çay Molası (tea) heals over T and slows enemies near Arda. Each has a cooldown shown on the skill button.
+P.Skills.activeId = function (s) {
+  var id = (s.loadout && s.loadout.active) || P.CFG.skills.activeDefault;
+  return P.CFG.skills.active[id] ? id : P.CFG.skills.activeDefault;
+};
+P.Skills.shieldUp = function (s) { var act = sk(s).act; return act.id === 'shield' && act.t > 0; };
+
+function tryActive(s, S) {
+  var id = P.Skills.activeId(s), A = P.CFG.skills.active[id], act = S.act;
+  if (act.cd > 0 || act.t > 0 || s.mode !== 'play') return;
+  act.id = id; act.t = A.T; act.T = A.T; act.cd = A.cooldown; act.cdT = A.cooldown; act.hits = A.absorb || 0;
+  s.events.push({ type: 'skillUsed', id: id, T: A.T, x: s.hero.x, y: s.hero.y });
+}
+
+function stepActive(s, S, dt) {
+  var act = S.act, h = s.hero, C, id;
+  if (act.cd > 0) act.cd = Math.max(0, act.cd - dt);
+  if (!(act.t > 0)) return;
+  act.t = Math.max(0, act.t - dt);
+  id = act.id;
+  if (id === 'tea') {
+    C = P.CFG.skills.active.tea;
+    h.hp = Math.min(h.maxHp, h.hp + h.maxHp * C.heal * dt / C.T);
+    s.enemies.forEach(function (e) {
+      if (e.dead || e.state !== 'active' || Math.hypot(e.x - h.x, e.y - h.y) - e.r > C.slowR) return;
+      P.Status.apply(e, 'slow', C.slowHold, C.slow);
+    });
+  }
+  if (act.t <= 0 && id === 'shield') s.events.push({ type: 'shieldDown', x: h.x, y: h.y });
+}
 
 // Kask: big hits (raw >= minHit) lose reducePerLevel per kask level, never below minFrac of the hit.
 // Combat.damageHero should call this before armour: raw = P.Skills.hitReduce(s, raw, cause).
@@ -273,10 +317,12 @@ P.Skills.hitReduce = function (s, raw, cause) {
 
 // HUD snapshot for the lead's dash / ultimate / frenzy widgets.
 P.Skills.hud = function (s) {
-  var S = sk(s), D = P.CFG.skills.dash;
+  var S = sk(s), D = P.CFG.skills.dash, a = S.act;
   return { dashFrac: Math.max(0, 1 - (s.hero.dashCd || 0) / (s.hero.dashCdMax || D.cooldown)), dashReady: !(s.hero.dashCd > 0),
     ult: s.hero.ult || 0, ultReady: (s.hero.ult || 0) >= 1, ultId: P.Skills.ultId(s),
-    frenzy: S.frenzyT > 0, frenzyFrac: S.frenzyT / P.CFG.skills.frenzy.time, streak: S.streak };
+    frenzy: S.frenzyT > 0, frenzyFrac: S.frenzyT / P.CFG.skills.frenzy.time, streak: S.streak,
+    active: { id: P.Skills.activeId(s), on: a.t > 0, onFrac: a.T > 0 ? a.t / a.T : 0,
+      ready: a.cd <= 0 && !(a.t > 0), cdFrac: a.cdT > 0 ? 1 - a.cd / a.cdT : 1 } };
 };
 
 // ---------- P.Status: applied by weapons; E2 uses speedMul / rooted in enemy movement ----------
