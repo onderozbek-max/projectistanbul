@@ -40,11 +40,13 @@
 |---|---|---|---|
 | Single target | High damage on one enemy | Speargun (pin), Nail Gun | Olta |
 | Crowd control | Stun, push, slow | Sledgehammer, Extinguisher, Fire Extinguisher foam | Tram Bell, Fırın Küreği |
-| Area denial | Ground that stays dangerous | Molotov | Kestane Mangalı, Balık Izgarası, Cezve |
+| Area denial | Ground that stays dangerous | Molotov, Pürmüz (v0.5) | Balık Izgarası |
 | Burst | Big damage in one moment | Fireworks, Canister | Kilim |
-| Sustain | Damage over time or heal | Knife (cleaves), Chain (orbits) | Simit Tepsisi, Çaycı Tepsisi |
+| Sustain | Damage over time or heal | Knife (cleaves), Chain (orbits) | Retired in v0.5: Simit Tepsisi, Çaycı Tepsisi |
 | Chain | Hops between targets | Live Cable | — |
-| Defence | Blocks or reflects | — (Nazar is passive) | Şemsiye |
+| Defence | Blocks or reflects | Araba Kapısı (v0.5) | Retired in v0.5: Şemsiye |
+| Ricochet | Bounces off enemies | Rögar Kapağı, Sapan (v0.5) | — |
+| Melee rev | Revs and sweeps in ticks | Motorlu Testere (v0.5) | — |
 
 ---
 
@@ -216,23 +218,53 @@ The owner can revert that.
 
 | # | Weapon (TR / EN) | Role | Unique power | Anim (A · Ac · I · F) | Sound cue | Unlock (hood · stage) | Guardrail / note |
 |---|---|---|---|---|---|---|---|
-| 1 | **Çaycı Tepsisi** / tea tray | Sustain, area | Throws a tray out and back (boomerang, 6 m). Three glasses burst on the return. Shards slow a little. Replaces the retired Tea Glass. | tilt · spin 2 rev/s · tink chime + amber splash · shards | Glass ring (sine 2.4 kHz) + whoosh | H03 · 1 | Glass only. No cuts shown. |
-| 2 | **Simit Tepsisi** / simit tray | Ricochet | Simit tray frisbee bounces 3 times. Sesame drops; a bounce can drop a heal pickup. Merges `wpn_simit`. | wind-up · spin · sesame flurry | Whirr (HPF) + tok on bounce | H01 · 2 | Vendor is not harmed. |
-| 3 | **Cezve** / hot coffee pot | Area denial | Tips the pot. 2.5 m cone of hot coffee. Stains burn for 2 s. Steam only; no scald on Arda. | pour arc · splash fan · sizzle | Glug (low bubbles) + hiss | H08 · 1 | Scald enemies only. Steam, no skin close-up. |
+| 1 | ~~**Çaycı Tepsisi** / tea tray~~ | Retired in v0.5 (forced) | Replaced by Testere Diski (§5a #1). | — | — | — | — |
+| 2 | ~~**Simit Tepsisi** / simit tray~~ | Retired in v0.5 (forced) | Replaced by Rögar Kapağı (§5a #2). Merged `wpn_simit` is retired too. | — | — | — | — |
+| 3 | ~~**Cezve** / hot coffee pot~~ | Retired in v0.5 (forced) | Replaced by Pürmüz (§5a #3). | — | — | — | — |
 | 4 | **Olta** / fishing rod | Pull (CC) | Hook flies 6 m, sticks, reels the target 2 m to Arda. Stagger 0.3 s. | cast · bend · set · reel | Line zzip + tak + ratchet | H11 · 2 | Hooks in zombies only. |
 | 5 | **Vapur Halatı** / ferry rope | Heavy melee | Mooring rope with a bronze cleat. 270° swing. Every third swing wraps (stun 0.3 s). | wind-up · whirl · cleat hit | Rope whoosh + clunk | H18 · 1 | Not Kaan's anchor (a companion weapon). |
-| 6 | **Şemsiye** / umbrella | Defence | Opens to block frontal spit and lobs for 0.8 s. A timed tap parries and sends the spit back. | snap open · spin deflect | Pop + tik | H09 · 2 | Parry is a timed tap. The dash is a flick. Keep them apart. |
-| 7 | **Tavla Taşları** / backgammon pieces | Ricochet | Two pieces are thrown. They bounce off walls and enemies (max 4). A dice roll sets the bounce count. | flick · tumble · clack | Wood tak-tak + dice rattle | H02 · 4 | Tavla is a Turkish game. Fine. |
-| 8 | **Kestane Mangalı** / chestnut brazier | Area denial | Lid lifts. Embers arc in a fan. Burning patches for 2 s. Merges `wpn_chestnut_mortar`. | lid · toss · ember arc | Ember pfft + chestnut pop | H01 · 3 | Fire on enemies only. |
+| 6 | ~~**Şemsiye** / umbrella~~ | Retired in v0.5 (forced) | Replaced by Araba Kapısı (§5a #4). | — | — | — | — |
+| 7 | ~~**Tavla Taşları** / backgammon pieces~~ | Retired in v0.5 (forced) | Replaced by Sapan (§5a #5). | — | — | — | — |
+| 8 | ~~**Kestane Mangalı** / chestnut brazier~~ | Retired in v0.5 (forced) | Replaced by Motorlu Testere (§5a #6). Merged `wpn_chestnut_mortar` is retired too. | — | — | — | — |
 | 9 | **Kilim** / rolled carpet | Crush, knockback | Throws a rug 5 m. It rolls over the line (crush + stagger), then unrolls into 2 s of cover that blocks projectiles. | unroll · roll · unfurl | Fwump + carpet swish | H07 · boss chest | Carpet Golem drop. |
 | 10 | **Balık Izgarası** / boat grill plate | Area, fire | Hot plate slams down. 3 s hot zone. Oil spray slows. Kaan's signature set piece. | lift · slam · sizzle | Tsssh + çıtır crackle | H05 · boss chest | Food, not harm. |
 | 11 | **Tramvay Zili** / tram bell | Stun (sonic) | Rings the bell. Stun pulse 2.5 m, knockback 1.5 m. L5 pulses twice. Merges `wpn_tram_bell`. | swing · ring · rings out | Bell ding (sine 1320 Hz, 0.9 s + partials) | H01 boss chest | Generic bell. No livery. |
 | 12 | **Fırın Küreği** / pide peel | Knockback | Long paddle scoops and sweeps a 2 m arc. Pushes 3 m in a line. L5 adds a flip (10 dmg). | scoop · sweep · toss | Wood shwoosh + thud | H10 · 1 | Bakery prop. |
 
-**Merges with content-catalog:** `wpn_simit` = Simit Tepsisi (#2). `wpn_chestnut_mortar` = Kestane Mangalı (#8).
-`wpn_tram_bell` = Tramvay Zili (#11). `wpn_tea_glass` is retired (D-017). Çaycı Tepsisi takes its role.
+**Merges with content-catalog:** `wpn_simit` and `wpn_chestnut_mortar` are retired in v0.5 (their slots are Rögar Kapağı and Motorlu Testere, §5a).
+`wpn_tram_bell` = Tramvay Zili (#11). `wpn_tea_glass` is retired (D-017). Çaycı Tepsisi, which took its role, is retired in v0.5 too.
 Also kept in content-catalog as "Later": Lahmacun Barrage (`wpn_lahmacun`), Pickle Juice (`wpn_pickle_juice`).
 They are not in this list.
+
+### 5a. v0.5 improvised kit (in the slice, workstream A)
+
+Owner feedback (translated): the tea tray, umbrella, backgammon pieces, chestnut brazier and simit tray felt forced. Replace them with things that could really be used as weapons. Olta (#4 above) stays as it is.
+
+| # | Weapon (TR / EN) | Role | Unique power | Anim · sound | Unlock (level) | Replaces |
+|---|---|---|---|---|---|---|
+| 1 | **Testere Diski** / Saw Blade (`sawblade`) | Out and back, area | Thrown 5.5–7 m, back to Arda. Sparks burst (3–5) where it is caught. Signature: a ring of 12 blades around Arda. | blade spin · sparks · swish, tink | L1 | Çaycı Tepsisi (#1) |
+| 2 | **Rögar Kapağı** / Manhole Cover (`manhole`) | Ricochet | Thrown 4.5 m, bounces enemy to enemy (2–5 bounces). Mod B2 stuns each bounce 0.6 s. Signature: 5 covers at once. | disc spin · bounce ring · lob, click | L2 | Simit Tepsisi (#2) |
+| 3 | **Pürmüz** / Blowtorch (`torch`) | Area denial | 2.5–3.4 m flame cone, ticks twice (four with the signature). The jet ends in a 1.1 m scorch that burns for 2 s. Signature: inferno (wider cone). | flame · scorch · burn, hiss | L1 | Cezve (#3) |
+| 4 | **Araba Kapısı** / Car Door (`cardoor`) | Defence, shove | Door swings up toward the nearest threat (radius 1.4–1.8 m, arc 110–160°, open 0.8–1.1 s). Blocks and reflects spit back; enemies pressed in are stunned and shoved. Signature: a full ring wall. | door swing · spit flick · swish, doorSlam | L9 | Şemsiye (#6) |
+| 5 | **Sapan** / Slingshot (`slingshot`) | Ricochet | 2–3 steel marbles per volley (seek 6 m), bounce 3 (max 5). Two marbles on one enemy in one volley is a lucky shot (x2 damage). Signature: 4-marble volley. | marble pull · tink, crit | L4 | Tavla Taşları (#7) |
+| 6 | **Motorlu Testere** / Chainsaw (`chainsaw`) | Melee, rev | Revs 1.0–1.5 s, sweeps an 80–130° arc (reach 2.2 m) and bites in ticks. A rev that hits nothing stalls (+0.8 s cooldown). Signature: rampage, a full 360° spin. New mechanic (`weapons5.js`). | bar sweep · chain dashes · chain, cleaver, hiss | L6 | Kestane Mangalı (#8) |
+
+Numbers live in `P.CFG.weapons.<id>` and `P.CFG.modDefs`. Each weapon has six mods and a signature (`P.CFG.sig`). Mastery applies to all six.
+
+### Deviations and decisions (v0.5, workstream A)
+
+- **Replaced:** tray, simit tray, cezve, umbrella, tavla and chestnut brazier. The six above are new. Olta is kept. Renames: `tray` to `sawblade`, `simittray` to `manhole`, `cezve` to `torch`, `semsiye` to `cardoor`, `tavla` to `slingshot`, `kestane` to `chainsaw`. Config, sim, strings, icons, signature table, unlock tables, tests, bot and docs use the new ids. Props and scenery keep their names (tavla table, kestane cart, tray hat).
+- **Mod engine:** the hit-time heal is gone. The ADD key `stun` replaces it (manhole B2).
+- **Manhole:** the simit-drop chance is removed (forced flavour). That changes the RNG draws in those runs.
+- **Slingshot bounces:** fixed (3 plus mods, max 5) instead of a dice roll.
+- **Signatures:** sawblade `bladeRing`, manhole `swarm`, torch `inferno`, cardoor `wall`, slingshot `volley`, chainsaw `rampage`.
+- **Events (new):** sawThrow, sawReturn, sawCatch, sparkBurst, sawRev, sawGrind, sawStall, manholeThrow, manholeBounce, torchJet, scorchSizzle, doorRaise, doorShove, doorDrop, slingPull, marbleHit. Every fire also pushes `wfire`: `{ type: 'wfire', w, x, y, ang, lv, n }`. `w` is the family; `variant` is the owned id (evolutions). The chainsaw also sets `hero.revving` (seconds left) and `hero.revAng` while it revs.
+- **Zone and state renames:** zone kind `scald` is now `scorch` (combat.js). Weapon state fields `trays`, `simits`, `boils`, `umbrellas`, `tavla`, `embers` are now `blades`, `manholes`, `torches`, `doors`, `marbles`, `landings`; the chainsaw uses `rev`.
+- **Barks:** the umbrella spit line is now a car door. Each new weapon has two card barks (TR and EN).
+- **Sound:** cues reuse names already in the sfx bank. No new audio.
+- **Balance:** the numbers are prototype values, not balance-tested. The chainsaw and slingshot are the least tested.
+- **Evolution:** the brazier was the base of `evo_chestnut_volcano`, which is not in the code. The chainsaw has no evolution yet.
+- **Scope note:** `js/view/weapons-fx4.js` was rewritten for the replaced weapons (handlers and state names), beyond a rename. Flagged for the lead.
 
 ---
 
@@ -289,7 +321,7 @@ The evolution needs the weapon at L5 and the passive owned (any level). It is aw
 | Zıpkın Ağı / Harpoon Net | Speargun + Work Gloves | Pinned enemies are roped together. 40% of damage to one hits the group. | slice |
 | Köpük Fırtınası / Foam Storm | Extinguisher + First Aid Kit | Foam sticks to enemies. Foam blocks spit for 2 s. | slice |
 | Buhar Perdesi / Steam Curtain | Molotov + Su Matarası | Each fire pool leaves steam that slows 40% and blocks spit. | later (needs future passive) |
-| Kestane Volkanı / Chestnut Volcano (`evo_chestnut_volcano`, content-catalog §4) | Brazier + Ayran | Keep from content-catalog. Ayran is retired from the slice kit (D-017). Re-pair later. | later |
+| Kestane Volkanı / Chestnut Volcano (`evo_chestnut_volcano`, content-catalog §4) | Brazier + Ayran | Keep from content-catalog. Ayran is retired from the slice kit (D-017). Re-pair later. v0.5: the brazier is retired, so this evolution needs a new base. | later |
 
 ---
 

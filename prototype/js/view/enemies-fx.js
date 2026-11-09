@@ -11,11 +11,12 @@ P.EnemyFx = (function () {
 
   function age(item, s) { return s.t - item.t0; }
   function prune(list, s) { for (var i = list.length - 1; i >= 0; i--) if (age(list[i], s) > list[i].dur) list.splice(i, 1); }
+  // Boss banner name: boss.<hood> (strings-journey.js copies the narrative spk.b.<hood> names). One set, no table.
   function nameOf(key) {
     var v = P.t(key);
     if (v !== key) return v;
-    var rec = P.CFG.levels.names[key];
-    return rec ? (P.lang === 'tr' ? rec.tr : rec.en) : key;
+    var alt = key.replace(/^boss\./, 'spk.b.'), w = P.t(alt);
+    return w !== alt ? w : key;
   }
   function label(key, tr, en) { var v = P.t(key); return v !== key ? v : (P.lang === 'tr' ? tr : en); }
   function pan(s, x) { return Math.max(-1, Math.min(1, (x - s.hero.x) / 6)); }

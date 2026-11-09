@@ -45,6 +45,7 @@ function fireSledge(s, dt) {
   var A = P.Mods.act(s, 'sledge');
   h.cds.sledge = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'sledge');
   queueSlam(s, t.x, t.y, lv, lv.slams, cfg.windup, A);
+  P.Weapons.fired(s, 'sledge', Math.atan2(t.y - h.y, t.x - h.x), lv.slams);
 }
 
 function impactSlam(s, sl) {
@@ -86,6 +87,7 @@ function fireMolotov(s, dt) {
     list.push({ x0: h.x, y0: h.y, x1: c.x, y1: c.y, t: 0, T: cfg.flight, lv: lv, spin: s.rng.combat.range(0, 6), A: A, first: i === 0 });
   });
   s.events.push({ type: 'flaskThrow', x: h.x, y: h.y, n: chosen.length });
+  P.Weapons.fired(s, 'molotov', Math.atan2(chosen[0].y - h.y, chosen[0].x - h.x), chosen.length);
 }
 
 function shatter(s, f) {
@@ -140,13 +142,15 @@ function fireFireworks(s, dt) {
     taken.push(t);
   }
   if (!taken.length) return;
-  var A = P.Mods.act(s, 'fireworks');
+  var A = P.Mods.act(s, 'fireworks'), a0 = Math.atan2(taken[0].y - h.y, taken[0].x - h.x);
   h.cds.fireworks = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'fireworks');
   if (A.sig && A.sig.extra === 'rain') {          // signature: a sky rain of rockets over the screen
     var F = P.CFG.weapons.finale.levels[0];
+    P.Weapons.fired(s, 'fireworks', Math.PI / 2, A.sig.n);
     castFinale(s, A.sig.n, { spanX: F.spanX, spanY: F.spanY, r: lv.r, dmg: lv.dmg }, P.CFG.weapons.finale, A);
     return;
   }
+  P.Weapons.fired(s, 'fireworks', a0, taken.length);
   var list = P.Weapons.state(s).rockets, col = s.rng.combat.int(0, 5), dmg = P.Weapons.dmgFor(s, 'fireworks', lv.dmg) * A.dmg;
   taken.forEach(function (t, j) {
     var a0 = Math.atan2(t.y - h.y, t.x - h.x) + (s.rng.combat.next() - 0.5) * 0.9;
@@ -197,6 +201,7 @@ function fireFinale(s, dt) {
   h.cds.finale = cfg.cooldown * A.cd * P.Weapons.cdMult(s, 'fireworks');
   var n = lv.rockets;
   if (A.sig && A.sig.extra === 'rain') n = A.sig.n;
+  P.Weapons.fired(s, 'fireworks', Math.PI / 2, n, 'finale');
   castFinale(s, n, lv, cfg, A);
 }
 

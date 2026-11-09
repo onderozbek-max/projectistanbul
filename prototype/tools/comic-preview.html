@@ -86,7 +86,7 @@
     <button type="button" data-lang="both">Audit TR + EN</button>
     <label><input id="showAll" type="checkbox"> show all rows</label>
   </div>
-  <div id="audit" class="out">Audit not run yet. Flags: CUT (ellipsized) or text at the 12 px minimum.</div>
+  <div id="audit" class="out">Audit not run yet. Flags: FAIL (ink outside its box, truncated, or overflow) and OVERLAP (balloon over a bust).</div>
 
   <h3>Glyphs and casing (font stack check)</h3>
   <div class="row"><button type="button" id="glyphs">Run glyph test</button></div>
@@ -101,6 +101,7 @@
   <div id="log" class="out">Ready. Works from file://.</div>
 </div>
 
+<script src="../js/config.js"></script>
 <script src="../js/strings.js"></script>
 <script src="../js/journey.js"></script>
 <script src="../js/strings-journey.js"></script>
@@ -110,6 +111,8 @@
 <script src="../js/view/art-characters.js"></script>
 <script src="../js/view/portraits.js"></script>
 <script src="../js/view/comic-art.js"></script>
+<script src="../js/view/comic-text.js"></script>
+<script src="../js/view/comic-layout.js"></script>
 <script src="../js/view/comic.js"></script>
 <script src="../js/story/story-data.js"></script>
 <script src="../js/story/barks.js"></script>
@@ -225,22 +228,28 @@
   requestAnimationFrame(frame);
 
   // ----- fit audit: runs P.Comic.audit and P.Barks.audit for each language and lists the rows that need a look
+  // Waits for the bundled faces, then lays out and draws every line in each language (page panels, pops, calls, barks).
+  // FAIL = ink outside its box or body, a truncated line, or overflow past the panel. OVERLAP = a balloon over a bust.
   function runAudit(langs) {
-    var prev = P.lang, rows = [];
-    langs.forEach(function (L) {
-      P.lang = L;
-      P.Comic.audit().forEach(function (r) { r.lang = L; rows.push(r); });
-      P.Barks.audit().forEach(function (r) { r.lang = L; rows.push(r); });
+    var prev = P.lang;
+    P.ComicArt.whenReady(function () {
+      var rows = [], sums = [];
+      langs.forEach(function (L) {
+        P.lang = L;
+        var pr = P.Comic.audit(), br = P.Barks.audit();
+        pr.concat(br).forEach(function (r) { r.lang = L; rows.push(r); });
+        sums.push(L + ': ' + JSON.stringify(P.ComicLayout.summary(pr)) + '  barks ' + br.length + ', fail ' + br.filter(function (r) { return r.fail || r.overflow; }).length);
+      });
+      P.lang = prev;
+      var flagged = rows.filter(function (r) { return r.fail || r.overflow || r.overlap; });
+      var show = $('showAll').checked ? rows : flagged;
+      var text = 'rows ' + rows.length + ', flagged ' + flagged.length + '\n' + sums.join('\n') + '\n';
+      text += show.map(function (r) {
+        return r.lang + '  ' + r.kind + '  ' + r.id + '  px ' + r.px + (r.fail ? '  FAIL' : '') + (r.overlap ? '  OVERLAP' : '') + (r.overflow ? '  OVERFLOW' : '');
+      }).join('\n');
+      $('audit').textContent = text;
+      say('audit ' + langs.join('+') + ': ' + flagged.length + ' flagged of ' + rows.length);
     });
-    P.lang = prev;
-    var flagged = rows.filter(function (r) { return r.cut || r.px <= 12; });
-    var show = $('showAll').checked ? rows : flagged;
-    var text = 'rows ' + rows.length + ', flagged ' + flagged.length + ' (CUT = ellipsized, or at the 12 px minimum)\n';
-    text += show.map(function (r) {
-      return r.lang + '  ' + r.kind + '  ' + r.id + '  px ' + r.px + (r.cut ? '  CUT' : '');
-    }).join('\n');
-    $('audit').textContent = text;
-    say('audit ' + langs.join('+') + ': ' + flagged.length + ' flagged of ' + rows.length);
   }
   Array.prototype.forEach.call(document.querySelectorAll('[data-lang]'), function (b) {
     b.onclick = function () {

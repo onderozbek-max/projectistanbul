@@ -5,7 +5,7 @@
 (function (C) {
   C.arsenal = {
     weapons: ['knife', 'nailgun', 'canister', 'chain', 'sledge', 'molotov', 'fireworks', 'cable', 'speargun', 'extinguisher',
-      'tray', 'simittray', 'cezve', 'olta', 'semsiye', 'tavla', 'kestane'],
+      'sawblade', 'manhole', 'torch', 'olta', 'cardoor', 'slingshot', 'chainsaw'],
     passives: ['shoes', 'jacket', 'gloves', 'energy', 'medkit', 'nazar', 'magnet', 'kolonya', 'cay', 'lokum', 'powerbank', 'kask'],
   };
   C.pool.weapons = C.arsenal.weapons.slice();   // config.js pool kept in sync for old readers
@@ -13,8 +13,8 @@
 
   // Journey level index (1..100) at which an item enters the level-up card pool.
   C.unlock = {
-    weapons: { knife: 1, nailgun: 1, canister: 1, chain: 1, sledge: 1, tray: 1, cezve: 1, simittray: 2, molotov: 3,
-               kestane: 3, tavla: 4, extinguisher: 6, olta: 8, semsiye: 9, speargun: 11, fireworks: 16, cable: 21 },
+    weapons: { knife: 1, nailgun: 1, canister: 1, chain: 1, sledge: 1, sawblade: 1, torch: 1, manhole: 2, molotov: 3,
+               slingshot: 4, chainsaw: 6, extinguisher: 6, olta: 8, cardoor: 9, speargun: 11, fireworks: 16, cable: 21 },
     passives: { shoes: 1, jacket: 1, gloves: 1, energy: 1, medkit: 1, nazar: 1, kolonya: 1, lokum: 1, cay: 2,
                 powerbank: 4, kask: 5, magnet: 8 },
   };

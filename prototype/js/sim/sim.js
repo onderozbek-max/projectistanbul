@@ -11,6 +11,7 @@ P.createSim = function (seed, opts) {
       x: L.heroStart.x, y: L.heroStart.y, hp: C.hero.maxHp, maxHp: C.hero.maxHp, fx: 0, fy: 1,
       moved: 0, invuln: 0, pickupRadius: C.hero.pickupRadius, weapons: { knife: 1 }, passives: {},
       cds: { knife: 0, nailgun: 0, canister: 0 }, moving: false, sinceHit: 99, chainA: 0, swingDir: 1,
+      revving: 0, revAng: 0,
     },
     enemies: [], nextId: 1, drops: [], projs: [], nails: [], zones: [], events: [], enemyShots: [], enemyTele: [],
     props: P.World.createProps(),

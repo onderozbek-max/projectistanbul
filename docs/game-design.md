@@ -106,11 +106,11 @@ incoming_to_player = max(1, raw - armor) * (1 - player_damage_reduction)
 
 ### 4.5 XP curve (in-run)
 ```
-xp_to_next(level) = round(5 + 5 * level^1.4)
+xp_to_next(level) = round(5 + 5 * level^1.6)   # exponent 1.6 matches config.js xp.exp (audit D-1)
 ```
 | Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| XP to next | 10 | 18 | 28 | 40 | 53 | 66 | 81 | 97 | 113 | 131 | 227 | 336 | 458 | 590 |
+| XP to next | 10 | 20 | 34 | 51 | 71 | 93 | 117 | 144 | 173 | 204 | 386 | 608 | 867 | 1159 |
 
 **Pacing targets:** first level-up at **~15 s**; a level-up every **20–30 s** in early levels;
 **6–8 level-ups in L1**, **20–25 in an 8-minute run** at L20+.
@@ -123,6 +123,7 @@ enemy_damage = base_dmg * (1 + 0.05 * (level_index - 1))
 - `level_index` is the global level number (1–300).
 - Elites: ×4 HP, ×1.5 damage, +15% scale (content-catalog.md §5).
 - Bosses use explicit HP per level (content-catalog.md §6), not this formula.
+- **Shipped (v0.6):** enemy HP follows the E2 curve in `config-levels.js` (journey §6.2). The formula above is the pre-build reference. Late difficulty comes from the new types (kasap, parkur, zehirli) and the affixes (journey §5.0). The player's power comes from the lever in attributes.md §7.5.
 
 ### 4.7 Status effects
 | Effect | Rule | Stacking |
@@ -260,9 +261,9 @@ SL = soft-launch prep, after M7).
 ### 8.1 Currencies (four, no more)
 | Currency | Spent on | Earned by playing | Bought with money |
 |---|---|---|---|
-| **Jeton** (old Istanbul transit tokens), soft | Hero levels, weapon mastery, gear upgrades, Bazaar Jeton slots, boosters | Level clears, enemy drops, daily tasks, pass | Packs (via Altın or IAP bundles) |
-| **Hurda** (scrap), materials | Gear upgrades, weapon mastery | Level clears, star chests, pass | Packs, Bazaar |
-| **Skill Credits** (Beceri Kredisi) | Survival Skills tree (§8.3) | +2 per hero level, star chests, boss first clears, pass | Bundles (capped per week, business-plan.md §5) |
+| **Jeton** (old Istanbul transit tokens), soft | Hero levels, gear upgrades, Bazaar Jeton slots, boosters (mastery is kill-based, §8.4) | Level clears, enemy drops, daily tasks, pass | Packs (via Altın or IAP bundles) |
+| **Hurda** (scrap), materials | Gear upgrades | Level clears, star chests, pass | Packs, Bazaar |
+| **Street Cred** (SC; merged with Skill Credits, D-043) | Attribute ranks (attributes.md §2–3) | Lifetime kill milestones (attributes.md §3), +2 per hero level, star chests, boss first clears, pass | Bundles (capped per week, business-plan.md §5) |
 | **Altın** (Grand Bazaar gold), premium | Revives, rerolls, Bazaar Altın slots, boosters, pass tier skips, packs | Star chests, boss first clears, daily tasks (small), Monthly Card | IAP |
 
 Run-only resources (XP) never leave the run.
@@ -270,10 +271,11 @@ Run-only resources (XP) never leave the run.
 ### 8.2 Hero levels (Slice)
 - Cap per chapter progress: **L15** in the slice (rises with chapters, so money can't buy past content).
 - Cost: `jeton = round(50 * level^1.5)` → L1→2: 50, L5→6: 559, L10→11: 1,581, L14→15: 2,619.
-- Per level: +4% max HP, +3% might (`add_pct`), **+2 Skill Credits**.
+- Per level: +4% max HP, +3% might (`add_pct`), **+2 Street Cred**.
 - **Hook:** Jeton packs speed up leveling.
 
-### 8.3 Survival Skills: per-hero skill tree (Slice: Arda + Kaan)
+### 8.3 Survival Skills: per-hero skill tree (retired for Chapter 1, D-044)
+**Retired for Chapter 1 (audit A1, D-044).** Attributes (attributes.md) replace this tree in Ch1. The text below is kept for the Ch2 review.
 - Three branches per hero: **Offense / Defense / Utility**, 5 nodes each + 1 capstone.
   Nodes have ranks 1–3. Node tier *t* (1–5) at rank *r* costs `t * r` Skill Credits.
 - Branch nodes unlock in order; the capstone needs 10 points in that branch.
@@ -283,15 +285,17 @@ Run-only resources (XP) never leave the run.
 - **Kaan examples:** *Anchor Weight* (+15% anchor knockback per rank), *Big Guy* (+8% max HP per
   rank), capstone *Unbreakable* (Ground Slam also shields the squad for 3 s).
 - Respec: free once, then 50 Altın.
-- **Hook:** Skill Credit bundles (weekly cap). Credits are the scarcest earnable resource, by design.
+- **Hook:** Street Cred bundles (weekly cap). Credits are the scarcest earnable resource, by design.
 
 ### 8.4 Weapon Mastery: the Workshop (Atölye) (Slice)
-- Every card weapon has **Mastery 0–10**, permanent across runs (the "weapon power-ups").
-- Each mastery level: **+4% base damage** for that weapon.
-- **Mastery 5 perk** and **Mastery 10 perk** per weapon, e.g., Tea Glass M5: starts at 2
-  projectiles; M10: the L5 scald applies at every level. (Perks live in each `WeaponDef`.)
-- Cost per level *m*: `jeton = 150 * m`, `hurda = 10 * m`. Mastery cap rises with chapter progress
-  (slice cap: Mastery 5).
+- Every card weapon has **Mastery rank 0–5**, permanent across runs (the "weapon power-ups").
+- **Rank comes from lifetime kills** with that weapon (audit D-2, D-032), not from Jeton.
+- Each rank: **+3% damage** and **−2% cooldown** for that weapon (`config-weapons2.js` mastery:
+  `dmgPerRank` 0.03, `cdPerRank` 0.02).
+- Rank 3 unlocks a third option; rank 5 is the signature (`thirdOptionRank`, `sigRank` in
+  `config-weapons2.js`). Perks live in each `WeaponDef`.
+- Mastery is not bought. Jeton and Hurda stay as the other sinks (gear, hero levels, Bazaar).
+- Chapter 1 cap: rank 5.
 - **Hook:** Hurda and Jeton packs; the Workshop is the main long-term sink.
 
 ### 8.5 Pre-run boosters (SL)
@@ -323,28 +327,28 @@ One booster per run, chosen on the level-start screen:
 
 ### 8.7 Stars and rewards (Slice)
 - **Stars per level:** Star 1 = clear · Star 2 = no revive used · Star 3 = end with ≥ 50% HP.
-- **Star chests per district:** at 10 / 20 / 30 stars (Jeton, Hurda, Skill Credits, a little Altın).
+- **Star chests per district:** at 10 / 20 / 30 stars (Jeton, Hurda, Street Cred, a little Altın).
 - **Level clear rewards:** `jeton = 40 + 6 * level`, `hurda = 5 + floor(level / 2)`;
   **first clear ×2**. **Double reward** via rewarded ad (§8.13).
 
 ### 8.8 Daily and weekly loops (SL)
 - **Daily tasks (3/day):** e.g., "Defeat 500 zombies", "Clear 2 levels", "Evolve a weapon".
   Rewards: Jeton, Road Pass XP, small Altın on completing all three.
-- **7-day login calendar** (repeats): day 7 = a booster + Skill Credits.
+- **7-day login calendar** (repeats): day 7 = a booster + Street Cred.
 - **Weekly event** (endgame, product.md §7) with cosmetic rewards.
 
 ### 8.9 The Bazaar: Grand Bazaar shop (SL)
 - **6 slots, refreshed daily** at local midnight: 4 Jeton slots (Common/Uncommon gear, Hurda,
-  boosters), 2 Altın slots (Rare/Epic gear, Skill Credit bundles).
+  boosters), 2 Altın slots (Rare/Epic gear, Street Cred bundles).
 - Refresh: 1 free via rewarded ad per day, then Altın.
 - Shopkeeper character with barks ("Gel abi, bakı bedava!" / "Come in, looking is free!").
 - **Hook:** daily return reason + Altın sink; **deterministic** (no loot-box rules apply).
 
 ### 8.10 Road Pass (Yol Kartı): season pass (SL)
 - 4-week seasons, 30 tiers, XP from daily tasks and level clears.
-- **Free track:** Jeton, Hurda, Skill Credits, boosters.
+- **Free track:** Jeton, Hurda, Street Cred, boosters.
 - **Premium track:** an exclusive hero outfit, a cat companion skin, Altın, one **Epic gear item
-  of your choice** (deterministic pick from 4), extra Skill Credits.
+  of your choice** (deterministic pick from 4), extra Street Cred.
 - Tier skips for Altın. Season themes follow the story (e.g., "Galata Nights").
 
 ### 8.11 Monthly Card (Aylık Kart) (SL)
@@ -383,12 +387,16 @@ Hero level cap, Workshop mastery cap and gear rarity availability rise with **ch
 Money speeds you up within the current cap; it never lets you skip content or trivialize the
 next chapter.
 
+**v0.6 power lever (D-041):** the walk gives a persistent power ladder: hood rank, attributes
+(Street Cred), gear base items and mastery. Numbers and Ch1 caps: attributes.md §7.5.
+Enemy HP stays on the E2 curve; new enemy types and affixes carry the late difficulty (journey §5.0).
+
 ### 8.16 Economy health checks (monitor in telemetry)
 - A non-paying player at ~3 sessions/day reaches **L30 in 7–10 days**; a Monthly Card holder
   about **25–30% faster**; no spend level more than **2× faster** than non-payers.
 - A player who 1-stars every level can afford roughly one hero level per 2 levels in L1–30.
 - First Rare gear around L15–20 for a non-paying player.
-- Skill Credits feel scarce but never block: each hero can buy at least one new node per
+- Street Cred feels scarce but never blocks: each attribute can reach its next rank in each
   district without spending money.
 - Sink/faucet ratio per currency reviewed weekly in soft launch (business-plan.md §8).
 
@@ -397,7 +405,8 @@ next chapter.
 ## 9. Squad, Tag-Switch and Ultimates
 
 ### 9.1 Squad
-- The squad unlocks in **L30** (Kaan). Before that, Arda is solo.
+- The squad unlocks at **L20** (Kaan joins on the `kaan_join` page, D-045). Before that, Arda is solo.
+  The squad itself is not in the prototype yet.
 - **Controlled hero:** moves with the joystick; card weapons fire from them.
 - **Companions:** AI-controlled, follow within 3 m (leash 6 m, teleport back if > 10 m off
   screen), use their signature weapon and ultimate (auto), and have their own HP.

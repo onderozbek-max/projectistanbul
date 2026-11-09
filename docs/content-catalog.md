@@ -30,7 +30,8 @@
 
 > **v0.4 (D-017, D-018, D-030):** `wpn_fork` is now `wpn_knife`, the Döner Knife, Arda's starting weapon. The
 > rows below are v0.2 data. Tea Glass is out of the slice (Çaycı Tepsisi takes its role; `weapons-skills.md` §5).
-> The v0.4 slice arsenal is in §10.1.
+> The v0.4 slice arsenal is in §10.1. v0.5 (workstream A): the forced items are replaced by the kit in §10.5.
+> `wpn_simit` and `wpn_chestnut_mortar` below are retired.
 
 Behaviors map 1:1 to weapon strategy classes (architecture.md §4.4). Damage is base, before stats.
 
@@ -91,7 +92,7 @@ Behaviors map 1:1 to weapon strategy classes (architecture.md §4.4). Damage is 
 |---|---|---|---|---|
 | `evo_semaver_storm` | Tea Glass + Teapot | Samovar Storm / Semaver Fırtınası | Lobs 4 glasses; each leaves a 3 s boiling zone (Burn, r 1.5 m) | Yes |
 | `evo_iskender_lance` | Döner Skewer + Butter | İskender Lance / İskender Mızrağı | Line 10 m × 1.0 m, fires front+back+sides, leaves a 2 s butter-burn trail; ×1.5 dmg (multiplicative) | Yes |
-| `evo_chestnut_volcano` | Chestnut Mortar + Ayran | Chestnut Volcano / Kestane Volkanı | A chestnut cart erupts at the player's position every 5 s: 8 lobs + healing steam (+5 HP per eruption) | Yes |
+| `evo_chestnut_volcano` | Chestnut Mortar + Ayran | Chestnut Volcano / Kestane Volkanı | A chestnut cart erupts at the player's position every 5 s: 8 lobs + healing steam (+5 HP per eruption) | Yes (v0.4). v0.5: brazier retired, no chainsaw evolution yet |
 | `evo_tram_line` | Tram Bell + Puffer Jacket | Tram Line / Tramvay Hattı | Every 6 s a ghost tram charges across the screen through the player's lane: 120 dmg, knockback 3 m; pulse continues | Yes |
 | `evo_golden_simit` | Simit + Sesame | Golden Simit / Altın Simit | Infinite bounces for 4 s; splits into 2 on every 3rd bounce | Later |
 | `evo_gull_frenzy` | Seagulls + Pul Biber | Gull Frenzy / Martı Sürüsü | 8 gulls, dives always crit, steal-heal chance 15% | Later |
@@ -301,3 +302,17 @@ Rule: each weapon has one evolution. It needs the weapon at L5 and the passive o
 | `skill_dash` | Dash / Kaçış | Swipe flick (40 px in 200 ms) or double-tap (280 ms). Space on desktop | 3.2 m in 0.16 s, i-frames 0.3 s, cooldown 3.5 s | A near miss ("KIL PAYI!") slows time to 0.25 for 0.25 s, once per dash. |
 | `skill_ult` | Evil-Eye Burst / Nazar Patlaması | Ult button (auto-fires if the setting is on) | 2.0 s burst, 60 dmg ring, push 2.5 m. Weapons ×1.5 power, cooldowns ×0.6 | Charge: +0.004 per kill, +0.03 per elite (250 kills). |
 | `skill_frenzy` | Frenzy / Çılgınlık ("ÇILGINLIK!") | Automatic | 6 s, weapon attack speed +40% | Trigger: 60 kills with gaps ≤ 1.5 s. 50 proposed (weapons §8.2). |
+
+### 10.5 v0.5 improvised kit (workstream A; replaces the forced items)
+
+Owner feedback: the tea tray, umbrella, backgammon pieces, chestnut brazier and simit tray felt forced. Full detail and the decisions list are in `weapons-skills.md` §5a. `wpn_olta` (fishing rod) is kept.
+
+| ID | Name (EN / TR) | Behavior | Role | Unlock | L1 key numbers | Notes |
+|---|---|---|---|---|---|---|
+| `wpn_sawblade` | Saw Blade / Testere Diski | Out and back, sparks where caught | Area, sustain | L1 | 12 dmg, range 5.5 m out and back, 3 sparks | Signature: ring of 12 blades around Arda. |
+| `wpn_torch` | Blowtorch / Pürmüz | Flame cone jet, then a scorch zone (Burn) | Area denial | L1 | 6 dmg, cone 2.5 m / 60°; scorch r 1.1 m, 2 s | Signature: inferno (wider cone, 4 ticks). |
+| `wpn_manhole` | Manhole Cover / Rögar Kapağı | Ricochet disc | Ricochet | L2 | 9 dmg, 2 bounces | Mod B2 stuns each bounce 0.6 s. Simit drop removed. Signature: 5 covers at once. |
+| `wpn_slingshot` | Slingshot / Sapan | Marble volley with ricochet | Ricochet, crit | L4 | 9 dmg, 2 marbles, 3 bounces (max 5) | Two marbles on one enemy in one volley: lucky shot, x2 damage. Signature: 4-marble volley. |
+| `wpn_cardoor` | Car Door / Araba Kapısı | Shield that raises and reflects spit; shove | Defence | L9 | 8 dmg, radius 1.4 m, arc 110°, open 0.8 s | Presses in: stun and shove. Signature: full ring wall. |
+| `wpn_chainsaw` | Chainsaw / Motorlu Testere | Melee rev in ticks, stalls if it hits nothing | Melee | L6 | 5 dmg per tick, arc 80°, rev 1.0 s, reach 2.2 m | Stall adds 0.8 s cooldown. Signature: rampage (360° spin). New mechanic (`weapons5.js`). |
+

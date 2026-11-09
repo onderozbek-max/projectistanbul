@@ -39,9 +39,12 @@ P.Render = (function () {
     c.strokeStyle = '#3DDCFF'; c.lineWidth = 3; c.stroke();
     if (h.regenOn) { c.strokeStyle = 'rgba(91,209,110,' + (0.5 + 0.3 * Math.sin(t / 150)) + ')'; c.lineWidth = 2; c.beginPath(); c.ellipse(X, Y, (ring + 0.12) * u, (ring + 0.12) * 0.4 * u, 0, 0, Math.PI * 2); c.stroke(); }
     c.globalAlpha = h.invuln > 0 && Math.floor(t / 70) % 2 ? 0.45 : 1;
-    P.Sprites.hero(c, X, Y, { u: u * 1.22, back: h.moving && h.fy > 0.4, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
-      arms: (s.levelIndex > 1 ? !!(h.weapons.knife || h.weapons.cleaver) : P.ColdOpen.hasKnife()) ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving, flash: h.hitFlash || 0 });
+    var so = { u: u * 1.22, back: h.moving && h.fy > 0.4, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
+      arms: (s.levelIndex > 1 ? !!(h.weapons.knife || h.weapons.cleaver) : P.ColdOpen.hasKnife()) ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving, flash: h.hitFlash || 0 };
+    if (P.FireAnim) P.FireAnim.heroOpts(s, so);   // a shot's pose (or the chainsaw rev) draws the arms itself
+    P.Sprites.hero(c, X, Y, so);
     c.globalAlpha = 1;
+    hook(P.FireAnim, 'drawHeld', s);
   }
 
   function drawDrops(s) {
@@ -178,6 +181,7 @@ P.Render = (function () {
     drawHero(s);
     P.WFx.drawChain(R, s);
     P.WFx.drawProjectiles(R, s);
+    hook(P.FireAnim, 'drawFx', s);
     hook(P.WFx2, 'drawAir', s);
     hook(P.EnemyFx, 'drawAir', s);
     hook(P.EventsFx, 'drawAir', s);

@@ -20,6 +20,8 @@ P.Combat.spawnEnemy = function (s, type, x, y, opts) {
     e.kbResist = Math.max(e.kbResist, el.kbResist);
     s.events.push({ type: 'eliteSpawn', x: x, y: y });
   }
+  if (d.armour) e.armour = d.armour;                       // v0.6: kasap armour (damage multiplier)
+  if (opts && opts.affix) P.Enemies2.applyAffix(e, opts.affix);   // v0.6: hizli / zirhli / patlayan
   P.Enemies.init(s, e);
   s.enemies.push(e);
   s.peakAlive = Math.max(s.peakAlive, s.enemies.length);
@@ -37,7 +39,8 @@ P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
   var cc = (P.Skills && P.Skills.critChance ? P.Skills.critChance(s) : P.CFG.hero.critChance) + s.fx.critPct;
   var crit = canCrit && s.rng.combat.chance(Math.min(1, cc));
   var hm = e.helmet ? P.Enemies.helmetMul(s, e) : 1;
-  var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1) * hm;
+  var am = e.armour || 1;                                   // v0.6: armour cuts every hit (kasap, zirhli)
+  var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1) * hm * am;
   e.hp -= dmg;
   e.flash = P.CFG.feel.hitFlash;
   if (kb > 0) {
@@ -93,6 +96,7 @@ P.Combat.killEnemy = function (s, e, crit, src) {
   if (e.boss) P.Bosses.onDeath(s, e);
   if (e.type === 'bloater') P.Enemies.burst(s, e);
   if (e.type === 'screamer') P.Enemies.onDeath(s, e);
+  if (e.affix) P.Enemies2.onDeath(s, e);
   if (e.evId) P.Events.onKill(s, e);
 };
 
@@ -143,7 +147,7 @@ P.Combat.addBurn = function (e) {
   else e.burn[0] = b.duration;
 };
 
-// Zones: fire/scald/toxic/acid affect enemies (DoT); acid and toxic also hurt the hero (ticks, armor applies).
+// Zones: fire/scorch/toxic/acid affect enemies (DoT); acid and toxic also hurt the hero (ticks, armor applies).
 P.Combat.updateBurnAndZones = function (s, dt) {
   var b = P.CFG.burn, i, e;
   for (i = 0; i < s.enemies.length; i++) {
@@ -158,7 +162,7 @@ P.Combat.updateBurnAndZones = function (s, dt) {
     for (i = 0; i < s.enemies.length; i++) {
       e = s.enemies[i];
       if (e.dead || Math.hypot(e.x - zone.x, e.y - zone.y) > zone.r + e.r) continue;
-      if (zone.kind === 'scald' && !zone.hit[e.id]) { zone.hit[e.id] = true; P.Combat.addBurn(e); }
+      if (zone.kind === 'scorch' && !zone.hit[e.id]) { zone.hit[e.id] = true; P.Combat.addBurn(e); }
       if (zone.kind === 'fire' || zone.kind === 'toxic' || zone.kind === 'acid') e.dotAcc += zone.dps * dt;
     }
     if (zone.heroDps) P.Enemies.zoneHero(s, zone, dt);

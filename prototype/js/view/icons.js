@@ -46,6 +46,15 @@ P.Icons = (function () {
     }
     return d + 'Z';
   }
+  // Saw blade outline: n sharp teeth between radius ri (roots) and ro (tips).
+  function sawPath(n, ro, ri) {
+    var st = 2 * Math.PI / n, d = '', i, a;
+    for (i = 0; i < n; i++) {
+      a = i * st;
+      d += (i ? 'L' : 'M') + pt(a, ri) + 'L' + pt(a + 0.12 * st, ro) + 'L' + pt(a + 0.5 * st, ri);
+    }
+    return d + 'Z';
+  }
   function gearPath(n, ro, ri) {
     var st = 2 * Math.PI / n, d = '', i, a;
     for (i = 0; i < n; i++) {
@@ -291,28 +300,6 @@ P.Icons = (function () {
     },
 
     // ---- arsenal depth (workstream A): weapons, passives, ultimates, mod, mastery ----
-    tray: function () {
-      return rect(3, 33, 42, 7, 3.5, GOLD) +
-        path('M8 12H22Q21.5 22 17.5 26V32H12.5V26Q8.5 22 8 12Z M26 12H40Q39.5 22 35.5 26V32H30.5V26Q26.5 22 26 12Z', CYAN) +
-        path('M9.5 18H20.5Q19.5 22.5 17 25V31H13V25Q10.5 22.5 9.5 18Z M27.5 18H38.5Q37.5 22.5 35 25V31H31V25Q28.5 22.5 27.5 18Z', AMBER) +
-        hi('M10 13.5H12.5Q12 18 13.5 21.5Q10 17.5 10 13.5Z');
-    },
-
-    simittray: function () {
-      return ellipse(24, 36, 20, 6, STEEL) +
-        '<path d="M10 25A14 9 0 1 0 38 25A14 9 0 1 0 10 25ZM19 25A5 3 0 1 0 29 25A5 3 0 1 0 19 25Z" fill="' + GOLD + '" fill-rule="evenodd"' + OUT + '/>' +
-        pip(24, 19, 1.3, PAPER) + pip(32.2, 22, 1.3, PAPER) + pip(32.2, 28, 1.3, PAPER) +
-        pip(24, 31, 1.3, PAPER) + pip(15.8, 28, 1.3, PAPER) + pip(15.8, 22, 1.3, PAPER) +
-        hi('M12.5 22Q13 18 18.5 17.2Q15 19 14.8 22Z');
-    },
-
-    cezve: function () {
-      return line('M35 31L45 11', LEATHER, 3.4, true) +
-        path('M17 15H31Q31 22 37 29Q39 33 36 38Q33 42 27 42H21Q15 42 12 38Q9 33 11 29Q17 22 17 15Z', AMBER) +
-        path('M15.5 15Q14 8.5 20.5 8.5Q23 5 27.5 7.5Q33.5 7.5 32.5 15Z', PAPER) +
-        hi('M15 30Q14.5 34 16 38Z');
-    },
-
     olta: function () {
       return line('M9 42L39 9', LEATHER, 3.2, true) +
         line('M39 9Q46 25 36 34', DSTEEL, 2) +
@@ -321,27 +308,50 @@ P.Icons = (function () {
         hiLine('M13 37.6L17 33.2', 1.2);
     },
 
-    semsiye: function () {
-      return line('M24 8V40Q24 45 19.5 44', DSTEEL, 2.6, true) +
-        path('M4 24Q4 5 24 5Q44 5 44 24Q40 29 36 24Q32 29 28 24Q24 29 20 24Q16 29 12 24Q8 29 4 24Z', RED) +
-        hi('M9 22Q10 13 18 9Q13 14 12.5 22Z');
+    sawblade: function () {
+      return path(sawPath(16, 21, 17.5), STEEL) + circle(24, 24, 6, DSTEEL) +
+        hi('M9 15Q12 9 18 6.5Q13 11 12.5 17Z');
     },
 
-    tavla: function () {
-      return rect(2.5, 17, 19, 19, 4.5, PAPER) +
-        pip(7.5, 22, 2.3, INK) + pip(16.5, 22, 2.3, INK) + pip(12, 26.5, 2.3, INK) +
-        pip(7.5, 31, 2.3, INK) + pip(16.5, 31, 2.3, INK) +
-        '<g transform="rotate(14 36 22)">' + rect(26, 12, 20, 20, 4.5, RED) +
-        hi('M28 13.5H38V15H28Z') +
-        pip(31, 17, 2.3, PAPER) + pip(36, 22, 2.3, PAPER) + pip(41, 27, 2.3, PAPER) + '</g>';
+    manhole: function () {
+      return circle(24, 24, 19, DSTEEL) +
+        '<circle cx="24" cy="24" r="12" fill="none" stroke="' + STEEL + '" stroke-width="1.6"/>' +
+        line('M11 17H37', STEEL, 2) + line('M11 31H37', STEEL, 2) + line('M17 11V37', STEEL, 2) + line('M31 11V37', STEEL, 2) +
+        hi('M9.5 19Q11 12.5 17 9.5Q13 14.5 12.5 21Z');
     },
 
-    kestane: function () {
-      return path('M24 27L22 24C15 21 13 17 13 12C13 6 18 2 24 2C30 2 35 6 35 12C35 17 33 21 26 24Z', AMBER) +
-        rect(6, 27, 36, 6, 3, DSTEEL) +
-        path('M10 33H38L34 42H14Z', DSTEEL) +
-        pip(14, 30, 2.8, RED) + pip(24, 30, 3, GOLD) + pip(34, 30, 2.8, RED) +
-        hi('M16 10C16 6.5 18.5 4.5 21 4C18.5 6 17.5 8.5 17.5 12Z');
+    torch: function () {
+      return line('M28 30L38 20', STEEL, 4, true) +
+        rect(6, 22, 22, 20, 6, BLUE) +
+        line('M11 22V15Q11 11 17 11Q23 11 23 15V22', DSTEEL, 3, true) +
+        path('M36 16Q33 9 37 4Q37 9 40 10Q41 4 44 2Q46 9 43 15Q41 19 37 19Z', GOLD) +
+        path('M38 17Q37 13 39 10Q40 14 42 14Q42 17 40 18Z', RED) +
+        hi('M10 27Q10 25 12 24Q11.5 26 11.5 29Z');
+    },
+
+    cardoor: function () {
+      return path('M10 42V12Q10 5 17 5H33Q40 5 40 12V42Z', RED) +
+        rect(14, 12, 22, 11, 2.5, CYAN) +
+        rect(31, 30, 5.5, 3, 1.5, STEEL) + rivet(12.5, 18) + rivet(12.5, 35) +
+        hi('M13.5 8.5Q15 6.5 18 6Q15 8 14.5 10Z');
+    },
+
+    slingshot: function () {
+      return line('M24 27L24 43', LEATHER, 4.4, true) +
+        line('M13 11L24 27L35 11', LEATHER, 4.4, true) +
+        line('M13 11Q24 22 35 11', DSTEEL, 2) +
+        path('M18.5 15.5Q24 21.5 29.5 15.5Q27.5 25 24 25Q20.5 25 18.5 15.5Z', RED) +
+        circle(24, 19, 3.6, STEEL) +
+        hi('M22.5 32Q22 35 22.6 38Q23.5 35 23 32Z');
+    },
+
+    chainsaw: function () {
+      return line('M6 30L38 15', STEEL, 6, true) +
+        '<path d="M6 30L38 15" fill="none" stroke="' + INK + '" stroke-width="1.8" stroke-dasharray="2.2 2.2"/>' +
+        rect(3, 26, 18, 15, 5, RED) +
+        rect(21, 31, 9, 5, 2, DSTEEL) +
+        path(starPath(40, 11, 6, 2.6), GOLD) +
+        hi('M6 31.5Q8 30 10.5 30Q8.5 32.5 8 35Z');
     },
 
     kolonya: function () {

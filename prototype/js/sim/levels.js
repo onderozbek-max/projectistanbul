@@ -45,11 +45,14 @@ P.Levels.build = function (s, index) {
   return s;
 };
 
-// Roster: the hood's enemy types, plus its extras (v0.5 screamer / hardhat) from stage extraFrom on.
+// Roster: the hood's enemy types, plus its extras (v0.5 screamer / hardhat) from stage extraFrom on, plus the v0.6
+// schedule (new types by hood and stage, config-levels.js).
 function rosterOf(hood, stage) {
-  var C = P.CFG.levels, base = hood.enemies.filter(function (t) { return t !== 'diner'; }), ex = C.hoodExtras[hood.id] || [];
+  var C = P.CFG.levels, base = hood.enemies.filter(function (t) { return t !== 'diner'; }), ex = C.hoodExtras[hood.id] || [], out;
   if (stage < C.extraFrom) return base;
-  return base.concat(ex.filter(function (t) { return base.indexOf(t) < 0; }));
+  out = base.concat(ex.filter(function (t) { return base.indexOf(t) < 0; }));
+  C.schedule.forEach(function (sc) { if (sc.hood === hood.id && stage >= sc.from && out.indexOf(sc.type) < 0) out.push(sc.type); });
+  return out;
 }
 
 // Route marks by distance (sorted): route quarters, mid story beat, elites, ambush, intro, hold or arena.
@@ -234,8 +237,11 @@ function spawnHold(s, dt) {
 
 function spawnAdds(s, dt) {
   var g = s.gen, C = P.CFG.levels;
-  spawnBudget(s, dt, g.st.rate * C.bossAddRate * s.diff.spawn, routeMix(s, 3), 0.2);
+  spawnBudget(s, dt, g.st.rate * C.bossAddRate * s.diff.spawn, routeMix(s, 3).filter(canAdd), 0.2);
 }
+
+// Boss adds never use the heavy types (def.noAdd: the kasap wall).
+function canAdd(m) { var d = P.CFG.enemies[m.type]; return !(d && d.noAdd); }
 
 // Budget spawner (like L1 runBudget): accumulate budget/s, spawn the picked type when affordable.
 function spawnBudget(s, dt, rate, mix, behind) {
@@ -274,7 +280,8 @@ function routeMix(s, seg) {
     if (t === 'walker') w = 1;
     else if (t === 'runner') w = seg === 0 ? 0.2 : 0.5;
     else if (t === 'crawler') w = 0.35;
-    else if (t === 'screamer' || t === 'hardhat') w = P.CFG.levels.extraShare * share;
+    else if (P.CFG.levels.extraTypes.indexOf(t) >= 0) w = P.CFG.levels.extraShare * share;
+    else if (P.CFG.levels.newTypes.indexOf(t) >= 0) w = P.CFG.levels.extraShare * share * (1 + P.CFG.levels.newGrow * s.gen.info.hoodIndex);   // v0.6 grow with progress
     else w = st.newShare * share;
     return { type: t, w: w };
   });
@@ -287,7 +294,7 @@ function spawnOne(s, type, behindShare) {
     s.dir.telegraphs.push({ x: pos.x, y: pos.y, r: 0.8, t: 0, T: P.CFG.levels.crawlerTelegraph, then: 'emerge', skin: pickSkin(s) });
     return true;
   }
-  P.Combat.spawnEnemy(s, type, pos.x, pos.y, { skin: pickSkin(s) });
+  P.Combat.spawnEnemy(s, type, pos.x, pos.y, { skin: pickSkin(s), affix: P.Enemies2.roll(s, type, s.gen.info.hoodIndex) });
   if (pos.behind) s.events.push({ type: 'groan', x: pos.x, y: pos.y });
   return true;
 }
@@ -355,7 +362,8 @@ function startArena(s) {
   g.bossSpawned = true;
   s.events.push({ type: 'story', id: g.info.id, when: 'boss' });
   for (var i = 0; i < C.bossAddStart; i++) {
-    var a = (i / C.bossAddStart) * Math.PI * 2, type = g.roster[i % g.roster.length];
+    var pool = g.roster.filter(function (t) { var d = P.CFG.enemies[t]; return !(d && d.noAdd); }) || ['walker'];
+    var a = (i / C.bossAddStart) * Math.PI * 2, type = pool[i % pool.length];
     P.Combat.spawnEnemy(s, type === 'crawler' ? 'walker' : type, g.boss.x + Math.cos(a) * 4.5, g.boss.y + Math.sin(a) * 4.5, { skin: pickSkin(s), state: 'turning', stateT: C.bossIntro });
   }
 }

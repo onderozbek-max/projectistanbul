@@ -33,6 +33,7 @@ function fireCable(s, dt) {
     target = P.Weapons2.nearestFree(s, cur.x, cur.y, jumpR, taken);
   }
   s.events.push({ type: 'cableZap', x: h.x, y: h.y, n: taken.length });
+  P.Weapons.fired(s, 'cable', Math.atan2(first.y - h.y, first.x - h.x), taken.length);
   P.Mods.announce(s, A, h.x, h.y, reach);
 }
 
@@ -53,6 +54,7 @@ function fireSpear(s, dt) {
       dmg: P.Weapons.dmgFor(s, 'speargun', lv.dmg) * A.dmg, root: lv.root + M.root, primary: k === 0 });
   }
   s.events.push({ type: 'spearFire', x: h.x, y: h.y, a: a0 });
+  P.Weapons.fired(s, 'speargun', a0, n);
   P.Mods.announce(s, A, h.x, h.y, cfg.range);
 }
 
@@ -114,6 +116,7 @@ function fireExtinguisher(s, dt) {
   spray(s, a, lv, A, range, arc, 0);
   if (M.echo) spray(s, a, lv, A, range, arc, M.echo.delay);
   s.events.push({ type: 'extSpray', x: h.x, y: h.y, a: a, range: range, arc: arc, n: cfg.ticks });
+  P.Weapons.fired(s, 'extinguisher', a, 1);
   P.Mods.announce(s, A, h.x, h.y, range);
 }
 
@@ -167,6 +170,7 @@ function updateCleaver(s, dt) {
   h.cleaA = prev + turn * dt;
   if (Math.floor(h.cleaA / (Math.PI * 2)) > Math.floor(prev / (Math.PI * 2))) {
     s.events.push({ type: 'cleaverSpin', x: h.x, y: h.y });
+    P.Weapons.fired(s, 'knife', h.cleaA, 1, 'cleaver');
     W.cleaverAct = P.Mods.act(s, 'knife');
     P.Mods.announce(s, W.cleaverAct, h.x, h.y, lv.radius);
   }
@@ -195,6 +199,7 @@ function updateCyclone(s, dt) {
   h.cycA = prev + lv.speed * (2 - P.Weapons.cdMult(s)) * M.spin * boost * dt;
   if (Math.floor(h.cycA / (Math.PI * 2)) > Math.floor(prev / (Math.PI * 2))) {
     s.events.push({ type: 'cyclone', x: h.x, y: h.y });
+    P.Weapons.fired(s, 'chain', h.cycA, 1, 'cyclone');
     P.Weapons.spinTurn(s);
   }
   P.Weapons.bladeHits(s, lv, h.cycA, cfg.hitInterval, lv.kb * P.Weapons.kbMult(s), 'cyclone', 'cycT', P.Weapons.chainAct(s));

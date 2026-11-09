@@ -35,6 +35,21 @@
     hp: 42, speed: 0.95, contact: 8, radius: 0.42, xp: 6, kbResist: 0.3, budget: 2.2,
     frontalCos: 0.5, frontalMul: 0.4, frontalShove: 1.0, helmetOffAt: 0.4, turnRate: 2.5,
   };
+  // v0.6 · Kasap (butcher, apron and cleaver): a slow wall. Armour cuts every hit (armour = damage multiplier).
+  // Close in (within sense) it winds up a cleaver ring on the hero's spot, then swings. Never a boss add (noAdd).
+  E.kasap = {
+    hp: 150, speed: 0.8, contact: 16, radius: 0.55, xp: 14, kbResist: 1.0, budget: 6.0, noAdd: true, armour: 0.75,
+    sense: 3.0, swingCd: 3.0, swingWindup: 0.9, swingR: 2.0, swingDmg: 18, swingKb: 0.8,
+  };
+  // v0.6 · Parkurcu (free-runner): fast and fragile. Crouches on a ring at the hero's spot, then leaps there.
+  E.parkur = {
+    hp: 16, speed: 2.6, contact: 6, radius: 0.36, xp: 5, kbResist: 0.1, budget: 2.0,
+    leapMin: 2.6, leapMax: 7.0, leapCd: 2.2, windup: 0.45, leapT: 0.42, leapR: 1.0, leapDmg: 12, leapKb: 1.2,
+  };
+  // v0.6 · Zehirli tükürükçü (toxic spitter): the spitter's rules, but the glob bursts into a long toxic cloud.
+  E.zehirli = Object.assign({}, E.spitter, {
+    hp: 18, xp: 6, budget: 3.5, col: 'toxic', glob: { dmg: 4, r: 1.3, puddleT: 6.0, puddleDps: 4.0, zone: 'toxic' },
+  });
 
   // ---- bosses (one per hood type; scaled by hood and difficulty in levels.js) ----
   C.bosses = {
@@ -99,33 +114,40 @@
       bakirkoy: ['screamer'], atakoy: ['screamer', 'hardhat'],
     },
     extraFrom: 2, extraShare: 0.5,
+    // v0.6 · schedule: new enemy types by hood id, from stage `from` on. They join the route mix like extras.
+    // Tier curve (docs/journey.md §5.1): tier 1 = H01-H04 (no new type), tier 2 = H05-H10, tier 3 = H11-H15, tier 4 = H16-H20.
+    schedule: [
+      { hood: 'eminonu', type: 'parkur', from: 3 }, { hood: 'kapalicarsi', type: 'kasap', from: 3 },
+      { hood: 'beyazit', type: 'parkur', from: 4 }, { hood: 'aksaray', type: 'zehirli', from: 3 },
+      { hood: 'samatya', type: 'kasap', from: 3 }, { hood: 'zeytinburnu', type: 'zehirli', from: 2 },
+      { hood: 'yedikule', type: 'zehirli', from: 4 }, { hood: 'kumkapi', type: 'kasap', from: 4 },
+      { hood: 'kazlicesme', type: 'parkur', from: 3 }, { hood: 'bakirkoy', type: 'kasap', from: 4 },
+      { hood: 'bakirkoysahil', type: 'parkur', from: 2 }, { hood: 'atakoysahil', type: 'kasap', from: 2 },
+      { hood: 'atakoy', type: 'parkur', from: 2 }, { hood: 'atakoy', type: 'zehirli', from: 3 }, { hood: 'atakoy', type: 'kasap', from: 4 },
+    ],
+    extraTypes: ['screamer', 'hardhat'],   // weight extraShare x segment share
+    newTypes: ['parkur', 'kasap', 'zehirli'], newGrow: 0.1,   // v0.6 types: same weight, times (1 + newGrow x hood index)
     subCount: 3,                       // geo.sub: 0..2 sub-location per stage (F varies scenery by it)
-    // Boss name keys per hood (strings go in strings.js; fallbacks below are used if a key is missing).
-    names: {
-      'boss.istiklal': { tr: 'Hamal Dev', en: 'Giant Porter' },
-      'boss.galata': { tr: 'Kasap Hasan', en: 'Butcher Hasan' },
-      'boss.karakoy': { tr: 'Pehlivan', en: 'The Wrestler' },
-      'boss.bridge': { tr: 'Balon Adam', en: 'Balloon Man' },
-      'boss.eminonu': { tr: 'Demirci Kemal', en: 'Blacksmith Kemal' },
-      'boss.sirkeci': { tr: 'Tokmakçı', en: 'The Sledgehammer' },
-      'boss.kapalicarsi': { tr: 'Tellal Nuri', en: 'Auctioneer Nuri' },
-      'boss.beyazit': { tr: 'Güvercin Amca', en: 'Uncle Pigeon' },
-      'boss.laleli': { tr: 'Valiz Ahmet', en: 'Suitcase Ahmet' },
-      'boss.aksaray': { tr: 'Şoför Rıza', en: 'Driver Rıza' },
-      'boss.kumkapi': { tr: 'Tuzlu Ağa', en: 'Salty Lord' },
-      'boss.yenikapi': { tr: 'Limancı Ali', en: 'Harbor Ali' },
-      'boss.samatya': { tr: 'Teyze Zehra', en: 'Auntie Zehra' },
-      'boss.yedikule': { tr: 'Bahçıvan Kadir', en: 'Gardener Kadir' },
-      'boss.zeytinburnu': { tr: 'Kazan Hüseyin', en: 'Cauldron Hüseyin' },
-      'boss.kazlicesme': { tr: 'Mangal Fatma', en: 'Grill Fatma' },
-      'boss.bakirkoy': { tr: 'Manav Ramazan', en: 'Greengrocer Ramazan' },
-      'boss.bakirkoysahil': { tr: 'Şişme Can', en: 'Inflatable Can' },
-      'boss.atakoysahil': { tr: 'Kaptan Osman', en: 'Captain Osman' },
-      'boss.atakoy': { tr: 'Sayın Abim', en: 'The Honourable Big Bro' },
-    },
+    // Boss names are NOT here (AUDIT-5 D-8/H2, owner 2026-11-08): one set lives in js/story/strings-story.js (spk.b.*,
+    // Turkish title + canon English gloss). js/strings-journey.js copies it to boss.<hood> for the boss banner.
   };
   // Spawn-director budget cost for types without a `budget` field (walker, runner, crawler: CC 5).
   C.budgetOf = { walker: 1.0, runner: 1.5, crawler: 1.5 };
+
+  // ---- v0.6 · affixes (js/sim/enemies2.js). Rolled on each regular generated-level spawn of a listed type, from hood
+  // index `from` (0-based: 10 = H11). Rolls use the spawn stream, so hoods before `from` play exactly as before.
+  C.affix = {
+    list: {
+      hizli: { speedMul: 1.35, col: '#5BE7FF' },                            // fast: +35% speed
+      zirhli: { armour: 0.7, kbResist: 0.3, col: '#C7D0DA' },              // armoured: 30% less damage taken
+      patlayan: { blastR: 1.6, heroDmg: 10, enemyDmg: 18, col: '#FF8A3D' }, // volatile: bursts on death
+    },
+    schedule: [
+      { id: 'hizli', from: 10, chance: 0.10, types: ['walker', 'runner', 'parkur'] },
+      { id: 'zirhli', from: 11, chance: 0.12, types: ['walker', 'runner', 'crawler'] },
+      { id: 'patlayan', from: 15, chance: 0.10, types: ['walker', 'runner', 'crawler'] },
+    ],
+  };
 
   // ---- v0.5 level events (js/sim/events.js, events-kinds.js). Lifetimes in s, distances in m. ----
   C.ev = {
@@ -216,6 +238,12 @@
     'set.hardhat': { tr: 'Baretli', en: 'Hardhat' },
     'enemy.screamer': { tr: 'Çığlıkçı', en: 'Screamer' },
     'enemy.hardhat': { tr: 'Baretli', en: 'Hardhat' },
+    'enemy.kasap': { tr: 'Kasap', en: 'Butcher' },
+    'enemy.parkur': { tr: 'Parkurcu', en: 'Free-runner' },
+    'enemy.zehirli': { tr: 'Zehirli tükürükçü', en: 'Toxic spitter' },
+    'aff.hizli': { tr: 'Hızlı', en: 'Fast' },
+    'aff.zirhli': { tr: 'Zırhlı', en: 'Armoured' },
+    'aff.patlayan': { tr: 'Patlayan', en: 'Volatile' },
   };
   C.levelLines = {
     callHack1: ['spk.anne', 'Arda! Duyuyor musun? Sinyal geldi galiba!', 'Arda! Can you hear me? I think the signal is back!'],

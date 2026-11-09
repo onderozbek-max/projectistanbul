@@ -128,6 +128,33 @@ the list.
 
 ## 5. Hood by hood
 
+### 5.0 v0.6 enemy schedule (D-042)
+
+New types join the route mix from the stage shown (`C.levels.schedule` in `config-levels.js`). Their share grows with hood index (`newGrow` 0.1). Affixes roll on regular generated-level spawns (`C.affix.schedule`) from the hood shown. Hoods H01 to H04 have no new types and no affixes, so the early funnel is unchanged.
+
+| Hood | Name | New type (from stage) |
+|---|---|---|
+| H05 | Eminönü | parkur (3) |
+| H07 | Kapalıçarşı | kasap (3) |
+| H08 | Beyazıt | parkur (4) |
+| H10 | Aksaray | zehirli (3) |
+| H11 | Kumkapı | kasap (4) |
+| H13 | Samatya | kasap (3) |
+| H14 | Yedikule | zehirli (4) |
+| H15 | Zeytinburnu | zehirli (2) |
+| H16 | Kazlıçeşme | parkur (3) |
+| H17 | Bakırköy Çarşı | kasap (4) |
+| H18 | Bakırköy Sahil | parkur (2) |
+| H19 | Ataköy Marina | kasap (2) |
+| H20 | Ataköy | parkur (2), zehirli (3), kasap (4) |
+
+Affixes: **hizli** (fast, +35% speed, 10% of walker, runner and parkur spawns) from H11; **zirhli** (armoured, takes 30% less damage, 12% of walker, runner and crawler spawns) from H12; **patlayan** (bursts on death, 10% of walker, runner and crawler spawns) from H16. Each has a badge and a mark over the figure (`art-enemies3.js`).
+
+Stats (config-levels.js): kasap 150 HP, armour 0.75, cleaver swing 18 damage in a 2.0 radius after a 0.9 s wind-up ring. Parkur 16 HP, speed 2.6, leaps 2.6 to 7.0 m after a 0.45 s ring, 12 damage. Zehirli 18 HP, spit glob leaves a 6 s toxic pool (4 DPS).
+
+---
+
+
 Each hood lists: **Scene** (landmark treatment, props, palette, ground, water, light), **Roster and
 twist**, **Stage 3 and 4**, **Boss** and **Story beat**. Landmarks follow the guardrails in
 [narrative.md](narrative.md) (landmarks shown with respect, generic silhouettes, no real brand names).
@@ -521,6 +548,19 @@ Sawtooth rule: the boss is the peak. The next stage 1 is the relief (80% spawn r
 - Map walk after each level (results → map, see weapons-skills and story-presentation) gives
   a pause for the story and a reason to keep going.
 
+### 6.5 Bot result (v0.6, 2026-11-08)
+
+Run: `node prototype/tools/bot.js --levels=25,50,75,100 --seeds=6` (expected loadout, section 7.5 of attributes.md), with `--bare` and `--nonew` for comparison. Targets are the floors from section 6.3.
+
+| Level | Target (clears of 6) | Baseline, bare (v0.5) | Bare, v0.6 enemies | Expected loadout, v0.6 (shipped) |
+|---|---|---|---|---|
+| L25 | 5 | 5 | 1 | 6 |
+| L50 | 4 | 2 | 2 | 5 |
+| L75 | 4 | 0 | 0 | 6 |
+| L100 | 3 | 0 | 0 | 3 |
+
+The `--nonew` run (no schedule, no affixes) reproduces the baseline exactly (5, 2, 0, 0), so the bare drop at L25 is the new enemies. The shipped player clears every floor. L75 is above its floor with room to spare; the owner asked for "roughly", and a stronger player is the stated direction.
+
 ---
 
 ## 7. Unlocks: weapons and passives by level
@@ -594,17 +634,17 @@ Chapter 2 starts at L101 as in narrative.md.
 
 | # | Decision | Recommendation | Why it matters |
 |---|---|---|---|
-| 9.1 | **Kaan joins at L20** (bridge boss) instead of L30 | Yes. He is on the bridge in the story and must be there for the Captain beat in Eminönü (L25). | Moves a story beat and the squad unlock. Changes prd §4, content-catalog §6 and narrative.md *Characters*. |
+| 9.1 | **Kaan joins at L20** (bridge boss) instead of L30 | **DECIDED 2026-11-08 (D-045): L20.** He is on the bridge in the story and must be there for the Captain beat in Eminönü (L25). | Moves a story beat and the squad unlock. Changes prd §4, content-catalog §6 and narrative.md *Characters*. |
 | 9.2 | **Build milestone at Sirkeci (L30)** instead of the Galata Bridge | Keep L30 as the vertical-slice build milestone (six hoods, a full arc, two bosses with comics). Chapter 1 ends at Ataköy (L100, D-040). | prd §1 and §4 change. |
 | 9.3 | **20 bosses, one per hood** (stage 5) | Yes, with a per-hood signature attack. Three boss types are a shared kit. | Art and animation load. 20 concepts × 2–3 attacks. |
 | 9.4 | **Route order and geography** | Confirm the order against a real map before the art pass. Some legs are not the real walking order. | A local player may notice. |
 | 9.5 | **Molotov name and unlock** | Display name "Benzin Şişesi" (petrol bottle). The word molotov has a political meaning in Turkey and elsewhere. Keep "molotov" in code IDs. | Guardrails (no politics). See weapons-skills §4. |
-| 9.6 | **Difficulty curve** | Test E2's curve and the hood-based proposal (6.2) with the bot once the meta is in it. | 13× HP at L100 may be too steep without meta. |
-| 9.7 | **Boss names** | Use the canonical names in section 2. E2's current code names differ for 19 of 20 hoods (table 9.8). | Strings and comics. |
+| 9.6 | **Difficulty curve** | **DECIDED 2026-11-08 (D-041, D-042):** keep E2. The player gets a persistent power lever (attributes.md section 7.5), and new enemy types and affixes carry the late game. The hood-based curve is not used. Bot result: section 6.5. | 13× HP at L100 may be too steep without meta. |
+| 9.7 | **Boss names** | **DECIDED 2026-11-08 (D-046):** one set, the `spk.b.*` names in `strings-story.js`, Turkish with the section 2 canon role as the English gloss. Ataköy is Sayın Abim. The E2 names are retired (table 9.8). | Strings and comics. |
 
 ### 9.8 Boss name reconciliation
 
-The canonical name is in section 2. The E2 code name is in `config-levels.js` (in progress).
+The canonical name is in section 2. The E2 code names were removed from `config-levels.js` in v0.6 (D-046). The in-game set is the `spk.b.*` names. This table is the reconciliation record.
 
 | Hood | Canonical | E2 code name | Note |
 |---|---|---|---|
@@ -636,3 +676,4 @@ Bahçıvan Kadir, Kazan Hüseyin, Mangal Fatma, Şişme Can, Kaptan Osman) can s
 | Flashes | 3 per second max | Fireworks, lightning, flicker and fog are timed under 3 Hz (see wow-catalog §6). |
 | Gore | No close-ups | Bodies collapse. Blood is red by default (D-024). No cut-away gore. |
 | Children as zombies | Not in the brief | No child skins or boss. Picnic and sea hoods use adults. |
+| New enemy types (v0.6) | Zombies only (violence and gore rules) | Kasap, parkur and zehirli are zombies. Affix marks are shapes and colour. No new human enemy in Ch1. Gore rule unchanged: no close-ups. |

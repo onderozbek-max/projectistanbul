@@ -113,6 +113,7 @@
     P.drainEvents(sim).forEach(function (ev) {
       P.Fx.onEvent(ev, sim);
       if (P.Barks && P.Barks.onEvent) P.Barks.onEvent(ev, sim);
+      if (P.FireAnim) P.FireAnim.onEvent(ev, sim);
       switch (ev.type) {
         case 'kill': P.Sfx.play('splat', 45); break;
         case 'pickup': P.Sfx.play(ev.kind === 'xp' ? 'tink' : 'click', 30); break;
@@ -340,6 +341,7 @@
     if (state === 'exit') updateExit(dt);
     if (sim && state !== 'title' && state !== 'results' && state !== 'map') {
       P.Fx.update(sim, FROZEN[state] ? 0 : dt);
+      if (P.FireAnim) P.FireAnim.update(FROZEN[state] ? 0 : dt * (P.Fx.timeScale ? P.Fx.timeScale() : 1), sim);
       P.Render.frame(sim, levelIndex === 1 ? P.ColdOpen.draw : null);
       if (state === 'play' || state === 'exit') P.UI.update(sim); else document.getElementById('prompt').classList.add('hidden');
     }

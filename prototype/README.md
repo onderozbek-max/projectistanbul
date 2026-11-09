@@ -1,4 +1,12 @@
-# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.5)
+# prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.6)
+
+> **v0.6 (2026-11-08):** forced Turkish-object weapons replaced with credible improvised ones: Testere
+> Diski (saw blade boomerang), Rögar Kapağı (manhole cover), Pürmüz (blowtorch), Araba Kapısı (car-door
+> shield), Sapan (slingshot), Motorlu Testere (chainsaw, new rev mechanic); Olta kept. Every weapon now has
+> its own held pose and firing animation (`js/view/fire-anim*.js`, preview `tools/fire-preview.html`).
+> Comic lettering: bundled OFL fonts Comic Relief + Bangers (Turkish verified), rounded-rect balloons,
+> ink-based fit audit (0 fails TR/EN). Player power grows across the journey (`config-power.js`) and new
+> enemies (kasap, parkur, zehirli + affixes) unlock by hood; bot uses an expected-progression loadout.
 
 > **v0.5 (2026-11-08):** depth and reasons to come back. 17 weapons with L3/L5 mod forks and a rank-3
 > "usta" pick; per-weapon mastery ranks I–V with rank-5 signature moves (Piknik Tüpü → MANGAL PARTİSİ!);

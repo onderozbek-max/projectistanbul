@@ -3,6 +3,8 @@
 //   node prototype/tools/bot.js [--seeds=30] [--policy=kite|straight] [--verbose]    Level 1 (scripted)
 //   node prototype/tools/bot.js --level=N [--seeds=8] [--verbose]                    one generated level (2..100)
 //   node prototype/tools/bot.js --levels=2,3,5,8,12,20,25,50,75,100 [--seeds=8]      summary table
+// Generated levels run with the expected progression at that level (P.Power.expectedLoadout: hood rank, attributes,
+// gear, mastery; see config-power.js). --bare runs the naked hero (no meta) for comparison.
 // Policies: L1 follows a fixed route with kite repulsion; generated levels use a generic policy (corridor centre,
 // kite, dodge lanes/puddles/rings/stomps, pick up drops, link hack terminals when no enemy is close, circle the hold
 // and the boss, push through stalls). Both link hacks (INT) and count events. One revive (as in L1). Exceptions are
@@ -10,10 +12,10 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-stats.js', 'js/config-weapons2.js',
-  'js/strings.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/sim/rng.js', 'js/sim/world.js',
-  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/mastery.js',
-  'js/sim/enemies.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/levels.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
+const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-stats.js', 'js/config-power.js', 'js/config-weapons2.js',
+  'js/strings.js', 'js/journey.js', 'js/meta/meta-data.js', 'js/meta/meta-power.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/sim/rng.js', 'js/sim/world.js',
+  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
+  'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/levels.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
   'js/sim/hack.js', 'js/sim/progression.js', 'js/sim/director.js', 'js/sim/sim.js'];
 FILES.forEach(function (f) { vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }); });
 const P = globalThis.P;
@@ -21,10 +23,13 @@ const P = globalThis.P;
 const args = Object.fromEntries(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v === undefined ? true : v]));
 // --base: switch off the v0.5 level additions (hood extras, stage events, flavour) to compare with the old generator.
 if (args.base) { P.CFG.levels.hoodExtras = {}; P.CFG.ev.mix = []; P.CFG.ev.flavour = {}; }
+// --nonew: switch off the v0.6 enemies (schedule types and affixes) to measure what they add.
+if (args.nonew) { P.CFG.levels.schedule = []; P.CFG.affix.schedule = []; }
 const SEEDS = parseInt(args.seeds || '30', 10), POLICY = args.policy || 'kite';
 const PATH = [[-5, -1.5], [-5, 2], [0, 60], [-4, 140], [-4, 165], [-1, 192], [1.5, 206]];
 const MAX_T = 600, DT = 1 / 60, DROP_KINDS = ['xp', 'chest', 'simit', 'jeton'];
-const HACK_REACH = 7, COUNTED = ['screamStart', 'scream', 'helmetBlock', 'helmetOff', 'hackStart', 'hackNoise', 'hackDone', 'hackFail', 'signalRestored', 'signalLost', 'explode', 'screamCut', 'carQuiet', 'rescueDone', 'lootCaught'];
+const HACK_REACH = 7, COUNTED = ['screamStart', 'scream', 'helmetBlock', 'helmetOff', 'hackStart', 'hackNoise', 'hackDone', 'hackFail', 'signalRestored', 'signalLost', 'explode', 'screamCut', 'carQuiet', 'rescueDone', 'lootCaught',
+  'kasapWindup', 'kasapSwing', 'parkurLeap', 'parkurLand'];
 const med = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : 0; };
 
 // Event counts for the tables: eventStart per kind, plus hack, signal, blast and rescue outcomes.
@@ -139,6 +144,7 @@ function repulsion(s, h) {
     else if (e.type === 'brute') rep(dx, dy, 4.0, 5.0);
     else if (e.type === 'spitter') rep(dx, dy, 2.2, 1.5);
     else if (e.type === 'screamer') rep(dx, dy, 3.0, 2.0);   // stay out of its ring (windup)
+    else if (e.type === 'kasap') rep(dx, dy, 3.2, 4.0);      // cleaver reach 2.0 m plus its ring: keep out
     else rep(dx, dy, 2.2, 1.5);   // walkers, runners, hardhats: keep out of the crowd edge
   }
   for (const q of s.enemyShots) rep(h.x - q.tx, h.y - q.ty, 1.6, 2);
@@ -213,7 +219,7 @@ function runGen(index, seed) {
   let s = null, st = null, result = 'timeout', err = null, revived = false, stuck = null;
   const segT = {}, deaths = [], dmgBy = {}, evBy = {};
   try {
-    s = P.createSim(seed, { levelIndex: index });
+    s = P.createSim(seed, { levelIndex: index, loadout: loadoutFor(index) });
     P.startPlay(s);
     st = { ang: 0, best: s.hero.y, bestT: 0, push: 0, side: 1, skip: new Set(), dropT: 0, dropId: null, threat: Infinity, last: null };
     while (s.runT < MAX_T) {
@@ -240,6 +246,11 @@ function runGen(index, seed) {
     peak: L.peakAlive, deaths, dmgBy, evBy, segT, hacks: L.tally.hacks, events: L.tally.events,
     bossKilled: !!(s && s.gen && s.gen.boss && s.gen.boss.dead), hp: Math.round(L.hero.hp), exitY: L.geo.exitY, holdY: L.geo.holdY,
     stage: P.Journey.level(index).stage, at: { x: s ? +s.hero.x.toFixed(2) : 0, y: s ? +s.hero.y.toFixed(2) : 0, hold: !!(s && s.dir.hold.active), gate: !!(s && s.props.shutterOpen) } };
+}
+
+// Expected progression at a level (meta power, attributes, gear, mastery). --bare gives the naked hero.
+function loadoutFor(index) {
+  return args.bare ? null : P.Power.expectedLoadout(index);
 }
 
 // Generated levels: take evolutions, then weapon upgrades, then passives (medkit first when hurt).
@@ -272,15 +283,16 @@ function runLevels(indices, seeds) {
     seedList.forEach(sd => list.push(runGen(idx, sd)));
     rows.push({ idx, id: P.Journey.level(idx).id, boss: P.Journey.level(idx).boss, sm: summarize(list), list });
   });
-  console.log(`generated levels, policy=kite-generic seeds=${seeds} (clear = win with one revive)`);
-  console.log('level  id       type   clear      no-death   median s  deaths/run  lvl-ups  peak  events  hacks  timeouts crashes');
+  console.log(`generated levels, policy=kite-generic seeds=${seeds} (clear = win with one revive) loadout=${args.bare ? 'bare' : 'expected'}`);
+  console.log('level  id       type   clear      no-death   median s  deaths/run  lvl-ups  peak  events  hacks  timeouts crashes  power: rank attr mast might hp cdr  dmg x rate');
   rows.forEach(r => {
-    const c = r.sm;
+    const c = r.sm, pw = args.bare ? null : P.Power.summary(r.idx);
+    const pTxt = pw ? `  ${pw.rank} ${pw.attr} ${pw.mastery} +${Math.round(pw.might * 100)}% +${Math.round(pw.hp * 100)}% ${Math.round(pw.cdr * 100)}%  x${pw.mult.toFixed(2)}` : '';
     console.log(`${String(r.idx).padEnd(6)} ${r.id.padEnd(8)} ${(r.boss ? 'BOSS' : 'route').padEnd(6)} ` +
       `${(c.clear + '/' + c.n + ' ' + Math.round(100 * c.clear / c.n) + '%').padEnd(10)} ` +
       `${(Math.round(100 * c.noDeath / c.n) + '%').padEnd(10)} ${c.medT.toFixed(0).padStart(8)}  ` +
       `${c.deaths.toFixed(2).padStart(10)}  ${String(c.lvls).padStart(7)}  ${String(c.peak).padStart(4)}  ` +
-      `${String(c.events).padStart(6)}  ${String(c.hacks).padStart(5)}  ${String(c.timeouts).padStart(8)} ${String(c.crashes).padStart(7)}`);
+      `${String(c.events).padStart(6)}  ${String(c.hacks).padStart(5)}  ${String(c.timeouts).padStart(8)} ${String(c.crashes).padStart(7)}${pTxt}`);
   });
   rows.forEach(r => r.list.filter(x => x.result === 'crash').slice(0, 2).forEach(x => console.log(`crash L${r.idx} seed ${x.seed}: ${x.err}`)));
   if (args.verbose) rows.forEach(r => r.list.forEach(x => console.log(JSON.stringify(x))));

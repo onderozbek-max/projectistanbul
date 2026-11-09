@@ -2,7 +2,7 @@
 // P.Mastery: rank from lifetime kills (meta stores the kills), rank for a run (loadout or ?mastery debug), the
 // passive bonus per rank, and the damage-source map. P.Mods: composes a family's picked mods, counts actions
 // (usta every Nth; signature move every Nth at rank 5) and resolves impacts: area damage, knockdown, chain
-// reactions, shards, echoes, sticky drags, slow clouds, lifesteal. State lives in P.Weapons.state(s) (the view reads it).
+// reactions, shards, echoes, sticky drags, slow clouds, stuns. State lives in P.Weapons.state(s) (the view reads it).
 // Events: masteryMove, modUsta, modShards, modChain, modStick, modEcho, modCloud.
 P.Mastery = {};
 P.Mods = {};
@@ -10,7 +10,7 @@ P.Mods = {};
 (function () {
   var SRC = { cleaver: 'knife', nailstorm: 'nailgun', cluster: 'canister', cyclone: 'chain', finale: 'fireworks' };
   var MUL = ['area', 'dmg', 'cd', 'life', 'spin', 'range', 'reel', 'push'];
-  var ADD = ['knock', 'burn', 'pierce', 'count', 'bounce', 'pull', 'heal', 'root'];
+  var ADD = ['knock', 'burn', 'pierce', 'count', 'bounce', 'pull', 'stun', 'root'];
   var OBJ = ['shards', 'chain', 'stick', 'echo', 'slow', 'crit', 'cloud', 'reflect'];
 
   // ---------- mastery (pure) ----------
@@ -102,6 +102,7 @@ P.Mods = {};
     var d = dmg, k = kb;
     if (M.crit && s.rng.combat.chance(M.crit.p)) d *= M.crit.mul;
     if (M.knock) { P.Status.apply(e, 'stun', M.knock, 1); k *= 1.8; }
+    if (M.stun) P.Status.apply(e, 'stun', M.stun, 1);
     if (M.slow) P.Status.apply(e, 'slow', M.slow.t, M.slow.m);
     if (M.root) P.Status.apply(e, 'root', M.root, 1);
     if (M.pull) P.Weapons.shove(e, -dx, -dy, M.pull);
@@ -135,7 +136,6 @@ P.Mods = {};
   P.Mods.hit = function (s, e, dmg, dx, dy, kb, src, A, opts) {
     var M = A.M, o = opts || {}, killed = [];
     hitOne(s, e, dmg, dx, dy, kb, src, M, killed);
-    if (M.heal) s.hero.hp = Math.min(s.hero.maxHp, s.hero.hp + M.heal);
     if (M.shards) spawnShards(s, e.x, e.y, dmg, src, M.shards);
     if (M.chain && killed.length && (o.depth || 0) < P.CFG.mastery.chainMaxDepth) queueChains(s, killed, dmg, kb, src, A, o.depth || 0);
     if (M.echo && !o.echo) scheduleEcho(s, { kind: 'hit', e: e, dx: dx, dy: dy, dmg: dmg, kb: kb, src: src, A: A }, M.echo);

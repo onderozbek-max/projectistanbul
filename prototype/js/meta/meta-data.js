@@ -232,14 +232,11 @@ P.Meta = P.Meta || {};
   M.endRun = function () { activeRun = null; };
 
   // ---- Loadout for createSim (contract: gear, startWeapon, stats, mastery, ult, hero, modifiers) ----
+  // Equipped gear (capped per stat) plus the hood-rank power (config-power.js). Shared maths: meta-power.js.
   function gearSum(s) {
-    var g = { maxHpPct: 0, mightPct: 0, movePct: 0, pickupPct: 0, cooldownPct: 0 };
-    M.SLOTS.forEach(function (slot) {
-      var id = s.equipped[slot.id], st = id ? M.itemStats(id, s.gear[id].lvl) : {};
-      Object.keys(st).forEach(function (k) { g[k] = g[k] + st[k]; });
-    });
-    Object.keys(g).forEach(function (k) { g[k] = round3(Math.min(M.CFG.gear.maxStatPct, g[k])); });
-    return g;
+    var items = [];
+    M.SLOTS.forEach(function (slot) { var id = s.equipped[slot.id]; if (id) items.push({ id: id, lvl: s.gear[id].lvl }); });
+    return P.Power.gearWithHood(items, M.snapshot().done);
   }
   function masteryRanks(s) {
     var out = {};

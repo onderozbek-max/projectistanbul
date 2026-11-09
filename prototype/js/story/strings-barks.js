@@ -100,6 +100,18 @@
     'BK.card.speargun.2': ['spk.arda', "Zıpkın. Balık tutmak için de olur.", "Speargun. Works for fishing too."],
     'BK.card.extinguisher.1': ['spk.arda', "Yangın tüpü. Hem silah hem sigorta.", "Fire extinguisher. A weapon and insurance."],
     'BK.card.extinguisher.2': ['spk.arda', "Yangın tüpü. Bu sefer yanmayı söndürür.", "Fire extinguisher. This time it's the fire that goes out."],
+    'BK.card.sawblade.1': ['spk.arda', "Testere diski. Şantiyeden aldım, sahibi de henüz fark etmedi.", "Saw blade. Borrowed from the site. The site hasn't noticed yet."],
+    'BK.card.sawblade.2': ['spk.arda', "Dişleri var, kıvılcım saçıyor. Artık kimse bana laf atmaz.", "It has teeth and throws sparks. Nobody gives me grief now."],
+    'BK.card.manhole.1': ['spk.arda', "Rögar kapağı. Belediye fark etmez, sanırım.", "Manhole cover. The council won't notice, I think."],
+    'BK.card.manhole.2': ['spk.arda', "Kapak ağır ama zıplıyor. Frizbi gibi.", "Heavy lid, but it bounces. Like a frisbee."],
+    'BK.card.torch.1': ['spk.arda', "Pürmüz! Mangal için almıştım, işim değişti.", "Blowtorch! I bought it for the barbecue, then my plans changed."],
+    'BK.card.torch.2': ['spk.arda', "Alev hazır. Tek sorun: ben de tutuşabilirim.", "Flame's ready. Only snag: I might catch fire too."],
+    'BK.card.cardoor.1': ['spk.arda', "Araba kapısı. Sahibi hâlâ arıyor olabilir.", "Car door. Its owner might still be looking for it."],
+    'BK.card.cardoor.2': ['spk.arda', "Kapı kalkıyor, tükürük geri gidiyor. Adil.", "The door goes up, the spit goes back. Fair's fair."],
+    'BK.card.slingshot.1': ['spk.arda', "Sapan! Çocukluğumun en büyük becerisi.", "Slingshot! My proudest childhood skill."],
+    'BK.card.slingshot.2': ['spk.arda', "Bilye sekiyor, ben kaçıyorum. Plan bu.", "Marbles bounce, I run. That's the plan."],
+    'BK.card.chainsaw.1': ['spk.arda', "Motorlu testere. Gaza basınca içim de titriyor.", "Chainsaw. Pulling the cord makes my insides shake too."],
+    'BK.card.chainsaw.2': ['spk.arda', "Motor boğulursa beklerim. Motor de ben de.", "If it stalls, I wait. Me and the motor both."],
     'BK.card.shoes.1': ['spk.arda', "Koşu ayakkabısı! Nihayet.", "Running shoes! Finally."],
     'BK.card.shoes.2': ['spk.arda', "Ayakkabılar yeni, ben de yeniyim.", "New shoes, new me."],
     'BK.card.jacket.1': ['spk.arda', "Deri ceket. Anne sevmezdi ama giyeceğim.", "Leather jacket. Mom hated it, but I'm wearing it."],
@@ -261,7 +273,7 @@
     'BK.act.bruteCharge.4': ['spk.arda', "Üstüme geliyor. Ayakkabılar hazır mı?", "It's coming at me. Shoes ready?"],
     'BK.act.spit.1': ['spk.arda', "Tükürük! Yere bak, yere!", "Spit! Look down, down!"],
     'BK.act.spit.2': ['spk.arda', "Tükürük geliyor! Mont gitti bu.", "Spit incoming! There goes the jacket."],
-    'BK.act.spit.3': ['spk.arda', "Asit yağıyor. Şemsiye olsa keşke.", "Acid's raining. I wish I had an umbrella."],
+    'BK.act.spit.3': ['spk.arda', "Asit yağıyor. Bir araba kapısı olsa keşke.", "Acid's raining. I wish I had a car door."],
     'BK.act.spit.4': ['spk.arda', "Yerdeki tükürük köpürdü. Uzak durun.", "The spit on the ground is bubbling. Keep away."],
     'BK.act.bloaterSwell.1': ['spk.arda', "Şişiyor! Herkes geri!", "It's swelling! Everybody back!"],
     'BK.act.bloaterSwell.2': ['spk.arda', "Şişti, şişti, şişti!", "Swelling, swelling, swelling!"],
@@ -499,5 +511,17 @@
     'BK.hd20.3': ['spk.arda', "Fırının kokusu. Ahmet Abi'nin ekmeği sıcak mı?", "The bakery smell. Is Ahmet Abi's bread still warm?"],
     'BK.hd20.4': ['spk.arda', "Kapıcı kulübesi kapalı. Ahmet Abi orada mı acaba?", "The porter's booth is shut. Is Ahmet Abi in there?"],
     'BK.hd20.5': ['spk.arda', "Ahmet Abi! Ekmek sepeti kalkan olur mu?", "Ahmet Abi! Can a bread basket be a shield?"]
+  });
+})();
+
+// v0.6 first sightings (workstream D): the three new types. Appended block; the pool 'BK.fk.<type>.' takes the first kill.
+(function () {
+  Object.assign(P.LINES, {
+    'BK.fk.kasap.1': ['spk.arda', 'Kasap. Önlük kanlı, ben de sinirliyim.', "A butcher. Apron's bloody, and I'm the one who's nervous."],
+    'BK.fk.kasap.2': ['spk.arda', 'Buzdolabı gibi yürüyor, kin tutuyor. Yine de buzdolabı.', 'Walks like a fridge with a grudge. Still a fridge.'],
+    'BK.fk.parkur.1': ['spk.arda', 'Parkurcu. Zıplıyor. Ben de koşuyorum. Hangimiz aptal?', 'Free-runner. He jumps, I run. Which of us is the idiot?'],
+    'BK.fk.parkur.2': ['spk.arda', 'Bana zıplama! Ben bile düşmeden zıplayamam.', "Don't jump at me! I can't jump without falling over."],
+    'BK.fk.zehirli.1': ['spk.arda', 'Tükürüğü zehirli. Otogar gibi kokuyor.', 'Poison spit. Smells like a bus depot in August.'],
+    'BK.fk.zehirli.2': ['spk.arda', 'Bulut bıraktı. Nefes almak da listeye girdi.', 'It left a cloud. Breathing is on the list now.'],
   });
 })();

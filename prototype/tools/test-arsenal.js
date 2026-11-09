@@ -7,12 +7,13 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-stats.js', 'js/config-weapons2.js',
   'js/strings.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/sim/rng.js', 'js/sim/world.js',
-  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/mastery.js',
-  'js/sim/enemies.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/levels.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
+  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
+  'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/levels.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
   'js/sim/hack.js', 'js/sim/progression.js', 'js/sim/director.js', 'js/sim/sim.js'];
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const VIEW = ['js/view/icons.js', 'js/view/weapons-fx.js', 'js/view/weapons-fx2.js', 'js/view/weapons-fx3.js',
-  'js/view/weapons-fx4.js', 'js/view/skills-fx.js', 'js/view/input.js'];
+  'js/view/weapons-fx4.js', 'js/view/fire-anim-prim.js', 'js/view/fire-anim-held.js', 'js/view/fire-anim-held2.js',
+  'js/view/fire-anim-fx.js', 'js/view/fire-anim-fx2.js', 'js/view/fire-anim.js', 'js/view/skills-fx.js', 'js/view/input.js'];
 VIEW.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const P = globalThis.P;
 if (!P.Enemies || !P.Enemies.frame) P.Enemies = { frame: function () {} };   // E2 stub fallback (test-only)
@@ -32,6 +33,9 @@ const ALL_PASS = { shoes: 5, jacket: 5, gloves: 5, energy: 5, medkit: 5, nazar: 
 const ALL_W = P.CFG.arsenal.weapons.slice();
 const ALL_W_L5 = Object.fromEntries(ALL_W.map(id => [id, 5]));
 const EVOS = { cleaver: 1, nailstorm: 1, cluster: 1, cyclone: 1, finale: 1 };
+// Weapon ids for the fire-animation draw smoke (new names, workstream A renames; old names alias in fire-anim.js).
+const FIRE_IDS = ['knife', 'nailgun', 'canister', 'chain', 'sledge', 'molotov', 'fireworks', 'cable', 'speargun', 'extinguisher',
+  'sawblade', 'manhole', 'torch', 'olta', 'cardoor', 'slingshot', 'chainsaw'];
 
 function newSim(seed, levelIndex, loadout) {
   const s = P.createSim(seed, { levelIndex: levelIndex || 1, loadout: loadout || null });
@@ -101,7 +105,7 @@ function unitTests() {
   let ids = P.Progression.candidates(s).map(c => c.id);
   check(ids.includes('w:sledge') && ids.includes('p:nazar'), 'L1 pool missing sledge or nazar');
   check(!ids.includes('w:molotov') && !ids.includes('w:cable'), 'L1 pool leaks later unlocks');
-  check(ids.includes('w:tray') && ids.includes('w:cezve') && ids.includes('p:kolonya') && ids.includes('p:lokum'), 'L1 pool missing new L1 items');
+  check(ids.includes('w:sawblade') && ids.includes('w:torch') && ids.includes('p:kolonya') && ids.includes('p:lokum'), 'L1 pool missing new L1 items');
   s.levelIndex = 3; ids = P.Progression.candidates(s).map(c => c.id);
   check(ids.includes('w:molotov'), 'molotov not unlocked at L3');
   P.CFG.debugAllWeapons = true; s.levelIndex = 1; ids = P.Progression.candidates(s).map(c => c.id);
@@ -184,6 +188,87 @@ function unitTests() {
   notes.push('replay ' + runA);
 }
 
+// v0.5 improvised weapons: chainsaw rev (hit vs stall), slingshot lucky shot, manhole stun mod, torch scorch, and the
+// wfire contract (every arsenal weapon pushes wfire with w, x, y, ang, lv, n when it fires; workstream B reads these).
+function weaponUnits() {
+  const cs = newSim(90, 1);
+  P.Progression.debugGrant(cs, { weapons: { chainsaw: 1 }, passives: {} });
+  delete cs.hero.weapons.knife;   // the starting knife would kill the target first; onAcquire also adds a 0.2 s wait
+  cs.enemies = [];
+  const ch = cs.hero;
+  P.Combat.spawnEnemy(cs, 'walker', ch.x + 1, ch.y, { state: 'active' });
+  let ev = [];
+  for (let i = 0; i < 60 && !ev.some(e => e.type === 'sawRev'); i++) ev = ev.concat(step(cs, { x: 0, y: 0 }));
+  check(ev.some(e => e.type === 'sawRev'), 'chainsaw did not rev on an enemy in reach');
+  check(ev.some(e => e.type === 'wfire' && e.w === 'chainsaw' && e.lv === 1 && e.n === 1), 'chainsaw wfire missing or malformed');
+  check(ch.revving > 0 && Number.isFinite(ch.revAng), 'chainsaw did not set revving / revAng');
+  let hit = null;
+  for (let i = 0; i < 180 && !hit; i++) hit = step(cs, { x: 0, y: 0 }).find(e => e.type === 'sawStall') || null;
+  check(hit && hit.stalled === false && hit.hits > 0, 'chainsaw rev that hit did not end in a clean sawStall');
+  check(ch.revving === 0 && !P.Weapons.state(cs).rev, 'chainsaw rev did not clear');
+
+  // A rev that hits nothing stalls: the first tick misses (small target, narrow start of the sweep), then it goes dormant.
+  const cs2 = newSim(91, 1);
+  P.Progression.debugGrant(cs2, { weapons: { chainsaw: 1 }, passives: {} });
+  delete cs2.hero.weapons.knife;
+  cs2.enemies = [];
+  const miss = P.Combat.spawnEnemy(cs2, 'walker', cs2.hero.x + 1, cs2.hero.y, { state: 'active' });
+  miss.r = 0.05;
+  let ev2 = [];
+  for (let i = 0; i < 60 && !ev2.some(e => e.type === 'sawRev'); i++) ev2 = ev2.concat(step(cs2, { x: 0, y: 0 }));
+  check(ev2.some(e => e.type === 'sawRev'), 'chainsaw stall case did not rev');
+  miss.state = 'dormant';
+  let stall = null;
+  for (let i = 0; i < 180 && !stall; i++) stall = step(cs2, { x: 0, y: 0 }).find(e => e.type === 'sawStall') || null;
+  check(stall && stall.stalled === true && stall.hits === 0, 'chainsaw rev that hit nothing did not stall');
+  check(cs2.hero.cds.chainsaw > P.CFG.weapons.chainsaw.stallCd, 'chainsaw stall cooldown not added');
+
+  // Slingshot: two marbles on one enemy in one volley make a lucky shot; the first hit is plain.
+  const sl = newSim(92, 1);
+  P.Progression.debugGrant(sl, { weapons: { slingshot: 1 }, passives: {} });
+  sl.enemies = [];
+  P.Combat.spawnEnemy(sl, 'walker', sl.hero.x + 2, sl.hero.y, { state: 'active' }).hp = 1e6;
+  let plain = false, lucky = false;
+  for (let i = 0; i < 300 && !lucky; i++) {
+    step(sl, { x: 0, y: 0 }).forEach(x => { if (x.type === 'marbleHit') { if (x.lucky) lucky = true; else plain = true; } });
+  }
+  check(plain && lucky, 'slingshot lucky shot not reached (plain ' + plain + ', lucky ' + lucky + ')');
+
+  // Manhole: the B2 mod is a stun (the old heal is gone); a bounce stuns the enemy it hits.
+  const mo = newSim(93, 1);
+  mo.hero.mods = { manhole: ['manhole.B', 'manhole.B2'] };
+  const MM = P.Mods.of(mo, 'manhole');
+  check(Math.abs(MM.stun - 0.6) < 1e-9 && MM.heal === undefined, 'manhole B2 stun mod');
+  const mn = newSim(94, 1);
+  P.Progression.debugGrant(mn, { weapons: { manhole: 5 }, passives: {}, mods: { manhole: ['manhole.B', 'manhole.B2'] } });
+  mn.enemies = [];
+  const mt = P.Combat.spawnEnemy(mn, 'walker', mn.hero.x + 2, mn.hero.y, { state: 'active' });
+  mt.hp = 1e6;
+  let bounced = false;
+  for (let i = 0; i < 240 && !bounced; i++) bounced = step(mn, { x: 0, y: 0 }).some(x => x.type === 'manholeBounce');
+  check(bounced && P.Status.rooted(mt), 'manhole bounce did not stun the enemy it hit');
+
+  // Blowtorch: the jet ends in a scorch zone that burns.
+  const tc = newSim(95, 1);
+  P.Progression.debugGrant(tc, { weapons: { torch: 1 }, passives: {} });
+  tc.enemies = [];
+  P.Combat.spawnEnemy(tc, 'walker', tc.hero.x + 1, tc.hero.y, { state: 'active' }).hp = 1e6;
+  let scorched = false;
+  for (let i = 0; i < 240 && !scorched; i++) { step(tc, { x: 0, y: 0 }); scorched = tc.zones.some(z => z.kind === 'scorch'); }
+  check(scorched, 'torch never left a scorch zone');
+
+  // wfire contract: every arsenal weapon at L5 with enemies around pushes wfire, and each one carries the fields the view reads.
+  ALL_W.forEach(id => {
+    const wf = newSim(96, 11);
+    P.Progression.debugGrant(wf, { weapons: { [id]: 5 }, passives: {} });
+    feed(wf, 40);
+    const shots = [];
+    for (let i = 0; i < 240; i++) step(wf, { x: 0, y: 0 }).forEach(x => { if (x.type === 'wfire') shots.push(x); });
+    check(shots.some(x => x.w === id), 'no wfire from ' + id);
+    check(shots.every(x => [x.x, x.y, x.ang].every(Number.isFinite) && x.lv >= 1 && x.n >= 1), 'malformed wfire from ' + id);
+  });
+}
+
 // Ults chosen in meta: locked ults fall back to Nazar; convoy and horn fire and emit ids.
 function ultUnits() {
   const k = newSim(73, 1, { ult: 'convoy' });
@@ -211,18 +296,18 @@ function ultUnits() {
 // Forks: L3 offers two mods; the pick is stored and announced; L5 follows the first branch; rank 3 adds usta.
 function forkUnits() {
   const f = newSim(71, 3);
-  P.Progression.debugGrant(f, { weapons: { tray: 2 }, passives: {} });
-  let cs = P.Progression.candidates(f).filter(c => c.item === 'tray');
-  check(cs.length === 1 && cs[0].next === 3 && cs[0].fork === 'L3' && cs[0].mods.length === 2, 'tray L3 fork card');
+  P.Progression.debugGrant(f, { weapons: { sawblade: 2 }, passives: {} });
+  let cs = P.Progression.candidates(f).filter(c => c.item === 'sawblade');
+  check(cs.length === 1 && cs[0].next === 3 && cs[0].fork === 'L3' && cs[0].mods.length === 2, 'sawblade L3 fork card');
   P.Progression.choose(f, Object.assign(cs[0], { pick: 1 }));
-  check(f.hero.mods && f.hero.mods.tray && f.hero.mods.tray[0] === 'tray.B', 'fork pick not stored');
-  check(P.drainEvents(f).some(e => e.type === 'modChosen' && e.mod === 'tray.B'), 'modChosen missing');
-  P.Progression.debugGrant(f, { weapons: { tray: 4 }, mods: { tray: ['tray.B'] } });
-  cs = P.Progression.candidates(f).filter(c => c.item === 'tray');
-  check(cs.length === 1 && cs[0].fork === 'L5' && cs[0].mods.join() === 'tray.B1,tray.B2', 'L5 follows branch B');
-  const r3 = newSim(72, 3, { mastery: { tray: 3 } });
-  P.Progression.debugGrant(r3, { weapons: { tray: 2 } });
-  cs = P.Progression.candidates(r3).filter(c => c.item === 'tray');
+  check(f.hero.mods && f.hero.mods.sawblade && f.hero.mods.sawblade[0] === 'sawblade.B', 'fork pick not stored');
+  check(P.drainEvents(f).some(e => e.type === 'modChosen' && e.mod === 'sawblade.B'), 'modChosen missing');
+  P.Progression.debugGrant(f, { weapons: { sawblade: 4 }, mods: { sawblade: ['sawblade.B'] } });
+  cs = P.Progression.candidates(f).filter(c => c.item === 'sawblade');
+  check(cs.length === 1 && cs[0].fork === 'L5' && cs[0].mods.join() === 'sawblade.B1,sawblade.B2', 'L5 follows branch B');
+  const r3 = newSim(72, 3, { mastery: { sawblade: 3 } });
+  P.Progression.debugGrant(r3, { weapons: { sawblade: 2 } });
+  cs = P.Progression.candidates(r3).filter(c => c.item === 'sawblade');
   check(cs[0].mods.indexOf('usta') >= 0 && cs[0].mods.length === 3, 'rank 3 did not add usta');
 }
 
@@ -235,7 +320,7 @@ function modUnits() {
   check(P.Mods.of(mo, 'knife').usta === true, 'usta flag');
   const need = P.CFG.mastery.need;
   check(P.Mastery.rank('knife', need[0] - 1) === 0 && P.Mastery.rank('knife', need[0]) === 1 && P.Mastery.rank('knife', need[4]) === 5, 'mastery ranks');
-  check(P.Mastery.srcToWeapon('cleaver') === 'knife' && P.Mastery.srcToWeapon('tray') === 'tray', 'source map');
+  check(P.Mastery.srcToWeapon('cleaver') === 'knife' && P.Mastery.srcToWeapon('sawblade') === 'sawblade', 'source map');
   mo.loadout = { mastery: { knife: 5 } };
   const b = P.Mastery.bonus(mo, 'knife');
   check(Math.abs(b.dmg - 1.15) < 1e-9 && Math.abs(b.cd - 0.9) < 1e-9, 'rank 5 bonus');
@@ -424,7 +509,7 @@ function drawSmoke(label, grant, frames, opts) {
   R.X = x => (x - s.hero.x) * ppm + 195;
   R.Y = y => -(y - s.hero.y) * ppm + 422;
   const bh = P.WFx.heroBackHand(s);
-  let drawMs = 0;
+  let drawMs = 0, fireMs = 0;
   for (let i = 0; i < frames; i++) {
     feed(s, WANT);
     const input = { x: Math.sin(i / 90), y: Math.cos(i / 70) * 0.8, dash: i % 220 === 0, ult: s.hero.ult >= 1 && i % 30 === 0 };
@@ -432,6 +517,12 @@ function drawSmoke(label, grant, frames, opts) {
     const ev = step(s, input);
     ev.forEach(x => P.WFx.onEvent(x, s));
     P.WFx.update(DT, s);
+    // Fire animation (workstream B): synthetic wfire events cycle the 17 weapons (the sim emits them once A lands).
+    if (P.FireAnim) {
+      if (i % 7 === 0) P.FireAnim.onEvent({ type: 'wfire', w: FIRE_IDS[(i / 7 | 0) % FIRE_IDS.length], ang: (i * 0.37) % 6.28, lv: 1 + (i % 5), n: 1 + (i % 4) }, s);
+      if (i % 90 === 45) { s.hero.revving = 0.9; s.hero.revAng = 0.4; }
+      P.FireAnim.update(DT, s);
+    }
     const t0 = performance.now();
     try {
       P.WFx2.drawGround(R, s); P.WFx.drawParts(R); P.SkillsFx.drawUnder(R, s);
@@ -440,14 +531,24 @@ function drawSmoke(label, grant, frames, opts) {
       bh(ctx, { x: 0, y: 0 }, 32, i % 2 ? 1 : -1, '#E0AC80', '#D7263D');
     } catch (err) { fails.push(label + ' draw threw at frame ' + i + ': ' + err.message); break; }
     drawMs += performance.now() - t0;
+    if (P.FireAnim) {
+      const t1 = performance.now();
+      try {
+        const ho = { u: 1 }; P.FireAnim.heroOpts(s, ho); P.FireAnim.drawHeld(R, s); P.FireAnim.drawFx(R, s);
+      } catch (err) { fails.push(label + ' fire anim threw at frame ' + i + ': ' + err.stack.split('\n').slice(0, 3).join(' | ')); break; }
+      fireMs += performance.now() - t1;
+    }
+    if (s.hero) s.hero.revving = Math.max(0, (s.hero.revving || 0) - DT);
   }
   check(bad.length === 0, label + ' non-finite draw values: ' + [...new Set(bad)].slice(0, 6).join(', '));
   notes.push(label + ' draw smoke: ' + frames + ' frames, ' + (drawMs / frames).toFixed(3) + ' ms/frame (stub canvas, JS only)');
+  if (P.FireAnim) notes.push(label + ' fire anim draw: ' + (fireMs / frames).toFixed(3) + ' ms/frame (held + fx, stub canvas)');
 }
 
 const EVOLVED_GRANT = { weapons: Object.assign({ sledge: 5, molotov: 5, cable: 5, speargun: 5, extinguisher: 5 }, EVOS), passives: ALL_PASS };
 const MODS_L3A = Object.fromEntries(ALL_W.map(f => [f, modPaths(f)[modPaths(f).length - 1]]));
 unitTests();
+weaponUnits();
 coverage();
 variety();
 pathRuns();

@@ -1,8 +1,9 @@
-// Weapon mods, signature moves, mastery, seven new weapons, five passives and three ultimates (v0.5,
-// workstream A). Extends P.CFG; pure data. Every weapon has six mods: an L3 fork (A or B) and an L5 fork
-// (A1/A2 under A, B1/B2 under B). Mastery rank 3 adds a third option, "usta" (generic). Mod effect keys are
-// read by mastery.js (P.Mods) and by each weapon family: area, dmg, cd, life, knock, shards, chain, stick,
-// echo, burn, pierce, count, crit, bounce, slow, pull, push, heal, cloud, reflect, root, spin, range, reel, douse.
+// Weapon mods, signature moves, mastery, the new weapons and passives (v0.5, workstream A). Extends P.CFG; pure data.
+// Deviations from the first v0.5 pass (forced Turkish props replaced by credible improvised weapons) are in
+// docs/weapons-skills.md. Every weapon has six mods: an L3 fork (A or B) and an L5 fork (A1/A2 under A, B1/B2 under B).
+// Mastery rank 3 adds a third option, "usta" (generic). Mod effect keys are read by mastery.js (P.Mods) and by each
+// weapon family: area, dmg, cd, life, knock, shards, chain, stick, echo, burn, pierce, count, crit, bounce, slow, pull,
+// push, stun, cloud, reflect, root, spin, range, reel, douse.
 (function (C) {
   C.modDefs = {};
   function md(id, fx) {
@@ -51,33 +52,33 @@
   md('extinguisher.A1', { push: 2.0, knock: 0.2 });    md('extinguisher.A2', { dmg: 1.2, douse: true });
   md('extinguisher.B1', { knock: 0.35 });              md('extinguisher.B2', { echo: { delay: 0.2, mult: 0.6 } });
 
-  md('tray.A', { range: 1.4, area: 1.3 });             md('tray.B', { count: 3, dmg: 1.3 });
-  md('tray.A1', { echo: { delay: 0.6, mult: 0.5 } });  md('tray.A2', { pierce: 2 });
-  md('tray.B1', { burn: 2 });                          md('tray.B2', { slow: { m: 0.5, t: 2.0 } });
+  md('sawblade.A', { range: 1.4, area: 1.3 });         md('sawblade.B', { count: 3, dmg: 1.3 });
+  md('sawblade.A1', { echo: { delay: 0.6, mult: 0.5 } }); md('sawblade.A2', { pierce: 2 });
+  md('sawblade.B1', { burn: 2 });                      md('sawblade.B2', { slow: { m: 0.5, t: 2.0 } });
 
-  md('simittray.A', { dmg: 1.3 });                     md('simittray.B', { bounce: 2 });
-  md('simittray.A1', { shards: { n: 4, dmg: 0.35, pierce: 0 } }); md('simittray.A2', { knock: 0.25 });
-  md('simittray.B1', { cd: 0.7 });                     md('simittray.B2', { heal: 1 });
+  md('manhole.A', { dmg: 1.3 });                       md('manhole.B', { bounce: 2 });
+  md('manhole.A1', { shards: { n: 4, dmg: 0.35, pierce: 0 } }); md('manhole.A2', { knock: 0.25 });
+  md('manhole.B1', { cd: 0.7 });                       md('manhole.B2', { stun: 0.6 });
 
-  md('cezve.A', { area: 1.5, life: 1.5 });             md('cezve.B', { burn: 2, dmg: 1.2 });
-  md('cezve.A1', { echo: { delay: 0.5, mult: 0.6 } }); md('cezve.A2', { cloud: { r: 1.4, t: 2.5, m: 0.45 } });
-  md('cezve.B1', { shards: { n: 4, dmg: 0.4, pierce: 1 } }); md('cezve.B2', { crit: { p: 0.2, mul: 2 } });
+  md('torch.A', { area: 1.5, life: 1.5 });             md('torch.B', { burn: 2, dmg: 1.2 });
+  md('torch.A1', { echo: { delay: 0.5, mult: 0.6 } }); md('torch.A2', { cloud: { r: 1.4, t: 2.5, m: 0.45 } });
+  md('torch.B1', { shards: { n: 4, dmg: 0.4, pierce: 1 } }); md('torch.B2', { crit: { p: 0.2, mul: 2 } });
 
   md('olta.A', { dmg: 1.3 });                          md('olta.B', { count: 1 });
   md('olta.A1', { reel: 1.5, knock: 0.5 });            md('olta.A2', { pull: 1.0 });
   md('olta.B1', { cd: 0.7 });                          md('olta.B2', { knock: 0.4 });
 
-  md('semsiye.A', { area: 1.4 });                      md('semsiye.B', { life: 1.5, cd: 0.8 });
-  md('semsiye.A1', { dmg: 1.5, reflect: { mul: 1.5 } }); md('semsiye.A2', { knock: 0.35 });
-  md('semsiye.B1', { push: 1.5 });                     md('semsiye.B2', { shards: { n: 4, dmg: 0.4, pierce: 0 } });
+  md('cardoor.A', { area: 1.4 });                      md('cardoor.B', { life: 1.5, cd: 0.8 });
+  md('cardoor.A1', { dmg: 1.5, reflect: { mul: 1.5 } }); md('cardoor.A2', { knock: 0.35 });
+  md('cardoor.B1', { push: 1.5 });                     md('cardoor.B2', { shards: { n: 4, dmg: 0.4, pierce: 0 } });
 
-  md('tavla.A', { dmg: 1.3 });                         md('tavla.B', { count: 1 });
-  md('tavla.A1', { crit: { p: 0.3, mul: 1.5 }, knock: 0.25 }); md('tavla.A2', { bounce: 2 });
-  md('tavla.B1', { slow: { m: 0.5, t: 1.2 } });        md('tavla.B2', { chain: { p: 0.3 } });
+  md('slingshot.A', { dmg: 1.3 });                     md('slingshot.B', { count: 1 });
+  md('slingshot.A1', { crit: { p: 0.3, mul: 1.5 }, knock: 0.25 }); md('slingshot.A2', { bounce: 2 });
+  md('slingshot.B1', { slow: { m: 0.5, t: 1.2 } });    md('slingshot.B2', { chain: { p: 0.3 } });
 
-  md('kestane.A', { area: 1.5, life: 1.4 });           md('kestane.B', { count: 3 });
-  md('kestane.A1', { shards: { n: 4, dmg: 0.4, pierce: 0 } }); md('kestane.A2', { burn: 2, life: 1.3 });
-  md('kestane.B1', { cloud: { r: 1.2, t: 2.0, m: 0.4 } }); md('kestane.B2', { echo: { delay: 0.4, mult: 0.5 } });
+  md('chainsaw.A', { area: 1.3, dmg: 1.1 });           md('chainsaw.B', { burn: 1 });
+  md('chainsaw.A1', { crit: { p: 0.2, mul: 2 } });     md('chainsaw.A2', { chain: { p: 0.3 } });
+  md('chainsaw.B1', { cd: 0.7 });                      md('chainsaw.B2', { slow: { m: 0.4, t: 1.0 } });
 
   // Fork tables per family (built from the arsenal list). Usta is offered at rank 3+ on top of the two.
   C.mods = {};
@@ -95,10 +96,10 @@
     sledge: { area: 1.8, dmg: 1.5, stun: 2.0, extra: 'quake' }, molotov: { area: 2.2, life: 2.0, extra: 'lake' },
     fireworks: { extra: 'rain', n: 8 },                 cable: { extra: 'storm', jumps: 12, range: 10 },
     speargun: { extra: 'triple' },                      extinguisher: { extra: 'ring', arc: 360, push: 2.0 },
-    tray: { extra: 'shower', n: 12 },                   simittray: { extra: 'swarm', n: 5 },
-    cezve: { area: 1.8, extra: 'boil', arc: 150 },      olta: { extra: 'leviathan', dmg: 1.5 },
-    semsiye: { extra: 'dome', T: 2.0 },                 tavla: { extra: 'doubles', n: 4 },
-    kestane: { extra: 'rain', n: 14 },
+    sawblade: { extra: 'bladeRing', n: 12 },            manhole: { extra: 'swarm', n: 5 },
+    torch: { area: 1.8, extra: 'inferno', arc: 150 },   olta: { extra: 'leviathan', dmg: 1.5 },
+    cardoor: { extra: 'wall', T: 2.0 },                 slingshot: { extra: 'volley', n: 4 },
+    chainsaw: { extra: 'rampage', arc: 360, area: 1.4, dmg: 1.3, revMul: 1.5 },
   };
 
   C.mastery = {
@@ -109,22 +110,21 @@
     sigSlowMo: 0.3,
   };
 
-  // ---------- new weapons (seven) ----------
-  C.weapons.tray = {                     // Çaycı Tepsisi: boomerang out and back, glasses burst on the return
-    cooldown: 2.2, speed: 9.0, hitR: 0.45, glassR: 0.8, glassT: 0.5, slow: 0.25, slowT: 0.8,
-    hitsOut: 4, catchR: 0.35, backMul: 1.2, hitKb: 0.2, blastKb: 0.3, glassDmg: 0.6, ringR: 3.5,
-    stagger: 0.06, ringStagger: 0.03, dropPop: 0.25,
-    stats: [['stat.dmg', 'dmg', 'n'], ['stat.range', 'range', 'm'], ['stat.glass', 'glass', 'n'], ['stat.rate', 'cdMult', 'rate']],
+  // ---------- new weapons (v0.5 deviations: credible improvised weapons replace the forced Turkish props) ----------
+  C.weapons.sawblade = {                 // Testere Diski: a circular saw blade thrown out and back; sparks burst where it is caught
+    cooldown: 2.2, speed: 9.0, hitR: 0.45, sparkR: 0.8, sparkT: 0.5, slow: 0.25, slowT: 0.8,
+    hitsOut: 4, catchR: 0.35, backMul: 1.2, hitKb: 0.2, blastKb: 0.3, sparkDmg: 0.6, ringR: 3.5,
+    stagger: 0.06, ringStagger: 0.03,
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.range', 'range', 'm'], ['stat.sparks', 'sparks', 'n'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
-      { dmg: 12, range: 5.5, glass: 3, cdMult: 1 }, { dmg: 14, range: 6.0, glass: 3, cdMult: 1 },
-      { dmg: 17, range: 6.0, glass: 4, cdMult: 1 }, { dmg: 20, range: 6.5, glass: 4, cdMult: 0.9 },
-      { dmg: 26, range: 7.0, glass: 5, cdMult: 0.9 },
+      { dmg: 12, range: 5.5, sparks: 3, cdMult: 1 }, { dmg: 14, range: 6.0, sparks: 3, cdMult: 1 },
+      { dmg: 17, range: 6.0, sparks: 4, cdMult: 1 }, { dmg: 20, range: 6.5, sparks: 4, cdMult: 0.9 },
+      { dmg: 26, range: 7.0, sparks: 5, cdMult: 0.9 },
     ],
     unlockLevel: 1,
   };
-  C.weapons.simittray = {                // Simit Tepsisi: frisbee that bounces between enemies
-    cooldown: 1.8, range: 4.5, speed: 8.0, hitR: 0.4, bounceR: 3.2, kb: 0.25, catchR: 0.4, backMul: 1.2,
-    healChance: 0.08, dropPop: 0.25, stagger: 0.12,
+  C.weapons.manhole = {                  // Rögar Kapağı: a heavy iron cover flung like a frisbee; bounces enemy to enemy
+    cooldown: 1.8, range: 4.5, speed: 8.0, hitR: 0.4, bounceR: 3.2, kb: 0.25, catchR: 0.4, backMul: 1.2, stagger: 0.12,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.bounces', 'bounces', 'n'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
       { dmg: 9, bounces: 2, cdMult: 1 }, { dmg: 11, bounces: 3, cdMult: 1 }, { dmg: 13, bounces: 3, cdMult: 1 },
@@ -132,9 +132,9 @@
     ],
     unlockLevel: 2,
   };
-  C.weapons.cezve = {                    // Cezve: scalding coffee cone, leaves a stain that burns for a while
-    cooldown: 2.6, pourT: 0.5, stainR: 1.1, stainT: 2.0, tick: 0.25, ticks: 2, sigTicks: 4,
-    stainAt: 0.6, lingerT: 0.3, pourKb: 0.15,
+  C.weapons.torch = {                    // Pürmüz: a short flame jet; the scorch it leaves on the ground keeps burning
+    cooldown: 2.6, jetT: 0.5, stainR: 1.1, stainT: 2.0, tick: 0.25, ticks: 2, sigTicks: 4,
+    stainAt: 0.6, lingerT: 0.3, jetKb: 0.15,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.range', 'range', 'm'], ['stat.arc', 'arcDeg', 'deg'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
       { dmg: 6, range: 2.5, arcDeg: 60, cdMult: 1 }, { dmg: 7, range: 2.7, arcDeg: 70, cdMult: 1 },
@@ -153,7 +153,7 @@
     ],
     unlockLevel: 8,
   };
-  C.weapons.semsiye = {                  // Şemsiye: canopy opens toward threats, blocks and reflects spit
+  C.weapons.cardoor = {                  // Araba Kapısı: a car door ripped off and held up; blocks and reflects spit
     cooldown: 4.5, trigR: 3.5, reflectR: 0.9, reflectBlastR: 1.0, reflectT: 0.35, blastKb: 0.3,
     shove: 0.6, stun: 0.2, touchGap: 0.6, touchDmg: 0.5, fullArc: 360,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.radius', 'radius', 'm'], ['stat.arc', 'arcDeg', 'deg'], ['stat.open', 'openT', 's'], ['stat.rate', 'cdMult', 'rate']],
@@ -164,25 +164,25 @@
     ],
     unlockLevel: 9,
   };
-  C.weapons.tavla = {                    // Tavla Taşları: pieces ricochet, two dice set the bounces, doubles crit
-    cooldown: 1.6, speed: 12, hitR: 0.3, maxBounce: 4, seekR: 6, bounceR: 3.5, dblMul: 2,
-    dieFaces: 6, spacing: 0.08, kb: 0.25,
-    stats: [['stat.dmg', 'dmg', 'n'], ['stat.pieces', 'pieces', 'n'], ['stat.rate', 'cdMult', 'rate']],
+  C.weapons.slingshot = {                // Sapan: steel marbles ricochet; two marbles on one enemy in one volley is a lucky shot
+    cooldown: 1.6, speed: 12, hitR: 0.3, maxBounce: 5, bounces: 3, seekR: 6, bounceR: 3.5, luckyMul: 2,
+    spacing: 0.08, kb: 0.25,
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.marbles', 'marbles', 'n'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
-      { dmg: 9, pieces: 2, cdMult: 1 }, { dmg: 10, pieces: 2, cdMult: 1 }, { dmg: 12, pieces: 2, cdMult: 1 },
-      { dmg: 14, pieces: 3, cdMult: 0.9 }, { dmg: 17, pieces: 3, cdMult: 0.9 },
+      { dmg: 9, marbles: 2, cdMult: 1 }, { dmg: 10, marbles: 2, cdMult: 1 }, { dmg: 12, marbles: 2, cdMult: 1 },
+      { dmg: 14, marbles: 3, cdMult: 0.9 }, { dmg: 17, marbles: 3, cdMult: 0.9 },
     ],
     unlockLevel: 4,
   };
-  C.weapons.kestane = {                  // Kestane Mangalı: lobbed embers leave burning patches
-    cooldown: 2.4, range: 4.5, flight: 0.7, fireT: 2.0, fireR: 0.85, fireDps: 6, pop: 0.15,
-    minFrac: 0.5, spread: 0.3, stagger: 0.05, blastKb: 0.3,
-    stats: [['stat.dmg', 'dmg', 'n'], ['stat.embers', 'embers', 'n'], ['stat.rate', 'cdMult', 'rate']],
+  C.weapons.chainsaw = {                 // Motorlu Testere: revs, sweeps a short arc at the nearest enemy, grinds in ticks
+    cooldown: 1.4, range: 2.2, bladeHalfDeg: 28, kb: 0.12, stallCd: 0.8, grindEvT: 0.12,
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.arc', 'arcDeg', 'deg'], ['stat.rate', 'tickGap', 'rate']],
     levels: [
-      { dmg: 6, embers: 3, cdMult: 1 }, { dmg: 7, embers: 3, cdMult: 1 }, { dmg: 9, embers: 4, cdMult: 1 },
-      { dmg: 10, embers: 4, cdMult: 0.9 }, { dmg: 13, embers: 5, cdMult: 0.9 },
+      { dmg: 5, arcDeg: 80, revT: 1.0, tickGap: 0.16, cdMult: 1 },  { dmg: 6, arcDeg: 90, revT: 1.1, tickGap: 0.16, cdMult: 1 },
+      { dmg: 7, arcDeg: 100, revT: 1.2, tickGap: 0.14, cdMult: 1 }, { dmg: 8, arcDeg: 110, revT: 1.3, tickGap: 0.14, cdMult: 0.9 },
+      { dmg: 10, arcDeg: 130, revT: 1.5, tickGap: 0.12, cdMult: 0.9 },
     ],
-    unlockLevel: 3,
+    unlockLevel: 6,
   };
 
   // ---------- passives (five new; each changes behaviour) ----------

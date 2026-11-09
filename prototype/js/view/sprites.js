@@ -102,7 +102,7 @@ P.Sprites = (function () {
     high = R.bake(rc.key + '|H|w' + rc.windup, U, R.HIGH_BOX, function (g) { bakeGlow(g, rc, U); R.drawHigh(g, rc, refJ); bakeGlow(g, {}, U); });
     dx = J.hd[0] - refJ.hd[0]; dy = J.hd[1] - refJ.hd[1];
     R.blit(c, white ? R.white(low) : low, X, Y, u, f, sq, ox, oy, 0, 0);
-    if (rc.live.front) S.knifeArm(c, anchor(X, Y, f, sq, ox, oy, u, J.sR), u, f, o.knifeA, rc.look.skin, rc.look.shirt);
+    if (rc.live.front && !o.noArms) S.knifeArm(c, anchor(X, Y, f, sq, ox, oy, u, J.sR), u, f, o.knifeA, rc.look.skin, rc.look.shirt);
     R.blit(c, white ? R.white(high) : high, X, Y, u, f, sq, ox, oy, dx, dy);
     if (o.backHand) o.backHand(c, anchor(X, Y, f, sq, ox, oy, u, J.sL), u, f, rc.look.skin, rc.look.shirt);
   }
@@ -126,7 +126,7 @@ P.Sprites = (function () {
     var O = CH.outfit('hero'), f = o.face === -1 ? -1 : 1;
     var rc = buildRc({ tag: 'hero', oid: 'hero', bname: 'hero', B: CH.body('hero'), O: O, skin: o.skin || '#E0AC80',
       shirt: o.shirt || O.col, pants: o.pants || O.pants, hair: o.hair || O.hc, shoe: O.shoe, face: CH.heroFace, arms: 'run',
-      still: !!o.still, seed: (X * 0.013) % 4, back: !!o.back, lean: 0.03, live: { front: o.arms === 'knife', back: !!o.backHand },
+      still: !!o.still, seed: (X * 0.013) % 4, back: !!o.back, lean: 0.03, live: { front: o.arms === 'knife' || !!o.noArms, back: !!o.backHand || !!o.noArms },
       mot: { gait: 'walk', strideK: 1.35, liftK: 1.2, bob: 0.02 }, halo: 'rgba(255,214,150,0.32)', glow: 'rgba(255,226,170,0.6)', hook: null });
     drawFigure(c, X, Y, o.u, f, rc, o, performance.now());
   };

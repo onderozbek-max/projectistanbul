@@ -358,9 +358,9 @@ Chapter 2 is **Levels 101–200, twenty hoods, five levels each**, the same temp
 
 | # | Decision | Options | Recommendation |
 |---|---|---|---|
-| H1 | **The Ataköy boss name (D-039).** Sayın Abim is the boss title. Is Ahmet Abi the character's name? | (a) Same person: "Ahmet Abi" is his name, "Sayın Abim" is what the neighbours call him. (b) Rename the character and use Sayın Abim everywhere. | (a). Keeps the bread line and Letter #1 intact. |
-| H2 | **Boss names across the docs (three tables today).** | (a) Canon names from journey §2 (Vatman, Tour Guide, The Bride …). (b) E2 code names (Hamal Dev, Kasap Hasan …). (c) Turkish title with the canon role as the English gloss. | (c). Turkish titles are the owner's direction (Sayın Abim). The canon role is the gloss. One key per boss. Retire the other two tables. |
-| H3 | **Şişko Can** (the H18 Bakırköy Sahil boss in `strings-journey.js:15`, "fatty") | Rename to **Şişme Can** (the config name, "inflatable") or drop the joke. | Done in v0.5: banner now uses canon name; bark softened. |
-| H4 | **Chapter 2 walk** (§3.3) | Keep the canon walk, or the north-east route in §3.1. | The north-east route. It respects the geography and keeps the same beats. |
-| H5 | **Human enemies for Ch2** | Scope now, or after Ch1 ships | Scope the design now. Build after the slice. |
-| H6 | **Fact on each postcard** | Only the high-confidence facts (§2), or all candidates | High-confidence only. The rest need a check before they ship. |
+| H1 | **The Ataköy boss name (D-039).** Sayın Abim is the boss title. Is Ahmet Abi the character's name? | (a) Same person: "Ahmet Abi" is his name, "Sayın Abim" is what the neighbours call him. (b) Rename the character and use Sayın Abim everywhere. | (a). Keeps the bread line and Letter #1 intact. **Status 2026-11-08: (a) adopted (D-047).** |
+| H2 | **Boss names across the docs (three tables today).** | (a) Canon names from journey §2 (Vatman, Tour Guide, The Bride …). (b) E2 code names (Hamal Dev, Kasap Hasan …). (c) Turkish title with the canon role as the English gloss. | (c). Turkish titles are the owner's direction (Sayın Abim). The canon role is the gloss. One key per boss. Retire the other two tables. **Status 2026-11-08: (c) adopted (D-046).** |
+| H3 | **Şişko Can** (the H18 Bakırköy Sahil boss in `strings-journey.js:15`, "fatty") | Rename to **Şişme Can** (the config name, "inflatable") or drop the joke. | Done in v0.5: banner now uses canon name; bark softened. **Status 2026-11-08: done (D-047).** |
+| H4 | **Chapter 2 walk** (§3.3) | Keep the canon walk, or the north-east route in §3.1. | The north-east route. It respects the geography and keeps the same beats. **Status 2026-11-08: north-east route adopted (D-047).** |
+| H5 | **Human enemies for Ch2** | Scope now, or after Ch1 ships | Scope the design now. Build after the slice. **Status 2026-11-08: scope now, build later (D-047).** |
+| H6 | **Fact on each postcard** | Only the high-confidence facts (§2), or all candidates | High-confidence only. The rest need a check before they ship. **Status 2026-11-08: high-confidence only (D-047).** |

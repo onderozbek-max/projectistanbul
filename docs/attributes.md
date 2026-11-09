@@ -17,6 +17,8 @@ Attributes are **not** the main source of power. Mods, mastery, gear and hero le
 
 ## 2. The six attributes
 
+**v0.6 note:** code max is 20 (`P.CFG.stats.max`). The Ch1 cap of 6 is a design cap, held by the expected progression rate in section 7.5. Code does not enforce it.
+
 | # | Attribute (EN / TR) | Short | What it is in play | Ch1 max rank |
 |---|---|---|---|---|
 | 1 | **Strength** / Güç | STR | Heavy hits, melee, knockback | 6 |
@@ -39,6 +41,8 @@ Names: TR names are the owner's words. EN names follow the owner's brief. "Aggre
 ---
 
 ## 3. How ranks are earned
+
+**v0.6 (D-043):** Street Cred is the only attribute currency. Milestone n is reached at round(450 x n^1.35) lifetime kills (config-stats.js `sc`). Audit A3 (0.6 x median threshold) is not built: the milestones are lifetime, not per level. Training XP for each READY point is round(60 x (L+1)^1.25) (config-stats.js `need`).
 
 Two gates. **Both** must be open to buy a rank.
 
@@ -154,6 +158,8 @@ Charm is Arda's way with people. The brief asked for civilians and prices. There
 
 ## 7. Power budget (balance guardrail)
 
+**Status (2026-11-08):** sections 7.1 to 7.4 are the pre-build proposal. The shipped lever and its bot results are in section 7.5.
+
 This is the table that stops stacking from breaking the game. It uses the numbers the other workstreams are building: mods (A), mastery (A), attributes (C), gear (C), hero levels (GD §8.2).
 
 ### 7.1 Meta power (between runs), damage multiplier
@@ -195,6 +201,41 @@ This is the table that stops stacking from breaking the game. It uses the number
 | Attributes | Rank 6 each (§2). Total numeric power from attributes ≤ ×1.15. |
 | Gear | Rare max in Ch1. Upgrade lvl 10. |
 | Meta total | ≤ ×2.6 at L100 (the table above). Any change to a row updates the table. |
+
+### 7.5 Shipped power lever (v0.6, D-041)
+
+**Status: PROTO.** Numbers live in `prototype/js/config-power.js` (`P.CFG.power`). The real game (`P.Meta.loadout`) and the bot (`P.Power.expectedLoadout`) read the same functions in `js/meta/meta-power.js`, so the bot tests what a typical player gets. Sections 7.1 to 7.4 are the pre-build proposal and are kept for reference.
+
+**Rules (expected player at level N, from hoods cleared before N's hood):**
+
+| Source | Rule (config key) | Per unit | Cap |
+|---|---|---|---|
+| Hood rank | +1 per cleared hood (`hoodRank`) | might +1.6%, max HP +1.4%, cooldown -0.4% per rank | 20 |
+| Attributes | round(0.3 x hoods cleared) on all six (`expect.attrPerHood`) | one rank = config-stats.js `need` | code 20; Ch1 design cap 6 |
+| Gear | 1 + round(0.6 x hoods cleared) on the owned slot items (`expect.gearPerHood`) | meta-data.js ITEMS | gear.maxLevel 10 |
+| Mastery | floor(0.2 x hoods cleared) on knife and nailgun (`expect.masteryPerHood`) | 3% damage and -2% cooldown per rank (config-weapons2.js) | 5 |
+
+The real player gets hood rank from stars (`M.snapshot().done`). Attributes, gear and mastery are earned by play, and the expected rule is the bot's stand-in for that.
+
+**Bot table (6 seeds, expected loadout, shipped numbers).** `dmg x` is the meta-only factor (1 + might) / (1 - cooldown). It excludes mastery and in-run power.
+
+| Level | Hood rank | Attr (mean) | Knife mastery | Might | Max HP | Cooldown | dmg x | Clear | No-death |
+|---|---|---|---|---|---|---|---|---|---|
+| L2 | 0 | 0.0 | 0 | +8% | +8% | 5% | x1.13 | 6/6 | 100% |
+| L5 | 0 | 0.0 | 0 | +8% | +8% | 5% | x1.13 | 6/6 | 100% |
+| L10 | 1 | 0.0 | 0 | +11% | +11% | 6% | x1.18 | 6/6 | 83% |
+| L25 | 4 | 1.0 | 0 | +17% | +14% | 11% | x1.32 | 6/6 | 17% |
+| L50 | 9 | 3.0 | 1 | +25% | +28% | 21% | x1.58 | 5/6 | 67% |
+| L75 | 14 | 4.0 | 2 | +36% | +39% | 17% | x1.63 | 6/6 | 33% |
+| L100 | 19 | 6.0 | 3 | +44% | +48% | 20% | x1.80 | 3/6 | 17% |
+
+Cooldown dips at L75 because a gear slot switches item there (the slot picks its last unlocked item). Check this is intended before the numbers are accepted.
+
+**Guardrails (replace the section 7.4 rows where they differ):** attributes stay at or under rank 6 in the expected model at L100 (the Ch1 cap); mastery at or under rank 5; gear at or under level 10 with Rare max in Ch1. Meta damage at L100 is about x1.8 (meta only), against the proposal's x2.57 meta total. The gap is intentional: the enemies carry the late difficulty (D-042), and the E2 curve is unchanged.
+
+**Enemy growth (not part of the lever):** E2 HP curve unchanged (journey section 6.2). New types kasap, parkur and zehirli, and the hizli, zirhli and patlayan affixes, add the late pressure (journey section 5.0).
+
+**Tuning history (12 seeds, expected loadout):** first pass (might 0.025, HP 0.02, attr 0.4, gear 0.8, mastery 0.25) cleared every level almost always, so it was too strong. Second pass (attr 0.3, gear 0.6, mastery 0.2, might 0.02, HP 0.015, cdr 0.005) cleared L100 at 10/12. Shipped values (might 0.016, HP 0.014, cdr 0.004) plus newGrow 0.1 for the new types gave L25 12/12, L50 11/12, L75 11/12, L100 7/12.
 
 ---
 

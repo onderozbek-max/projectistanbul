@@ -5,12 +5,12 @@
 // director bark is showing; each pool cycles before a line repeats and never repeats back to back; priority is
 // boss / first kill / evolve / hood entry > streaks, cards, hacks > ambient (idle, zombie talk, talking to himself).
 P.Barks = (function () {
-  var B = {}, A = P.ComicArt, S = null, measureCv = null;
+  var B = {}, A = P.ComicArt, T = P.ComicText, L = P.ComicLayout, S = null, measureCv = null;
   var CFG = {
     gapMin: 8, gapMax: 14,                           // global gap between bark starts (s)
     ambientMin: 9, ambientMax: 16,                   // one ambient candidate every 9-16 s
     popIn: 0.2, fade: 0.3, holdBase: 1.6, holdChar: 0.045, holdMin: 2.0, holdMax: 4.2,
-    topSafe: 170, maxW: 196, px: 15, pxMin: 11,      // HUD band (px), bubble width (px), type size
+    topSafe: 170, maxW: 196, pxs: [15, 14, 13, 12],  // HUD band (px), bubble width (px), type sizes (largest first)
     ttl: { 1: 4, 2: 6, 3: 10 },                      // a queued candidate expires after this long (s), by priority
     cool: { act: 18, dash: 20, near: 15, close: 20, still: 25, idle: 25, self: 22, zq: 25, elite: 20, low: 60, ult: 12 }
   };
@@ -107,6 +107,7 @@ P.Barks = (function () {
     if (a.i + 1 >= a.steps.length) S.act = null;
   }
   function showStep(st) {
+    if (!A.ready) return;   // lettering faces still loading: skip this bark rather than measure the wrong face
     var id = pick(st.prefix);
     if (!id || (st.who === 'zombie' && (!st.z || st.z.dead))) return;
     var b = makeBubble(id, st.who);
@@ -117,16 +118,16 @@ P.Barks = (function () {
       else P.Sfx.play('speech', 55, { voice: 'arda' });
     }
   }
-  // Wraps the line to the bubble width (caps, speech font). Zombie replies are jagged, greenish shouts.
+  // Wraps the line to the bubble width (caps, speech font). Zombie replies are jagged, greenish shouts. Never truncated:
+  // a long line takes smaller type steps (CFG.pxs), then the bubble simply gets taller (f.ok false = audit overflow).
   function makeBubble(id, who) {
-    var caps = P.upper(P.line(id).text), c = meas(), shout = who === 'zombie';
-    var tw = shout ? CFG.maxW * 0.76 - 24 : CFG.maxW - 24;
-    var f = A.fit(c, caps, tw, shout ? 110 : 96, 'speech', CFG.px, CFG.pxMin);
-    var textW = A.widest(c, f.lines, 'speech', f.px);
-    var w = shout ? Math.max(96, (textW + 24) / 0.76) : Math.max(96, textW + 24);
-    return { id: id, who: who, lines: f.lines, px: f.px, lh: f.lh, w: Math.min(w, CFG.maxW + 40), h: A.boxH(f.lines, f.lh, false, shout),
-             kind: shout ? 'shout' : 'speech', fill: shout ? '#C4F27A' : null,
-             hold: clamp(CFG.holdBase + CFG.holdChar * caps.length, CFG.holdMin, CFG.holdMax), age: 0, cut: f.cut, z: null };
+    var caps = P.upper(P.line(id).text), c = meas(), shout = who === 'zombie', kind = shout ? 'shout' : 'speech';
+    var ins = T.insets(kind, false), f = T.fit(c, caps, CFG.maxW - 2 * ins.x, 170, 'speech', CFG.pxs);
+    var textW = T.widest(c, f.lines, 'speech', f.px);
+    var w = Math.max(96, textW + 2 * ins.x);
+    return { id: id, who: who, lines: f.lines, px: f.px, lh: f.lh, w: Math.min(w, CFG.maxW + 40), h: T.boxH(f.lines, f.lh, false, kind),
+             kind: kind, fill: shout ? '#C4F27A' : null, caps: caps, ok: f.ok,
+             hold: clamp(CFG.holdBase + CFG.holdChar * caps.length, CFG.holdMin, CFG.holdMax), age: 0, z: null };
   }
   // Screen box for the bubble: above the head (or the zombie's head), kept below the HUD band and inside the screen.
   function anchor(R, s, b) {
@@ -282,24 +283,26 @@ P.Barks = (function () {
     cx = pos.x + pos.w / 2; cy = pos.y + pos.h / 2;
     c.save(); c.setTransform(R.dpr || 1, 0, 0, R.dpr || 1, 0, 0); c.globalAlpha = fade;
     c.translate(cx, cy); c.scale(sc, sc); c.translate(-cx, -cy);
-    A.bubble(c, { x: pos.x, y: pos.y, w: pos.w, h: pos.h, tx: pos.tx, ty: pos.ty, kind: b.kind, fill: b.fill,
-                  lines: b.lines, px: b.px, lh: b.lh });
+    T.balloon(c, { x: pos.x, y: pos.y, w: pos.w, h: pos.h, tx: pos.tx, ty: pos.ty, kind: b.kind, fill: b.fill,
+                   lines: b.lines, px: b.px, lh: b.lh });
     c.restore();
   };
   B.clear = function () { if (S) { S.q = []; S.act = null; S.bub = null; } };
   B.reset = function (seed) { S = newState(seed || 1337, S ? S.on : true); };
   B.setEnabled = function (on) { S.on = !!on; if (!on) B.clear(); };
   B.current = function () { return S && S.bub ? { id: S.bub.id, who: S.bub.who } : null; };   // tester and audit read it
-  // Dev audit (no DOM): every BK line wrapped the way the bubble wraps it. Rows {kind, id, px, cut}.
+  // Dev audit (sync; needs P.ComicArt.ready): every BK line laid out the way its bubble is, then drawn with the loaded
+  // font and checked (ink inside the text box, inside the body outline, not truncated). Rows {kind, id, px, fail, overflow}.
   B.audit = function () {
-    var rows = [], saved = A.quiet;
-    A.quiet = true; A.cuts = [];
+    var rows = [];
     Object.keys(P.LINES).forEach(function (id) {
       if (id.indexOf('BK.') !== 0) return;
       var b = makeBubble(id, id.indexOf('BK.zr.') === 0 ? 'zombie' : 'arda');
-      rows.push({ kind: 'bark', id: id, px: b.px, cut: b.cut });
+      var rep = L.checkBox({ kind: b.kind, x: 0, y: 0, w: b.w, h: b.h, name: false, lines: b.lines, px: b.px, lh: b.lh, caps: b.caps },
+                           { w: b.w, h: b.h });
+      var fail = rep.inkOut + rep.bodyOut + rep.trunc + (b.ok ? 0 : 1) > 0;
+      rows.push({ kind: 'bark', id: id, px: b.px, overflow: !b.ok, fail: fail, cut: fail });
     });
-    A.quiet = saved;
     return rows;
   };
   S = newState(1337, true);

@@ -16,13 +16,14 @@ function dmgMul(s, e, base) {
 P.Enemies.init = function (s, e) {
   var D = P.CFG.enemies;
   if (e.type === 'brute') e.ai = { m: 'walk', t: 0, cd: 1.5, stompCd: 0, dir: { x: 0, y: 0 }, dist: 0, hit: false, dmg: 0, kb: 0, px: e.x, py: e.y };
-  else if (e.type === 'spitter') e.ai = { m: 'approach', t: 0, cd: 1.5, side: s.rng.ai.chance(0.5) ? 1 : -1, strafeT: D.spitter.strafeTime, aimX: 0, aimY: 0 };
+  else if (e.type === 'spitter' || e.type === 'zehirli') e.ai = { m: 'approach', t: 0, cd: 1.5, side: s.rng.ai.chance(0.5) ? 1 : -1, strafeT: D[e.type].strafeTime, aimX: 0, aimY: 0 };
   else if (e.type === 'bloater') e.ai = { warned: false };
   else if (e.type === 'screamer') e.ai = { m: 'walk', cd: D.screamer.cd * D.screamer.firstCd };
   else if (e.type === 'hardhat') {
     e.ai = { m: 'walk' }; e.helmet = true;
     e.faceA = Math.atan2(s.hero.y - e.y, s.hero.x - e.x);
   }
+  else if (P.Enemies2.owns(e.type)) P.Enemies2.init(s, e);   // v0.6: kasap, parkur
 };
 
 // ---------- per-step desired velocity (called from updateEnemies) ----------
@@ -32,9 +33,10 @@ P.Enemies.think = function (s, e, dt) {
   if (e.boss) return P.Bosses.think(s, e, dt);
   if (e.lure && e.lure.t > 0) return lured(s, e, dt);
   if (e.lootEv) return P.EventKinds.loot.think(s, e, dt);
+  if (P.Enemies2.owns(e.type)) return P.Enemies2.think(s, e, dt);
   if (!e.ai) return false;
   if (e.type === 'brute') return brute(s, e, dt);
-  if (e.type === 'spitter') return spitter(s, e, dt);
+  if (e.type === 'spitter' || e.type === 'zehirli') return spitter(s, e, dt);
   if (e.type === 'bloater') return bloater(s, e, dt);
   if (e.type === 'screamer') return screamer(s, e, dt);
   if (e.type === 'hardhat') return hardhat(s, e, dt);
@@ -192,7 +194,7 @@ function shoveAside(s, e, a) {
 
 // Spitter: keeps ~5.5 m, strafes, winds up 0.7 s (ring on the target), then lobs an acid glob.
 function spitter(s, e, dt) {
-  var a = e.ai, S = P.CFG.enemies.spitter, h = s.hero, d = dist(e, h);
+  var a = e.ai, S = P.CFG.enemies[e.type], h = s.hero, d = dist(e, h);
   a.cd = Math.max(0, a.cd - dt); a.strafeT -= dt;
   if (a.strafeT <= 0) { a.side = -a.side; a.strafeT = S.strafeTime * s.rng.ai.range(0.7, 1.3); }
   if (a.m === 'windup') {
@@ -202,7 +204,7 @@ function spitter(s, e, dt) {
   }
   if (a.cd <= 0 && d <= S.range && d >= S.minRange) {
     a.m = 'windup'; a.t = 0; a.aimX = h.x; a.aimY = h.y;
-    P.Enemies.ring(s, h.x, h.y, S.glob.r, S.windup + S.flight, null, 'acid');
+    P.Enemies.ring(s, h.x, h.y, S.glob.r, S.windup + S.flight, null, S.col || 'acid');
     s.events.push({ type: 'spitWindup', x: e.x, y: e.y });
     e.dvx = 0; e.dvy = 0; return true;
   }
@@ -307,13 +309,14 @@ P.Enemies.ring = function (s, x, y, r, T, then, col, extra) {
 // Lob an acid glob from (x0, y0) to (tx, ty) over `dur` seconds. Lands as a puddle (zone 'acid').
 P.Enemies.lob = function (s, src, tx, ty, o, dur, dmg, cause) {
   s.enemyShots.push({ x0: src.x, y0: src.y, x: src.x, y: src.y, tx: tx, ty: ty, t: 0, dur: dur, kind: 'acid',
-    dmg: dmg, r: o.r, puddleT: o.puddleT, puddleDps: o.puddleDps, cause: cause || 'spitter' });
+    dmg: dmg, r: o.r, puddleT: o.puddleT, puddleDps: o.puddleDps, cause: cause || 'spitter', zone: o.zone || 'acid' });
   s.events.push({ type: 'spit', x: src.x, y: src.y, tx: tx, ty: ty, dur: dur });
 };
 
 function landGlob(s, q) {
   var h = s.hero;
-  P.Enemies.puddle(s, q.tx, q.ty, q.r, q.puddleT, q.puddleDps);
+  if (q.zone === 'toxic') P.Enemies.toxicPool(s, q.tx, q.ty, q.r, q.puddleT, q.puddleDps);   // v0.6: zehirli cloud
+  else P.Enemies.puddle(s, q.tx, q.ty, q.r, q.puddleT, q.puddleDps);
   s.events.push({ type: 'spitLand', x: q.tx, y: q.ty, r: q.r });
   if (dist(h, q) - P.CFG.hero.radius <= q.r) P.Combat.damageHero(s, q.dmg, q.cause);
 }

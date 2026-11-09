@@ -21,7 +21,14 @@ P.Weapons.dmgFor = function (s, fam, base) { return base * P.Skills.powerMul(s) 
 P.Weapons.state = function (s) {
   return s.ws || (s.ws = { slams: [], flasks: [], pools: [], rockets: [], finale: [], bolts: [], spears: [], sprays: [],
     shards: [], echoes: [], sticks: [], clouds: [], chainQ: [], acts: {}, chainAct: null, chainBoostT: 0,
-    trays: [], simits: [], tavla: [], embers: [], umbrellas: [], hooks: [], boils: [] });
+    blades: [], manholes: [], marbles: [], landings: [], doors: [], hooks: [], torches: [], rev: null });
+};
+
+// Generic fire event (view contract, workstream B): one per fire or attack of any weapon. w is the base family;
+// variant is the owned id (an evolution such as cleaver or cluster, else w). lv is the owned level (1..5).
+P.Weapons.fired = function (s, w, ang, n, variant) {
+  var h = s.hero, v = variant || w;
+  s.events.push({ type: 'wfire', w: w, x: h.x, y: h.y, ang: ang, lv: h.weapons[v] || 1, n: n || 1, variant: v });
 };
 
 // Cooldown tick: returns true when the weapon may fire this step.
@@ -124,6 +131,7 @@ function fireKnife(s, dt) {
   if (A.sig && A.sig.extra === 'spin') dirs = [[ax, ay], [-ay, ax], [-ax, -ay], [ay, -ax]];
   var cosHalf = Math.cos(lv.arcDeg * Math.PI / 360), kb = cfg.knockback * P.Weapons.kbMult(s);
   var dmg = P.Weapons.dmgFor(s, 'knife', lv.dmg) * A.dmg;
+  P.Weapons.fired(s, 'knife', Math.atan2(ay, ax), dirs.length);
   dirs.forEach(function (dv, k) {
     s.events.push({ type: 'swing', x: h.x, y: h.y, ax: dv[0], ay: dv[1], range: range, arcDeg: lv.arcDeg,
       dir: h.swingDir, back: k > 0, variant: variant, sig: !!A.sig });
@@ -155,6 +163,7 @@ P.Weapons.nailVolley = function (s, id, cfg, lv, target, A) {
       t: cfg.life, dmg: dmg, pierce: lv.pierce + M.pierce, hit: {}, kb: kb, id: id, A: A });
   }
   s.events.push({ type: 'nailFire', x: h.x, y: h.y, a: base, id: id, n: n });
+  P.Weapons.fired(s, 'nailgun', base, n, id);
 };
 
 function fireNailgun(s, dt) {
@@ -207,6 +216,7 @@ function fireCanister(s, dt) {
   var A = P.Mods.act(s, 'canister');
   h.cds[id] = cfg.cooldown * (lv.cdMult || 1) * A.cd * P.Weapons.cdMult(s, 'canister');
   P.Weapons.throwLobs(s, id, cfg, lv, chosen, flight, cfg.knockback * P.Weapons.kbMult(s), A);
+  P.Weapons.fired(s, 'canister', Math.atan2(chosen[0].y - h.y, chosen[0].x - h.x), chosen.length, id);
 }
 
 // Lob landing: area blast with mods, optional fire zone, optional split into secondary blasts.
@@ -283,7 +293,10 @@ function updateChain(s, dt) {
   var M = P.Mods.of(s, 'chain'), boost = W.chainBoostT > 0 ? P.CFG.sig.chain.spin : 1;
   var prev = h.chainA || 0;
   h.chainA = prev + lv.speed * (2 - P.Weapons.cdMult(s)) * M.spin * boost * dt;
-  if (Math.floor(h.chainA / (Math.PI * 2)) > Math.floor(prev / (Math.PI * 2))) P.Weapons.spinTurn(s);
+  if (Math.floor(h.chainA / (Math.PI * 2)) > Math.floor(prev / (Math.PI * 2))) {
+    P.Weapons.spinTurn(s);
+    P.Weapons.fired(s, 'chain', h.chainA, 1);
+  }
   P.Weapons.bladeHits(s, lv, h.chainA, cfg.hitInterval, cfg.knockback * P.Weapons.kbMult(s), 'chain', 'chainT', P.Weapons.chainAct(s));
 }
 
@@ -297,6 +310,7 @@ P.Weapons.step = function (s, dt) {
   P.Weapons2.step(s, dt);
   P.Weapons3.step(s, dt);
   if (P.Weapons4) P.Weapons4.step(s, dt);
+  if (P.Weapons5) P.Weapons5.step(s, dt);
   P.Mods.update(s, dt);
 };
 
