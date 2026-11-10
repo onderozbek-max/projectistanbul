@@ -4,9 +4,11 @@
   Object.assign(P.STR.tr, {
     'cause.bloater': 'Dombili', 'cause.brute': 'İri zombi', 'cause.spitter': 'Tükürükçü', 'cause.screamer': 'Çığlıkçı',
     'cause.hardhat': 'Baretli', 'cause.kasap': 'Kasap', 'cause.parkur': 'Parkurcu', 'cause.patlayan': 'Patlayan zombi',
+    'cause.acid': 'Asit birikintisi', 'cause.toxic': 'Zehirli bulut',
   });
   Object.assign(P.STR.en, {
     'cause.bloater': 'Bloater', 'cause.brute': 'Big zombie', 'cause.spitter': 'Spitter', 'cause.screamer': 'Screamer',
     'cause.hardhat': 'Hardhat', 'cause.kasap': 'Butcher', 'cause.parkur': 'Free-runner', 'cause.patlayan': 'Volatile zombie',
+    'cause.acid': 'Acid puddle', 'cause.toxic': 'Toxic cloud',
   });
 })();

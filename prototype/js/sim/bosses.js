@@ -150,7 +150,7 @@ function start(s, e, name) {
     a.W = tele(B.fan.windup);
     fanTargets(s, e, B.fan).forEach(function (t) {
       addTele(s, e, { kind: 'ring', x: t.x, y: t.y, r: B.fan.r, T: a.W, then: 'glob', src: e, o: B.fan, flight: B.fan.flight,
-        dmg: P.Enemies.dmgOf(s, e, B.fan.dmg), cause: 'spitter', col: 'acid' });
+        dmg: P.Enemies.dmgOf(s, e, B.fan.dmg), cause: e.type, col: 'acid' });
     });
   } else if (name === 'rain') {
     a.W = tele(B.rain.windup);

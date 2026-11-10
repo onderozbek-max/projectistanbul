@@ -205,7 +205,7 @@ function spitter(s, e, dt) {
   if (a.strafeT <= 0) { a.side = -a.side; a.strafeT = S.strafeTime * s.rng.ai.range(0.7, 1.3); }
   if (a.m === 'windup') {
     e.dvx = 0; e.dvy = 0; a.t += dt; e.windup = clamp01(a.t / S.windup);
-    if (a.t >= S.windup) { e.windup = 0; a.m = 'approach'; a.cd = S.cd; P.Enemies.lob(s, e, a.aimX, a.aimY, S.glob, S.flight, dmgMul(s, e, S.glob.dmg), 'spitter'); }
+    if (a.t >= S.windup) { e.windup = 0; a.m = 'approach'; a.cd = S.cd; P.Enemies.lob(s, e, a.aimX, a.aimY, S.glob, S.flight, dmgMul(s, e, S.glob.dmg), e.type); }
     return true;
   }
   if (a.cd <= 0 && d <= S.range && d >= S.minRange) {
