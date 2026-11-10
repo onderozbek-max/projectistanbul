@@ -180,6 +180,7 @@ function place(s, type, dx, dy, opts) {
 // ---------- 5. cayci: windup telegraph, tea puddle slows the hero for 3 s after the last touch, puddle expires ----------
 {
   const s = sandbox(5, 22), h = s.hero, C = P.CFG.enemies5.cayci;
+  check(C.slow.m === 0.75, 'cayci: slow multiplier is ' + C.slow.m + ', expected 0.75 (audit 13, answer 2)');
   const c = place(s, 'cayci', 4.5, 0, {});
   c.ai.cd = 0;
   const evs = run(s, 4, st => st.zones.some(z => z.kind === 'tea'));

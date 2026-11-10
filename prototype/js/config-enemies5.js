@@ -25,7 +25,7 @@
       windup: 0.7, flight: 0.7,       // windup 0.7 s (the ground circle, the telegraph), glob flight 0.7 s
       // The glob reuses the spitter machinery (enemies.js lob, landGlob): zone 'tea' lands as a slowing puddle, no damage.
       glob: { r: 1.0, puddleT: 6.0, puddleDps: 0, zone: 'tea' },
-      slow: { m: 0.65, t: 3.0 },      // hero speed x0.65 (35% slower); lasts 3 s after the last touch of the puddle
+      slow: { m: 0.75, t: 3.0 },      // hero speed x0.75 (25% slower; softened from 0.65 after wave 1, audit 13 answer 2); lasts 3 s after the last touch
     },
   };
 })(P.CFG);
