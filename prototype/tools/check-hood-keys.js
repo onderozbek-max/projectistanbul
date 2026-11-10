@@ -98,6 +98,13 @@ if (mid49 && mid49.kind === 'page') problems.push('L49 still opens the campfire 
 const idSet = new Set(hoods.map(h => h.id));
 Object.keys(P.CFG && P.CFG.enemyRosterAdds || {}).forEach(k => { if (!idSet.has(k)) problems.push('enemyRosterAdds key is not a hood id: ' + k); });
 
+// 8. The journey boss field of a hood is its runtime archetype (bossByHood, config-bosses.js; R1-B4).
+hoods.forEach(h => {
+  const rt = P.CFG && P.CFG.bossByHood && P.CFG.bossByHood[h.id];
+  if (!rt) problems.push('no bossByHood entry for ' + h.id);
+  else if (h.boss !== rt) problems.push(`journey boss of ${h.id} is ${h.boss}, runtime bossByHood is ${rt}`);
+});
+
 console.log(`hood keys: ${hoods.length} hoods · story beats ${Object.keys(P.DLG.beats).filter(k => /^H\d\d/.test(k)).length} · bark beats ${Object.keys(P.DLG.beats).filter(k => /^BK\.hd/.test(k)).length}`);
 if (problems.length) { console.log('FAIL'); problems.forEach(x => console.log(' - ' + x)); process.exit(1); }
 console.log('PASS: every hood keeps its story, bark, comic and roster content');

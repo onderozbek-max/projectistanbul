@@ -44,7 +44,7 @@
   // v0.6 · Parkurcu (free-runner): fast and fragile. Crouches on a ring at the hero's spot, then leaps there.
   E.parkur = {
     hp: 16, speed: 2.6, contact: 6, radius: 0.36, xp: 5, kbResist: 0.1, budget: 2.0,
-    leapMin: 2.6, leapMax: 7.0, leapCd: 2.2, windup: 0.45, leapT: 0.42, leapR: 1.0, leapDmg: 12, leapKb: 1.2,
+    leapMin: 2.6, leapMax: 7.0, leapCd: 2.2, windup: 0.5, leapT: 0.42, leapR: 1.0, leapDmg: 12, leapKb: 1.2,
   };
   // v0.6 · Zehirli tükürükçü (toxic spitter): the spitter's rules, but the glob bursts into a long toxic cloud.
   E.zehirli = Object.assign({}, E.spitter, {

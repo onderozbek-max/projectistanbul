@@ -48,11 +48,21 @@
 <div id="portraits"></div>
 
 <script>window.P = window.P || {}; P.goreRGB = function (s) { return ['86,14,20', '120,20,28', '160,24,36'][s || 0]; };</script>
+<!-- The sprites read P.CFG (enemy defs, view numbers): load the config files in index.html order (R1-B3). -->
+<script src="../js/config.js"></script>
+<script src="../js/config-levels.js"></script>
+<script src="../js/config-enemies3.js"></script>
+<script src="../js/config-bosses.js"></script>
+<script src="../js/config-enemies4.js"></script>
+<script src="../js/config-feel.js"></script>
 <script src="../js/journey.js"></script>
 <script src="../js/view/art-rig.js"></script>
 <script src="../js/view/art-characters.js"></script>
 <script src="../js/view/art-enemies.js"></script>
 <script src="../js/view/sprites.js"></script>
+<script src="../js/view/comic-busts.js"></script>
+<script src="../js/view/comic-busts-hair.js"></script>
+<script src="../js/view/comic-busts-cast.js"></script>
 <script src="../js/view/portraits.js"></script>
 <script>
 (function () {
@@ -125,7 +135,12 @@
     ['brute', ['hamal', 'worker', 'conductor', 'shopkeeper']],
     ['bloater', ['picnicker', 'gardener', 'pigeonman', 'barista']],
     ['screamer', ['jogger', 'worker', 'arkeolog', 'commuter']],
-    ['hardhat', ['arkeolog', 'worker', 'driver', 'hamal']]
+    ['hardhat', ['arkeolog', 'worker', 'driver', 'hamal']],
+    ['kasap', ['hamal', 'worker', 'shopkeeper', 'vendor']],
+    ['parkur', ['jogger', 'student', 'sailor', 'neighbor']],
+    ['zehirli', ['fisher', 'vendor', 'granny', 'driver']],
+    ['kurye', ['driver', 'commuter', 'student', 'worker']],
+    ['copci', ['worker', 'hamal', 'gardener', 'vendor']]
   ];
   var typesBox = document.getElementById('types');
   typeRows.forEach(function (row) {
@@ -151,6 +166,9 @@
   cell(sp, 'elite runner', W, H, 1, enemyFn('runner', 'jogger', 4, 1, { elite: true, hp: 40, maxHp: 80 }));
   cell(sp, 'boss brute (2.2x)', 2 * W, 2 * H, 1, enemyFn('brute', 'hamal', 2, 1, { boss: true }), 'big');
   cell(sp, 'boss spitter windup', W, H, 1, enemyFn('spitter', 'fisher', 0, 1, { boss: true, windup: 1 }));
+  cell(sp, 'boss bloater (2.2x)', 2 * W, 2 * H, 1, enemyFn('bloater', 'picnicker', 4, 1, { boss: true }), 'big');
+  cell(sp, 'boss taksici (2.2x)', 2 * W, 2 * H, 1, enemyFn('taksici', 'driver', 3, 1, { boss: true }), 'big');
+  cell(sp, 'boss kasapBoss (2.2x)', 2 * W, 2 * H, 1, enemyFn('kasapBoss', 'hamal', 2, 1, { boss: true }), 'big');
   cell(sp, 'spitter windup', W, H, 1, enemyFn('spitter', 'vendor', 1, 1, { windup: 0.9 }));
   cell(sp, 'brute windup (red eyes)', W, H, 1.6, enemyFn('brute', 'conductor', 3, 1.6, { windup: 1 }));
   cell(sp, 'bloater swollen', W, H, 1.2, enemyFn('bloater', 'picnicker', 5, 1.2, { swell: 1 }));

@@ -1,7 +1,7 @@
 // Boss archetypes added in lane C (AUDIT-6 C4): taksici (taxi: charges leave an oil slick, a charge that hits a wall
 // stalls it and opens a weak spot) and kasapBoss (butcher: three-swing cleaver combo with an apron weak spot after it,
 // a thrown cleaver and a frenzy phase). Both have three phases (HP 100-66%, 66-33%, below 33%). Extends P.CFG.bosses.
-// Hood -> archetype table (bossByHood): read by P.Bosses.archetype in bosses.js, so journey.js and levels.js stay as they are.
+// Hood -> archetype table (bossByHood): read by P.Bosses.archetype in bosses.js. journey.js holds the same boss per hood (check-hood-keys.js §8).
 // Every telegraph keeps >= 0.8 s (DS 6). Numbers here; the sim reads only P.CFG.
 (function (C) {
   C.bosses.taksici = {

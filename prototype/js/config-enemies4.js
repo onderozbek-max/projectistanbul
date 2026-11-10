@@ -2,7 +2,10 @@
 // (enemies3.js, bosses.js) and by the view only through the sim's events. Enemy defs stay in config-enemies3.js.
 (function (C) {
   C.enemies4 = {
-    telegraphMin: 0.8,       // every boss attack and new-enemy windup telegraphs at least this long (DS 6, bosses.js tele())
+    // Telegraph floor (s). tele() applies it to every boss attack (bosses.js) and to the copci push (enemies3.js). Other
+    // normal-enemy windups follow design-system 6 rule 3 (>= 0.5 s). Exempt from this 0.8 s floor, by design: spitter and
+    // zehirli (0.7 s, a deliberate exception decided 2026-11-10, R1 audit §9 decision 5) and parkur (0.5 s, the normal-enemy minimum).
+    telegraphMin: 0.8,
     portalRise: 0.6,         // A5 openings (door, window, manhole from env-portal.js): rise time from the opening (C2)
     openReach: 4,            // a layout opening counts as ahead of the hero up to aheadMax + openReach metres (enemies3.js)
     entrance: {              // route spawns that may move to a feature (enemies3.js E3.entrance)
