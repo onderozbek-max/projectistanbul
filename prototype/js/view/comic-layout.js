@@ -7,7 +7,7 @@
 // the loaded font and checks its ink against the text box, the body outline and the panel. Barks use L.checkBox too.
 P.ComicLayout = (function () {
   var L = {}, A = P.ComicArt, T = P.ComicText;
-  var AREA = { x: 12, y: 64, w: 366, h: 704 }, GAP = 6, TOP = 14, CPS = 42;
+  var AREA = { x: 12, y: 64, w: 366, h: 704 }, GAP = 6, TOP = 14, CPS = 42, TAG_UP = 8, MIN_BW = 96, TAIL_HALF = 14;
   var POP = { w: 390, h: 300, boxW: 212, top: 22 };
   var LAYOUTS = {
     1: [[0, 0, 1, 1]],
@@ -80,6 +80,22 @@ P.ComicLayout = (function () {
 
   // ---------- items ----------
   // Each item: {kind, bottom (0 when not stacked), ...}. g = {px, wide, band}; y is the stack cursor.
+  // R1-T0: a balloon never sits across the tail of a balloon above it. `avoid` holds the x spans of those tails; the
+  // balloon takes the free span on its own side, or the other side when its own is too narrow. Returns {x, w}.
+  function placeBubble(avoid, side, bw, W, need) {
+    var m = W * 0.03, lo = m, hi = W - m, floor = Math.max(need, MIN_BW);
+    (avoid || []).forEach(function (a) {
+      var bx = side === 'l' ? lo : Math.max(lo, hi - bw);
+      if (bx >= a.x1 || bx + Math.min(bw, hi - lo) <= a.x0) return;
+      var left = [lo, a.x0 - 2], right = [a.x1 + 2, hi];
+      var order = side === 'l' ? [left, right] : [right, left];
+      for (var i = 0; i < order.length; i++) {
+        if (order[i][1] - order[i][0] >= floor) { lo = order[i][0]; hi = order[i][1]; return; }
+      }
+    });
+    bw = Math.min(bw, hi - lo);
+    return { x: side === 'l' ? lo : hi - bw, w: bw };
+  }
   function bubbleItem(p, d, g, y) {
     var s = L.resolve(d[1]); if (!s) return null;
     var k = d[0] === 's' ? 'shout' : d[0] === 't' ? 'thought' : 'speech', side = d[2] || s.side;
@@ -87,8 +103,10 @@ P.ComicLayout = (function () {
     // AUDIT-6 F10: words never break. A balloon too narrow for its longest word widens to fit it (up to the panel).
     var ins = T.insets(k, s.tag).x, need = T.longest(p.c, s.caps, 'speech', g.px) + 2 * ins;
     if (need > bw) bw = Math.min(p.w * 0.96, need);
+    if (s.tag && y > TOP) y += TAG_UP;           // the name tag hangs 11 px above the balloon: keep it off the item above
+    var pl = placeBubble(g.avoid, side, bw, p.w, need); bw = pl.w;
     var f = T.measure(p.c, s.caps, bw - 2 * ins, 'speech', g.px), h = T.boxH(f.lines, f.lh, s.tag, k);
-    var bx = side === 'l' ? p.w * 0.03 : p.w - bw - p.w * 0.03, bust = bustFor(p, s.who);
+    var bx = pl.x, bust = bustFor(p, s.who);
     var tx = bust ? bust.x : p.w / 2, ty = bust ? bust.base - bust.h * 0.86 : p.h * 0.9;
     return { kind: 'bubble', shape: k, who: s.who, caps: s.caps, len: s.caps.length, lines: f.lines, px: f.px, lh: f.lh,
              x: bx, y: y, w: bw, h: h, tx: tx, ty: ty, name: s.tag, dur: s.caps.length / CPS, bottom: y + h };
@@ -134,13 +152,21 @@ P.ComicLayout = (function () {
     return t;
   }
   // One stacking pass at size g.px. Captions first, then the rest in script order.
-  function stack(p, defs, g) {
+  // The x span a balloon's tail occupies on its way down to the speaker (base on the balloon edge to the tip).
+  function tailSpan(it, half) {
+    var base = clamp(it.tx, it.x + 24, it.x + it.w - 24);
+    return { x0: Math.min(base, it.tx) - half, x1: Math.max(base, it.tx) + half };
+  }
+  function hasTailBelow(it) { return it.kind === 'bubble' && it.tx != null && it.ty > it.bottom; }
+  function stack(p, defs, g0) {
     var order = defs.map(function (d, i) { return i; }), items = [], ok = true, y = TOP, it;
+    var g = { px: g0.px, wide: g0.wide, band: g0.band, avoid: [] };
     order.sort(function (a, b) { return (defs[a][0] === 'c' ? 0 : 1) - (defs[b][0] === 'c' ? 0 : 1) || a - b; });
     order.forEach(function (i) {
       it = layoutItem(p, defs[i], g, y);
       if (!it) return;
       it.src = i; items.push(it);
+      if (hasTailBelow(it)) g.avoid.push(tailSpan(it, TAIL_HALF));
       if (it.bottom > 0) {
         y = it.bottom + GAP;
         if (it.bottom > g.band || it.bottom > p.h - GAP) ok = false;
@@ -205,7 +231,20 @@ P.ComicLayout = (function () {
     if (x1 < 0) return { blank: true, adv: adv };
     return { blank: false, adv: adv, l: x0 - OX, r: x1 + 1 - OX, t: y0 - OY, b: y1 + 1 - OY, edge: x0 === 0 || x1 === INK_W - 1 };
   }
-  function emptyRep() { return { lines: 0, inkOut: 0, bodyOut: 0, boxOut: 0, trunc: 0, drift: 0, tagOut: 0 }; }
+  function emptyRep() { return { lines: 0, inkOut: 0, bodyOut: 0, boxOut: 0, trunc: 0, drift: 0, tagOut: 0, tailOut: 0, stackOut: 0 }; }
+  // R1-T0: no balloon sits across the tail of a balloon above it, and a name tag never hangs on the item above it.
+  function checkStack(p, sum) {
+    var bubs = p.items.filter(function (it) { return it.kind === 'bubble'; }), boxes = p.items.filter(function (it) { return it.bottom > 0; });
+    bubs.forEach(function (a) {
+      if (!hasTailBelow(a)) return;
+      var sp = tailSpan(a, 8);
+      bubs.forEach(function (b) { if (b !== a && b.y >= a.bottom - 1 && b.y < a.ty && b.x < sp.x1 && b.x + b.w > sp.x0) sum.tailOut++; });
+    });
+    boxes.forEach(function (b) {
+      if (!b.name) return;
+      boxes.forEach(function (a) { if (a !== b && a.bottom <= b.y + 1 && b.y - 11 < a.bottom - 0.5 && a.bottom > 0 && b.y - a.bottom < 11) sum.stackOut++; });
+    });
+  }
   // Checks one balloon, caption or letter. o = {kind, x, y, w, h, name, lines, px, lh, fk ('speech'|'hand'), caps, tx, ty}.
   // bounds = {w, h}: the canvas or panel the box must sit in. Returns a report of counts (all zero = fits).
   L.checkBox = function (o, bounds) {
@@ -236,6 +275,7 @@ P.ComicLayout = (function () {
   // Checks every item of a laid-out panel (bubbles, captions, letters; SFX must sit inside the panel width).
   function checkPanel(p) {
     var sum = emptyRep(), bounds = { w: p.w, h: p.h }, mc = measureCtx();
+    checkStack(p, sum);
     p.items.forEach(function (it) {
       var o, r, w;
       if (it.kind === 'bubble' || it.kind === 'caption' || it.kind === 'letter') {
@@ -267,9 +307,10 @@ P.ComicLayout = (function () {
     out.push(rowOf('pop', id, fit.px, rep, fit.overlap, !fit.ok));
   }
   function rowOf(kind, id, px, rep, overlap, overflow) {
-    var fail = rep.inkOut + rep.bodyOut + rep.boxOut + rep.trunc + rep.tagOut + (overflow ? 1 : 0) > 0;
+    var fail = rep.inkOut + rep.bodyOut + rep.boxOut + rep.trunc + rep.tagOut + rep.tailOut + rep.stackOut + (overflow ? 1 : 0) > 0;
     return { kind: kind, id: id, px: px, overlap: !!overlap, overflow: !!overflow, inkOut: rep.inkOut, bodyOut: rep.bodyOut,
-             boxOut: rep.boxOut, trunc: rep.trunc, tagOut: rep.tagOut, drift: rep.drift, lines: rep.lines, fail: fail, cut: fail };
+             boxOut: rep.boxOut, trunc: rep.trunc, tagOut: rep.tagOut, tailOut: rep.tailOut, stackOut: rep.stackOut,
+             drift: rep.drift, lines: rep.lines, fail: fail, cut: fail };
   }
   // Every beat's pop and call line (same list the game plays).
   function beatLines() {
