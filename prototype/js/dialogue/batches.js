@@ -30,5 +30,9 @@ P.DLG.batches = {
     "BK.card.cable", "BK.card.canister", "BK.card.chain", "BK.card.chainsaw", "BK.card.energy", "BK.card.extinguisher", "BK.card.fireworks",
     "BK.card.gloves", "BK.card.magnet", "BK.card.molotov", "BK.card.nailgun", "BK.card.sledge", "BK.card.slingshot", "BK.card.speargun",
     "BK.fk.copci", "BK.fk.elite", "BK.fk.hardhat", "BK.fk.kasap", "BK.fk.kurye", "BK.fk.parkur", "BK.fk.zehirli", "BK.evo.*", "BK.skill.*", "BK.hack.alarm.*", "flav.finale", "FIN*", "CMP*"
+  ],
+  // Batch D (R1 wave 1): the two new enemy types' first-sighting barks (scanSightings in js/story/barks.js). Nothing else.
+  D: [
+    "BK.fk.cayci", "BK.fk.marti"
   ]
 };

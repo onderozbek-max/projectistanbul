@@ -89,6 +89,16 @@ Object.assign(P.DLG.en, {
     { t: "Brute's down. Now I need a nap and a simit. In that order.", j: 1, ok: 1 },
     { t: "That's a lot of zombie. Keep your distance.", ok: 1 },
   ],
+  "BK.fk.cayci": [
+    { t: "Tea carrier just threw hot tea at me. Ow, ow, ow.", ok: 1 },
+    { t: "A walking cafe with bad aim and worse manners.", j: 1, ok: 1 },
+    { t: "Wet ring spreading. Step out of the tea, Arda.", ok: 1 },
+  ],
+  "BK.fk.marti": [
+    { t: "The seagull just took my XP. Hey! That's mine!", ok: 1 },
+    { t: "Seagull with a record. Even the birds are mugging me.", j: 1, ok: 1 },
+    { t: "Shadow on the sidewalk. It's diving. Move!", ok: 1 },
+  ],
   "BK.fk.copci": [
     { t: "Broom guy, and he's ramming a trash can at me.", ok: 1 },
     { t: "Trash can's rolling! Out of the way!", ok: 1 },

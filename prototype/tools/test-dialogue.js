@@ -85,7 +85,7 @@ const POOLS = ['boss', 'boss.phase', 'elite', 'low', 'heal', 'lvlA', 'lvlB', 'lv
 ['alarm', 'atm', 'booster', 'shutter', 'traffic', 'tram'].forEach(k => ['start', 'done', 'fail'].forEach(ph => POOLS.push('hack.' + k + '.' + ph)));
 ['ambush', 'barricade', 'blackout', 'burningCar', 'chest', 'defend', 'lootRunner', 'pier', 'rescue', 'stampede'].forEach(k => { POOLS.push('ev.' + k, 'evend.' + k); });
 Object.keys(P.STR.tr).filter(k => /^enemy\./.test(k)).forEach(() => {});
-['bloater', 'brute', 'copci', 'crawler', 'diner', 'elite', 'hardhat', 'kasap', 'kurye', 'parkur', 'runner', 'screamer', 'spitter', 'walker', 'zehirli'].forEach(k => POOLS.push('fk.' + k));
+['bloater', 'brute', 'cayci', 'copci', 'crawler', 'diner', 'elite', 'hardhat', 'kasap', 'kurye', 'marti', 'parkur', 'runner', 'screamer', 'spitter', 'walker', 'zehirli'].forEach(k => POOLS.push('fk.' + k));
 for (let h = 1; h <= 20; h++) for (let s = 1; s <= 5; s++) POOLS.push('hd' + pad(h) + '.' + s);
 POOLS.forEach(k => { need('BK.' + k, 'bark engine'); if (D.has('BK.' + k) && D.size('BK.' + k, 'tr') < 2) problems.push(`BK.${k}: fewer than 2 TR variants`); });
 // Pool keys the engine can ask for with no pool at all (they fall to the generic card/evo pool, or stay silent). Informational.

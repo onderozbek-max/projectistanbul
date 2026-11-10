@@ -122,6 +122,8 @@ Object.assign(P.DLG.intent, {
   "BK.fk.runner": "First kill of a runner: fast and fragile.",
   "BK.fk.screamer": "First kill of a screamer: ears still ringing.",
   "BK.fk.spitter": "First kill of a spitter: rude, with acid.",
+  "BK.fk.marti": "First sighting of a seagull thief: it grabs a loose XP drop and runs off with it.",
+  "BK.fk.cayci": "First sighting of a tea carrier: it throws hot tea that leaves a slowing puddle.",
   "BK.fk.walker": "First kill of a walker: slow, stubborn, always late.",
   "BK.frenzy": "Arda goes into a frenzy mode for a few seconds.",
   "BK.hack.atm.start": "Arda starts hacking an ATM and guesses PIN numbers.",

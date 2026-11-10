@@ -88,6 +88,16 @@ Object.assign(P.DLG.tr, {
     { t: "Gıdısını yediğimin nasıl da pörtledi.", ok: 1 },
     { t: "Yarmagül az kalsın pekmezimi akıtacaktı.", ok: 1 },
   ],
+  "BK.fk.cayci": [
+    { t: "Çaycı sıcak çay fırlattı! Ayaklarım haşlandı sanki." },
+    { t: "Tepside çay, yerde ıslak daire. Yürüyen kafe bu ya.", j: 1 },
+    { t: "Çay döküldü, daire büyüyor. Hadi dışına çık." },
+  ],
+  "BK.fk.marti": [
+    { t: "Martı XP'mi kaptı, kaçıyor! Dur ya, benim o!" },
+    { t: "Kuş kılığında hırsız. İstanbul'un en eski kabadayısı.", j: 1 },
+    { t: "Yerde gölge belirdi. Martı dalıyor, eğil!" },
+  ],
   "BK.fk.copci": [
     { t: "Çöpçü abi kutuyu bana sürüyor! Ben geri dönüşüm değilim!", ok: 1 },
     { t: "Kutu yuvarlanıyor! Bowling oynuyor, lobut da benim!", ok: 1 },
