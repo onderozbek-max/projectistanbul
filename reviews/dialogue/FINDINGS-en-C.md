@@ -50,7 +50,7 @@ All 1,160 English lines (A 505, B 175, C 480) are marked approved (`ok: 1`) thro
 ## 7. Browser sweep at 390×844 (2026-11-10)
 
 17 pages (14 hood intros H07 to H20, finale A and B, campfire) in EN and TR, 34 screenshots in `reviews/media/dialogue/<lang>-<pageId>.png`.
-- **Text clipped: 1 line.** `H14i3a` TR: the first word "Anahtarcının" is wider than its caption and loses its last letter at the panel edge. Proposed fix (owner's text, not changed): "Halkası her adımda şıngırdıyor. Gizlilik sıfır, özgüven tam."
+- **Text clipped: 1 line.** `H14i3a` TR: the first word "Anahtarcının" is wider than its caption and loses its last letter at the panel edge. **Fixed 2026-11-10 (owner approved):** "Halkası her adımda şıngırdıyor. Gizlilik sıfır, özgüven tam."
 - **Touching, not clipped: 1 line.** `H11i3a` TR: "direksiyonda" reaches about 3 px from the caption border.
 - **Layout (not caused by the text, same in both languages):** where two speakers stack vertically, the second name tag sits on the bottom border of the bubble above (H07i3, H10i2, H19i2, FINa, FINb). On H10i2 and H19i2 the Kaan tail also crosses the Arda bubble. The "KNOCK KNOCK!" / "TAK TAK!" SFX looks cut at the panel bottom on FINb (verify at full resolution). This is `view/comic-layout.js` work, not dialogue.
 - No wrong portrait, speaker label or language seen.

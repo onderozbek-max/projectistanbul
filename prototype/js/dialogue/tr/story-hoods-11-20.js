@@ -28,7 +28,7 @@ Object.assign(P.DLG.tr, {
   "H14b": [{ t: "Bu kapının anahtarı bende! Yedeği yok! Kopyalatmam!", ok: 1 }],
   "H14i1a": [{ t: "Yedikule surları. Eski kuleler, sarmaşıklar. Bu surlar çok şey gördü, bunu görmedi.", ok: 1 }],
   "H14i2a": [{ t: "Anahtarcı kapıları kilitlemiş. Anahtarlar onda. Kapıcı olsa bu kadar dert çıkmazdı.", ok: 1 }],
-  "H14i3a": [{ t: "Anahtarcının halkası her adımda şıngırdıyor. Gizlilik sıfır, özgüven tam.", ok: 1 }],
+  "H14i3a": [{ t: "Halkası her adımda şıngırdıyor. Gizlilik sıfır, özgüven tam.", ok: 1 }],
   "H14p1": [{ t: "Surun üstünde yürüyoruz. Dar ama sağlam. Bin beş yüz yıllık garanti.", ok: 1 }],
   "H14p2": [{ t: "Üç anahtar bulalım, kapıyı açalım. Anahtarcı hepsini saklamış, cimri.", ok: 1 }],
   "H14p3": [{ t: "Çay bahçesinin masaları yolu kesiyor. Çay yok, masa bol. Bu şehrin özeti.", ok: 1 }],
