@@ -2,7 +2,7 @@
 // (cards / chest / pause / down / story pages) -> exit beat -> end comic -> results -> map.
 // Review shortcuts: ?skipintro=1  ?seg=B|C|D (L1 jump with a typical build)  ?seed=123  ?level=N (play journey
 // level N directly)  ?map=1 (title opens the map)  ?arsenal=1 (all weapons in the card pool)  ?meta=unlockall
-// ?mastery=0..5 (treat every weapon as that mastery rank)
+// ?mastery=0..5 (treat every weapon as that mastery rank)  ?thief=0 (no enemy thief, for an A/B playtest)
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var phone = $('phone'), params = new URLSearchParams(location.search);
@@ -28,6 +28,8 @@
   // Short vibration on a heavy hit or a frenzy start, only when the player has haptics on (AUDIT-6 F5).
   function buzz(pattern) { if (P.Settings.haptics && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(pattern); }
 
+  // ?thief=0 switches the enemy thief (marti) off in every hood, for an A/B playtest on the same ?seed (R1 birds-cats).
+  if (params.get('thief') === '0') P.CFG.levels.thief = { type: 'marti', fromHood: 999, from: 999 };
   if (params.get('arsenal')) P.CFG.debugAllWeapons = true;
   if (params.get('meta') === 'unlockall' && P.Meta) P.Meta.debugUnlockAll();
   if (params.get('mastery') !== null) P.CFG.debugMastery = parseInt(params.get('mastery'), 10) || 0;
