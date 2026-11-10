@@ -28,6 +28,8 @@ P.Enemies.init = function (s, e) {
   }
   else if (P.Enemies2.owns(e.type)) P.Enemies2.init(s, e);   // v0.6: kasap, parkur
   else if (P.Enemies3.owns(e.type)) P.Enemies3.init(s, e);   // v0.7: kurye, copci
+  else if (P.Enemies4.owns(e.type)) P.Enemies4.init(s, e);   // wave 1: marti, cayci
+  P.Skins.init(s, e);                                        // wave 1: skin behaviours (fisher, musician, hamal), rolled once
   P.Enemies3.entrance(s, e);                                 // v0.7: manhole, window, balcony, tram entrances (generated levels)
 };
 
@@ -40,6 +42,8 @@ P.Enemies.think = function (s, e, dt) {
   if (e.lootEv) return P.EventKinds.loot.think(s, e, dt);
   if (P.Enemies2.owns(e.type)) return P.Enemies2.think(s, e, dt);
   if (P.Enemies3.owns(e.type)) return P.Enemies3.think(s, e, dt);
+  if (P.Enemies4.owns(e.type)) return P.Enemies4.think(s, e, dt);
+  if (e.skinBeh) return P.Skins.think(s, e, dt);             // wave 1: a fisher may hold still to cast; others chase
   if (!e.ai) return false;
   if (e.type === 'brute') return brute(s, e, dt);
   if (e.type === 'spitter' || e.type === 'zehirli') return spitter(s, e, dt);
@@ -89,6 +93,8 @@ function scream(s, tg) {
 
 // Dying screamer: cancel its own call (no horde) and report screamCut.
 P.Enemies.onDeath = function (s, e) {
+  if (e.skinBeh) P.Skins.onDeath(s, e);                     // wave 1: fisher's cast withdrawn, hamal's crate
+  if (P.Enemies4.owns(e.type)) P.Enemies4.onDeath(s, e);    // wave 1: marti gives back a carried drop
   if (e.type !== 'screamer') return;
   if (e.ai && e.ai.m === 'scream') s.events.push({ type: 'screamCut', id: e.id, x: e.x, y: e.y });
   s.enemyTele = s.enemyTele.filter(function (t) { return t.owner !== e.id; });
@@ -235,6 +241,7 @@ function bloater(s, e, dt) {
 
 // Melee contact hook (combat.js). Returns true when the contact is fully handled here.
 P.Enemies.onContact = function (s, e) {
+  if (P.Enemies4.owns(e.type)) return P.Enemies4.onContact(s, e);   // wave 1: marti's bite does nothing
   if (e.type === 'bloater' && !e.boss) { P.Combat.killEnemy(s, e, false, 'bloater'); return true; }
   if ((e.type === 'brute' || e.boss) && e.ai.m === 'charge') {      // boss charges (taksici too) hit like the brute's
     if (!e.ai.hit) {
@@ -283,6 +290,8 @@ P.Enemies.zoneHero = function (s, z, dt) {
 P.Enemies.frame = function (s, dt) {
   var i, list = s.enemyTele;
   P.Enemies3.frame(s, dt);                                   // v0.7: rolling bins, blades
+  P.Skins.frame(s, dt);                                      // wave 1: musician buffs, hamal crates, the hook pull
+  P.Enemies4.frame(s, dt);                                   // wave 1: the hero's tea slow
   for (i = list.length - 1; i >= 0; i--) {
     var t = list[i];
     t.t += dt;
@@ -322,10 +331,11 @@ P.Enemies.lob = function (s, src, tx, ty, o, dur, dmg, cause) {
 
 function landGlob(s, q) {
   var h = s.hero;
+  if (q.zone === 'tea') { P.Enemies4.teaPuddle(s, q.tx, q.ty, q.r, q.puddleT); return; }   // wave 1: cayci's tea, no damage
   if (q.zone === 'toxic') P.Enemies.toxicPool(s, q.tx, q.ty, q.r, q.puddleT, q.puddleDps);   // v0.6: zehirli cloud
   else P.Enemies.puddle(s, q.tx, q.ty, q.r, q.puddleT, q.puddleDps);
   s.events.push({ type: 'spitLand', x: q.tx, y: q.ty, r: q.r });
-  if (dist(h, q) - P.CFG.hero.radius <= q.r) P.Combat.damageHero(s, q.dmg, q.cause);
+  if (q.dmg > 0 && dist(h, q) - P.CFG.hero.radius <= q.r) P.Combat.damageHero(s, q.dmg, q.cause);
 }
 
 // Acid puddle (enemies take DoT too; the hero takes heroDps while inside).
@@ -364,6 +374,10 @@ P.Enemies.onTele = function (s, tg) {
     scream(s, tg);
   } else if (tg.then === 'surge') {                          // lane H: a horde surge's cue has resolved (horde.js)
     if (P.Horde && P.Horde.arrive) P.Horde.arrive(s, tg);
+  } else if (tg.then === 'hook') {                           // wave 1: a fisher's hook line (skins-fisher.js)
+    P.Skins.hookResolve(s, tg);
+  } else if (tg.then === 'swoop') {                          // wave 1: a marti's dive shadow (enemies4.js)
+    P.Enemies4.onTele(s, tg);
   }
 };
 

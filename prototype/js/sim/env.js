@@ -47,6 +47,7 @@ function addSolid(s, kind, x, y, w, h) {
   if (C.hp[kind] !== undefined) adopt(s, b, kind);
   return true;
 }
+P.Env.addSolid = addSolid;   // wave 1: the hamal's crate (skins.js) places a solid cover at runtime
 
 function placeSolids(s, kind, S) {
   var E = s.env, G = s.geo, C = P.CFG.env, y, x, side;

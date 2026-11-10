@@ -13,6 +13,7 @@ P.Combat.spawnEnemy = function (s, type, x, y, opts) {
     variant: s.rng.ai.int(0, 7), age: 0,
     skin: (opts && opts.skin) || null, windup: 0, swell: 0, boss: false, ai: null,
     evId: (opts && opts.ev) || 0, anchored: !!(opts && opts.anchored), lure: null, lootEv: 0,
+    flyer: !!d.flyer,                                      // wave 1: flies over walls (marti); see updateEnemies
   };
   if (opts && opts.elite) {
     var el = P.CFG.elite;
@@ -40,7 +41,8 @@ P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
   var crit = canCrit && s.rng.combat.chance(Math.min(1, cc));
   var hm = e.helmet ? P.Enemies.helmetMul(s, e) : 1;
   var am = e.armour || 1;                                   // v0.6: armour cuts every hit (kasap, zirhli)
-  var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1) * hm * am;
+  var bm = P.Skins.hitMul(s, e);                            // wave 1: a hamal takes less from behind (skins.js)
+  var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1) * hm * am * bm;
   e.hp -= dmg;
   e.flash = P.CFG.feel.hitFlash;
   if (kb > 0) {
@@ -103,7 +105,7 @@ P.Combat.killEnemy = function (s, e, crit, src) {
   if (crit) s.events.push({ type: 'critKill' });
   if (e.boss) P.Bosses.onDeath(s, e);
   if (e.type === 'bloater') P.Enemies.burst(s, e);
-  if (e.type === 'screamer') P.Enemies.onDeath(s, e);
+  P.Enemies.onDeath(s, e);                                  // screamer call cut, skin and wave 1 death hooks
   if (e.affix) P.Enemies2.onDeath(s, e);
   if (e.evId) P.Events.onKill(s, e);
 };
@@ -124,7 +126,7 @@ P.Combat.updateEnemies = function (s, dt) {
     }
     var own = P.Enemies.think(s, e, dt);
     var dx = h.x - e.x, dy = h.y - e.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
-    var sm = hasStatus ? P.Status.speedMul(e) : 1;
+    var sm = (hasStatus ? P.Status.speedMul(e) : 1) * (e.buffMul || 1);   // buffMul: musician aura (skins.js)
     var vx, vy, sx = 0, sy = 0, found = 0;
     if (own) { vx = e.dvx * sm; vy = e.dvy * sm; } else { vx = dx / d * e.speed * sm; vy = dy / d * e.speed * sm; }
     var rooted = !!(P.Status && P.Status.rooted && P.Status.rooted(e));
@@ -145,7 +147,7 @@ P.Combat.updateEnemies = function (s, dt) {
     }
     e.vx = vx; e.vy = vy; e.walk = (e.walk || 0) + Math.hypot(vx, vy) * dt;
     e.x += vx * dt; e.y += vy * dt;
-    P.World.clampWalk(e, e.r, s.props);
+    if (e.flyer) P.Enemies4.clampFly(s, e); else P.World.clampWalk(e, e.r, s.props);   // flyers pass over walls
   }
 };
 

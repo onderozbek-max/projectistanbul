@@ -101,7 +101,7 @@ function stepHero(s, dt, input) {
   if (m > 1) { mx /= m; my /= m; m = 1; }
   h.moving = m > 0.08;
   if (h.moving) {
-    var sp = P.Hero.speed(s) * (1 + (h.baseMove || 0)) * (P.Env ? P.Env.heroMul(s) : 1), ox = h.x, oy = h.y;
+    var sp = P.Hero.speed(s) * (1 + (h.baseMove || 0)) * (P.Env ? P.Env.heroMul(s) : 1) * P.Enemies4.heroMul(s), ox = h.x, oy = h.y;
     h.fx = mx / m; h.fy = my / m;
     h.x += mx * sp * dt; h.y += my * sp * dt;
     P.World.clampHero(s, h);

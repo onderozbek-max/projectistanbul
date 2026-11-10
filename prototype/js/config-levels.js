@@ -122,9 +122,15 @@
       { hood: 'kazlicesme', type: 'parkur', from: 3 }, { hood: 'bakirkoy', type: 'kasap', from: 4 },
       { hood: 'bakirkoysahil', type: 'parkur', from: 2 }, { hood: 'atakoysahil', type: 'kasap', from: 2 },
       { hood: 'atakoy', type: 'parkur', from: 2 }, { hood: 'atakoy', type: 'zehirli', from: 3 }, { hood: 'atakoy', type: 'kasap', from: 4 },
+      // Wave 1 (R1, audit section 10): marti (seagull thief) on the waterfront, cayci (tea carrier) in the old city, from stage 2.
+      { hood: 'galata', type: 'marti', from: 2 }, { hood: 'bridge', type: 'marti', from: 2 }, { hood: 'eminonu', type: 'marti', from: 2 },
+      { hood: 'kumkapi', type: 'marti', from: 2 }, { hood: 'samatya', type: 'marti', from: 2 }, { hood: 'bakirkoysahil', type: 'marti', from: 2 },
+      { hood: 'atakoysahil', type: 'marti', from: 2 }, { hood: 'atakoy', type: 'marti', from: 2 },
+      { hood: 'eminonu', type: 'cayci', from: 2 }, { hood: 'sirkeci', type: 'cayci', from: 2 }, { hood: 'beyazit', type: 'cayci', from: 2 },
+      { hood: 'kapalicarsi', type: 'cayci', from: 2 }, { hood: 'laleli', type: 'cayci', from: 2 }, { hood: 'aksaray', type: 'cayci', from: 2 },
     ],
     extraTypes: ['screamer', 'hardhat'],   // weight extraShare x segment share
-    newTypes: ['parkur', 'kasap', 'zehirli'], newGrow: 0.1,   // v0.6 types: same weight, times (1 + newGrow x hood index)
+    newTypes: ['parkur', 'kasap', 'zehirli', 'marti', 'cayci'], newGrow: 0.1,   // v0.6 types (+ wave 1): same weight, times (1 + newGrow x hood index)
     // Boss names are NOT here (AUDIT-5 D-8/H2, owner 2026-11-08): one set lives in js/story/strings-story.js (spk.b.*,
     // Turkish title + canon English gloss). js/strings-journey.js copies it to boss.<hood> for the boss banner.
   };
