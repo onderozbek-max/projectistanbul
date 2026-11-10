@@ -103,6 +103,18 @@ time, not lives.** Softening the fisher does nothing here, so I stopped, as the 
 clear 100%, no-death 74% (baseline 76%), deaths/run 0.26 (baseline 0.28). Musician on: 62% and 0.40. L10 is the Galata boss; the musician
 phases in at hood 1. The fisher cannot help there either.
 
+Candidate fixes for the musician, L10, 50 seeds (diagnostic only, nothing applied):
+
+| variant | clear | no-death | deaths/run |
+|---|---|---|---|
+| baseline `be4bd08` | 96% | 76% | 0.28 |
+| current (`minHood` 1, `speedMul` 1.15) | 94% | 62% | 0.40 |
+| `speedMul` 1.10 | 100% | 60% | 0.40 |
+| `maxAlive` 1 | 98% | 66% | 0.36 |
+| **`minHood` 2** (no musician in Galata) | 96% | **76%** | 0.28 |
+
+Only `minHood` 2 restores the baseline. Softening the speed buff or the cap does not. Cost: Galata loses its street musician until a later hood.
+
 ## Telemetry
 None for this task.
 
@@ -147,8 +159,12 @@ None for this task.
    outside this task, so I changed nothing.
 3. Approve or rewrite the 6 TR lines in `reviews/dialogue/tr-D2.csv`.
 
+## Update after review
+- TR lines for `guvercin` and `kedi` approved by the owner (11 keep, 1 rewrite), imported with `ok` (`7ca9d9f`). Question 3 is closed.
+- `?thief=0` review shortcut added (`d8e3e95`) and an A/B playtest sheet written: `reviews/PLAYTEST-thief.md`. Question 1 is open until that is played.
+
 ## Proposed next steps
-1. Owner playtest of L22, L37 and L43 (thief) and L10 (musician), then decide questions 1 and 2.
+1. Owner playtest of L22, L37 and L43 (thief), `reviews/PLAYTEST-thief.md`; decide question 1. Question 2: lead recommends `minHood` 2 for the musician.
 2. Pigeon 48 px silhouette sheet, and a device frame-time run.
 3. Stage `index.html` with the three script lines above and merge once the gate is decided.
 4. Then the enemy cap and diner change (D-056), a separate task.
