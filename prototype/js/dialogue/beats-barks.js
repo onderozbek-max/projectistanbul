@@ -15,6 +15,8 @@ Object.assign(P.DLG.beats, {
   "BK.fk.bloater": { spk: "spk.arda", use: "bark", max: 60, joke: 1 },
   "BK.fk.brute": { spk: "spk.arda", use: "bark", max: 60, joke: 1 },
   "BK.fk.cayci": { spk: "spk.arda", use: "bark", max: 60, joke: 1 },
+  "BK.fk.guvercin": { spk: "spk.arda", use: "bark", max: 60, joke: 1 },
+  "BK.fk.kedi": { spk: "spk.arda", use: "bark", max: 60, joke: 1 },
   "BK.fk.copci": { spk: "spk.arda", use: "bark", max: 60, joke: 1 },
   "BK.fk.crawler": { spk: "spk.arda", use: "bark", max: 60, joke: 1 },
   "BK.fk.diner": { spk: "spk.arda", use: "bark", max: 60, joke: 1 },

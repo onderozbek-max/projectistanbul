@@ -259,4 +259,14 @@ Object.assign(P.DLG.en, {
     { t: "Tea's poured and the crowd slows right down.", ok: 1 },
     { t: "Tea break. Even the zombies could use a sit-down.", j: 1, ok: 1 },
   ],
+  "BK.fk.guvercin": [
+    { t: "A pigeon just snatched my XP. Hey! Give that back!", ok: 1 },
+    { t: "Even the pigeons turned on me. Fine. I never fed them.", j: 1, ok: 1 },
+    { t: "It's circling my drops. Grab them before it does.", ok: 1 },
+  ],
+  "BK.fk.kedi": [
+    { t: "A cat. A real, living cat. Hi, buddy.", ok: 1 },
+    { t: "Cat doesn't care about the apocalypse. Respect.", j: 1, ok: 1 },
+    { t: "If the cat hisses, something's coming. Trust the cat.", ok: 1 },
+  ],
 });

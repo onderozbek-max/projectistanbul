@@ -33,6 +33,6 @@ P.DLG.batches = {
   ],
   // Batch D (R1 wave 1): the two new enemy types' first-sighting barks (scanSightings in js/story/barks.js). Nothing else.
   D: [
-    "BK.fk.cayci", "BK.fk.marti"
+    "BK.fk.cayci", "BK.fk.marti", "BK.fk.guvercin", "BK.fk.kedi"
   ]
 };
