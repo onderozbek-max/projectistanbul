@@ -260,13 +260,13 @@ Object.assign(P.DLG.tr, {
     { t: "Çay molası. Zombiler de bekliyor. Çay bölünmez burada.", j: 1, ok: 1 },
   ],
   "BK.fk.guvercin": [
-    { t: "Güvercin XP'mi kaptı! Hırsız bunlar, hırsız!" },
-    { t: "Simit atıp beslerdim bunları. Şimdi borcunu tahsil ediyor.", j: 1 },
-    { t: "Yerdekileri o kapmadan sen topla!" },
+    { t: "Güvercin XP'mi kaptı! Hırsız bunlar, hırsız!", ok: 1 },
+    { t: "Simit atıp beslerdim bunları. Şimdi borcunu tahsil ediyor.", j: 1, ok: 1 },
+    { t: "Yerdekileri o kapmadan toplamak lazım!", ok: 1 },
   ],
   "BK.fk.kedi": [
-    { t: "Kedi! Gerçek, canlı bir kedi. Selam abicim." },
-    { t: "Dünya yıkılmış, kedinin umurunda değil. Saygı duydum.", j: 1 },
-    { t: "Kedi tıslarsa bir şey geliyor demektir. Kediye güven." },
+    { t: "Kedi! Gerçek, canlı bir kedi. Selam abicim.", ok: 1 },
+    { t: "Dünya yıkılmış, kedinin umurunda değil. Saygı duydum.", j: 1, ok: 1 },
+    { t: "Kedi tıslarsa bir şey geliyor demektir. Kediye güven.", ok: 1 },
   ],
 });
