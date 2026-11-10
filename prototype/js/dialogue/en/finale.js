@@ -13,6 +13,6 @@ Object.assign(P.DLG.en, {
   "FINb5": [{ t: "Love you. Dad.", ok: 1 }],
   "FINb6": [{ t: "Someone knocks on the door.", ok: 1 }],
   "FINb7": [{ t: "Who's there?!", ok: 1 }],
-  "FINb8": [{ t: "Arda. Sarıyer, right? My parents are in Zekeriyaköy, next door. I'm coming with you.", ok: 1 }],
+  "FINb8": [{ t: "My mother called yours. Sarıyer, right? I'm coming.", ok: 1 }],
   "FINb9": [{ t: "The walk to Ataköy is over. The road to Sarıyer starts now. Mila's coming.", ok: 1 }],
 });
