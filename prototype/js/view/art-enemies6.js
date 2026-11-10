@@ -1,5 +1,5 @@
 // Wave 1 enemy art (R1, view only): marti (a seagull drawn in flight, white with a gold beak and a grey wing, silhouette
-// wide and low) and cayci (a tea carrier with a copper tray and amber glasses held out in front, teal cloth). Skin overlays on
+// wide and low; a pigeon with the same flight in inland hoods, view/fauna.js thiefLook) and cayci (a tea carrier with a copper tray and amber glasses held out in front, teal cloth). Skin overlays on
 // walkers: fisher (a rod), musician (a note above the head), hamal (a crate on the back). Wraps P.Sprites.enemy (sprites.js,
 // art-enemies3..5 wrap it too; this file loads last). Accent colours: marti #FFB23F, cayci #2FA59A, hamal crate #A0643A.
 (function () {
@@ -15,7 +15,7 @@
 
   var prevEnemy = P.Sprites.enemy;
   P.Sprites.enemy = function (Rd, e, hero) {
-    if (e.type === 'marti') { drawMarti(Rd, e); return; }
+    if (e.type === 'marti') { if (P.Fauna && P.Fauna.thiefLook() === 'pigeon') drawPigeon(Rd, e); else drawMarti(Rd, e); return; }
     prevEnemy(Rd, e, hero);
     if (e.type === 'cayci') trayOver(Rd, e);
     if (e.skinBeh === 'fisher') rodOver(Rd, e);
@@ -46,6 +46,48 @@
     }
     c.restore();
   }
+  // Pigeon look of the same thief (inland hoods, owner answer 1): grey-blue, a small head, an iridescent neck patch and a fan
+  // tail. Same flight, dive and carry as the seagull. Palette: P.FaunaArt.BIRDS.pigeon (view/fauna-art.js).
+  function drawPigeon(Rd, e) {
+    var c = Rd.ctx, u = Rd.ppm, X = Rd.X(e.x), G = Rd.Y(e.y), t = performance.now() / 1000;
+    var uf = u * EN.DEFS.marti.scale, f = facing(e), bob = Math.sin(t * 5 + e.id) * 0.06;
+    var Y = G - uf * (0.55 + bob), flap = Math.sin(t * 14 + e.id), hx = X + f * uf * 0.3, hy = Y - uf * 0.12, hr = uf * 0.15;
+    c.save();
+    c.globalAlpha = 0.22; c.fillStyle = INK;
+    c.beginPath(); c.ellipse(X, G, uf * 0.36, uf * 0.11, 0, 0, TAU); c.fill();
+    c.globalAlpha = 1;
+    pigeonWing(c, X, Y, uf, f, flap, '#6E7C91', false);            // far wing, darker
+    c.fillStyle = '#8C9AAE'; c.strokeStyle = INK; c.lineWidth = Math.max(1, uf * 0.045);
+    c.beginPath(); c.moveTo(X - f * uf * 0.34, Y + uf * 0.02); c.lineTo(X - f * uf * 0.62, Y - uf * 0.1);
+    c.lineTo(X - f * uf * 0.56, Y + uf * 0.14); c.closePath(); c.fill(); c.stroke();   // fan tail
+    c.beginPath(); c.ellipse(X, Y, uf * 0.34, uf * 0.19, 0, 0, TAU); c.fill(); c.stroke();
+    neckPatch(c, hx - f * hr * 0.3, hy + hr * 0.75, hr, uf);
+    c.fillStyle = '#8C9AAE'; c.beginPath(); c.arc(hx, hy, hr, 0, TAU); c.fill(); c.stroke();
+    c.fillStyle = '#3A3F4B';
+    c.beginPath(); c.moveTo(hx + f * hr * 0.85, hy - hr * 0.15); c.lineTo(hx + f * hr * 1.7, hy + hr * 0.1);
+    c.lineTo(hx + f * hr * 0.85, hy + hr * 0.35); c.closePath(); c.fill();
+    c.fillStyle = INK; c.beginPath(); c.arc(hx + f * hr * 0.35, hy - hr * 0.2, uf * 0.03, 0, TAU); c.fill();
+    pigeonWing(c, X, Y, uf, f, flap, '#A9B6C7', true);             // near wing, dark bar at the tip
+    if (e.ai && e.ai.carry > 0) {                                  // the stolen drop, gold, in the beak
+      c.fillStyle = '#FFC93C'; c.beginPath(); c.arc(hx + f * hr * 1.5, hy + uf * 0.05, uf * 0.09, 0, TAU); c.fill();
+    }
+    c.restore();
+  }
+  function pigeonWing(c, X, Y, uf, f, flap, col, bar) {
+    var tipY = Y - uf * (0.2 + 0.4 * flap), tipX = X - f * uf * 0.7;
+    c.fillStyle = col; c.strokeStyle = INK; c.lineWidth = Math.max(1, uf * 0.045);
+    c.beginPath(); c.moveTo(X - f * uf * 0.06, Y - uf * 0.04);
+    c.quadraticCurveTo(X - f * uf * 0.3, Y - uf * 0.3 - uf * 0.2 * flap, tipX, tipY);
+    c.quadraticCurveTo(X - f * uf * 0.3, Y + uf * 0.08, X - f * uf * 0.06, Y + uf * 0.1);
+    c.closePath(); c.fill(); c.stroke();
+    if (bar) { c.fillStyle = '#2B2F3A'; c.beginPath(); c.arc(tipX, tipY, uf * 0.07, 0, TAU); c.fill(); }
+  }
+  function neckPatch(c, cx, cy, hr, uf) {
+    var g = c.createLinearGradient(cx - hr, cy, cx + hr, cy);
+    g.addColorStop(0, '#3E9C7F'); g.addColorStop(1, '#7B4FA0');
+    c.fillStyle = g; c.beginPath(); c.ellipse(cx, cy, hr * 0.7, hr * 0.45, 0, 0, TAU); c.fill();
+  }
+
   // One wing: a leading edge that rises and falls with flap (-1..1), black primaries at the tip.
   function wing(c, X, Y, uf, f, flap, col) {
     var tipY = Y - uf * (0.2 + 0.4 * flap);

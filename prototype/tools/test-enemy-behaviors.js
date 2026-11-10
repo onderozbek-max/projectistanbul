@@ -270,6 +270,99 @@ function digest(seed, idx) {
   });
 }
 
+// ---------- 9. thief look by geography, thief placement by hood (audit 13 answer 1; docs/journey.md §5.0) ----------
+// The view files are not in lib-load (it runs the sim scripts only), so load the fauna view here, as a browser would.
+function loadView(file) { vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'view', file), 'utf8'), { filename: file }); }
+const fs = require('fs'), path = require('path'), vm = require('vm');
+loadView('fauna-art.js'); loadView('fauna.js');
+const SEA = ['galata', 'bridge', 'karakoy', 'eminonu', 'sirkeci', 'kumkapi', 'samatya', 'yedikule', 'kazlicesme', 'bakirkoysahil', 'atakoysahil', 'atakoy'];
+const INLAND = ['istiklal', 'kapalicarsi', 'beyazit', 'laleli', 'aksaray', 'yenikapi', 'zeytinburnu', 'bakirkoy'];
+{
+  const ids = P.Journey.hoods.map(h => h.id);
+  const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+  check(sameSet(P.CFG.birdLook.seagull, SEA) && sameSet(P.CFG.birdLook.pigeon, INLAND), 'birdLook lists differ from the geography in the audit (13 answer 1)');
+  check(ids.every(id => P.CFG.birdLook.seagull.includes(id) !== P.CFG.birdLook.pigeon.includes(id)), 'a hood is in neither or both bird look lists');
+  check(ids.every(id => P.Fauna.lookFor(id) === (P.CFG.birdLook.pigeon.includes(id) ? 'pigeon' : 'seagull')), 'lookFor does not follow the lists');
+  check(P.Fauna.lookFor('galata') === 'seagull' && P.Fauna.lookFor('beyazit') === 'pigeon', 'look: galata is not a seagull or beyazit is not a pigeon');
+  // Thief: none in H01 to H04 (indexes 0..3), present from H05 (index 4) at stage 2 and later, in every later hood.
+  const thief = ids.map((id, h) => { const s1 = P.createSim(3, { levelIndex: h * 5 + 2, loadout: null }); return s1.gen.roster.includes('marti'); });
+  check(thief.slice(0, 4).every(x => !x), 'thief: present in H01 to H04 (' + thief.slice(0, 4) + ')');
+  check(thief.slice(4).every(x => x), 'thief: missing from a hood from H05 on (' + thief.indexOf(false, 4) + ')');
+  const early = P.createSim(3, { levelIndex: 4 * 5 + 1, loadout: null });   // H05 stage 1: no new types yet
+  check(!early.gen.roster.includes('marti'), 'thief: present at stage 1');
+  check(P.CFG.levels.thief.fromHood === 4 && P.CFG.levels.thief.type === 'marti', 'thief: config is not H05 (index 4) marti');
+  check(!P.CFG.levels.schedule.some(sc => sc.type === 'marti'), 'thief: the schedule still lists marti by hood');
+}
+
+// ---------- 10. ambient fauna: view only (digest equal with fauna on and off), reduce-motion and placement ----------
+// A stub canvas context: every method is a no-op, so the draw path runs headless.
+const noop = () => {};
+const ctxStub = new Proxy({}, { get: (t, k) => (k in t ? t[k] : k === 'createLinearGradient' ? () => ({ addColorStop: noop }) : noop),
+  set: (t, k, v) => { t[k] = v; return true; } });
+const Rstub = { ctx: ctxStub, ppm: 32.5, W: 390, H: 844, X: x => x * 32.5, Y: y => -y * 32.5, depth(y, fn) { fn(); } };
+function digestFauna(seed, idx, withFauna, lookOverride) {
+  const s = P.createSim(seed, { levelIndex: idx, loadout: null });
+  s.mode = 'play';
+  const h = crypto.createHash('sha256');
+  const savedLook = P.Fauna.lookFor;
+  if (lookOverride) P.Fauna.lookFor = lookOverride;
+  let thiefSeen = 0;
+  try {
+    for (let i = 0; i < 1200; i++) {
+      const inp = { x: Math.sin(i / 40), y: Math.cos(i / 55) * 0.5 };
+      P.stepSim(s, DT, inp);
+      if (withFauna) { P.Fauna.update(DT, s); P.Fauna.props(Rstub, s); }
+      thiefSeen += s.enemies.filter(e => e.type === 'marti').length;
+      if (i % 60 === 0) h.update([s.hero.x.toFixed(6), s.hero.y.toFixed(6), s.enemies.length, s.drops.length, s.kills, s.enemyTele.length].join('|'));
+      if (s.mode !== 'play') break;
+    }
+  } finally { P.Fauna.lookFor = savedLook; }
+  return { hex: h.digest('hex'), thiefSeen };
+}
+{
+  const off = digestFauna(21, 22, false), on = digestFauna(21, 22, true);
+  check(off.hex === on.hex, 'fauna: the sim digest changed with ambient fauna on (view only)');
+  const pig = digestFauna(21, 22, false, () => 'pigeon'), sea = digestFauna(21, 22, false, () => 'seagull');
+  check(pig.hex === sea.hex, 'looks: the seagull and pigeon thief gave different sim digests for the same seed');
+  check(off.thiefSeen > 0, 'looks: the probe run had no thief (the look test is empty)');
+  // Placement and motion: cats and birds on the level, never in the central lane, never in a street block, and cats never
+  // step onto an enemy's or the hero's path as a sim object (they are not in s.enemies).
+  const s = P.createSim(21, { levelIndex: 22, loadout: null });
+  s.mode = 'play';
+  for (let i = 0; i < 600; i++) { P.stepSim(s, DT, { x: 0, y: 1 }); P.Fauna.update(DT, s); }
+  const cats = P.Fauna.cats(), birds = P.Fauna.birds();
+  check(cats.length >= P.CFG.fauna.cats.perLevel[0] && cats.length <= P.CFG.fauna.cats.perLevel[1], 'fauna: ' + cats.length + ' cats on a level (1 to 3)');
+  check(birds.length >= P.CFG.fauna.birds.perLevel[0] && birds.length <= P.CFG.fauna.birds.perLevel[1], 'fauna: ' + birds.length + ' birds on a level (2 to 4)');
+  check([...cats, ...birds].every(a => Math.abs(a.home.x) >= P.CFG.fauna.sideMin), 'fauna: an animal spot is in the central lane');
+  check(cats.every(c => !s.geo.blocks.some(b => Math.abs(b.x - c.home.x) < b.w / 2 && Math.abs(b.y - c.home.y) < b.h / 2)), 'fauna: a cat spot is inside a street block');
+  check(s.enemies.every(e => e.type !== 'cat' && e.type !== 'bird' && e.type !== 'pigeon' && e.type !== 'seagull'), 'fauna: an animal became an enemy');
+  // Reduce motion: no trot, no flight, no walk (the animals sit and peck).
+  P.Settings = Object.assign(P.Settings || {}, { reduceMotion: true });
+  const cat0 = cats[0], x0 = cat0.x, hx0 = s.hero.x, hy0 = s.hero.y;
+  s.hero.x = cat0.x + 1; s.hero.y = cat0.y;                   // the hero right beside the cat
+  for (let i = 0; i < 60; i++) P.Fauna.update(DT, s);
+  check(cat0.st !== 'trot' && cat0.x === x0, 'reduce-motion: a cat trotted away');
+  s.hero.x = hx0; s.hero.y = hy0;
+  P.Settings.reduceMotion = false;
+  s.hero.x = cat0.x + 1; s.hero.y = cat0.y; P.Fauna.update(DT, s);
+  check(cat0.st === 'trot', 'shy: a cat did not trot away from the hero within shyR');
+  s.hero.x = hx0; s.hero.y = hy0;
+  // Hiss: an elite within hissR makes a cat stand, with no effect on the sim (checked by the digest above).
+  const s2 = P.createSim(21, { levelIndex: 22, loadout: null }); s2.mode = 'play';
+  P.stepSim(s2, DT, { x: 0, y: 0 }); P.Fauna.update(DT, s2);
+  const c2 = P.Fauna.cats()[0];
+  if (c2) {
+    const boss = P.Combat.spawnEnemy(s2, 'walker', c2.x + 3, c2.y, {}); boss.elite = true; boss.state = 'active';
+    P.Fauna.update(DT, s2);
+    check(c2.st === 'stand' && c2.hiss > 0, 'hiss: a cat did not stand up for an elite within ' + P.CFG.fauna.cats.hissR + ' m');
+  }
+}
+// The new view files stay under the 600-line rule (AGENTS.md).
+['view/fauna.js', 'view/fauna-art.js', 'config-fauna.js'].forEach(f => {
+  const n = fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8').split('\n').length;
+  check(n <= 600, f + ' is ' + n + ' lines (over 600)');
+});
+
 if (problems.length) { console.log('enemy behaviours: FAIL'); problems.forEach(p => console.log('  - ' + p)); process.exit(1); }
 console.log('enemy behaviours: ok (fisher pull, musician buff, hamal rear and crate, marti steal and return, cayci puddle, floors, caps, determinism)');
 notes.forEach(n => console.log('note: ' + n));

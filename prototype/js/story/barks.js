@@ -178,16 +178,27 @@ P.Barks = (function () {
   // First sighting of an enemy type this run: the first active one within CFG.sightR m of Arda (entrances the event
   // covers too; S.met keeps each type to one line). One new type per frame.
   function scanSightings(s) {
-    var h = s.hero, list = s.enemies || [], i, e;
+    var h = s.hero, list = s.enemies || [], i, e, k;
     if (!h) return;
     for (i = 0; i < list.length; i++) {
       e = list[i];
-      if (e.dead || e.boss || e.state !== 'active' || S.met[e.type]) continue;
-      if (Math.hypot(e.x - h.x, e.y - h.y) > CFG.sightR) continue;
-      S.met[e.type] = true; want(2, null, B.pools.fk + e.type + '.');
+      if (e.dead || e.boss || e.state !== 'active') continue;
+      k = fkKey(e.type, s);
+      if (S.met[k] || Math.hypot(e.x - h.x, e.y - h.y) > CFG.sightR) continue;
+      S.met[k] = true; want(2, null, B.pools.fk + k + '.');
       return;
     }
   }
+  // The thief's pigeon look (inland hoods, P.Fauna.lookFor) has its own first-sighting line, BK.fk.guvercin. Other kinds keep theirs.
+  function fkKey(type, s) {
+    if (type !== 'marti' || !P.Fauna || !s || !s.levelInfo || !s.levelInfo.hood) return type;
+    return P.Fauna.lookFor(s.levelInfo.hood.id) === 'pigeon' ? 'guvercin' : type;
+  }
+  // Ambient fauna (view/fauna.js, not a sim event): the first sighting of a kind this run ('kedi': the first cat in view).
+  B.fauna = function (kind) {
+    if (!S || !S.on || S.met[kind]) return;
+    S.met[kind] = true; want(2, null, B.pools.fk + kind + '.');
+  };
   function selfTalk() {
     var r = S.rng();
     want(1, 'self', r < 0.6 ? B.pools.self : r < 0.8 ? B.pools.mom : B.pools.dad);
@@ -209,11 +220,11 @@ P.Barks = (function () {
 
   // ---------- events ----------
   var H = {};
-  H.kill = function (ev) {
-    var t = S.clock;
+  H.kill = function (ev, s) {
+    var t = S.clock, k = fkKey(ev.enemy, s);
     S.streak = t - S.lastKillT <= 2.5 ? S.streak + 1 : 1;
     S.lastKillT = t;
-    if (ev.enemy && !S.seen[ev.enemy]) { S.seen[ev.enemy] = true; want(3, null, B.pools.fk + ev.enemy + '.'); }
+    if (ev.enemy && !S.seen[k]) { S.seen[k] = true; want(3, null, B.pools.fk + k + '.'); }
     if (ev.elite && !S.seen.elite) { S.seen.elite = true; want(2, null, B.pools.fk + 'elite.'); }
     [10, 25, 50, 100].forEach(function (n) { if (S.streak === n) want(2, null, B.pools.streak + n + '.'); });
   };
@@ -260,7 +271,10 @@ P.Barks = (function () {
   // Active skills (sim skillUsed, id = shield | tea), the first sighting of each enemy type in a run (the fk pool's lines
   // read as encounters), objectives, and boss phase changes.
   H.skillUsed = function (ev) { want(2, 'skill', B.pools.skill + ev.id + '.'); };
-  H.enemyEnter = function (ev) { if (ev.enemy && !S.met[ev.enemy]) { S.met[ev.enemy] = true; want(2, null, B.pools.fk + ev.enemy + '.'); } };
+  H.enemyEnter = function (ev, s) {
+    var k = fkKey(ev.enemy, s);
+    if (ev.enemy && !S.met[k]) { S.met[k] = true; want(2, null, B.pools.fk + k + '.'); }
+  };
   H.objStart = function () { want(1, null, B.pools.obj + 'start.'); };
   H.objDone = function () { want(2, null, B.pools.obj + 'done.'); };
   H.objFail = function () { want(2, null, B.pools.obj + 'fail.'); };

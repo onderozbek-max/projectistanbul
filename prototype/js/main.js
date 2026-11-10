@@ -360,6 +360,7 @@
     if (steps === P.CFG.sim.maxStepsPerFrame) acc = 0;
     if (P.Music && P.Music.intensity) P.Music.intensity(Math.min(1, sim.enemies.length / 90));
     if (P.Barks && P.Barks.update) P.Barks.update(dt, sim);
+    if (P.Fauna && P.Fauna.update) P.Fauna.update(dt, sim);   // R1: ambient cats and birds (view only, reads the sim)
     perfSample(dt);
   }
 
