@@ -138,6 +138,13 @@ the list.
 
 New types join the route mix from the stage shown (`C.levels.schedule` in `config-levels.js`). Their share grows with hood index (`newGrow` 0.1). Affixes roll on regular generated-level spawns (`C.affix.schedule`) from the hood shown. Hoods H01 to H04 have no new types and no affixes, so the early funnel is unchanged.
 
+**Ambient fauna exception (D-055).** Stray cats and ambient birds appear in every hood, H01 to H04 included, as cosmetic view-only life: never enemies, never in the sim. The thief bird (`marti`) is the one enemy that follows geography rather than a hood list: it joins from H05 Eminönü on, in every later hood, with a seagull look in seaside hoods and a pigeon look inland (`config-fauna.js`, `birdLook`).
+
+| Look | Hoods |
+|---|---|
+| Seagull | Galata, Galata Köprüsü, Karaköy, Eminönü, Sirkeci, Kumkapı, Samatya, Yedikule, Kazlıçeşme, Bakırköy Sahil, Ataköy Marina, Ataköy |
+| Pigeon | İstiklal, Kapalıçarşı, Beyazıt, Laleli, Aksaray, Yenikapı (underground metro hood), Zeytinburnu, Bakırköy Çarşı |
+
 | Hood | Name | New type (from stage) |
 |---|---|---|
 | H05 | Eminönü | parkur (3) |

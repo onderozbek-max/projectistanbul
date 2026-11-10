@@ -334,12 +334,16 @@ A skin rolls its behaviour once, at spawn, with `chance` 0.2 per eligible spawn 
 
 | ID | Name (EN / TR) | HP | Speed | Contact dmg | XP | Budget | Knockback resist | Behavior | First level |
 |---|---|---|---|---|---|---|---|---|---|
-| `enm_marti` | Seagull thief / Martı | 5 | 3.6 | 0 | 3 | 1.5 | 20% | Flies over walls, hovers within 2 m of the hero. With a loose XP drop within 4.5 m: a dive shadow (0.5 s ring) on the drop, then a dive at 9 m/s takes it. Flees at 5 m/s with the XP. Killed while carrying: the XP drops again with 6 gold. Off-screen while carrying: the XP is lost, no kill credit | Stage 2, 8 waterfront hoods (`galata`, `bridge`, `eminonu`, `kumkapi`, `samatya`, `bakirkoysahil`, `atakoysahil`, `atakoy`) |
+| `enm_marti` | Seagull thief / Martı | 5 | 3.6 | 0 | 3 | 1.5 | 20% | Flies over walls, hovers within 2 m of the hero. With a loose XP drop within 4.5 m: a dive shadow (0.5 s ring) on the drop, then a dive at 9 m/s takes it. Flees at 5 m/s with the XP. Killed while carrying: the XP drops again with 6 gold. Off-screen while carrying: the XP is lost, no kill credit | Stage 2 in every hood from H05 Eminönü on (`C.levels.thief`), none in H01 to H04. The look is seagull in seaside hoods and pigeon inland (`C.birdLook`, `config-fauna.js`); same stats and behavior |
 | `enm_cayci` | Tea carrier / Çaycı | 28 | 0.9 | 6 | 6 | 3.0 | 20% | Keeps 4.5 m (band 0.8 m) from the hero. Throws from 2.5 to 5 m every 4.0 s (first after 1.5 s), after a 0.7 s windup (ground ring on the hero's spot, the telegraph). Glob 0 damage, lands as a 1.0 m puddle for 6 s. In the puddle the hero moves at 0.75x, for 3 s after the last touch | Stage 2, 6 old-city hoods (`eminonu`, `sirkeci`, `beyazit`, `kapalicarsi`, `laleli`, `aksaray`) |
 
 Both types are added to `newTypes` (route mix weight, growing by `newGrow` 0.1 per hood index).
 
 ### 11.3 Bark beats
 
-`BK.fk.marti` and `BK.fk.cayci` (first-sighting barks, batch D, speaker Arda, `joke` 1). EN lines approved through the dialogue import keep sheet; TR lines are drafts for owner review.
+`BK.fk.marti`, `BK.fk.cayci`, `BK.fk.guvercin` (inland pigeon thief) and `BK.fk.kedi` (first stray cat) are first-sighting barks, batch D, speaker Arda, `joke` 1. EN lines are approved by the lead; the `guvercin` and `kedi` TR lines are drafts for owner review (`reviews/dialogue/tr-D2.csv`).
+
+### 11.4 Ambient fauna (view only)
+
+Stray cats (white-and-brown mixed, orange, brown; 1 to 3 per level) and ambient birds (2 to 4 per level; seagulls by the sea, pigeons inland) are in every hood, H01 to H04 included. They are cosmetic: never enemies, never damage, never in the sim state, no sim random numbers, no effect on the sim digest. A cat trots away from the hero within 3 m and stands and hisses at an elite or boss within 10 m. Birds take off when the hero or an enemy is within 2.5 m. Numbers are taste dials in `config-fauna.js`. The named tabby Paşa (story, L12) is separate from the anonymous strays.
 

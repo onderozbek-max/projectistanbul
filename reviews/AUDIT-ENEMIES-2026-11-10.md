@@ -211,7 +211,7 @@ No-death moves at most 5 points down (L10, L43), within the 10-point limit, so n
 Not done: silhouette test at 48 px (not tested). Musician and hamal have no telegraph by design, so their frames show the effect only.
 
 **Deviations and weak points:**
-1. Marti is placed on H02 Galata and H04 Galata Köprüsü from stage 2. `docs/journey.md` §5.0 says H01 to H04 have no new types. Owner call: move these two hoods out of the marti list (6 hoods left), or change §5.0.
+1. **Resolved 2026-11-10 (R1 birds-cats): the thief now starts at H05 in every later hood, none in H01 to H04.** Marti was placed on H02 Galata and H04 Galata Köprüsü from stage 2. `docs/journey.md` §5.0 says H01 to H04 have no new types. Owner call: move these two hoods out of the marti list (6 hoods left), or change §5.0.
 2. Cayci slow is a speed multiplier (0.65x for 3 s after the last touch), not a stop. The glob does no damage (the audit only asked for a slowing puddle).
 3. Skins have no bark of their own; only the two new types get first-sighting lines.
 4. Hamal's rear bonus rarely triggers while it chases (it comes at the hero from the front).
