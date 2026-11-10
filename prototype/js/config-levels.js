@@ -122,13 +122,13 @@
       { hood: 'kazlicesme', type: 'parkur', from: 3 }, { hood: 'bakirkoy', type: 'kasap', from: 4 },
       { hood: 'bakirkoysahil', type: 'parkur', from: 2 }, { hood: 'atakoysahil', type: 'kasap', from: 2 },
       { hood: 'atakoy', type: 'parkur', from: 2 }, { hood: 'atakoy', type: 'zehirli', from: 3 }, { hood: 'atakoy', type: 'kasap', from: 4 },
-      // Wave 1 (R1, audit section 10): marti (seagull thief) on the waterfront, cayci (tea carrier) in the old city, from stage 2.
-      { hood: 'galata', type: 'marti', from: 2 }, { hood: 'bridge', type: 'marti', from: 2 }, { hood: 'eminonu', type: 'marti', from: 2 },
-      { hood: 'kumkapi', type: 'marti', from: 2 }, { hood: 'samatya', type: 'marti', from: 2 }, { hood: 'bakirkoysahil', type: 'marti', from: 2 },
-      { hood: 'atakoysahil', type: 'marti', from: 2 }, { hood: 'atakoy', type: 'marti', from: 2 },
+      // Wave 1 (R1, audit section 10): cayci (tea carrier) in the old city, from stage 2. The thief (marti) is set by `thief` below.
       { hood: 'eminonu', type: 'cayci', from: 2 }, { hood: 'sirkeci', type: 'cayci', from: 2 }, { hood: 'beyazit', type: 'cayci', from: 2 },
       { hood: 'kapalicarsi', type: 'cayci', from: 2 }, { hood: 'laleli', type: 'cayci', from: 2 }, { hood: 'aksaray', type: 'cayci', from: 2 },
     ],
+    // Thief (marti, R1 audit 13 answer 1): one behaviour, two looks by geography (config-fauna.js birdLook). It is in every hood
+    // from fromHood on (0-based: 4 = H05 Eminönü), from stage `from`. H01 to H04 have no enemy thieves (docs/journey.md §5.0).
+    thief: { type: 'marti', fromHood: 4, from: 2 },
     extraTypes: ['screamer', 'hardhat'],   // weight extraShare x segment share
     newTypes: ['parkur', 'kasap', 'zehirli', 'marti', 'cayci'], newGrow: 0.1,   // v0.6 types (+ wave 1): same weight, times (1 + newGrow x hood index)
     // Boss names are NOT here (AUDIT-5 D-8/H2, owner 2026-11-08): one set lives in js/story/strings-story.js (spk.b.*,

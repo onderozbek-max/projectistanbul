@@ -39,7 +39,7 @@ P.Levels.build = function (s, index) {
   s.props = { carts: [], canisters: [], doorOpen: true, shutter: 0, shutterOpen: false, scaffoldDown: false, geo: geo };
   s.hero.x = 0; s.hero.y = 2;
   s.dir.hold.T = geo.holdT;
-  s.gen = { info: info, st: st, stageIdx: info.stage, hood: info.hood, roster: rosterOf(info.hood, info.stage), skins: info.hood.skins,
+  s.gen = { info: info, st: st, stageIdx: info.stage, hood: info.hood, roster: rosterOf(info.hood, info.stage, info.hoodIndex), skins: info.hood.skins,
     marks: [], mi: 0, seg: 'A', acc: 0, next: null, arena: false, bossSpawned: false, boss: null, won: false, midDone: false, t: 0 };
   s.layout = P.Layouts.plan(s, info, rng, geo);   // zone and centre landmarks first: street blocks keep clear of them
   layBlocks(geo, rng);
@@ -55,12 +55,13 @@ P.Levels.build = function (s, index) {
 };
 
 // Roster: the hood's enemy types, plus its extras (v0.5 screamer / hardhat) from stage extraFrom on, plus the v0.6
-// schedule (new types by hood and stage, config-levels.js).
-function rosterOf(hood, stage) {
-  var C = P.CFG.levels, base = hood.enemies.filter(function (t) { return t !== 'diner'; }), ex = C.hoodExtras[hood.id] || [], out;
+// schedule (new types by hood and stage, config-levels.js), plus the thief (`thief`, by hood index from fromHood on).
+function rosterOf(hood, stage, hoodIndex) {
+  var C = P.CFG.levels, base = hood.enemies.filter(function (t) { return t !== 'diner'; }), ex = C.hoodExtras[hood.id] || [], out, T = C.thief;
   if (stage < C.extraFrom) return base;
   out = base.concat(ex.filter(function (t) { return base.indexOf(t) < 0; }));
   C.schedule.forEach(function (sc) { if (sc.hood === hood.id && stage >= sc.from && out.indexOf(sc.type) < 0) out.push(sc.type); });
+  if (T && hoodIndex >= T.fromHood && stage >= T.from && out.indexOf(T.type) < 0) out.push(T.type);
   return out;
 }
 
