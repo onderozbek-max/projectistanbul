@@ -126,7 +126,7 @@ None. No number or design was changed by this audit. Every proposal above is a p
 | 10 | Dialogue PR opened by the owner | |
 | 11 | R1 files on their own branch | Branch `r1/enemy-fixes` carries the R1 plan, this audit and the fixes |
 
-D-052, D-053 and D-054 are still **Proposed** (no answer yet).
+D-052, D-053 and D-054 were accepted on 2026-11-10 by the lead under the owner's delegation (`docs/product.md` §17). The B6 enemy cap and the D9 diner question are settled in D-056.
 
 ## 10. Variety plan
 
