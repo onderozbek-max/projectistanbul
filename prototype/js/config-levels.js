@@ -199,7 +199,7 @@
     tram: { w: 2.8, len: 12, back: 1, dmg: 999, kb: 2.0, rushT: 0.8 },
   };
 
-  // ---- v0.5 strings and call lines. Merged into P.STR / P.LINES by js/view/events-fx.js (strings load later). ----
+  // ---- v0.5 strings (merged into P.STR by js/view/events-fx.js; strings load later) and call subtitle times. ----
   C.levelStrings = {
     'prompt.hack': { tr: 'Bağlan · basılı tut', en: 'Link · hold' },
     'prompt.rescue': { tr: 'Kafesin yanında dur', en: 'Stay by the cage' },
@@ -231,7 +231,7 @@
     'ev.tram': { tr: 'TRAM!', en: 'TRAM!' },
     'ev.ferry': { tr: 'VAPUR!', en: 'FERRY!' },
     'ev.defend': { tr: 'Dayan!', en: 'Hold!' },
-    'set.bloater': { tr: 'Şişman Garson', en: 'Fat Waiter' },
+    'set.bloater': { tr: 'Dombili', en: 'Bloated Waiter' },
     'set.spitter': { tr: 'Balkon tükürükçüsü', en: 'Balcony spitter' },
     'set.screamer': { tr: 'Çığlıkçı', en: 'Screamer' },
     'set.hardhat': { tr: 'Baretli', en: 'Hardhat' },
@@ -244,14 +244,8 @@
     'aff.zirhli': { tr: 'Zırhlı', en: 'Armoured' },
     'aff.patlayan': { tr: 'Patlayan', en: 'Volatile' },
   };
-  C.levelLines = {
-    callHack1: ['spk.anne', 'Arda! Duyuyor musun? Sinyal geldi galiba!', 'Arda! Can you hear me? I think the signal is back!'],
-    callHack2: ['spk.arda', 'Duyuyorum anne! Eve yürüyorum, merak etme.', "I can hear you! I'm walking home, don't worry."],
-    barkBloater: ['spk.arda', 'Şişman bir garson... kapıdan fırladı!', 'A fat waiter... just burst out of the shop!'],
-    barkSpitter: ['spk.arda', 'Balkonda biri bana tükürüyor!', 'Someone on the balcony is spitting at me!'],
-    barkScreamer: ['spk.arda', 'Bağırdı... şimdi herkes buraya gelecek!', 'It screamed... now everyone is coming!'],
-    barkHack: ['spk.arda', 'Sinyal kutusu! Bağlanabilirim.', 'The signal box! I can link into it.'],
-    barkBlackout: ['spk.arda', 'Elektrikler gitti... gözleri parlıyor.', "Power's gone... their eyes are glowing."],
-    barkLoot: ['spk.arda', 'O tepsi simit dolu! Yakalamam lazım.', 'That tray is full of simit! I have to catch it.'],
-  };
+  // Seconds a call subtitle stays up, by call id (Phase 3 rule: min(4.5, max(2.2, 0.4 + 0.058 per character of the longer of the two lines))). Fixed numbers, so
+  // the timer is the same in every language and the sim never reads text. The call lines are the beats of the same id in js/dialogue/.
+  C.callDurDefault = 2.6;
+  C.callDur = { callA1: 3.416, callA2: 2.72, callA3: 3.996, callB1: 3.3, callB2: 3.184, callB3: 4.228, callB4: 4.5, callC1: 2.836, callC2: 4.5, callD1: 2.952, callHack1: 2.778, callHack2: 3.648 };
 })(P.CFG);

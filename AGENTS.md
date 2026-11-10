@@ -37,6 +37,7 @@ zombie-overrun Istanbul. Portrait, one-thumb, Godot 4, **iOS first** (Android la
 - **Dependency rules** (architecture.md §5) are enforced by tests; don't work around them.
 - **Files ≤ 600 lines** (prefer ≤ 300). Functions ≤ ~40 lines. One concern per file.
 - **Localization:** no hardcoded user-facing strings; use keys. Turkish casing via `text_util`.
+- **Voice text** lives only in `js/dialogue/`, written natively per language from the beat table. Never translate a voice line (D-051).
 - **Guardrails** (narrative.md, *Writer Guardrails*): no real state actors, earthquake
   imagery, religion/politics as targets, or real brands/club crests. No flashes over 3 per second.
 - **No secrets** in the repo. No new plugins or paid services without asking.

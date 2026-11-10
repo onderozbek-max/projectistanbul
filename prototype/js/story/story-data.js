@@ -16,10 +16,10 @@ P.Story = (function () {
   var SPK = {
     'spk.arda': { who: 'arda', side: 'l' }, 'spk.phone': { who: 'arda', side: 'l', mood: 'sad' },
     'spk.anne': { who: 'anne', side: 'r' }, 'spk.baba': { who: 'baba', side: 'r' }, 'spk.usta': { who: 'usta', side: 'r' },
-    'spk.friend': { who: 'friend', side: 'r' }, 'spk.kaan': { who: 'friend', side: 'r' },
+    'spk.friend': { who: 'kaan', side: 'r' }, 'spk.kaan': { who: 'kaan', side: 'r' },
     'spk.news': { who: 'news', side: 'r', mood: 'shout' },
     'spk.shop': { who: 'shopkeeper', side: 'r' }, 'spk.shopkeeper': { who: 'shopkeeper', side: 'r' },
-    'spk.ahmet': { who: 'shopkeeper', side: 'r' }, 'spk.mila': { who: 'stranger', side: 'r' },
+    'spk.ahmet': { who: 'ahmet', side: 'r' }, 'spk.mila': { who: 'mila', side: 'r' }, 'spk.dede': { who: 'dede', side: 'r' }, 'spk.ada': { who: 'ada', side: 'r' },
     'spk.stranger': { who: 'stranger', side: 'r' }, 'spk.zombie': { who: 'zombie', side: 'r', mood: 'shout' }
   };
   // Calls: [line prefix, line count, bars per line]. A last line at 0 bars ends in "Sinyal yok" (dropped).
@@ -45,13 +45,13 @@ P.Story = (function () {
 
   // ---------- lines ----------
   function bossSpeaker(key) {
-    return key === 'spk.b.atakoy' ? { who: 'shopkeeper', side: 'r', mood: 'sad' } : { who: 'zombie', side: 'r', mood: 'shout' };
+    return key === 'spk.b.atakoy' ? { who: 'ahmet', side: 'r', mood: 'sad' } : { who: 'zombie', side: 'r', mood: 'shout' };
   }
   // {who, side, mood, important} for a line, or null for narration and unknown lines.
   S.forLine = function (id) {
-    var L = P.LINES && P.LINES[id], base;
-    if (!L || L[0] === 'spk.cap') return null;
-    base = SPK[L[0]] || (L[0].indexOf('spk.b.') === 0 ? bossSpeaker(L[0]) : null);
+    var B = P.Dialogue.beat(id), spk = B && B.spk, base;
+    if (!B || spk === 'spk.cap') return null;
+    base = SPK[spk] || (spk.indexOf('spk.b.') === 0 ? bossSpeaker(spk) : null);
     if (!base) return null;
     return { who: base.who, side: base.side, mood: MOOD[id] || base.mood || 'neutral', important: !!IMPORTANT[id] };
   };
@@ -78,7 +78,7 @@ P.Story = (function () {
     });
     return pn(bg, tone, bustsFor(who), it, extra);
   }
-  function linesWith(prefix) { return Object.keys(P.LINES).filter(function (k) { return k.indexOf(prefix) === 0; }); }
+  function linesWith(prefix) { return P.Dialogue.ids(prefix); }
   function hoodPages() {
     var out = {};
     P.Journey.hoods.forEach(function (h, hi) {
@@ -161,5 +161,6 @@ P.Story = (function () {
     return false;
   };
   S.levelIndex = levelIndex;
+  P.Dialogue.onLang(function () { if (P.Comic && P.Comic.relang) P.Comic.relang(); });
   return S;
 })();

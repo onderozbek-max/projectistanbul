@@ -87,7 +87,7 @@ if (P.STR) {
     'hc.obj': 'OBJECTIVE: {name}', 'hc.mod': 'CONDITION: {name}',
     'unlock.title': 'NEW UNLOCKED', 'unlock.next': 'Next level', 'unlock.none': 'Nothing new on this level',
     'unlock.kind.weapon': 'Weapon', 'unlock.kind.passive': 'Passive', 'unlock.kind.enemy': 'Zombie',
-    'unlock.kind.boss': 'Boss', 'unlock.kind.hood': 'Neighbourhood', 'unlock.kind.objective': 'Objective', 'unlock.kind.mod': 'Condition',
+    'unlock.kind.boss': 'Boss', 'unlock.kind.hood': 'Neighborhood', 'unlock.kind.objective': 'Objective', 'unlock.kind.mod': 'Condition',
     'res.stars': 'Stars',
   });
 }

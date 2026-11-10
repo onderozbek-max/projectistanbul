@@ -1,5 +1,20 @@
 # prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.8)
 
+> **v0.9 (2026-11-09), animation pass:** a view-only game-feel layer (`js/view/feel.js`, numbers in `js/config-feel.js`). Struck enemies
+> squash, tilt and shove on a damped spring; heavy and critical hits add rate-limited hit-stop and a camera kick; blood and gibs arc with
+> fake height and leave a tiny decal; weapon fire kicks the view back from the muzzle (by weapon id, then element) and every weapon hit
+> throws element sparks (embers, zaps, steel, foam, grit). Arda leans by speed, stretches on start, settles on stop and kicks up dust per
+> footfall; idle zombies breathe instead of freezing mid-stride; the knife arm has anticipation and follow-through. Torch, chainsaw,
+> cable, fireworks and extinguisher poses gained wind-up and recoil; the extinguisher mist was dead code and now draws. 2.5D cues: ground
+> light pools are ellipses and every contact shadow slips to one side. `js/view/vehicles.js`: the tram is a car with height (level 1,
+> idle) and sweeps the lane on the tram-box hack; the kurye scooter has rolling wheels and a dust trail; the taxi has wheels, a shadow,
+> body roll and headlight beams. Reduce motion turns hit-stop, kick and most particles off. The simulation reads none of it.
+
+> **v0.9 (2026-11-09), character pass:** busts rebuilt on charm rules (`docs/characters.md`): round head, big low-set eyes with two
+> highlights, short neck, always-on soft cheeks, warm shade colours. New faces for Kaan, Mila, Ada, Dede and Ahmet Abi (Mila used to
+> be drawn as the "stranger" bust). Hair and facial hair moved to `js/view/comic-busts-hair.js`. `P.Portraits.draw` now delegates to
+> the same engine. In-run Arda: bigger eyes, highlights, blush. Preview: `tools/cast-sheet.html`.
+
 > **v0.8 (2026-11-09), wave 3 integration:** walk order fixed (Kumkapı after Beyazıt; Zeytinburnu and Kazlıçeşme swapped).
 > Story ids, bark pools, hood looks, roster adds and the campfire now follow their hood (`tools/check-hood-keys.js`).
 > Route spawns use manhole, window and balcony entrances again; set pieces never move; tram entrances only in tram hoods.
@@ -7,7 +22,7 @@
 > hides the chip; Iron shows the down screen without revive; HP ticks, objective labels, letters (L50, L95) and hoodsCleared fixed.
 >
 > **v0.7 (2026-11-08):** owner feedback + AUDIT-6 player review. Comic busts redrawn with real proportions and
-> moods; humour written natively per language (`strings-barks-tr/en.js`, `story-lang-tr/en.js`, joke budget);
+> moods; humour written natively per language (`js/dialogue/`, one store, D-051; joke budget);
 > `P.Speech` stops bubble overlap; no gulls/rain indoors; random zoom/flash/speed lines removed, replaced by
 > cause-tied moments (finisher kill-cam, chain reactions, last stand, streak meter). Arena interactions (breakable
 > cover, explosive cars and gas, cable + water, wet tiles, door/window spawns; `tools/test-env.js`), 6 layout

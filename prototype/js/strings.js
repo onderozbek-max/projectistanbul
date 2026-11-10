@@ -1,5 +1,5 @@
-// Localized strings (TR primary, EN). Dialogue TR is from docs (LD 4, 9; NAR); EN dialogue lines are
-// prototype translations unless quoted in LD. Turkish casing goes through P.upper().
+// Localized strings (classes A and B: UI, rules text, speaker names), TR and EN, translated precisely. Voice text (class C) is not
+// here: it lives in js/dialogue/ (D-051). Turkish casing goes through P.upper().
 P.STR = {
   tr: {
     'ui.title.logo': 'No Signal', 'ui.title.sub': 'İSTANBUL', 'ui.title.tap': 'Başlamak için dokun',
@@ -42,11 +42,11 @@ P.STR = {
     'combo.label': 'SERİ', 'combo.25': 'SÜPER!', 'combo.50': 'MÜTHİŞ!', 'combo.100': 'EFSANE!', 'combo.200': 'DURDURULAMAZ!',
     'chest.title': 'KUTU!', 'chest.tap': 'Devam etmek için dokun', 'chest.level': 'Seviye {n}',
     'type.weapon': 'SİLAH', 'type.passive': 'DESTEK', 'type.filler': 'EKSTRA',
-    'desc.knife': 'Ustanın bıçağı. En yakın hedefe geniş bir yay çizer.', 'desc.knife.up': 'Kesişin güçlenir.',
+    'desc.knife': 'En yakın hedefe geniş bir yay çizer.', 'desc.knife.up': 'Kesişin güçlenir.',
     'desc.nailgun': 'En yakın zombiye otomatik çivi sıkar. Çiviler deler geçer.', 'desc.nailgun.up': 'Tabanca güçlenir.',
     'desc.canister': 'En kalabalık gruba tüp fırlatır. Çarpınca patlar.', 'desc.canister.up': 'Patlamalar güçlenir.',
     'desc.chain': 'Etrafında dönen zincir. Yaklaşanı biçer.', 'desc.chain.up': 'Zincir güçlenir.',
-    'desc.shoes': 'Daha hızlı koş. Kaçmak da bir silahtır.', 'desc.jacket': 'Her darbeden düz hasar düşer. 4. seviyede +can.',
+    'desc.shoes': 'Daha hızlı koş.', 'desc.jacket': 'Her darbeden düz hasar düşer. 4. seviyede +can.',
     'desc.gloves': 'Tüm silahlar daha sert vurur ve daha çok iter.', 'desc.energy': 'Tüm silahlar daha sık ateşler.',
     'desc.medkit': 'Hemen 25 can. 3 sn vurulmazsan can yenilenir.',
     'desc.simit': '30 can yenile.', 'desc.jeton': '+20 Jeton.',
@@ -98,11 +98,11 @@ P.STR = {
     'combo.label': 'COMBO', 'combo.25': 'SUPER!', 'combo.50': 'AWESOME!', 'combo.100': 'LEGENDARY!', 'combo.200': 'UNSTOPPABLE!',
     'chest.title': 'CHEST!', 'chest.tap': 'Tap to continue', 'chest.level': 'Level {n}',
     'type.weapon': 'WEAPON', 'type.passive': 'GEAR', 'type.filler': 'EXTRA',
-    'desc.knife': "The cook's knife. Sweeps a wide arc at the nearest threat.", 'desc.knife.up': 'Your cuts get nastier.',
+    'desc.knife': "Sweeps a wide arc at the nearest threat.", 'desc.knife.up': 'Your cuts get nastier.',
     'desc.nailgun': 'Auto-fires nails at the nearest zombie. Nails pierce.', 'desc.nailgun.up': 'The gun gets meaner.',
     'desc.canister': 'Lobs a canister into the thickest crowd. Boom.', 'desc.canister.up': 'Bigger booms.',
     'desc.chain': 'A chain whirls around you, shredding anything close.', 'desc.chain.up': 'The chain gets meaner.',
-    'desc.shoes': 'Run faster. Running is a weapon too.', 'desc.jacket': 'Flat damage off every hit. +HP at level 4.',
+    'desc.shoes': 'Run faster.', 'desc.jacket': 'Flat damage off every hit. +HP at level 4.',
     'desc.gloves': 'Every weapon hits harder and shoves further.', 'desc.energy': 'Every weapon fires more often.',
     'desc.medkit': 'Heal 25 now. Regenerate after 3 s without a hit.',
     'desc.simit': 'Heal 30 HP.', 'desc.jeton': '+20 Jeton.',
@@ -115,36 +115,7 @@ P.STR = {
   },
 };
 
-// Dialogue: [speakerKey, tr, en]. Subtitled; TR is the VO language.
-P.LINES = {
-  s2: ['spk.usta', 'Afiyet olsun, genç!', 'Enjoy your meal, young man!'],
-  s3: ['spk.friend', 'Abi, iyi misin? Yüzün bembeyaz.', "Bro, you okay? You're white as a sheet."],
-  s4: ['spk.news', 'SON DAKİKA: Şehrin birçok noktasında açıklanamayan saldırılar... Vatandaşların evlerinde kalması isteniyor.',
-       'BREAKING: Unexplained attacks across the city... Residents are urged to stay home.'],
-  rule1: ['spk.arda', 'Kural bir: kafaya.', 'Rule one: the head.'],
-  rule2: ['spk.arda', 'Kural iki: asla ısırılma.', 'Rule two: never get bitten.'],
-  rule3: ['spk.arda', 'Kural üç... kural üç neydi?', 'Rule three... what was rule three?'],
-  pardon: ['spk.arda', '...Pardon.', '...Sorry.'],
-  barkGrab: ['spk.arda', 'Usta, bıçağını ödünç alıyorum!', "Usta, I'm borrowing your knife!"],
-  barkAttack: ['spk.arda', 'Bıçak... kendiliğinden mi kesiyor?', 'Is the knife... cutting on its own?'],
-  barkDoor: ['spk.arda', 'Tamam. Sakin. Kafaya vur. Filmlerdeki gibi.', 'Okay. Calm. Go for the head. Like in the movies.'],
-  barkChestnut: ['spk.arda', 'Kestane... yanıyor. Bu bana bir fikir verdi.', 'Chestnuts... burning. That gives me an idea.'],
-  barkElite: ['spk.arda', 'O kocaman olan... bir şey taşıyor!', "That big one... it's carrying something!"],
-  barkRunners: ['spk.arda', 'Bunlar KOŞUYOR mu?!', 'Are those RUNNING?!'],
-  barkShop: ['spk.shop', 'Dayan evladım, açıyorum!', "Hang on, son, I'm opening up!"],
-  callA1: ['spk.arda', 'Anne? Anne, duyuyor musun?', 'Mom? Mom, can you hear me?'],
-  callA2: ['spk.anne', 'Arda! Neredesin? Haberleri gördün mü?', 'Arda! Where are you? Did you see the news?'],
-  callA3: ['spk.arda', "Gördüm... yani, yaşadım. Taksim'deyim. Eve geliyorum.", "Saw it... well, lived it. I'm in Taksim. I'm coming home."],
-  callB1: ['spk.anne', 'Metroya binme, her şey durmuş!', "Don't take the metro, everything's stopped!"],
-  callB2: ['spk.arda', 'Taksi?', 'Taxi?'],
-  callB3: ['spk.anne', 'Trafik kilit, oğlum. Kimse kıpırdamıyor.', "Traffic's gridlocked, son. Nobody's moving."],
-  callB4: ['spk.arda', 'Yani... her zamanki gibi.', 'So... the usual.'],
-  callC1: ['spk.anne', 'Baban... diyor ki... [cızırtı] ...sakın...', 'Your father... says... [static] ...don\'t...'],
-  callC2: ['spk.arda', 'Anne? Kesiliyorsun!', "Mom? You're breaking up!"],
-  callD1: ['spk.anne', '...seni seviyoruz... eve gel...', '...we love you... come home...'],
-  exit1: ['spk.phone', 'Sinyal yok.', 'No signal.'],
-  exit2: ['spk.arda', 'Anne? ...Anne!', 'Mom? ...Mom!'],
-};
+// Voice lines (class C) live in js/dialogue/ (P.Dialogue); this file keeps UI, rules and speaker names only.
 
 P.lang = 'tr';
 
@@ -152,11 +123,6 @@ P.t = function (key, vars) {
   var s = (P.STR[P.lang] && P.STR[P.lang][key]) || P.STR.en[key] || key;
   if (vars) for (var k in vars) s = s.split('{' + k + '}').join(String(vars[k]));
   return s;
-};
-
-P.line = function (id) {
-  var l = P.LINES[id];
-  return { speaker: P.t(l[0]), text: P.lang === 'tr' ? l[1] : l[2] };
 };
 
 P.upper = function (s) { return P.lang === 'tr' ? s.toLocaleUpperCase('tr-TR') : s.toUpperCase(); };

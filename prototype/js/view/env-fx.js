@@ -199,7 +199,7 @@
   var GAP = { envChain: 120, envArc: 200, envShock: 300, envPortal: 200, envSpawn: 150, envIgnite: 200, envExtinguish: 300 };
   var LABEL = { envChain: 'env.chain', envIgnite: 'env.ignite', envExtinguish: 'env.extinguish' };
 
-  // Env events that get a bark (native pools BK.env.* in strings-barks-tr/en.js). P.Barks.say checks the distance to Arda.
+  // Env events that get a bark (beats BK.env.* in js/dialogue/). P.Barks.say checks the distance to Arda.
   var BARK = { envExplode: 'BK.env.explode', envChain: 'BK.env.chain', envShock: 'BK.env.shock', envSpawn: 'BK.env.door',
     envExtinguish: 'BK.env.extinguish', envFuse: 'BK.env.fuse', envBreak: 'BK.env.break' };
 

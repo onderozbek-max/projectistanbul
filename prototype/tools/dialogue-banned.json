@@ -1,0 +1,85 @@
+{
+  "_about": "PROPOSED banned and translationese lists (BRIEF-DIALOGUE Phase 2; docs/voice-tr.md §7, docs/voice-en.md §7). Read by tools/check-banned.js. Patterns are JS regexes, flags 'iu'. Unicode-aware word edges use (?<![\\p{L}]) and (?![\\p{L}]). 'guardrail' = must be zero hits (AGENTS.md Writer Guardrails); 'flag' = goes to the editor, not a failure; 'review' = context call by an editor. Owner approves the contents before Phase 3.",
+  "version": 1,
+  "guardrail": {
+    "tr": [
+      { "id": "ethnic-regional", "why": "no ethnic or regional jokes", "re": "(?<![\\p{L}])(laz|kürt|çingene|arap|ermeni|rum|yahudi|karadenizli|kıro|zenci|gavur)(?![\\p{L}])" },
+      { "id": "religion", "why": "religion is never an oath or a joke target (ezan is ambient only, D-035)", "re": "(?<![\\p{L}])(allah|inşallah|maşallah|vallahi|billahi|tövbe|cennet|cehennem|amin|haram|günah)(?![\\p{L}])" },
+      { "id": "politics", "why": "no politics, parties or state actors", "re": "(?<![\\p{L}])(akp|chp|mhp|hdp|dem parti|erdoğan|atatürk|cumhurbaşkan|başbakan|hükümet|seçimler|oy ver|oy pusulası|devlet|ordu|asker|polis|jandarma|mit)(?![\\p{L}])" },
+      { "id": "earthquake", "why": "no earthquake talk or imagery", "re": "deprem|artçı|enkaz|zelzele" },
+      { "id": "body-shaming", "why": "no body-shaming", "re": "(?<![\\p{L}])(topal|sakat|çirkin|obez|cüce|kel kafa|dazlak)(?![\\p{L}])" },
+      { "id": "brands-clubs", "why": "no real brands or club crests", "re": "(?<![\\p{L}])(galatasaray|fenerbahçe|beşiktaş|trabzonspor|cimbom|kanarya|coca.?cola|pepsi|starbucks|mcdonald|burger king|iphone|nokia|samsung|nike|adidas|netflix|google|facebook|instagram|tiktok|whatsapp|uber|getir|yemeksepeti|migros|bim|a101|thy|bmw|mercedes|tofaş)(?![\\p{L}])" },
+      { "id": "real-people", "why": "no real people", "re": "(?<![\\p{L}])(messi|ronaldo|tarkan|sezen aksu|barış manço|cem yılmaz|şahan|arda turan|hagi)(?![\\p{L}])" },
+      { "id": "slurs-insults", "why": "tier 4: no slurs, no mother-based insults", "re": "(?<![\\p{L}])(orospu|piç|ibne|pezevenk|göt veren|amcık|sikik|yavşak)(?![\\p{L}])|anasını" }
+    ],
+    "en": [
+      { "id": "ethnic-regional", "why": "no ethnic or regional jokes", "re": "(?<![\\p{L}])(kurd|gypsy|armenian|greek|jew|jewish|arab|black sea (people|guy)|hillbilly|redneck)(?![\\p{L}])" },
+      { "id": "religion", "why": "religion is never an oath or a joke target", "re": "(?<![\\p{L}])(allah|jesus|christ|goddamn|god damn|holy (shit|crap)|amen|inshallah|mashallah)(?![\\p{L}])" },
+      { "id": "politics", "why": "no politics, parties or state actors", "re": "(?<![\\p{L}])(erdogan|erdoğan|ataturk|atatürk|president|prime minister|government|election|vote|army|soldier|police|cops?|nato|cia|fbi|trump|biden|republican|democrat)(?![\\p{L}])" },
+      { "id": "earthquake", "why": "no earthquake talk or imagery", "re": "earthquake|aftershock|rubble|quake" },
+      { "id": "body-shaming", "why": "no body-shaming", "re": "(?<![\\p{L}])(cripple|crippled|retard|retarded|midget|ugly|obese|lame)(?![\\p{L}])" },
+      { "id": "brands-clubs", "why": "no real brands or club crests", "re": "(?<![\\p{L}])(galatasaray|fenerbah[cç]e|be[sş]ikta[sş]|coca.?cola|pepsi|starbucks|mcdonald'?s?|burger king|iphone|nokia|samsung|nike|adidas|netflix|google|facebook|instagram|tiktok|whatsapp|uber|walmart|amazon|apple|mercedes|bmw|ford)(?![\\p{L}])" },
+      { "id": "real-people", "why": "no real people or real show names", "re": "(?<![\\p{L}])(messi|ronaldo|tarkan|shaun of the dead|south park|rick and morty|walking dead|resident evil|left 4 dead)(?![\\p{L}])" },
+      { "id": "slurs-insults", "why": "tier 4: no slurs, no mother-based insults", "re": "(?<![\\p{L}])(nigger|nigga|faggot|fag|dyke|tranny|spic|chink|kike|cunt|whore|slut|bitch)(?![\\p{L}])|motherfuck|your mother|your mom" }
+    ]
+  },
+  "flag": {
+    "tr": [
+      { "id": "calque-conveyor", "why": "translationese: 'konveyör' for a belt/line", "re": "konveyör" },
+      { "id": "calque-personal-space", "why": "translationese from 'personal space'", "re": "kişisel alan" },
+      { "id": "calque-dostum", "why": "stock foreigner Turkish: 'dostum' for a buddy", "re": "(?<![\\p{L}])dostum(?![\\p{L}])" },
+      { "id": "calque-infected", "why": "'enfekte' is textbook; Turks say 'ısırıldın mı?'", "re": "enfekte" },
+      { "id": "calque-this-is-a-tactic", "why": "translationese from 'This is a tactic'", "re": "bu bir taktik" },
+      { "id": "formal-plural", "why": "formal plural between friends ('siz', '-ınız') reads like a subtitle", "re": "(?<![\\p{L}])(siz|sizi|size|sizin)(?![\\p{L}])" },
+      { "id": "english-word", "why": "English word in a Turkish line; whitelist: OK, GPS, scooter, Wi-Fi, SMS", "re": "(?<![\\p{L}])(awesome|cool|guys|please|sorry|bro|dude|boss|zombie|survive|survival|shotgun|headshot)(?![\\p{L}])", "except": "ok|gps|scooter|wi-?fi|sms" },
+      { "id": "exclaim-pile", "why": "volume instead of voice", "re": "!{2,}|\\?{2,}|\\.{4,}" }
+    ],
+    "en": [
+      { "id": "britishism", "why": "American English only (voice-en.md §3)", "re": "(?<![\\p{L}])(mum|mate|bloody|flat|lorry|rubbish|queue|torch|pavement|lift|car park|jumper|trainers|council|whilst|reckon|cheers|brilliant|petrol|boot|mobile|bin|biscuit|knackered|gutted|innit|bollocks|bugger|blimey)(?![\\p{L}])" },
+      { "id": "british-spelling", "why": "American spelling", "re": "colour|neighbour|armour|favour|honour|grey(?![\\p{L}])|centre|metre(?![\\p{L}])|theatre|defence|organis|realis|recognis" },
+      { "id": "phrasebook-turkish", "why": "two or more Turkish words in one line reads like a tour guide", "re": "(?<![\\p{L}])(abi|usta|dede|simit|dürüm|döner|çay|dolmuş|kapıcı|nazar|yani|hadi|tamam|canım|aslanım)(?![\\p{L}]).*(?<![\\p{L}])(abi|usta|dede|simit|dürüm|döner|çay|dolmuş|kapıcı|nazar|yani|hadi|tamam|canım|aslanım)(?![\\p{L}])" },
+      { "id": "gloss", "why": "no parenthetical glosses of Turkish words", "re": "\\((abi|usta|dede|means|meaning)[^)]*\\)" },
+      { "id": "stock-foreigner", "why": "stock 'foreigner' Turkish: 'my friend'", "re": "(?<![\\p{L}])my friend(?![\\p{L}])" },
+      { "id": "fortune-cookie", "why": "poster lines, not Arda", "re": "survival is|patience and|life is (cruel|short)|never give up|believe in yourself" },
+      { "id": "exclaim-pile", "why": "volume instead of voice", "re": "!{2,}|\\?{2,}|\\.{4,}" }
+    ]
+  },
+  "review": {
+    "tr": [
+      { "id": "formal-plural-imperative", "why": "Arda says 'yakmayın / verin / dönün' to himself or a friend; use the singular (D-052 voice rules). Fine in shouts to a crowd, signs and announcements: editor decides.", "re": "(?<![\\p{L}])(\\p{L}{2,}(ma|me)(yın|yin|yun|yün)|uyarın|verin|girin|dönün|geçin|kapatın|olun|bakın|durun|çıkın|kaçın|koşun|yaklaşın|bırakın|dinleyin|bekleyin|susun|gidin)(?![\\p{L}])" },
+      { "id": "third-person-parent", "why": "Arda names his parents 'annem / babam / dedem' in the third person; 'Anne / Baba / Dede' only as direct address (Anne, ...). Speakers other than Arda may differ: editor decides.", "re": "(?<![\\p{L}])(Anne|Baba|Dede)(?=\\s+['‘’\\p{L}]|['’]\\p{L})" },
+      { "id": "fat-names", "why": "body-shaming check. Owner decision 2026-11-09: the Turkish boss name is 'Dombili' (affectionate nickname, a name only; no weight jokes). Editor confirms it stays a name; any other hit is a real flag.", "re": "(?<![\\p{L}])(şişman|şişko|kilolu|dombili)(?![\\p{L}])" },
+      { "id": "belediye", "why": "'belediye' = a real institution; check the joke is not political", "re": "belediye" }
+    ],
+    "en": [
+      { "id": "fat-names", "why": "body-shaming check. Owner decision 2026-11-09: English name is 'Bloated Waiter'; any 'fat' hit is a real flag.", "re": "(?<![\\p{L}])(fat|fatty|chubby|pudgy)(?![\\p{L}])" },
+      { "id": "city-hall", "why": "'city' / 'municipality' = a real institution; check the joke is not political", "re": "(?<![\\p{L}])(city hall|municipal|municipality|mayor)(?![\\p{L}])" }
+    ]
+  },
+  "profanity": {
+    "_about": "owner direction 2026-11-09: swearing allowed. Tiers and caps are PROPOSED (voice-*.md §6). The checker reports counts; Phase 3 turns the caps into tests once approved.",
+    "tr": {
+      "tier1": "(?<![\\p{L}])(lan|ulan|be|ya(?!\\s+da)|yahu|kahretsin|saçmalık|salak|aptal|gerzek|embesil|manyak|şerefsiz|ananı|danan\\p{L}*|ebeni\\p{L}*|göt\\p{L}*|soktuğ\\p{L}*)(?![\\p{L}])",
+      "tier2": "(?<![\\p{L}])(bok|boktan|siktir|sıçtı|puşt|zırvalık|bokum|dangalak)(?![\\p{L}])|s+iktir\\p{L}*",
+      "tier3": "(?<![\\p{L}])(sik|sikeyim|amına|amk|mal)(?![\\p{L}])"
+    },
+    "en": {
+      "tier1": "(?<![\\p{L}])(damn|dammit|damn it|hell|crap|ass|jerk|idiot|dumbass|freaking|frigging|suck|sucks)(?![\\p{L}])",
+      "tier2": "(?<![\\p{L}])(shit|shitty|bullshit|asshole|pissed|piss|dick|douche)(?![\\p{L}])",
+      "tier3": "(?<![\\p{L}])(fuck|fucking|fucked|motherfucker)(?![\\p{L}])"
+    }
+  },
+  "ownerExceptions": {
+    "_about": "Per-line owner exceptions (decision D-052 PROPOSED, 2026-11-10): the owner approved these exact lines despite a guardrail or flag rule. Key = \"<beat>#<variant>\", value = rule ids to skip. Only the listed rule is skipped, only for that line; new lines still hit the rule.",
+    "tr": {
+      "callC2#0": ["religion"],
+      "BK.hack.tram.fail#1": ["religion"],
+      "BK.self#8": ["ethnic-regional"],
+      "BK.evend.blackout#2": ["body-shaming"],
+      "BK.boss#4": ["english-word"],
+      "BK.hd05.4#1": ["formal-plural"]
+    }
+  },
+  "turkishWhitelistInEnglish": ["abi", "usta", "dede", "simit", "dürüm", "döner", "çay", "dolmuş", "kapıcı", "paşa", "pasha", "nazar"],
+  "englishWhitelistInTurkish": ["ok", "gps", "scooter", "wi-fi", "wifi", "sms"]
+}

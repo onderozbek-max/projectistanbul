@@ -42,6 +42,7 @@ P.UI = (function () {
 
   U.applyI18n = function () {
     document.documentElement.lang = P.lang;
+    if (P.Dialogue) P.Dialogue.langChanged();   // open pages, pops, calls and the bark bubble switch language now
     document.querySelectorAll('[data-i18n]').forEach(function (n) { n.textContent = P.t(n.getAttribute('data-i18n')); });
     document.querySelectorAll('[data-i18n-aria]').forEach(function (n) { n.setAttribute('aria-label', P.t(n.getAttribute('data-i18n-aria'))); });
     document.querySelectorAll('[data-lang]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-lang') === P.lang); });
@@ -153,12 +154,13 @@ P.UI = (function () {
     var sub = s.dir.call.sub;
     if (P.Comic && P.Story) {
       el.subs.classList.add('hidden');
-      if (sub && sub.id !== lastSub && P.LINES[sub.id]) P.Comic.pop(sub.id, P.Story.forLine(sub.id) || {});
+      if (sub && sub.id !== lastSub && P.Dialogue.has(sub.id)) P.Comic.pop(sub.id, P.Story.forLine(sub.id) || {});
       lastSub = sub ? sub.id : null;
       return;
     }
     if (!sub || !P.Settings.subs) { el.subs.classList.add('hidden'); return; }
-    var l = P.line(sub.id);
+    var l = P.Dialogue.get(sub.id);
+    if (!l) { el.subs.classList.add('hidden'); return; }
     el['subs-speaker'].textContent = l.speaker + ':';
     el['subs-text'].textContent = l.text;
     el.subs.classList.remove('hidden');

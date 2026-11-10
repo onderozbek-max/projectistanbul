@@ -106,7 +106,6 @@
 <script src="../js/journey.js"></script>
 <script src="../js/strings-journey.js"></script>
 <script src="../js/story/strings-story.js"></script>
-<script src="../js/story/strings-barks.js"></script>
 <script src="../js/view/art-rig.js"></script>
 <script src="../js/view/art-characters.js"></script>
 <script src="../js/view/portraits.js"></script>
@@ -116,11 +115,32 @@
 <script src="../js/view/comic-text.js"></script>
 <script src="../js/view/comic-layout.js"></script>
 <script src="../js/view/comic.js"></script>
-<script src="../js/story/strings-barks-tr.js"></script>
-<script src="../js/story/strings-barks-en.js"></script>
-<script src="../js/story/story-lang-tr.js"></script>
-<script src="../js/story/story-lang-en.js"></script>
-<script src="../js/story/lang-apply.js"></script>
+<script src="../js/dialogue/dialogue.js"></script>
+<script src="../js/dialogue/beats-core.js"></script>
+<script src="../js/dialogue/beats-story-hoods.js"></script>
+<script src="../js/dialogue/beats-barks.js"></script>
+<script src="../js/dialogue/tr/barks-cards.js"></script>
+<script src="../js/dialogue/tr/barks-combat.js"></script>
+<script src="../js/dialogue/tr/barks-hoods-01-10.js"></script>
+<script src="../js/dialogue/tr/barks-hoods-11-20.js"></script>
+<script src="../js/dialogue/tr/barks-world.js"></script>
+<script src="../js/dialogue/tr/cards-flavour.js"></script>
+<script src="../js/dialogue/tr/core.js"></script>
+<script src="../js/dialogue/tr/finale.js"></script>
+<script src="../js/dialogue/tr/story-hoods-01-10.js"></script>
+<script src="../js/dialogue/tr/story-hoods-11-20.js"></script>
+<script src="../js/dialogue/tr/story-levels.js"></script>
+<script src="../js/dialogue/en/barks-cards.js"></script>
+<script src="../js/dialogue/en/barks-combat.js"></script>
+<script src="../js/dialogue/en/barks-hoods-01-10.js"></script>
+<script src="../js/dialogue/en/barks-hoods-11-20.js"></script>
+<script src="../js/dialogue/en/barks-world.js"></script>
+<script src="../js/dialogue/en/cards-flavour.js"></script>
+<script src="../js/dialogue/en/core.js"></script>
+<script src="../js/dialogue/en/finale.js"></script>
+<script src="../js/dialogue/en/story-hoods-01-10.js"></script>
+<script src="../js/dialogue/en/story-hoods-11-20.js"></script>
+<script src="../js/dialogue/en/story-levels.js"></script>
 <script src="../js/story/story-data.js"></script>
 <script src="../js/story/barks.js"></script>
 <script>
@@ -225,7 +245,7 @@
     P.Barks.update(dt, S);
     var cur = P.Barks.current();
     if (cur && (!lastId || lastId !== cur.id)) {
-      barkSay(cur.id + ' [' + cur.who + '] ' + P.line(cur.id).text);
+      barkSay(cur.id + ' [' + cur.who + '] ' + P.Dialogue.text(cur.id.split('#')[0]));
     }
     lastId = cur ? cur.id : null;
     ctx.clearRect(0, 0, 390, 844);

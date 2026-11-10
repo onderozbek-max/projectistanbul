@@ -24,6 +24,8 @@ behind a family that keeps leaving him letters. Each letter knows a little more 
   the visual gag.
 - **Every chapter ends on a dizi cliffhanger:** freeze frame, the triple dramatic zoom
   across faces, swelling strings. Players should see it coming and love it anyway.
+- **Voice bibles (D-051).** Two native scripts, not a translation: [voice-tr.md](voice-tr.md) (Turkish master)
+  and [voice-en.md](voice-en.md) (American English). Who speaks how, the comedy devices, the banned list.
 - **Character first.** Gameplay fights are the "action scenes"; between them, people talk,
   joke, flirt and argue. That's what other games in the genre don't have.
 
@@ -40,6 +42,8 @@ behind a family that keeps leaving him letters. Each letter knows a little more 
 | The mystery girl | **Ada** | Turkish for "island" (isolated, fits her). Known worldwide (Ada Lovelace: science, fitting for a lab escapee). Enables the ADA-07 twist |
 | Dad / Mom / Grandpa | **Selim / Leyla / Hasan Dede** | Turkish-authentic, readable in English and German |
 | The cat | **Paşa** (EN: **Pasha**) | Localized spelling per language via string keys |
+
+> Looks, backgrounds, voices and tells for every character: [characters.md](characters.md) (proposed D-049).
 
 ### Arda (the player): 20, university student, "the versatile one"
 - Lives in Ataköy with his parents. Fixed protagonist (name + voice) for v1.

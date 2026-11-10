@@ -24,6 +24,7 @@ P.Render = (function () {
 
   function knifeAngle(face) {
     var w = P.Fx.swings.filter(function (q) { return !q.back; }).pop();
+    if (P.Feel) return P.Feel.knifeAngle(w, face);   // v0.9: anticipation, overshoot and a settle back to rest
     if (!w) return undefined;
     var a = Math.atan2(-w.ay, w.ax), half = w.arc * Math.PI / 360, p = 1 - w.t / w.T;
     return a + w.dir * (half - 2 * half * Math.min(1, p * 1.6));
@@ -55,6 +56,7 @@ P.Render = (function () {
     var so = { u: u * V.spriteScale.hero, back: h.moving && h.fy > 0.4, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
       arms: (s.levelIndex > 1 ? !!(h.weapons.knife || h.weapons.cleaver) : P.ColdOpen.hasKnife()) ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving,
       flash: P.Fx.heroFlash ? P.Fx.heroFlash() : 0 };   // the white hit flash is gated to 3 per second in fx.js (G3)
+    if (P.Feel) { var fh = P.Feel.hero(); so.lean = fh.lean; so.spring = { x: fh.x, y: fh.y, r: 0, ox: 0 }; }
     if (P.FireAnim) P.FireAnim.heroOpts(s, so);   // a shot's pose (or the chainsaw rev) draws the arms itself
     P.Sprites.hero(c, X, Y, so);
     c.globalAlpha = 1;
@@ -218,6 +220,7 @@ P.Render = (function () {
     if (extraDraw) extraDraw(R, s);
     drawFx();
     P.WFx.drawParts(R);
+    hook(P.Feel, 'draw', s);                      // v0.9: arcing blood and gibs, footfall dust
     hook(P.SkillsFx, 'drawUnder', s);
     drawHero(s);
     runDepth(post);
@@ -227,6 +230,7 @@ P.Render = (function () {
     hook(P.WFx2, 'drawAir', s);
     hook(P.EnemyFx, 'drawAir', s);
     hook(P.EventsFx, 'drawAir', s);
+    hook(P.Vehicles, 'drawAir', s);
     hook(P.EnvFx, 'drawAir', s);                  // lane A: airborne env (debris, smoke, gulls) after the crowd
     hook(P.SkillsFx, 'drawOver', s);
     if (L1 && y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);
@@ -255,7 +259,7 @@ P.RenderOverlay = (function () {
     if (b) {
       who = b.who === 'shop' ? { x: 6.4, y: 226 } : { x: s.hero.x, y: s.hero.y + 0.8 };
       a = R.toScreen(who.x, who.y);
-      list.push({ id: 'legacy:' + b.id, text: P.line(b.id).text, kind: 'legacy', prio: P.Speech.PRIO.legacy, ax: a.x, ay: a.y, lift: 58, maxW: 230 });
+      list.push({ id: 'legacy:' + b.id, text: P.Dialogue.text(b.id), kind: 'legacy', prio: P.Speech.PRIO.legacy, ax: a.x, ay: a.y, lift: 58, maxW: 230 });
     }
     s.dir.bubbles.forEach(function (q, i) {
       a = R.toScreen(q.x, q.y + 0.3);

@@ -12,7 +12,7 @@
   Object.assign(P.STR.en, {
     'enemy.kurye': 'Courier', 'enemy.copci': 'Street sweeper',
     'cause.kurye': 'Courier', 'cause.copci': 'Street sweeper', 'cause.taksici': 'Taxi driver', 'cause.kasapBoss': 'Butcher',
-    'ev.phase2': 'PHASE 2!', 'ev.phase3': 'PHASE 3!', 'ev.exposed': 'Weak spot!', 'ev.bin': 'Bin!',
+    'ev.phase2': 'PHASE 2!', 'ev.phase3': 'PHASE 3!', 'ev.exposed': 'Weak spot!', 'ev.bin': 'Trash can!',
     'ev.manhole': 'From the drain!', 'ev.window': 'Through the window!', 'ev.balcony': 'From the balcony!', 'ev.tram': 'From the tram!',
     'ev.door': 'From the door!',
   });

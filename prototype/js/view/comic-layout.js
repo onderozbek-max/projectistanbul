@@ -31,12 +31,12 @@ P.ComicLayout = (function () {
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function norm(s) { return String(s).replace(/\s+/g, ''); }
 
-  // src: P.LINES id or {who, mood, side, text | key, important}. Returns {who, mood, side, important, text, caps, tag, speaker}.
+  // src: a beat id (P.Dialogue) or {who, mood, side, text | key, important}. Returns {who, mood, side, important, text, caps, tag, speaker}.
   L.resolve = function (src, opts) {
     var o = opts || {}, s, line, pr;
     if (typeof src === 'string') {
-      if (!P.LINES[src]) return null;
-      line = P.line(src); pr = (P.Story && P.Story.forLine && P.Story.forLine(src)) || {};
+      line = P.Dialogue.get(src);
+      if (!line) return null; pr = (P.Story && P.Story.forLine && P.Story.forLine(src)) || {};
       s = { who: pr.who || null, mood: pr.mood || 'neutral', side: pr.side, important: !!pr.important, text: line.text, speaker: line.speaker };
     } else {
       if (!src) return null;
@@ -110,7 +110,7 @@ P.ComicLayout = (function () {
   }
   function letterItem(p, d, g, y) {
     var W = p.w, lw = W * 0.88, px = Math.min(g.px, 17);
-    var text = d[1].filter(function (id) { return P.LINES[id]; }).map(function (id) { return P.line(id).text; }).join(' ');
+    var text = d[1].filter(function (id) { return P.Dialogue.has(id); }).map(function (id) { return P.Dialogue.text(id); }).join(' ');
     var f = T.measure(p.c, text, lw - 2 * T.insets('letter').x, 'hand', px), h = T.boxH(f.lines, f.lh, false, 'letter');
     return { kind: 'letter', caps: text, lines: f.lines, px: f.px, lh: f.lh, x: W * 0.06, y: y + 6, w: lw, rot: -1.2,
              dur: 0.5, len: 0, bottom: y + 6 + h };

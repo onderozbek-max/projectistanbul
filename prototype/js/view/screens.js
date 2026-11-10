@@ -169,10 +169,16 @@ P.Screens = (function () {
   function passiveDeltas(c) {
     return P.Progression.statLines(c).map(function (r) { return (r.b + ' ' + P.t(r.k)).trim(); });
   }
+  // Rules text (class B, P.STR desc.*) with the card's one-line flavour (class C, the dialogue beat flav.<item>) in front of it.
+  function cardText(c) {
+    var d = P.Progression.describe(c), id = 'flav.' + c.item;
+    var fl = !P.Progression.isUpgrade(c) && P.Dialogue.has(id) ? P.Dialogue.text(id) : '';
+    return fl ? fl + ' ' + d : d;
+  }
   function cardEffect(c) {
-    if (c.id[0] === 'f') return P.Progression.describe(c);
+    if (c.id[0] === 'f') return cardText(c);
     var items = c.id[0] === 'w' ? weaponDeltas(c) : passiveDeltas(c);
-    return items.length ? items.slice(0, 2).join(' · ') : P.Progression.describe(c);
+    return items.length ? items.slice(0, 2).join(' · ') : cardText(c);
   }
   // Evolution helpers (read-only mirror of weapons6.js evoHint): what an evolution still needs, and the first target.
   function evoNeeds(s, id) {
@@ -268,7 +274,7 @@ P.Screens = (function () {
   // ---------- card detail sheet (AUDIT-7 U2): every stat row, the full text, the recipe or the fork's two options ----------
   function hideInfo() { $('card-info').classList.add('hidden'); }
   function showInfo(s, c) {
-    var root = $('card-info'), kind = c.id[0], chip = $('ci-chip'), desc = P.Progression.describe(c), info, mc;
+    var root = $('card-info'), kind = c.id[0], chip = $('ci-chip'), desc = cardText(c), info, mc;
     $('ci-type').textContent = P.t('card.type.' + kind) + (c.fork ? ' · ' + P.t('card.mod') : '');
     $('ci-name').textContent = P.t('item.' + c.item);
     if (c.evo) desc = P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + '\n' + desc;
@@ -399,6 +405,8 @@ P.Screens = (function () {
   // 0.8 s beat before this runs (main.js). handlers: { revive(kind), giveUp() }.
   S.showDown = function (s, handlers) {
     $('down-survived').textContent = P.t('ui.down.survived', S.levelVars(s, { t: P.UI.fmt(s.runT) }));
+    var dl = P.Dialogue.line('down.arda');   // view RNG only; a rotating Arda line above the cause card
+    $('down-line').textContent = dl ? dl.t : '';
     var cause = s.deathCause || 'walker';
     killerArt($('down-icon'), cause);
     $('down-cause').textContent = P.t('cause.' + cause);

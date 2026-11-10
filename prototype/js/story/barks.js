@@ -1,7 +1,7 @@
 // Arda's quips (workstream D, v0.5; v0.7 native pools): short comic bubbles over Arda, and talk with the zombies around him.
-// Lines: native pools P.BarkPools[lang][poolKey] = [{ t: 'text', j: 1 if a joke }] (strings-barks-tr.js / -en.js), where
-// poolKey is the pool prefix without its trailing dot (e.g. 'BK.fk.walker'). A missing pool falls back to the P.LINES
-// pairs (strings-barks.js, ids BK.*). Wiring: P.Barks.onEvent(ev, s) for every sim event; P.Barks.update(dt, s) each
+// Lines: the bark beats of P.Dialogue (js/dialogue/: beats-barks.js, tr/barks-*.js, en/barks-*.js), where the beat id is the
+// pool prefix without its trailing dot (e.g. 'BK.fk.walker'). A missing beat is skipped, never read from the other
+// language. Wiring: P.Barks.onEvent(ev, s) for every sim event; P.Barks.update(dt, s) each
 // play frame; P.Barks.offer(R, s) is an arbiter provider (P.Speech places the bubble); P.Barks.draw(R, s) draws it.
 // Rules: at most one bark start per 10-19 s; no barks while a comic page or pop is up (P.Comic.active) or the legacy
 // director bark is showing; each pool cycles before a line repeats and never repeats back to back; at most one joke per
@@ -9,7 +9,6 @@
 // when the three native pools have equal length; a bark with no free slot waits and is dropped after CFG.waitMax s.
 P.Barks = (function () {
   var B = {}, A = P.ComicArt, T = P.ComicText, L = P.ComicLayout, S = null, measureCv = null, uid = 0;
-  var NAT = {};                                     // 'nat:<poolKey>#<i>' -> pool entry {t, j}
   var CFG = {
     gapMin: 10.4, gapMax: 18.2,                      // global gap between bark starts (s): 8-14 s before the calmer pass (+30%)
     ambientMin: 11.7, ambientMax: 20.8,              // one ambient candidate every 12-21 s
@@ -26,7 +25,7 @@ P.Barks = (function () {
       env: 20, skill: 26 }
   };
   var AMBIENT = { close: 1, zq: 1, still: 1, idle: 1, self: 1 };
-  // Pools: id prefixes in P.LINES. A prefix matches ids whose rest has no dot ('BK.fk.walker.' matches 'BK.fk.walker.2').
+  // Pool prefixes: the beat id is the prefix without its trailing dot ('BK.fk.walker.' is the beat 'BK.fk.walker').
   B.pools = { fk: 'BK.fk.', streak: 'BK.streak.', boss: 'BK.boss.', elite: 'BK.elite.', low: 'BK.low.', heal: 'BK.heal.',
     lvl: ['BK.lvlA.', 'BK.lvlB.', 'BK.lvlC.', 'BK.lvlD.'], card: 'BK.card.', mod: 'BK.mod.', mastery: 'BK.mastery.',
     evo: 'BK.evo.', ult: 'BK.ult.', ultr: 'BK.ultr.', dash: 'BK.dash.', near: 'BK.near.', nazar: 'BK.nazar.',
@@ -47,77 +46,29 @@ P.Barks = (function () {
     };
   }
   function newState(seed, on) {
-    return { on: on, rng: mulberry(seed), clock: 0, gap: 3, ambient: 6, q: [], act: null, bub: null, cool: {}, used: {},
-             last: null, seen: {}, streak: 0, lastKillT: -99, armed: true, still: 0, lastLevel: -1, sigUntil: 0,
+    return { on: on, rng: mulberry(seed), clock: 0, gap: 3, ambient: 6, q: [], act: null, bub: null, cool: {},
+             seen: {}, streak: 0, lastKillT: -99, armed: true, still: 0, lastLevel: -1, sigUntil: 0,
              forced: null, evT: {}, starts: [], jokeGate: 12, met: {}, hero: null };
   }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function easeOutBack(x) { var c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
   function rand(a, b) { return a + (b - a) * S.rng(); }
   function meas() { if (!measureCv) measureCv = document.createElement('canvas').getContext('2d'); return measureCv; }
-  var keyCache = {};
-  function keysOf(prefix) {
-    if (!keyCache[prefix]) {
-      keyCache[prefix] = Object.keys(P.LINES).filter(function (k) {
-        return k.indexOf(prefix) === 0 && k.slice(prefix.length).indexOf('.') < 0;
-      }).sort();
-    }
-    return keyCache[prefix];
-  }
-  // The native pool for a prefix ('BK.fk.walker.' -> P.BarkPools[lang]['BK.fk.walker']), or null.
-  function nativeList(prefix) {
-    var pools = P.BarkPools && P.BarkPools[P.lang], k = prefix.replace(/\.$/, '');
-    return pools && pools[k] && pools[k].length ? { key: k, list: pools[k] } : null;
-  }
-  function avail(prefix) { return !!nativeList(prefix) || keysOf(prefix).length > 0; }
+  function beatOf(prefix) { return prefix.replace(/\.$/, ''); }
+  function avail(prefix) { return P.Dialogue.size(beatOf(prefix)) > 0; }
   function jokesOpen() { return S.clock >= S.jokeGate; }
 
-  // A native line: every entry once before any repeats, never the line shown last, jokes only inside the budget.
-  // pin: a fixed index (zombie chains). Returns the key 'nat:<pool>#<i>' or null.
-  function pickNative(np, pin) {
-    var used = S.used[np.key] || (S.used[np.key] = {}), open = jokesOpen(), cand = [], i, k;
-    function ok(i, fresh) {
-      var e = np.list[i], key = 'nat:' + np.key + '#' + i;
-      if (!e || !e.t || (!open && e.j) || key === S.last) return false;
-      return !fresh || !used[key];
-    }
-    if (pin != null && ok(pin, false)) i = pin;
-    else {
-      for (i = 0; i < np.list.length; i++) if (ok(i, true)) cand.push(i);
-      if (!cand.length) { used = S.used[np.key] = {}; for (i = 0; i < np.list.length; i++) if (ok(i, false)) cand.push(i); }
-      if (!cand.length) return null;
-      i = cand[Math.floor(S.rng() * cand.length)];
-    }
-    k = 'nat:' + np.key + '#' + i;
-    used[k] = true; S.last = k; NAT[k] = np.list[i];
-    return k;
-  }
-  // The old pick over P.LINES ids: every line once before any repeats, never the line shown last.
-  function pickFallback(prefix) {
-    var list = keysOf(prefix), used, free, id;
-    if (!list.length) return null;
-    used = S.used[prefix] || (S.used[prefix] = {});
-    free = list.filter(function (k) { return !used[k] && k !== S.last; });
-    if (!free.length) { used = S.used[prefix] = {}; free = list.filter(function (k) { return k !== S.last; }); }
-    if (!free.length) free = list;
-    id = free[Math.floor(S.rng() * free.length)];
-    used[id] = true; S.last = id;
-    return id;
-  }
+  // A line of the beat: every variant once before any repeats, never the one shown last, jokes only inside the budget
+  // (P.Dialogue.line). pin: a fixed index (zombie chains). Uses this module's own view stream (S.rng).
   function pick(prefix, pin) {
-    var np = nativeList(prefix);
-    return np ? pickNative(np, pin) : pickFallback(prefix);
+    return P.Dialogue.line(beatOf(prefix), { pin: pin, noJoke: !jokesOpen(), rng: S.rng });
   }
-  function textOf(id) {
-    if (id.indexOf('nat:') === 0) return NAT[id] ? NAT[id].t : '';
-    return P.line(id).text;
-  }
-  // Zombie chain: one index for zq, zr and zreact when the three native pools match in length (else independent).
+  // Zombie chain: one index for zq, zr and zreact when the three beats match in length (else independent).
   function chainPin() {
-    var a = nativeList(B.pools.zq), b = nativeList(B.pools.zr), c = nativeList(B.pools.zreact), i, cand = [];
-    if (!a || !b || !c || a.list.length !== b.list.length || a.list.length !== c.list.length) return null;
-    for (i = 0; i < a.list.length; i++) {
-      if (jokesOpen() || !(a.list[i].j || b.list[i].j || c.list[i].j)) cand.push(i);
+    var a = P.Dialogue.pool(beatOf(B.pools.zq)), b = P.Dialogue.pool(beatOf(B.pools.zr)), c = P.Dialogue.pool(beatOf(B.pools.zreact)), i, cand = [];
+    if (!a || !b || !c || a.length !== b.length || a.length !== c.length) return null;
+    for (i = 0; i < a.length; i++) {
+      if (jokesOpen() || !(a[i].j || b[i].j || c[i].j)) cand.push(i);
     }
     return cand.length ? cand[Math.floor(S.rng() * cand.length)] : null;
   }
@@ -167,10 +118,10 @@ P.Barks = (function () {
   }
   function showStep(st) {
     if (!A.ready) return;   // lettering faces still loading: skip this bark rather than measure the wrong face
-    var id = pick(st.prefix, st.pin);
-    if (!id || (st.who === 'zombie' && (!st.z || st.z.dead))) return;
-    if (id.indexOf('nat:') === 0 && NAT[id].j) S.jokeGate = S.clock + rand(CFG.jokeMin, CFG.jokeMax);
-    var b = makeBubble(id, st.who);
+    var ln = pick(st.prefix, st.pin);
+    if (!ln || (st.who === 'zombie' && (!st.z || st.z.dead))) return;
+    if (ln.j) S.jokeGate = S.clock + rand(CFG.jokeMin, CFG.jokeMax);
+    var b = makeBubble(ln, st.who);
     b.z = st.z || null;
     S.bub = b;
     if (P.Sfx && P.Sfx.play) {
@@ -189,7 +140,7 @@ P.Barks = (function () {
              kind: kind, fill: shout ? '#C4F27A' : null, caps: caps, ok: f.ok,
              hold: clamp(CFG.holdBase + CFG.holdChar * caps.length, CFG.holdMin, CFG.holdMax), age: 0, z: null, placed: false, wait: 0, pos: null };
   }
-  function makeBubble(id, who) { var b = layout(id, textOf(id), who); b.uid = ++uid; return b; }
+  function makeBubble(ln, who) { var b = layout(ln.key, ln.t, who); b.uid = ++uid; return b; }
 
   // ---------- context ----------
   function nearestZombie(s, maxD) {
@@ -388,29 +339,27 @@ P.Barks = (function () {
     c.restore();
   };
   B.clear = function () { if (S) { S.q = []; S.act = null; S.bub = null; } };
-  B.reset = function (seed) { S = newState(seed || 1337, S ? S.on : true); };
+  B.reset = function (seed) { S = newState(seed || 1337, S ? S.on : true); P.Dialogue.reset(seed); };
   B.setEnabled = function (on) { S.on = !!on; if (!on) B.clear(); };
   B.current = function () { return S && S.bub ? { id: S.bub.id, who: S.bub.who } : null; };   // tester and audit read it
-  // Dev audit (sync; needs P.ComicArt.ready): every line of the current language's native pools (and the P.LINES
-  // fallback ids) laid out the way its bubble is, then checked (ink inside the text box, inside the body, not truncated).
-  // Rows {kind, id, px, overflow, fail, cut}.
+  // Dev audit (sync; needs P.ComicArt.ready): every bark line of the current language laid out the way its bubble is, then
+  // checked (ink inside the text box, inside the body, not truncated). Rows {kind, id, px, overflow, fail, cut}.
   B.audit = function () {
-    var rows = [], pools = (P.BarkPools && P.BarkPools[P.lang]) || {};
+    var rows = [], lg = P.DLG[P.lang] || {};
     function row(id, text, who) {
       var b = layout(id, text, who), rep = L.checkBox({ kind: b.kind, x: 0, y: 0, w: b.w, h: b.h, name: false, lines: b.lines, px: b.px, lh: b.lh, caps: b.caps },
                                                      { w: b.w, h: b.h });
       var fail = rep.inkOut + rep.bodyOut + rep.trunc + (b.ok ? 0 : 1) > 0;
       rows.push({ kind: 'bark', id: id, px: b.px, overflow: !b.ok, fail: fail, cut: fail });
     }
-    Object.keys(pools).forEach(function (k) {
-      pools[k].forEach(function (e, i) { if (e && e.t) row(k + '#' + i, e.t, k === B.pools.zr.replace(/\.$/, '') ? 'zombie' : 'arda'); });
-    });
-    Object.keys(P.LINES).forEach(function (id) {
-      if (id.indexOf('BK.') !== 0) return;
-      row(id, P.line(id).text, id.indexOf(B.pools.zr) === 0 ? 'zombie' : 'arda');
+    Object.keys(lg).forEach(function (k) {
+      var bt = P.DLG.beats[k];
+      if (!bt || bt.use !== 'bark') return;
+      lg[k].forEach(function (e, i) { if (e && e.t) row(k + '#' + i, e.t, k === beatOf(B.pools.zr) ? 'zombie' : 'arda'); });
     });
     return rows;
   };
+  P.Dialogue.onLang(function () { B.clear(); });   // the bubble text is fixed when it is made
   S = newState(1337, true);
   return B;
 })();

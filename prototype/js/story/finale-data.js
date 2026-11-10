@@ -1,26 +1,19 @@
-// Chapter 1 arrival (L100 win): comic pages and their line data. Text lives in finale-lang-tr.js / finale-lang-en.js and is
-// merged here into P.LINES (TR and EN columns) and P.STR. Pages: fin_arrive_a (3 panels: the street, the balcony light,
+// Chapter 1 arrival (L100 win): comic pages and their line data. Voice lines are the FIN* beats in js/dialogue/ (core beats + tr/finale.js, en/finale.js);
+// the UI strings are in story/strings-finale.js. Pages: fin_arrive_a (3 panels: the street, the balcony light,
 // the call at the door) and fin_arrive_b (2 panels: Dad's letter in the flat, the knock and Mila, the Sarıyer hook).
 // Run by finale.js through P.Comic.page. Only FIN* ids are touched. Mom is voice only in this arrival: she is on the phone
 // from Sarıyer, so no panel draws her bust (canon: docs/narrative.md, Letter #1 and the empty flat). The old one-page
 // 'finale' comic in story-data.js is retired.
 (function () {
-  var TR = P.FinaleLang.tr, EN = P.FinaleLang.en;
-  Object.keys(TR.lines).forEach(function (id) {
-    P.LINES[id] = [TR.lines[id][0], TR.lines[id][1], EN.lines[id][1]];   // [speaker, TR, EN]
-  });
-  P.STR.tr = Object.assign(P.STR.tr || {}, TR.ui);
-  P.STR.en = Object.assign(P.STR.en || {}, EN.ui);
-
   // Speakers for the FIN lines (the bust and side). Mila has her own bust (finale-scenes.js), so her lines use 'mila'.
   var SPK = { 'spk.arda': 'arda', 'spk.anne': 'anne', 'spk.baba': 'baba', 'spk.mila': 'mila' };
   var MOOD = { FINa3: 'sad', FINa4: 'scared', FINa5: 'happy', FINb2: 'sad', FINb7: 'shout', FINb8: 'determined' };
   var origFor = P.Story.forLine;
   P.Story.forLine = function (id) {
     if (String(id).indexOf('FIN') !== 0) return origFor(id);
-    var L = P.LINES[id], who;
-    if (!L || L[0] === 'spk.cap') return null;
-    who = SPK[L[0]];
+    var B = P.Dialogue.beat(id), who;
+    if (!B || B.spk === 'spk.cap') return null;
+    who = SPK[B.spk];
     if (!who) return null;
     return { who: who, side: who === 'arda' ? 'l' : 'r', mood: MOOD[id] || 'neutral', important: false };
   };
