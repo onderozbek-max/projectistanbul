@@ -358,12 +358,21 @@ function digestFauna(seed, idx, withFauna, lookOverride) {
   }
   // The camera shows 10 m of the 14 m corridor: every spot, in every hood and for several seeds, must be inside the view.
   const VIEW_HALF = 4.8;                                       // the camera shows |x| <= 5; keep the sprite inside
-  let hidden = 0, spots = 0;
+  let hidden = 0, spots = 0, undrawn = 0;
   for (let h = 0; h < 20; h++) for (let sd = 1; sd <= 4; sd++) {
     const sp = P.createSim(sd, { levelIndex: h * 5 + 2, loadout: null }); sp.mode = 'play';
     P.Fauna.update(DT, sp);
-    [...P.Fauna.cats(), ...P.Fauna.birds()].forEach(a => { spots++; if (Math.abs(a.home.x) > VIEW_HALF) hidden++; });
+    [...P.Fauna.cats(), ...P.Fauna.birds()].forEach(a => {
+      spots++; if (Math.abs(a.home.x) > VIEW_HALF) hidden++;
+      // Drawn when in view: the camera 8 m behind the animal, centred on the lane (render.js R.X/R.Y are centre-relative).
+      // Left, right, ahead and behind the hero are all inside the screen, so every animal must reach R.depth.
+      const drawn = []; const cam = { x: 0, y: a.y - 8 };
+      const R2 = { ctx: ctxStub, ppm: 39, W: 390, H: 844, X: x => (x - cam.x) * 39, Y: y => -(y - cam.y) * 39, depth(y, fn) { drawn.push(y); fn(); } };
+      P.Fauna.props(R2, sp);
+      if (!drawn.includes(a.y)) undrawn++;
+    });
   }
+  check(undrawn === 0, 'fauna: ' + undrawn + ' of ' + spots + ' animals in view were not drawn (the on-screen test uses the wrong origin)');
   check(spots > 0 && hidden === 0, 'fauna: ' + hidden + ' of ' + spots + ' animal spots are outside the camera view (|x| > ' + VIEW_HALF + ')');
 }
 // The new view files stay under the 600-line rule (AGENTS.md).

@@ -183,9 +183,10 @@
   };
 
   // ---------- draw (queued with R.depth, from the props pass) ----------
+  // R.X and R.Y are relative to the screen centre (render.js: (x - cam.x) * ppm), so the visible box is +-W/2 by +-H/2.
   function onScreen(R, x, y) {
     var X = R.X(x), Y = R.Y(y);
-    return X > -60 && X < R.W + 60 && Y > -80 && Y < R.H + 80;
+    return Math.abs(X) < R.W / 2 + 60 && Math.abs(Y) < R.H / 2 + 80;
   }
   F.props = function (R, s) {
     var FA = P.FaunaArt, calm = !!(P.Settings && P.Settings.reduceMotion), i, c, b, seen = false;
