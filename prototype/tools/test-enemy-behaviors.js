@@ -356,6 +356,15 @@ function digestFauna(seed, idx, withFauna, lookOverride) {
     P.Fauna.update(DT, s2);
     check(c2.st === 'stand' && c2.hiss > 0, 'hiss: a cat did not stand up for an elite within ' + P.CFG.fauna.cats.hissR + ' m');
   }
+  // The camera shows 10 m of the 14 m corridor: every spot, in every hood and for several seeds, must be inside the view.
+  const VIEW_HALF = 4.8;                                       // the camera shows |x| <= 5; keep the sprite inside
+  let hidden = 0, spots = 0;
+  for (let h = 0; h < 20; h++) for (let sd = 1; sd <= 4; sd++) {
+    const sp = P.createSim(sd, { levelIndex: h * 5 + 2, loadout: null }); sp.mode = 'play';
+    P.Fauna.update(DT, sp);
+    [...P.Fauna.cats(), ...P.Fauna.birds()].forEach(a => { spots++; if (Math.abs(a.home.x) > VIEW_HALF) hidden++; });
+  }
+  check(spots > 0 && hidden === 0, 'fauna: ' + hidden + ' of ' + spots + ' animal spots are outside the camera view (|x| > ' + VIEW_HALF + ')');
 }
 // The new view files stay under the 600-line rule (AGENTS.md).
 ['view/fauna.js', 'view/fauna-art.js', 'config-fauna.js'].forEach(f => {

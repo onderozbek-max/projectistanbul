@@ -49,7 +49,7 @@
     var G = P.CFG.level.corridor, geo = s.geo || {}, y0 = CF.spawnFromY;
     var y1 = Math.max(y0 + 1, (geo.holdY || G.yMax) - CF.spawnToHold), tries, x, y;
     for (tries = 0; tries < 12; tries++) {
-      x = rr(r, G.xMin + 0.6, G.xMax - 0.6);
+      x = rr(r, Math.max(G.xMin + 0.6, -CF.sideMax), Math.min(G.xMax - 0.6, CF.sideMax));
       y = rr(r, y0, y1);
       if (Math.abs(x) < CF.sideMin || blocked(geo, x, y)) continue;
       return { x: x, y: y };

@@ -30,6 +30,7 @@
       size: 0.5,                     // body length (m)
     },
     sideMin: 2.0,                    // cats and birds stay outside the central lane (|x| below this, m)
+    sideMax: 4.3,                    // and inside the camera's view: it shows 10 m (|x| <= 5), the corridor is 14 m wide
     spawnFromY: 8,                   // no fauna before this distance down the route (m)
     spawnToHold: 4,                  // and none within this many m of the hold or boss approach
     calmIdleMul: 2,                  // reduce-motion on: no trots, walks or flights; sits last this many times longer
