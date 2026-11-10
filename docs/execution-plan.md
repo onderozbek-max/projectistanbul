@@ -144,6 +144,21 @@ limited to capturing clean footage and screenshots from the M4 build.
 | T4 | Remote config + A/B framework (e.g., Firebase) behind `ConfigProvider` | Prices, caps and offers tunable without a release |
 | T5 | Store catalog per business-plan.md §6; App Store Connect products, privacy labels, age rating | Ready for App Review |
 
+### R1: Prototype Revision (JS prototype v0.9 to v1.0, owner list of 2026-11-10; proposed D-054)
+The vertical-slice milestones above target the Godot build. R1 covers the JS prototype in `prototype/`, which is what the owner plays today.
+Workstreams are the owner's list, in the recommended order. Each task ends with a packet section in `reviews/REVIEW-R1.md` (§5.2 template) and waits for owner feedback.
+| Task | Description | AC |
+|---|---|---|
+| T0 | **Housekeeping from the dialogue pass.** Open the PR for `dialogue/two-native-scripts` (needs `gh` re-auth). Owner decision on `H14i3a` (TR, clipped) and `H11i3a`. Fix `view/comic-layout.js`: name tag over the bubble above, Kaan tail crossing the Arda bubble (H10i2, H19i2), finale SFX cut at the bottom. Finish the in-game bark check (TR `BK.self#2`, 98 characters, priority 3, level-up overlay suppressed) | Screenshots at 390x844 in EN and TR show no overlap or clipping on H07i3, H10i2, H19i2, FINa, FINb; one bark screenshot per language |
+| T1 | **Enemy audit.** Read-only report `reviews/AUDIT-ENEMIES-<date>.md`: per enemy and skin, role in the fight, silhouette and telegraph readability at phone size, overlap with other types, whether the Istanbul skins change behavior or only color, bot-sim data. Verdict per enemy: keep, tweak or redesign, with proposals (new behaviors, counters, boss tells). No code changes until the owner answers | Every enemy in `config-enemies*.js` has a verdict; number changes listed as deviations; owner picks what to build |
+| T2 | **Art direction.** Cause: the cartoon art is drawn in code on a canvas (flat shapes). Produce 2 or 3 style samples for the same three subjects (Ataköy building, apartment interior, one comic panel with Arda and Kaan) and compare pipelines: authored vector or raster assets (generated, then hand-checked) against a stronger procedural style. Owner picks one; record it as a decision and update `design-system.md` and `design/style-exploration.md`. **Blocking for T3 art and T4 art** | Samples committed under `reviews/media/R1/style-samples/` at 390x844; owner pick recorded; provenance rule for any generated asset (`art/PROVENANCE.csv`, design-system.md §12) |
+| T3 | **Istanbul arenas.** A one-page visual brief per hood (20): landmarks, props, ground and wall materials, signage and Turkish text, light, ambient sound idea, from the hoods bible. Then rebuild the arena kit in the chosen style, three hoods first (İstiklal, Kapalıçarşı, Ataköy), then the rest after owner review | 20 briefs in `docs/hood-visual-briefs.md`; before and after screenshots for three hoods; owner check: "could only be Istanbul" |
+| T4 | **Animation and feel.** Reconcile the unfinished feel, vehicle and fire-animation work in the working tree with the owner list, then add: hit-stop and shake tuning, enemy spawn and death animation, dash and pickup effects, boss telegraphs, UI motion, bark timing. Respect design-system.md §7 (no flashes over 3 per second) and add a reduce-motion setting | Short before and after clips; frame-time p50 and p95 on the Low reference device (or the nearest available) before and after; accessibility checklist |
+| T5 | **Cross-level skill tree and progression.** Design doc first (what persists between levels, costs and currencies, ties to the bond meters and the existing Survival Skills, caps, monetization guardrails of business-plan.md), as a proposed decision and a wireframe in the `design/README.md` style. Owner approves, then implement and tune with the bot sim. Can run in parallel from the start | Doc approved; tree screen matches the wireframe; bot-sim bands per game-design.md §7 for levels 1 to 30 |
+| T6 | **Optional, owner picks:** first-session review (cold open, level 1, first map visit), audio audit (what exists, what is missing), performance budget for the heavier art | One short findings file each |
+
+Order: T0 and T1 now; T2 next (owner pick); T3 and T4 follow the pick; T5 runs in parallel and needs only owner decisions. Risks: the art pick slips (mitigation: cap at three samples, one review round); effects hurt frame time (mitigation: budget set before T4, numbers in every packet).
+
 ## 5. Review Protocol
 
 ### 5.1 Files
@@ -240,6 +255,7 @@ and write reviews/FEEDBACK-M<N>.md per execution-plan.md §5.3. Update docs if d
 | 12–14 | M5 | District 1 + meta |
 | 15–18 | M6 | Districts 2–3 + squad |
 | 19–20 | M7 | External playtest → go/no-go for soft-launch prep |
+| after v0.9 | R1 | Prototype revision (art, arenas, animation, progression, enemies); owner decides the order after the T1 audit and the T2 art pick |
 
 ## 9. Execution Risks
 
