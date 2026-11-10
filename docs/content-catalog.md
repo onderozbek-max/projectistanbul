@@ -110,14 +110,14 @@ Budget cost = cost per spawn in the spawn director's budget (game-design.md §6)
 |---|---|---|---|---|---|---|---|---|---|
 | `enm_walker` | Walker / Yürüyen | 10 | 1.2 | 5 | 2 | 1.0 | 0% | Shambles toward the player | L1 |
 | `enm_runner` | Runner / Koşucu | 6 | 2.9 | 4 | 3 | 1.5 | 0% | Sprints toward the player | L1 (seg C) |
-| `enm_crawler` | Crawler / Sürünen | 8 | 1.0 | 6 | 2 | 1.5 | 50% | Emerges from manholes (1.0 s telegraph), low silhouette | L1 (scripted) |
-| `enm_brute` | Brute / İriyarı | 80 | 0.9 | 15 | 10 | 6.0 | 80% | Slow tank, shoulder-charge 4 m every 6 s (0.8 s telegraph) | L4 |
-| `enm_spitter` | Spitter / Tükürükçü | 15 | 1.1 | 4 | 4 | 3.0 | 0% | Keeps 5 m distance; spit projectile 6 dmg, 4 m/s, every 3 s (0.6 s telegraph) | L6 |
-| `enm_exploder` | Exploder / Patlayan | 20 | 1.4 | 0 | 4 | 3.0 | 30% | Within 1.2 m: 0.8 s fuse, explodes r 2.0 m, 20 dmg; **hurts zombies too** | L8 |
-| `enm_tourist` | Tourist / Turist | 12 | 1.3 | 5 | 2 | 1.2 | 0% | Like a walker; 30% Jeton drop chance. (Selfie stick, no camera flashes: photosensitivity) | L11 |
-| `enm_fisherman` | Fisherman / Balıkçı | 25 | 1.0 | 6 | 5 | 4.0 | 20% | Casts a line every 4 s, range 5 m (0.7 s line telegraph); pulls the player 1.5 m (Grabbed) | L21 |
+| `enm_crawler` | Crawler / Sürünen | 14 | 1.0 | 6 | 4 | 1.5 | 50% | Emerges from manholes (1.0 s telegraph), low silhouette | L1 (scripted) |
+| `enm_brute` | Brute / İriyarı | 80 | 0.9 | 15 | 10 | 8.0 | 80% | Slow tank, shoulder-charge 8 m every 6 s (0.8 s telegraph) | L4 |
+| `enm_spitter` | Spitter / Tükürükçü | 15 | 1.1 | 4 | 4 | 3.0 | 0% | Keeps about 5.5 m; acid glob 4 dmg (r 1.0 m) leaves a 3 s puddle; fires every 3 s after a 0.7 s windup. **Deliberate exception** to the 0.8 s telegraph floor (config-enemies4.js), with zehirli | L6 |
+| `enm_bloater` | Bloater / Dombili | 24 | 0.75 | 0 | 5 | 3.0 | 30% | Drifts in and swells (from 3.5 m); bursts on contact or death: 22 dmg to the hero (r 2.2 m), 30 to zombies; toxic cloud r 1.8 m for 3 s (4 dps on zombies, 2 dps on the hero). Mini bloaters come from the bloater boss. | L11 |
+| `enm_tourist` | Tourist / Turist | 12 | 1.3 | 5 | 2 | 1.2 | 0% | Like a walker; 30% Jeton drop chance. (Selfie stick, no camera flashes: photosensitivity). **Not in code:** tourist is an outfit (skin) only in journey.js, with no enemy def | L11 |
+| `enm_fisherman` | Fisherman / Balıkçı | 25 | 1.0 | 6 | 5 | 4.0 | 20% | Casts a line every 4 s, range 5 m (0.7 s line telegraph); pulls the player 1.5 m (Grabbed). **Not in code:** fisher is an outfit (skin) only; the line cast is a proposal (R1 audit §4A) | L21 |
 
-**Elite variant (any type):** ×4 HP, ×1.5 damage, +15% scale, purple outline (`elite` token,
+**Elite variant (any type):** ×4 HP, ×1.5 damage, +15% scale, gold outline `#FFC93C` (config.js `eliteOutline`, `elite` token,
 plus a crown-shaped marker for colorblind players), drops a Mini Chest. First elite: L7.
 
 **Visual rules:** each type has a unique silhouette readable at 48 px (design-system.md §6).
@@ -200,7 +200,7 @@ Template: game-design.md §6. Durations are targets for an average player.
 | 5 | Mini-boss | — | **Kestaneci** | 5 min | Chestnut cart becomes a weapon idea |
 | 6 | Route | — | **Spitter** | 5 min | — |
 | 7 | Arena | — | First **Elite** | 6 min | — |
-| 8 | Route | night | **Exploder** | 5 min | Streetlights fail one by one |
+| 8 | Route | night | **Bloater** | 5 min | Streetlights fail one by one |
 | 9 | Arena | horde | — | 6 min | — |
 | 10 | Boss | — | **Vatman** | 7 min | Motion comic: tram crash, Arda heads downhill to Karaköy |
 

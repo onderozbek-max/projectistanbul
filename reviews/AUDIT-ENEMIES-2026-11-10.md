@@ -144,3 +144,33 @@ Yes, the roster needs more variety than three skin behaviors. Principle: each ad
 | 2 | courier scooter (extend kurye) | Fast lane run with a skid telegraph | Existing kurye |
 
 Rules for all: telegraph at least 0.5 s, silhouette test at 48 px, no screen flashes over 3 per second, all numbers in Def data, strings TR and EN written natively.
+
+## 11. Fixes done (R1, branch `r1/enemy-fixes`)
+
+Quick fixes from section 5 and the drift list from section 7, done per section 9 decisions 4 and 5 (code wins on numbers, docs follow).
+
+| Item | Status | What changed |
+|---|---|---|
+| B1 death cause `cause.toxic` | Done | Added `cause.toxic` (Zehirli bulut / Toxic cloud) and `cause.acid` (Asit birikintisi / Acid puddle) in `strings-enemies3.js`. New `tools/check-death-causes.js` fails when a sim cause lacks TR or EN text (negative-tested). |
+| B2 spitter cause hard-coded | Done | `sim/enemies.js` reports `e.type`; `sim/bosses.js` spitter fan too. Checked: zehirli glob hits now report `zehirli` (4 of 4 in a probe). Zone damage (acid puddle, toxic cloud) still reports the zone kind. |
+| B3 art preview blank, missing types | Done | `tools/art-preview.html` loads the config files and `comic-busts-hair/-cast`; rows added for kasap, parkur, zehirli, kurye, copci; boss cells for bloater, taksici, kasapBoss. Verified in the browser (file://); `reviews/media/R1/enemies/art-preview-fixed.png`. |
+| B4 boss mismatch | Done | `journey.js` now matches `bossByHood` on the 7 hoods. Arena geometry unchanged (hash of 10 levels before and after). `check-hood-keys.js` §8 fails on a mismatch. |
+| B5 tips | Done (6 new) | `tip.hardhat/kasap/parkur/zehirli/kurye/copci` in TR and EN (`strings-ui2.js`). Crawler already had `tip.crawler` in `strings.js`, not duplicated. The tips show on the down screen, keyed by death cause (`screens.js:414`); there is no loading-screen tip picker. `check-death-causes.js` §5 requires a tip per enemy type. |
+| B6 peak alive above 140 | Investigated, not changed | See the report. Horde ambient spawns stop at 200 (`config-horde.js:22`), not 140; summons, boss adds, elites, events and surge arrivals have no cap check. |
+| Parkur windup 0.45 to 0.5 s | Done | `config-levels.js` (E.parkur). Bot: L23 and L39 clear 19/20 to 20/20, no-death 80% to 85% and 75% to 85% (20 seeds). L2, L10, L20, L30 unchanged (parkur not in their roster). |
+| Spitter 0.7 s kept | Done | `config-enemies4.js:5` comment now says which types are exempt from the 0.8 s floor (spitter, zehirli, parkur) and why. |
+
+| Drift | Status | Change |
+|---|---|---|
+| D1 crawler HP/XP | Done | Catalog 8/2 to 14/4 (code). |
+| D2 brute charge/budget | Done | Catalog charge 4 m to 8 m; budget 6.0 to 8.0. |
+| D3 spitter | Done | Catalog row: glob 4 dmg, 0.7 s windup, exception noted. |
+| D4 exploder | Done | Row renamed `bloater` with `config-levels.js` values; level table row 8 too. |
+| D5 elite outline | Done | Purple to gold `#FFC93C` (catalog). |
+| D6 cap 300 | Done | `game-design.md` §6 and `journey.md` state the code caps (140 route, 200 horde) and the B6 overshoot. |
+| D7 telegraph floor comment | Done | `config-enemies4.js:5`. |
+| D8 journey boss field | Done | `journey.js`, `journey.md` table and per-hood boss words, `config-bosses.js` comment; "three boss types" to five. |
+| D9 H01 diner | Open | Journey roster and "diners turn" twist for H01; generated levels drop diners (`sim/levels.js:60`). Design question for the owner, not changed. |
+| Extra | Done | Catalog tourist and fisherman rows marked "not in code" (they are outfits, not enemy defs). |
+
+B6 (for the owner): the cap is not one number. Route budget spawns stop at 140 (`sim/levels.js:268`, `env-portal.js:47`); horde ambient and surge queue stop at 200 (`horde.js:132`, `horde.js:171`). Uncapped: summons (`enemies.js:375`), screamer calls (`enemies.js:84`), boss arena adds (`levels.js:383`), elite marks (`levels.js:357`), echo elites (`modifiers.js:83`), events (`events.js:114`), surge arrivals (`horde.js:161`), crawler emerges (`enemies.js:348`). Instrumented bot, L2, 6 seeds: 356 spawns made while over 140 alive, 348 of them from `horde.js:115`. Probe with a walking, invulnerable hero (not the bot policy): peaks 202 (L50) and 203 (L80), again mostly horde and surges. Recommendation: pick one ceiling and enforce it in one place (for example `P.Combat.spawnEnemy`, or an alive check in each spawner), with the route and horde stopping at it and summons and adds given a reserved share. The number is the owner's call; until then the docs state the real caps.

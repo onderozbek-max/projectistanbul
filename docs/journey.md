@@ -34,24 +34,24 @@ are in `journey.js` (`map: [x, y]`).
 | 2 | `galata` | Galata | Beyoğlu | 1.8 | 0.8 | L6–10 | galata | brute | Tour Guide (Turist Rehberi) |
 | 3 | `karakoy` | Karaköy | Beyoğlu | 2.6 | 0.8 | L11–15 | karakoy | brute | The Bride (Gelin) |
 | 4 | `bridge` | Galata Köprüsü | Haliç | 3.3 | 0.7 | L16–20 | bridge | bloater | Big Fisherman (Koca Balıkçı) |
-| 5 | `eminonu` | Eminönü | Fatih | 4.1 | 0.8 | L21–25 | eminonu | brute | The Captain (Kaptan) |
-| 6 | `sirkeci` | Sirkeci | Fatih | 4.8 | 0.7 | L26–30 | sirkeci | brute | The Ticket Man (Biletçi) |
-| 7 | `kapalicarsi` | Kapalıçarşı | Fatih | 5.6 | 0.8 | L31–35 | bazaar | brute | The Carpet Golem (Halı Golem) |
+| 5 | `eminonu` | Eminönü | Fatih | 4.1 | 0.8 | L21–25 | eminonu | taksici | The Captain (Kaptan) |
+| 6 | `sirkeci` | Sirkeci | Fatih | 4.8 | 0.7 | L26–30 | sirkeci | kasapBoss | The Ticket Man (Biletçi) |
+| 7 | `kapalicarsi` | Kapalıçarşı | Fatih | 5.6 | 0.8 | L31–35 | bazaar | taksici | The Carpet Golem (Halı Golem) |
 | 8 | `beyazit` | Beyazıt | Fatih | 6.3 | 0.7 | L36–40 | beyazit | spitter | The Pigeon Man (Güvercinci) |
 | 9 | `kumkapi` | Kumkapı | Fatih | 7.0 | 0.7 | L41–45 | kumkapi | bloater | The Fish Porter (Balık Hamalı) |
-| 10 | `laleli` | Laleli | Fatih | 7.8 | 0.8 | L46–50 | laleli | brute | The Wholesaler (Toptancı) |
+| 10 | `laleli` | Laleli | Fatih | 7.8 | 0.8 | L46–50 | laleli | kasapBoss | The Wholesaler (Toptancı) |
 | 11 | `aksaray` | Aksaray | Fatih | 8.6 | 0.8 | L51–55 | aksaray | brute | The Dolmuş Driver (Dolmuşçu) |
-| 12 | `yenikapi` | Yenikapı | Fatih | 9.5 | 0.9 | L56–60 | yenikapi | brute | The Evening Crowd (Akşam Kalabalığı) |
+| 12 | `yenikapi` | Yenikapı | Fatih | 9.5 | 0.9 | L56–60 | yenikapi | taksici | The Evening Crowd (Akşam Kalabalığı) |
 | 13 | `samatya` | Samatya | Fatih | 10.3 | 0.8 | L61–65 | samatya | spitter | The Grill Man (Mangal Baba) |
 | 14 | `yedikule` | Yedikule | Fatih | 11.1 | 0.8 | L66–70 | yedikule | brute | The Key Keeper (Anahtarcı) |
 | 15 | `kazlicesme` | Kazlıçeşme | Zeytinburnu | 12.0 | 0.9 | L71–75 | kazlicesme | spitter | The Hose Man (Hortumcu) |
 | 16 | `zeytinburnu` | Zeytinburnu | Zeytinburnu | 13.0 | 1.0 | L76–80 | zeytinburnu | bloater | The Dye Foreman (Boyacı Ustası) |
-| 17 | `bakirkoy` | Bakırköy Çarşı | Bakırköy | 14.0 | 1.0 | L81–85 | bakirkoy | brute | The Principal (Müdür) |
+| 17 | `bakirkoy` | Bakırköy Çarşı | Bakırköy | 14.0 | 1.0 | L81–85 | bakirkoy | taksici | The Principal (Müdür) |
 | 18 | `bakirkoysahil` | Bakırköy Sahil | Bakırköy | 15.0 | 1.0 | L86–90 | sahil | bloater | The Ice-Cream Man (Dondurmacı) |
-| 19 | `atakoysahil` | Ataköy Marina | Bakırköy | 16.2 | 1.2 | L91–95 | marina | brute | The Yacht Owner (Yat Sahibi) |
+| 19 | `atakoysahil` | Ataköy Marina | Bakırköy | 16.2 | 1.2 | L91–95 | marina | kasapBoss | The Yacht Owner (Yat Sahibi) |
 | 20 | `atakoy` | Ataköy | Bakırköy | 17.0 | 0.8 | L96–100 | atakoy | brute | Sayın Abim (kapıcı; story name Ahmet Abi, D-039) |
 
-**Boss count:** 20 stage-5 bosses. Boss types are only three (brute, bloater, spitter), so each
+**Boss count:** 20 stage-5 bosses. Boss types are five (brute, bloater, spitter, taksici, kasapBoss; config-bosses.js `bossByHood`), so each
 boss gets its own signature attack on top of the type kit (section 5).
 
 **Geography (v0.8, lane L):** the map check moved two hoods. Kumkapı now comes straight after
@@ -96,8 +96,7 @@ boss arena. Source numbers: `config-levels.js` (`C.levels.stages`, E2, in progre
 | 4 | 1.8 (holds 1.6 → 2.6 → 3.4) | ~170 | 110 | Two elites, hold phases ramp |
 | 5 | 1.1 (adds) + boss | ~90 | 90 | Adds stop at boss death |
 
-Global cap is 300 alive (GD §6). E2's cap is 140 for generated levels. Keep both until the bot has run on
-all 100 levels. Telemetry `perf_sample` reports the actual peak.
+There is no global cap in code. Route levels stop spawning at 140 alive (config-levels.js, `levels.cap`); horde spawns stop at 200 (config-horde.js, `ctl.cap`). Summons, boss adds, elites and events are not capped (R1 audit B6: bot peak 185 at L2, about 200 in boss arenas). Telemetry `perf_sample` reports the actual peak.
 
 ### 3.3 Rules that apply to every level
 
@@ -270,7 +269,7 @@ livery.
 - **Twist:** turnstile gates. A closed gate blocks zombies. Pickups open gates. Magnet unlocks here.
 - **Stage 3:** the platform gate race (O11).
 - **Stage 4:** the ticket queue. The horde comes from the waiting line.
-- **Boss:** The Ticket Man. Brute. "No ticket, no entry." Summons gate blocks (walls that fall) and a
+- **Boss:** The Ticket Man. Butcher (kasapBoss). "No ticket, no entry." Summons gate blocks (walls that fall) and a
   line of zombie commuters.
 - **Story beat:** the vertical-slice build milestone ends here (L30). Chapter 1 continues to L100 (D-040). Mom's last clear call before the signal fails. The
   railway clock stops.
@@ -288,7 +287,7 @@ livery.
 - **Stage 3:** the lane maze. Shutters close behind Arda.
 - **Stage 4:** shop counters become chokepoints. A shutter with a handwritten note: "Kapıyı açmayın"
   (do not open the door).
-- **Boss:** The Carpet Golem. Brute armoured in rolled carpets. Carpet-roll charge (line telegraph).
+- **Boss:** The Carpet Golem. Taxi (taksici) armoured in rolled carpets. Carpet-roll charge (line telegraph).
   The weak point is the unrolled core. Drops the Kilim (future weapon).
 - **Story beat:** the first human threat hinted: looters. Story only, no human enemies yet.
 
@@ -338,7 +337,7 @@ livery.
   Wake-up is a shape change, not a flash.
 - **Stage 3:** the mannequin wake (a surprise beat).
 - **Stage 4:** the fabric lane (zombies hide behind rolls).
-- **Boss:** The Wholesaler. Brute. Throws crates (lob telegraph). Summons a wave of five mannequins that
+- **Boss:** The Wholesaler. Butcher (kasapBoss). Throws crates (lob telegraph). Summons a wave of five mannequins that
   wake together.
 - **Story beat:** "Are they zombies?" (narrative, Laleli and Aksaray).
 
@@ -371,7 +370,7 @@ livery.
   calls drop.
 - **Stage 3:** the power cut. Light the way (O5).
 - **Stage 4:** the stairs. Escort her down them (escort).
-- **Boss:** The Evening Crowd. Brute made of commuters. Sends crowd waves from the stairs. Keep the
+- **Boss:** The Evening Crowd. Taxi (taksici) made of commuters. Sends crowd waves from the stairs. Keep the
   torch on it.
 - **Story beat:** no signal. Mom's call drops for good in the tunnel.
 
@@ -448,7 +447,7 @@ livery.
 - **Twist:** dead escalators are one-way ramps. The school bell calls a spawn wave.
 - **Stage 3:** the bell (O9). Ring the bell to push the horde back.
 - **Stage 4:** the arcade. Shut the gates (O11).
-- **Boss:** The Principal. Brute with a megaphone (cone telegraph). Summons a "detention" line of
+- **Boss:** The Principal. Taxi (taksici) with a megaphone (cone telegraph). Summons a "detention" line of
   runners. The bell is the trigger.
 - **Story beat:** Arda's old high school. A classroom note.
 
@@ -477,7 +476,7 @@ livery.
 - **Twist:** pontoons tilt (moving floor). Ropes make net traps.
 - **Stage 3:** the pontoon bridge.
 - **Stage 4:** the rope nets. Zombies get stuck.
-- **Boss:** The Yacht Owner. Brute. Dock chain swing. Horn telegraph. Summons sailors. Drops the Vapur
+- **Boss:** The Yacht Owner. Butcher (kasapBoss). Dock chain swing. Horn telegraph. Summons sailors. Drops the Vapur
   Halatı (future weapon).
 - **Story beat:** home is close now. The sea is on both sides.
 
@@ -658,7 +657,7 @@ Open: the walk order puts letter #3 (L95) before letter #1 (L100). Renumbering o
 |---|---|---|---|
 | 9.1 | **Kaan joins at L20** (bridge boss) instead of L30 | **DECIDED 2026-11-08 (D-045): L20.** He is on the bridge in the story and must be there for the Captain beat in Eminönü (L25). | Moves a story beat and the squad unlock. Changes prd §4, content-catalog §6 and narrative.md *Characters*. |
 | 9.2 | **Build milestone at Sirkeci (L30)** instead of the Galata Bridge | Keep L30 as the vertical-slice build milestone (six hoods, a full arc, two bosses with comics). Chapter 1 ends at Ataköy (L100, D-040). | prd §1 and §4 change. |
-| 9.3 | **20 bosses, one per hood** (stage 5) | Yes, with a per-hood signature attack. Three boss types are a shared kit. | Art and animation load. 20 concepts × 2–3 attacks. |
+| 9.3 | **20 bosses, one per hood** (stage 5) | Yes, with a per-hood signature attack. Five boss archetypes are a shared kit. | Art and animation load. 20 concepts × 2–3 attacks. |
 | 9.4 | **Route order and geography** | **Applied in v0.8 (lane L):** Kumkapı after Beyazıt; Zeytinburnu and Kazlıçeşme swapped. The owner confirms against a real map before the art pass. | A local player may notice. Map, km and levels follow the new order. |
 | 9.5 | **Molotov name and unlock** | Display name "Benzin Şişesi" (petrol bottle). The word molotov has a political meaning in Turkey and elsewhere. Keep "molotov" in code IDs. | Guardrails (no politics). See weapons-skills §4. |
 | 9.6 | **Difficulty curve** | **DECIDED 2026-11-08 (D-041, D-042):** keep E2. The player gets a persistent power lever (attributes.md section 7.5), and new enemy types and affixes carry the late game. The hood-based curve is not used. Bot result: section 6.5. | 13× HP at L100 may be too steep without meta. |

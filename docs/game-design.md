@@ -228,7 +228,7 @@ Rules:
   player, with a 0.5 s audio cue (groan) first.
 - The spawn director uses a **budget per second** curve + scripted events from WaveScript
   (architecture.md §4.9). Each enemy has a budget cost (content-catalog.md §5).
-- **Max simultaneous enemies: 300** (identical on all quality tiers; gameplay parity).
+- **Max simultaneous enemies (code, R1 audit B6):** route spawns stop at **140** alive (`levels.cap`, config-levels.js:95); horde spawns stop at **200** (`ctl.cap`, config-horde.js:22). Boss adds, summons, elite and event spawns have no cap check, so the peak overshoots: 185 alive at L2 in the bot (kite policy), about 200 to 203 in boss arenas. The 300 that stood here before has no basis in code. Identical on all quality tiers (gameplay parity).
 
 ## 7. Difficulty and Pacing Targets
 
