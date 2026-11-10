@@ -221,3 +221,18 @@ Not done: silhouette test at 48 px (not tested). Musician and hamal have no tele
 8. Dialogue bubbles (first-sighting lines and hero idle lines) sit on top of telegraphs for a while; the cue survives, but it is partly hidden in some frames.
 
 **Owner decisions:** (a) the galata and bridge marti placement above; (b) TR lines for `BK.fk.marti` and `BK.fk.cayci` are drafts (`reviews/dialogue/tr-D.csv`, not approved); (c) `prototype/index.html` needs the new script and sound tags (listed in the branch report, not staged); (d) whether the L8 reach and the L43 median change is acceptable or the slow (0.65) and the drag should be softened.
+
+## 13. Owner answers after wave 1 (2026-11-10)
+
+| # | Answer | What it means |
+|---|---|---|
+| 1 | Seaside hoods get seagulls, inland hoods get pigeons. All hoods have cute stray cats: white-and-brown mixed, orange, brown | The thief bird is one behavior with two looks: **seagull** (seaside hoods) and **pigeon** (inland hoods). Every hood has a bird. Cats are ambient fauna in every hood, three coat colors. Placement is by geography, which replaces the "marti on 8 hoods" list |
+| 2 | "I trust your judgement" on the L8 and L43 side effects | Agent call: keep the design, **soften the cayci slow from 0.65 to 0.75 (25%)** and re-run L8 and L43 with 50 seeds. Target: L8 par-time met in at least 15 of 20 (it was 19 of 20 before wave 1) and no level's median more than 25% above its pre-wave-1 value. If it still fails, soften the fisher drag next. A human playtest decides the final values; the bot is not a good judge of these |
+| 3 | TR lines for marti and cayci | Imported as written. Two typos fixed under the earlier rule (`dökuldü` to `döküldü`, `heralde` to `herhalde`). The `marti` beat lines mention "Martı" and apply to both bird looks, so the pigeon needs its own lines (see below) |
+| 4 | D-055 | **Accepted** (`product.md`) |
+
+**Decisions the agent made to carry out answer 1 (flag if you disagree):**
+- The first four hoods (tutorial pacing, `journey.md` §5.0) keep **no enemy thieves**. Seagulls and pigeons still appear there as harmless ambient birds, and the thief behavior starts at hood index 2 (H03) at the earliest. Ambient fauna is an explicit exception to the "no new types" rule; `journey.md` §5.0 gets one line saying so.
+- "Seaside" list: İstiklal is inland; Galata, Galata Köprüsü, Karaköy, Eminönü, Sirkeci, Kumkapı, Yenikapı, Samatya, Yedikule (sea walls), Kazlıçeşme, Bakırköy Sahil, Ataköy Marina, Ataköy are seaside. Inland: İstiklal, Kapalıçarşı, Beyazıt, Laleli, Aksaray, Zeytinburnu, Bakırköy Çarşı. To be checked against `hoods-bible` before building.
+- Cats are **never enemies and never damage anything**. First function: ambient life and an early-warning cue (a cat hisses and looks toward an approaching elite or boss, as the H13 page and the Paşa notes already set up). Second function, later: petting or feeding for a small reward (needs a design call, not built now).
+- New dialogue: pigeon first-sighting beat (`BK.fk.guvercin`), one cat sighting beat (`BK.fk.kedi`), 3 lines each per language, written natively. Batch D grows by those beats.
