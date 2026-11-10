@@ -316,3 +316,30 @@ Owner feedback: the tea tray, umbrella, backgammon pieces, chestnut brazier and 
 | `wpn_cardoor` | Car Door / Araba Kapısı | Shield that raises and reflects spit; shove | Defence | L9 | 8 dmg, radius 1.4 m, arc 110°, open 0.8 s | Presses in: stun and shove. Signature: full ring wall. |
 | `wpn_chainsaw` | Chainsaw / Motorlu Testere | Melee rev in ticks, stalls if it hits nothing | Melee | L6 | 5 dmg per tick, arc 80°, rev 1.0 s, reach 2.2 m | Stall adds 0.8 s cooldown. Signature: rampage (360° spin). New mechanic (`weapons5.js`). |
 
+## 11. Wave 1 enemy variety (R1, branch `r1/enemy-wave1`)
+
+Numbers are copied from the config files: skins from `js/config-skins.js` (`P.CFG.skins`), the two new types from `js/config-enemies5.js` (`P.CFG.enemies` Defs and `P.CFG.enemies5` behaviour). The spawn schedule is `C.levels.schedule` in `js/config-levels.js`. Sim: `js/sim/skins.js`, `js/sim/skins-fisher.js`, `js/sim/enemies4*.js`. Status and deviations: [reviews/AUDIT-ENEMIES-2026-11-10.md](../reviews/AUDIT-ENEMIES-2026-11-10.md) "Wave 1".
+
+### 11.1 Skin behaviours (existing outfits that now have a job)
+
+A skin rolls its behaviour once, at spawn, with `chance` 0.2 per eligible spawn and at most `maxAlive` 2 live behaviour zombies per skin. Eligible from `minHood` (0-based hood index). Types: walker only.
+
+| Skin | minHood | Behavior | Key numbers | Telegraph / counter |
+|---|---|---|---|---|
+| Fisher / Balıkçı (`fisher`) | 2 | Casts a hook line at the hero from 6 m with line of sight. On a hit the hero is dragged 2.5 m toward the fisher over 0.25 s, no damage. Cooldown 4.5 s, first cast after 2.0 s | Telegraph 0.6 s (lane, 0.3 m wide) | Dash, a wall, leaving the line or a boss/hack/cinematic cancels the pull |
+| Musician / Müzisyen (`musician`) | 1 | While it lives, walkers within 6 m move 1.15x faster (one flat buff, no stacking) | Radius 6 m, speedMul 1.15 | Faint dotted ring (view only); no telegraph |
+| Hamal / Hamal (`hamal`) | 4 | Walks at 0.8x. A hit from behind (hero in the rear half-plane of its heading) does 0.5x damage. On death leaves a breakable crate (`crates`, 25 hp) that blocks walking | rearMul 0.5, rearCos 0, crateT 8.0 s, crate 1.0 x 1.0 m | Crate is a level-style box; no telegraph |
+
+### 11.2 New enemy types
+
+| ID | Name (EN / TR) | HP | Speed | Contact dmg | XP | Budget | Knockback resist | Behavior | First level |
+|---|---|---|---|---|---|---|---|---|---|
+| `enm_marti` | Seagull thief / Martı | 5 | 3.6 | 0 | 3 | 1.5 | 20% | Flies over walls, hovers within 2 m of the hero. With a loose XP drop within 4.5 m: a dive shadow (0.5 s ring) on the drop, then a dive at 9 m/s takes it. Flees at 5 m/s with the XP. Killed while carrying: the XP drops again with 6 gold. Off-screen while carrying: the XP is lost, no kill credit | Stage 2, 8 waterfront hoods (`galata`, `bridge`, `eminonu`, `kumkapi`, `samatya`, `bakirkoysahil`, `atakoysahil`, `atakoy`) |
+| `enm_cayci` | Tea carrier / Çaycı | 28 | 0.9 | 6 | 6 | 3.0 | 20% | Keeps 4.5 m (band 0.8 m) from the hero. Throws from 2.5 to 5 m every 4.0 s (first after 1.5 s), after a 0.7 s windup (ground ring on the hero's spot, the telegraph). Glob 0 damage, lands as a 1.0 m puddle for 6 s. In the puddle the hero moves at 0.65x, for 3 s after the last touch | Stage 2, 6 old-city hoods (`eminonu`, `sirkeci`, `beyazit`, `kapalicarsi`, `laleli`, `aksaray`) |
+
+Both types are added to `newTypes` (route mix weight, growing by `newGrow` 0.1 per hood index).
+
+### 11.3 Bark beats
+
+`BK.fk.marti` and `BK.fk.cayci` (first-sighting barks, batch D, speaker Arda, `joke` 1). EN lines approved through the dialogue import keep sheet; TR lines are drafts for owner review.
+

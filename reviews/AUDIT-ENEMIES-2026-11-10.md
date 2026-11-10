@@ -174,3 +174,50 @@ Quick fixes from section 5 and the drift list from section 7, done per section 9
 | Extra | Done | Catalog tourist and fisherman rows marked "not in code" (they are outfits, not enemy defs). |
 
 B6 (for the owner): the cap is not one number. Route budget spawns stop at 140 (`sim/levels.js:268`, `env-portal.js:47`); horde ambient and surge queue stop at 200 (`horde.js:132`, `horde.js:171`). Uncapped: summons (`enemies.js:375`), screamer calls (`enemies.js:84`), boss arena adds (`levels.js:383`), elite marks (`levels.js:357`), echo elites (`modifiers.js:83`), events (`events.js:114`), surge arrivals (`horde.js:161`), crawler emerges (`enemies.js:348`). Instrumented bot, L2, 6 seeds: 356 spawns made while over 140 alive, 348 of them from `horde.js:115`. Probe with a walking, invulnerable hero (not the bot policy): peaks 202 (L50) and 203 (L80), again mostly horde and surges. Recommendation: pick one ceiling and enforce it in one place (for example `P.Combat.spawnEnemy`, or an alive check in each spawner), with the route and horde stopping at it and summons and adds given a reserved share. The number is the owner's call; until then the docs state the real caps.
+
+## 12. Wave 1 (R1, branch `r1/enemy-wave1`)
+
+Built as §10 wave 1: the fisher, musician and hamal skins, and the marti and cayci types. Not merged. Numbers: `docs/content-catalog.md` §11 (copied from `js/config-skins.js` and `js/config-enemies5.js`). Decision row: `docs/product.md` D-055 (PROPOSED).
+
+**Tests (all pass):** `tools/test-enemy-behaviors.js` (new: fisher pull 2.5 m, musician buff 1.15 inside 6 m, hamal rear 0.5 and crate, marti steal and return, cayci puddle slow 0.65, telegraph floors, caps, determinism); `test-horde`, `test-dialogue`, `test-arsenal` PASS; `check-death-causes`, `check-entrances`, `check-hood-keys`, `check-ids`, `check-objective-strings` PASS; `test-meta` 122 checks, 0 failed.
+
+**Bot balance, 20 seeds, kite-generic, before and after (same seeds):**
+
+| Level | Hood | Clear | No-death | Median s | Deaths/run | Peak alive | Objective done |
+|---|---|---|---|---|---|---|---|
+| L2 | H01 | 20/20 → 20/20 | 100% → 100% | 173 → 173 | 0.00 → 0.00 | 151 → 151 | survive.tram 20/20 → 20/20 |
+| L8 | H02 | 20/20 → 20/20 | 85% → 95% | 197 → 237 | 0.15 → 0.05 | 159 → 134 | reach 19/20 → **9/20** |
+| L10 | H02 boss | 19/20 → 20/20 | 80% → 75% | 133 → 153 | 0.25 → 0.25 | 105 → 96 | boss 18/20 → 20/20 |
+| L13 | H03 | 20/20 → 20/20 | 90% → 95% | 265 → 295 | 0.10 → 0.05 | 200 → 186 | hack.street 0/20 → 0/20 |
+| L22 | H05 | 19/20 → 20/20 | 85% → 90% | 233 → 265 | 0.20 → 0.10 | 171 → 163 | collect.crate 7/20 → 7/20 |
+| L30 | H06 boss | 15/20 → 17/20 | 45% → 50% | 141 → 159 | 0.80 → 0.65 | 126 → 118 | boss 15/20 → 17/20 |
+| L43 | H09 | 19/20 → 19/20 | 95% → 90% | 239 → 417 | 0.10 → 0.15 | 200 → 188 | survive.boat 20/20 → 20/20 |
+
+No-death moves at most 5 points down (L10, L43), within the 10-point limit, so no data was softened. Peak alive is equal or lower on every level. **Residual:** the median run is longer on every level where the new types spawn (+18 s to +178 s), and the L8 par-time (reach) objective is met in 9 of 20 runs instead of 19. Clears are unchanged. The cause is not isolated (the slow, the hook drag and the musician's speed-up are all candidates); not diagnosed in this wave. L43's median doubling needs a look before any tuning.
+
+**Screenshots** (`reviews/media/R1/wave1/`, browser at `file://` prototype, level 22 with the sim frozen; the game canvas is 390×844 CSS, the PNGs are the 2x page capture):
+
+| File | Shows | Verdict |
+|---|---|---|
+| `01-fisher-telegraph.png` | 0.6 s red lane from the fisher to the hero | Readable but thin. A bark bubble covered the lane in one of two captures |
+| `02-fisher-drag.png` | Hero dragged 1.5 m in 9 frames, pale pull line | Weak. The line is faint; the "Olta!" letter did not show in the capture |
+| `03-musician-aura.png` | Musician with the 6 m dotted aura | Too faint in a busy frame; alpha 0.22 is nearly invisible on the brick ground |
+| `04-hamal-crate.png` | Crate after a hamal death (kind `crates`) | Reads as a generic box, the same look as the level's crates. No telegraph by design |
+| `05-marti-dive-shadow.png` | Dive ring on the XP drop, marti coming in | Reads well at phone size |
+| `06-marti-steal.png` | Marti flying off with the drop (state flee) | State reads; the carried drop is not visible at this size |
+| `07-cayci-windup.png` | 0.7 s ring on the hero's spot, cayci tray pose | Reads; a bark bubble covers the top of the ring in this frame |
+| `08-cayci-puddle.png` | Amber puddle under the hero, 6 s | Reads as a wet patch; the 0.65x slow has no on-screen cue (speed only) |
+
+Not done: silhouette test at 48 px (not tested). Musician and hamal have no telegraph by design, so their frames show the effect only.
+
+**Deviations and weak points:**
+1. Marti is placed on H02 Galata and H04 Galata Köprüsü from stage 2. `docs/journey.md` §5.0 says H01 to H04 have no new types. Owner call: move these two hoods out of the marti list (6 hoods left), or change §5.0.
+2. Cayci slow is a speed multiplier (0.65x for 3 s after the last touch), not a stop. The glob does no damage (the audit only asked for a slowing puddle).
+3. Skins have no bark of their own; only the two new types get first-sighting lines.
+4. Hamal's rear bonus rarely triggers while it chases (it comes at the hero from the front).
+5. Marti's kill shows a swish and no feather effect.
+6. The musician aura is hard to see; the fisher's pull line is faint.
+7. The hamal crate uses the level crate look; it does not say "hamal".
+8. Dialogue bubbles (first-sighting lines and hero idle lines) sit on top of telegraphs for a while; the cue survives, but it is partly hidden in some frames.
+
+**Owner decisions:** (a) the galata and bridge marti placement above; (b) TR lines for `BK.fk.marti` and `BK.fk.cayci` are drafts (`reviews/dialogue/tr-D.csv`, not approved); (c) `prototype/index.html` needs the new script and sound tags (listed in the branch report, not staged); (d) whether the L8 reach and the L43 median change is acceptable or the slow (0.65) and the drag should be softened.
