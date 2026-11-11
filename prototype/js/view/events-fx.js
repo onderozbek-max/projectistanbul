@@ -151,12 +151,38 @@ P.EventsFx = (function () {
     });
   }
 
-  // Blackout dims the screen (steady, not flashing).
+  // Blackout is a power glitch, not darkness (config-feel.js glitch): the city stays readable, the grid stutters. G is the shared
+  // state read by the screen pass here and by the lamp pools (EV.lightK). Brightness changes at most once per burst.
+  var G = { on: false, dip: 0, burst: false, t: 0, a: 0 };
+  function glitchState(s) {
+    var bo = s.ev && s.ev.list.filter(function (e) { return e.kind === 'blackout' && !e.done; })[0], k, p;
+    if (!bo) { G.on = false; G.dip = 0; G.burst = false; return G; }
+    k = P.CFG.feel2.glitch; p = bo.t % k.period;
+    G.on = true; G.t = bo.t; G.a = clamp01((bo.T - bo.t) / 0.5);
+    G.burst = !(P.Settings && P.Settings.reduceMotion) && p < k.burst;
+    G.dip = G.burst ? Math.sin(Math.PI * p / k.burst) : 0;
+    return G;
+  }
+  function hash1(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+  // Multiplier for lamp and window light pools: 1 normally; during a blackout they hum low and dip once per burst.
+  EV.lightK = function (s) {
+    var g = glitchState(s), k = P.CFG.feel2.glitch;
+    if (!g.on) return 1;
+    if (P.Settings && P.Settings.reduceMotion) return k.lampBase;
+    return 1 - (1 - k.lampBase * (1 - k.lampDip * g.dip)) * g.a;
+  };
   EV.screen = function (R, s) {
-    var bo = s.ev && s.ev.list.filter(function (e) { return e.kind === 'blackout' && !e.done; })[0];
-    if (!bo) return;
-    var a = clamp01((bo.T - bo.t) / 0.5);
-    R.ctx.fillStyle = 'rgba(5,6,12,' + (0.38 * a) + ')'; R.ctx.fillRect(0, 0, R.W, R.H);
+    var g = glitchState(s), k = P.CFG.feel2.glitch, c = R.ctx, cv = c.canvas, kk, step, i, y, h, dx, rm = !!(P.Settings && P.Settings.reduceMotion);
+    if (!g.on) return;
+    c.fillStyle = 'rgba(5,6,12,' + ((rm ? k.steadyDim : k.baseDim + k.dipDim * g.dip) * g.a).toFixed(3) + ')'; c.fillRect(0, 0, R.W, R.H);
+    if (!g.burst) return;
+    kk = cv.width / R.W; step = Math.floor(g.t * k.rate);
+    for (i = 0; i < k.bands; i++) {                       // the picture tears into shifted bands, with a red and a cyan fringe
+      y = hash1(step * 3.1 + i * 7.7) * R.H; h = 8 + hash1(step * 5.3 + i) * 34; dx = (hash1(step * 2.9 + i * 1.3) - 0.5) * 2 * (10 + 16 * g.dip);
+      c.drawImage(cv, 0, y * kk, cv.width, h * kk, dx, y, R.W, h);
+      c.fillStyle = 'rgba(255,50,90,0.16)'; c.fillRect(dx > 0 ? dx - 3 : R.W + dx, y, 3, h);
+      c.fillStyle = 'rgba(60,220,255,0.16)'; c.fillRect(dx > 0 ? dx : R.W + dx - 3, y, 3, h);
+    }
   };
 
   // ---------- events -> letters and cues ----------
@@ -185,7 +211,7 @@ P.EventsFx = (function () {
       case 'helperStart': P.Fx.letter(ev.x, ev.y + 1, label('ev.helper')); break;
       case 'helperThrow': sfx('lob', 200, s, ev.x); break;
       case 'defendHeld': sfx('bell', 0, s, ev.x); break;
-      case 'tramRush': P.Fx.letter(ev.x, ev.y0 + 1, label('ev.tram')); sfx('ferryHorn', 0, s, ev.x); break;
+      case 'tramRush': P.Fx.letter(ev.x, ev.y0 + 1, label('ev.tram')); sfx('ferryHorn', 0, s, ev.x); if (P.Vehicles) P.Vehicles.rush(ev); break;
     }
   };
 

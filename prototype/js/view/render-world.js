@@ -45,7 +45,6 @@ P.RenderWorld = (function () {
     return t || null;
   }
 
-
   W.drawGround = function (R, s, y0, y1) {
     ambience(s);
     if (!isL1(s)) { genGround(R, s, y0, y1); return; }
@@ -105,16 +104,18 @@ P.RenderWorld = (function () {
     c.beginPath(); c.arc(R.X(x), R.Y(y + 1.7), 0.16 * u, 0, Math.PI * 2); c.fill(); c.stroke();
   }
 
+  function lightK(s) { return P.EventsFx && P.EventsFx.lightK ? P.EventsFx.lightK(s) : 1; }   // blackout glitch: lamps hum low and dip
   W.drawLights = function (R, s, y0, y1) {
     if (!isL1(s)) { genLights(R, s, y0, y1); return; }
     var c = R.ctx, u = R.ppm;
-    c.save(); c.globalCompositeOperation = 'lighter';
+    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = lightK(s);
     for (var py = Math.ceil((y0 - 6) / 12) * 12; py < y1 + 6; py += 12) {
       if (py <= 4 || py >= 228) continue;
       [[-4.85, py], [4.85, py + 6]].forEach(function (l) {
-        var X = R.X(l[0]), Y = R.Y(l[1] + 0.6), g = c.createRadialGradient(X, Y, 0, X, Y, 3.6 * u);
+        var X = R.X(l[0]), Y = R.Y(l[1] + 0.6), g = c.createRadialGradient(0, 0, 0, 0, 0, 3.6 * u);
         g.addColorStop(0, 'rgba(255,180,100,0.34)'); g.addColorStop(0.5, 'rgba(255,160,80,0.10)'); g.addColorStop(1, 'rgba(255,190,110,0)');
-        c.fillStyle = g; c.fillRect(X - 3.6 * u, Y - 3.6 * u, 7.2 * u, 7.2 * u);
+        c.save(); c.translate(X, Y); c.scale(1, P.CFG.feel2.light.squash);          // a pool on the ground foreshortens into an ellipse
+        c.fillStyle = g; c.fillRect(-3.6 * u, -3.6 * u, 7.2 * u, 7.2 * u); c.restore();
       });
     }
     c.restore();
@@ -224,11 +225,7 @@ P.RenderWorld = (function () {
   W.drawTram = function (R, s) {
     var tr = L().tram, h = s.hero;
     var beside = Math.abs(h.y - (tr.yMin + tr.yMax) / 2) < 8 && Math.abs(h.x) < 5;
-    R.ctx.globalAlpha = beside ? 0.3 : 1;
-    rect(R, tr.xMin, tr.yMin, tr.xMax, tr.yMax, '#C0392B', '#14151F', 3);
-    rect(R, tr.xMin + 0.25, tr.yMin + 0.4, tr.xMax - 0.25, tr.yMax - 0.4, '#F4EBDD', '#14151F', 1.5);
-    for (var y = tr.yMin + 1; y < tr.yMax - 0.5; y += 1.6) rect(R, tr.xMin + 0.5, y, tr.xMax - 0.5, y + 0.9, '#C0392B');
-    R.ctx.globalAlpha = 1;
+    P.Vehicles.drawCar(R, (tr.xMin + tr.xMax) / 2, tr.yMin, tr.yMax, tr.xMax - tr.xMin, { alpha: beside ? 0.3 : 1, t: performance.now() / 1000, lamp: '255,236,190' });
   };
 
   W.drawScaffold = function (R, s) {
@@ -365,10 +362,10 @@ P.RenderWorld = (function () {
   }
   function genLights(R, s, y0, y1) {
     var c = R.ctx, th = themeOf(s), t = performance.now() / 1000, hp = hoodPos(s), u = R.ppm, i, covered = !!(P.Indoor && P.Indoor.level(s));
-    c.save(); c.globalCompositeOperation = 'lighter';
+    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = lightK(s);
     for (var y = Math.ceil((y0 - 3) / 6) * 6; y < y1 + 3 && th.shop > 0; y += 6) {
       [-1, 1].forEach(function (sd) {
-        if ((sd > 0 ? th.R : th.L) === 'facade' && hash(y * 3.3 + sd * 7) < th.shop * 0.6) P.Props.h.glow(c, R.X(sd * 7.4), R.Y(y + 3.5), 1.8 * u, 0.14);
+        if ((sd > 0 ? th.R : th.L) === 'facade' && hash(y * 3.3 + sd * 7) < th.shop * 0.6) { c.save(); c.translate(R.X(sd * 7.4), R.Y(y + 3.5)); c.scale(1, P.CFG.feel2.light.squash); P.Props.h.glow(c, 0, 0, 1.8 * u, 0.14); c.restore(); }
       });
     }
     if (hp >= 4 && hp <= 17) for (i = 0; i < 14; i++) {

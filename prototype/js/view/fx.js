@@ -9,12 +9,14 @@ P.Fx = (function () {
 
   F.reset = function (s) {
     var w = P.CFG.view.widthM;
-    F.cam = { x: s.geo ? 0 : -6, y: s.hero.y, w: w, trauma: 0, punchT: 0, ox: 0, oy: 0, rot: 0, zoom: 1 };
+    F.cam = { x: s.geo ? 0 : -6, y: s.hero.y, w: w, trauma: 0, punchT: 0, ox: 0, oy: 0, rot: 0, zoom: 1, kx: 0, ky: 0 };
     F.cam.y = targetY(s, w);
     F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = []; F.beat = null;
     F.focus = null; F.later = []; F.clock = 0; F.recent = []; F.lowArmed = true; F.chainCd = 0;
     F.edge = null; F.edgeAt = -1e9; F.heroFlashT = 0; F.heroFlashAt = -1e9;
     P.WFx.reset();
+    if (P.Feel) P.Feel.reset();
+    if (P.Vehicles) P.Vehicles.reset();
     if (P.EnemyFx && P.EnemyFx.reset) P.EnemyFx.reset();
     if (P.EventsFx && P.EventsFx.reset) P.EventsFx.reset();
     if (P.RenderWorld && P.RenderWorld.resetAmbience) P.RenderWorld.resetAmbience();
@@ -91,10 +93,12 @@ P.Fx = (function () {
     c.ox = fe.maxShakePx * sh * (Math.random() * 2 - 1);
     c.oy = fe.maxShakePx * sh * (Math.random() * 2 - 1);
     c.rot = fe.maxShakeDeg * Math.PI / 180 * sh * (Math.random() * 2 - 1);
+    if (P.Feel) { P.Feel.decayKick(rdt); c.ox += c.kx || 0; c.oy += c.ky || 0; }   // v0.9: kick leans the view into the player's big actions
     if (c.punchT > 0) c.punchT = Math.max(0, c.punchT - dt);
     var pp = c.punchT > 0 ? Math.sin((1 - c.punchT / (fe.punchTime * 2)) * Math.PI) : 0;
     c.zoom = 1 + (rm ? 0 : fe.punchZoom * pp);
     P.WFx.update(dt, s);
+    if (P.Feel) P.Feel.update(dt, s);
     ageList(F.nums, dt); ageList(F.swings, dt); ageList(F.rings, dt); ageList(F.bursts, dt); ageList(F.letters, dt);
     F.parts.forEach(function (p) { p.t -= dt; p.x += (p.vx || 0) * dt; p.y += (p.vy || 0) * dt; });
     F.parts = F.parts.filter(function (p) { return p.t > 0; });
@@ -151,6 +155,7 @@ P.Fx = (function () {
 
   F.onEvent = function (ev, s) {
     P.WFx.onEvent(ev, s);
+    if (P.Feel) P.Feel.onEvent(ev, s);
     if (P.EnemyFx && P.EnemyFx.onEvent) P.EnemyFx.onEvent(ev, s);
     if (P.EventsFx && P.EventsFx.onEvent) P.EventsFx.onEvent(ev, s);
     switch (ev.type) {
@@ -165,7 +170,7 @@ P.Fx = (function () {
       case 'eliteSpawn': F.bursts.push({ x: ev.x, y: ev.y, t: 0.5, T: 0.5 }); break;
       case 'hit':
         F.number(ev.id, ev.x, ev.y, ev.dmg, ev.crit);
-        for (var h = 0; h < 3; h++) {
+        for (var h = 0; h < (P.Feel ? 0 : 3); h++) {
           var ha = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 1.6, hs = 3 + Math.random() * 4;
           F.parts.push({ kind: 'blood', x: ev.x, y: ev.y, vx: Math.cos(ha) * hs, vy: Math.sin(ha) * hs, t: 0.25, T: 0.25 });
         }
@@ -179,7 +184,7 @@ P.Fx = (function () {
         var fl = ev.src === 'canister';
         F.parts.push({ kind: 'corpse', x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: ev.enemy || 'walker', variant: ev.variant || 0, skin: ev.skin, fling: fl, t: fl ? 0.7 : 0.55, T: fl ? 0.7 : 0.55 });
         if (ev.elite) { F.addTrauma(0.35); F.letter(ev.x, ev.y + 1.6, P.t('fx.thud')); }
-        for (var g = 0; g < 6; g++) {
+        for (var g = 0; g < (P.Feel ? 0 : 6); g++) {
           var ga = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 2.2, gs = 2 + Math.random() * 5;
           F.parts.push({ kind: 'gib', x: ev.x, y: ev.y, vx: Math.cos(ga) * gs, vy: Math.sin(ga) * gs, t: 0.35 + Math.random() * 0.2, T: 0.5 });
         }

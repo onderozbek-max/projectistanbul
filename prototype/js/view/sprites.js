@@ -38,7 +38,8 @@ P.Sprites = (function () {
   S.contact = function (c, X, Y, rx, alpha, aspect) {
     if (!(rx > 0) || !(alpha > 0)) return;
     var ry = rx * (aspect === undefined ? P.CFG.view.heroShadow.aspect : aspect);
-    c.save(); c.globalAlpha *= alpha; c.drawImage(contactSprite(), X - rx, Y - ry, 2 * rx, 2 * ry); c.restore();
+    var sk = P.CFG.feel2.shadow;   // one light direction for every figure: the shadow slips down and to the right
+    c.save(); c.globalAlpha *= alpha; c.drawImage(contactSprite(), X - rx + rx * sk.x, Y - ry + ry * sk.y, 2 * rx, 2 * ry); c.restore();
   };
   S.shadow = function (c, X, Y, u, k) { S.contact(c, X, Y, 0.34 * u, 0.32 * (k === undefined ? 1 : k), 0.38); };
   // Coloured base ring at the feet: a dark under-stroke, then the colour, with a faint fill.
@@ -135,9 +136,10 @@ P.Sprites = (function () {
 
   // Draw one figure: cached low layer, live knife, cached head, live back-hand weapon (original z-order).
   function drawFigure(c, X, Y, u, f, rc, o, t) {
-    var U = R.bucket(u * devScale(c)), moving = !rc.still, pose = poseOf(rc, o, moving, t), J = R.solve(rc.B, pose);
+    var U = R.bucket(u * devScale(c)), moving = !rc.still && !o.stopped, pose = poseOf(rc, o, moving, t), J = R.solve(rc.B, pose);
     var refJ = R.solve(rc.B, { lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch, arms: 'idle' });
     var hit = clamp((o.flash || 0) / P.CFG.feel.hitFlash, 0, 1), sq = squash(pose, moving, hit), ox = (o.recoil || 0) * hit * u, oy = 0;
+    if (o.spring) { sq.x *= o.spring.x; sq.y *= o.spring.y; sq.r = o.spring.r; ox += o.spring.ox * u; }   // v0.9 hit spring / hero start-stop
     var white = (o.flash || 0) > 0 && !o.noWhite, low, high, dx, dy, ow = o.outline ? P.CFG.view.eliteOutline.units : 0;
     rc.U = U;
     if (rc.custom) {
@@ -176,7 +178,7 @@ P.Sprites = (function () {
     var O = CH.outfit('hero'), f = o.face === -1 ? -1 : 1;
     var rc = buildRc({ tag: 'hero', oid: 'hero', bname: 'hero', B: CH.body('hero'), O: O, skin: o.skin || '#E0AC80',
       shirt: o.shirt || O.col, pants: o.pants || O.pants, hair: o.hair || O.hc, shoe: O.shoe, face: CH.heroFace, arms: 'run',
-      still: !!o.still, seed: (X * 0.013) % 4, back: !!o.back, lean: 0.03, live: { front: o.arms === 'knife' || !!o.noArms, back: !!o.backHand || !!o.noArms },
+      still: !!o.still, seed: (X * 0.013) % 4, back: !!o.back, lean: o.lean || 0.03, live: { front: o.arms === 'knife' || !!o.noArms, back: !!o.backHand || !!o.noArms },
       mot: { gait: 'walk', strideK: 1.35, liftK: 1.2, bob: 0.02 }, halo: 'rgba(255,214,150,0.32)', glow: 'rgba(255,226,170,0.6)', hook: null });
     drawFigure(c, X, Y, o.u, f, rc, o, performance.now());
   };
@@ -225,7 +227,8 @@ P.Sprites = (function () {
     if (emerge < 1) { c.globalAlpha = emerge; c.translate(X, Y); c.scale(0.7 + 0.3 * emerge, 0.7 + 0.3 * emerge); c.translate(-X, -Y); }
     var rc = def.custom ? crawlerRc(e) : zombieRc(e, def, human, f);
     var o = { flash: e.flash, phase: (e.walk || 0) * 5.5, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
-      outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000) };
+      outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000),
+      spring: P.Feel ? P.Feel.hurt(e) : null, stopped: P.Feel ? P.Feel.stopped(e) : false };
     drawFigure(c, X, Y, uf, f, rc, o, performance.now());
     if (e.elite) eliteMarks(c, X, Y, uf, e);
     if (e.boss) bossMark(c, X, Y, uf);

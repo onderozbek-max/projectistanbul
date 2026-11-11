@@ -216,7 +216,7 @@ P.ArtRig = (function () {
   // sq = {x, y} squash, ox/oy = recoil in CSS px, dx/dy = unit offset inside the figure (mirrors with f).
   R.blit = function (c, e, X, Y, u, f, sq, ox, oy, dx, dy) {
     var k = u / e.U, sx = sq ? sq.x : 1, sy = sq ? sq.y : 1;
-    c.save(); c.translate(X + (ox || 0), Y + (oy || 0)); c.scale(f * sx, sy);
+    c.save(); c.translate(X + (ox || 0), Y + (oy || 0)); if (sq && sq.r) c.rotate(sq.r); c.scale(f * sx, sy);   // sq.r: tilt about the feet (screen space)
     c.drawImage(e.cv, (dx || 0) * u - e.ax * k, (dy || 0) * u - e.ay * k, e.cv.width * k, e.cv.height * k);
     c.restore();
   };
