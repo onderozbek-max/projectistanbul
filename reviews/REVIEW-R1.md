@@ -168,3 +168,36 @@ All three were answered; see Decisions below.
 1. Pigeon 48 px silhouette sheet, and a device frame-time run (both still owed).
 2. Stage `index.html` with the three script lines above and merge to `main`.
 3. Then the enemy cap and diner change (D-056), a separate task.
+
+---
+
+# Review Packet R1: Enemy ceiling (D-056)
+
+Branch `r1/enemy-cap` (from `main` at `bba1946`). Not pushed.
+
+## Summary
+- **One hard ceiling of 200 live enemies** (`levels.ceiling.hard` in `config-levels.js`), enforced in the single spawn funnel `Combat.spawnEnemy`, which returns `null` past it.
+  It closes the paths that had no check (summons, events, surge arrivals, set pieces). The soft gates stay: route 140, horde 200.
+- **A boss always spawns; its scripted adds** (the intro ring in `levels.js`, summons in `enemies.js`) **may go to 220** (`ceiling.boss`).
+- **Callers are null-safe**: horde route and surge spawns, summons, and the two events that use the result (loot runner, chest guard), which now end as `capped`.
+  `hack.js` and the rest ignore the result. `ceilingHits` counts refusals on the sim state.
+- **Diners**: already tutorial-only (generated levels drop them, `journey.md` says so); nothing to change.
+- Docs: D-056 marked implemented in `docs/product.md` section 17.
+
+## Tests
+`tools/test-ceiling.js` (new): refuses at 200 and counts it; boss adds stop at exactly 220; the boss itself is never refused; just below the ceiling nothing changes;
+loot, chest, ambush and pier events, five levels and a boss level run 40 to 60 s on a full field without throwing or exceeding the ceiling. It fails on the unfixed
+code (and the loot guard is checked: without it the loot event throws). Also pass: `test-enemy-behaviors`, `test-horde`, `test-env` (117), `test-meta` (122),
+`test-dialogue`, `check-entrances`, `check-death-causes`, `check-hood-keys`, `check-ids`, `check-objective-strings`.
+
+## Balance
+Bot, 30 seeds, clean exports of `main` and `main` plus this patch only. **Identical on every level, peak alive included** (the ceiling never bit):
+L10 (peak 105), L22 (164), L30 (126), L43 (188), L50 (153). Matches D-056's expectation ("changes almost nothing at runtime").
+
+## Deviations
+1. `tools/test-horde.js` and `tools/check-entrances.js` changed: the first spawned 300 walkers on one sim (now clears the field per call, the intent is entrance state),
+   the second dereferenced a null result in its `spawnEnemy` wrapper.
+2. Two opts flags on `spawnEnemy`: `boss` (never refused) and `bossAdd` (up to 220).
+
+## Known issues
+- Not measured on a device; D-056 says not to lower the ceiling before the Low-device run (M0-T4).

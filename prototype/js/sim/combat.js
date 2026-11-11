@@ -2,7 +2,11 @@
 // Generated levels: s.diff scales enemy HP and contact damage; new behaviours live in enemies.js / bosses.js.
 P.Combat = {};
 
+// Hard ceiling (D-056, config-levels.js ceiling): returns null when the field is full. opts.boss (the boss itself) is never refused;
+// opts.bossAdd (its scripted adds) may go to the higher boss ceiling. Callers must handle null.
 P.Combat.spawnEnemy = function (s, type, x, y, opts) {
+  var CE = P.CFG.levels.ceiling;
+  if (!(opts && opts.boss) && s.enemies.length >= (opts && opts.bossAdd ? CE.boss : CE.hard)) { s.ceilingHits = (s.ceilingHits || 0) + 1; return null; }
   var d = P.CFG.enemies[type], scale = 1 + P.CFG.hpScalePerMinute * (s.runT / 60), df = s.diff;
   var hp = d.hp * (type === 'diner' ? 1 : scale) * (df ? df.hp : 1);
   var e = {

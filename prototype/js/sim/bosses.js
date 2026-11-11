@@ -29,7 +29,7 @@ P.Bosses.archetype = function (hoodId, type) {
 P.Bosses.spawn = function (s, type, x, y, o) {
   var arch = P.Bosses.archetype(o.hoodId, type), B = P.CFG.bosses[arch], df = s.diff, hm = 1 + P.CFG.levels.diff.bossHoodMul * o.hoodIdx;
   var share = P.CFG.levels.diff.bossShare;            // bosses take only part of the route HP and damage growth
-  var e = P.Combat.spawnEnemy(s, B.base || arch, x, y, { state: 'turning', stateT: P.CFG.levels.bossIntro, skin: o.skin });
+  var e = P.Combat.spawnEnemy(s, B.base || arch, x, y, { state: 'turning', stateT: P.CFG.levels.bossIntro, skin: o.skin, boss: true });
   e.type = arch; e.boss = true; e.nameKey = o.nameKey; e.r = B.radius; e.speed = B.speed; e.kbResist = B.kbResist;
   e.contact = B.contact * (df ? 1 + (df.dmg - 1) * share : 1); e.xp = B.xp;
   e.hp = B.hp * hm * (df ? 1 + (df.hp - 1) * share : 1); e.maxHp = e.hp;

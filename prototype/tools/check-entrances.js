@@ -42,6 +42,7 @@ const spawnEnemy = P.Combat.spawnEnemy;
 P.Combat.spawnEnemy = function (s, type, x, y, opts) {
   const o = opts || {}, cls = classOf(!!s.routeSpawn, o);
   const e = spawnEnemy.call(this, s, type, x, y, o);
+  if (!e) return e;                                            // D-056: the hard ceiling refused it
   if (!s.gen || s.gen.arena) return e;                         // E3.entrance skips these too
   const kind = e.entrance ? e.entrance.kind : null, moved = e.x !== x || e.y !== y;
   const st = stats[cls] || (stats[cls] = { n: 0, risen: 0, moved: 0, kinds: {} });

@@ -68,6 +68,7 @@ ATTACKS.forEach(a => {
   const s = newSim(23, 7), h = s.hero, N = 60, y = h.y + 12;
   const rising = (opts, route) => {
     s.routeSpawn = !!route; let n = 0;
+    s.enemies.length = 0;                                   // D-056: each call starts on an empty field (the ceiling refuses past 200)
     for (let i = 0; i < N; i++) {
       const e = P.Combat.spawnEnemy(s, 'walker', (i % 2 ? 1 : -1) * 6, y + (i % 5) * 0.4, opts);
       if (e.state === 'rising') n++;

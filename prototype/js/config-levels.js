@@ -92,7 +92,11 @@
     holdStopBefore: 6,                 // no spawns in the last 6 s of a hold
     bossAddRate: 1.08,                 // boss-fight adds: share of stage rate (AUDIT-6 B4: x1.8 from 0.6 for arena density)
     bossAddStart: 6,                   // adds around the boss on intro
-    cap: 140,                          // max alive (perf and readability)
+    cap: 140,                          // max alive (perf and readability): the soft gate for route spawns
+    // D-056: one hard ceiling of live enemies for every spawn path (Combat.spawnEnemy refuses past it). A boss always spawns; its scripted
+    // adds (intro ring, summons) may go to `boss`. 140 (here) and 200 (config-horde.js ctl.cap) stay as the soft spawn gates, so this
+    // changes almost nothing at runtime. Do not lower it before the Low-device run (M0-T4) gives a measured number.
+    ceiling: { hard: 200, boss: 220 },
     spawnAhead: { gap: 0.5, depth: 7 }, spawnBehind: { gap: 1.0, depth: 6 }, sideX: 6.2,
     ambush: { walkers: 8, runners: 4, x: 5.6, yMin: 2, yMax: 5 },
     introCount: 3, eliteLead: 8, crawlerTelegraph: 1.0, arenaBossAhead: 13, bossIntro: 1.6,

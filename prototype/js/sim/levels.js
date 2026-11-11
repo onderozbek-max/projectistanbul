@@ -381,6 +381,6 @@ function startArena(s) {
   for (var i = 0; i < C.bossAddStart; i++) {
     var pool = g.roster.filter(function (t) { var d = P.CFG.enemies[t]; return !(d && d.noAdd); }) || ['walker'];
     var a = (i / C.bossAddStart) * Math.PI * 2, type = pool[i % pool.length];
-    P.Combat.spawnEnemy(s, type === 'crawler' ? 'walker' : type, g.boss.x + Math.cos(a) * 4.5, g.boss.y + Math.sin(a) * 4.5, { skin: pickSkin(s), state: 'turning', stateT: C.bossIntro });
+    P.Combat.spawnEnemy(s, type === 'crawler' ? 'walker' : type, g.boss.x + Math.cos(a) * 4.5, g.boss.y + Math.sin(a) * 4.5, { skin: pickSkin(s), state: 'turning', stateT: C.bossIntro, bossAdd: true });
   }
 }

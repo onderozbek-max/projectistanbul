@@ -386,7 +386,8 @@ function summon(s, tg) {
   var M = P.CFG.enemies.bloater.mini, df = s.diff ? s.diff.hp : 1;
   for (var i = 0; i < tg.n; i++) {
     var a = (i / tg.n) * Math.PI * 2 + s.rng.ai.range(0, 0.6);
-    var e = P.Combat.spawnEnemy(s, tg.kind2 || 'walker', tg.x + Math.cos(a) * tg.r, tg.y + Math.sin(a) * tg.r, { skin: tg.skin });
+    var e = P.Combat.spawnEnemy(s, tg.kind2 || 'walker', tg.x + Math.cos(a) * tg.r, tg.y + Math.sin(a) * tg.r, { skin: tg.skin, bossAdd: true });
+    if (!e) break;                                         // D-056: the field is full
     if (tg.mini) { e.mini = true; e.hp = M.hp * df; e.maxHp = e.hp; e.r = M.radius; }
   }
   s.events.push({ type: 'summon', x: tg.x, y: tg.y });

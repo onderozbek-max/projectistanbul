@@ -50,6 +50,7 @@ EK.loot = {
     ev.x = (rng.chance(0.5) ? -1 : 1) * rng.range(L.xMin, L.xMax);
     ev.y = P.Events.clampY(s, h.y + L.spawnAhead);
     var e = P.Events.spawn(s, ev, 'walker', ev.x, ev.y, { state: 'active' });
+    if (!e) { P.Events.end(s, ev, 'capped'); return; }     // D-056: the field is full, no loot runner this time
     e.hp = L.hp * (s.diff ? s.diff.hp : 1); e.maxHp = e.hp; e.speed = L.speed; e.lootEv = ev.id;
     ev.e = e; ev.T = L.life;
     P.Director.bark(s, 'barkLoot');
@@ -232,6 +233,7 @@ EK.chest = {
     ev.x = P.Events.clampX(s, rng.range(-C.xRange, C.xRange));
     ev.y = P.Events.clampY(s, h.y + C.ahead);
     ev.guard = P.Events.spawn(s, ev, o.type || 'walker', ev.x, ev.y + C.guardDist, { elite: true });
+    if (!ev.guard) { P.Events.end(s, ev, 'capped'); return; }   // D-056: the field is full, no chest this time
     s.events.push({ type: 'chestGuard', id: ev.id, x: ev.x, y: ev.y, enemy: ev.guard.type });
   },
   step: function () {},

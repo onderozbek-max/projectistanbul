@@ -114,6 +114,7 @@ P.Horde = {};
     s.routeSpawn = true;                                   // enemies3.js: an ambient spawn may come from a manhole or window
     var e = P.Combat.spawnEnemy(s, R.chance(H.runnerShare) ? 'runner' : 'walker', pt.x, pt.y, { skin: skin(s) });
     s.routeSpawn = false;
+    if (!e) return false;                                  // D-056: the hard ceiling refused it
     fodder(e);
     if (pt.behind) s.events.push({ type: 'groan', x: pt.x, y: pt.y });
     return true;
@@ -159,6 +160,7 @@ P.Horde = {};
     }
     if (!pt) return;
     var e = P.Combat.spawnEnemy(s, R.chance(H.runnerShare) ? 'runner' : 'walker', pt.x, pt.y, { skin: skin(s) });
+    if (!e) return;                                        // D-056: the hard ceiling refused it
     fodder(e);
   }
 
