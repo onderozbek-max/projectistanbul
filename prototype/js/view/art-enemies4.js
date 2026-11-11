@@ -1,7 +1,7 @@
 // v0.7 enemy art and motion (lane C, view only). Bodies and motion for kurye (courier on a scooter with a delivery box),
 // copci (street sweeper with a broom), taksici (taxi driver over a yellow car) and kasapBoss (the butcher, bigger). Wraps
 // P.Sprites.enemy (sprites.js; art-enemies3 wraps it too) for: hit flinch, wind-up lean, idle head twitch, shamble,
-// scale-in for ordinary spawns, and the entrance transforms (manhole, window, door, balcony, tram). Numbers: P.CFG.enemies3.feel.
+// scale-in for ordinary spawns, and the entrance transforms (window, door, balcony, tram). Numbers: P.CFG.enemies3.feel.
 // Wave 2: the flinch is a stagger of feel.flinchT seconds (sim time, enemies-fx.js hitAt), not a 60 ms blip.
 (function () {
   var EN = P.ArtEnemies, R = P.ArtRig, CH = P.ArtChars;
@@ -54,10 +54,7 @@
   function drawRising(Rd, e, hero, X, Y, uf, f) {
     var c = Rd.ctx, u = Rd.ppm, E = e.entrance, p = clamp01(1 - e.stateT / E.T), k = 1 - p;
     c.save();
-    if (E.kind === 'manhole') {
-      c.beginPath(); c.rect(X - 3 * u, Y - 4 * u, 6 * u, 4 * u + 0.25 * uf); c.clip();
-      c.translate(0, k * 0.9 * uf);
-    } else if (E.kind === 'window') {
+    if (E.kind === 'window') {
       c.beginPath(); c.rect(X - 0.45 * u, Y - 0.9 * u, 0.9 * u, 0.9 * u + 0.02 * uf); c.clip();
       c.translate(0, k * 0.6 * uf);
     } else if (E.kind === 'balcony') {

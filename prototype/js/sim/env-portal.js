@@ -6,9 +6,9 @@
 // Numbers: P.CFG.env.portal.
 P.EnvPortal = {};
 
-// Openings for a generated level: doors on both walls, a window above every other door, and manholes in the lane.
+// Openings for a generated level: doors on both walls, and a window above every other door (D-058: nothing comes up from below the ground).
 P.EnvPortal.place = function (s) {
-  var E = s.env, G = s.geo, C = P.CFG.env.portal, L = P.CFG.level, rng = E.rng, n = 0, doors = [], y, i;
+  var E = s.env, G = s.geo, C = P.CFG.env.portal, L = P.CFG.level, n = 0, doors = [], i;
   L.doorsRight.forEach(function (y2) { doors.push({ side: 1, y: y2 }); });
   L.doorsLeft.forEach(function (y2) { doors.push({ side: -1, y: y2 }); });
   var ok = function (y2) { return y2 >= C.yStart && y2 <= G.exitY - C.yEnd; };
@@ -18,9 +18,6 @@ P.EnvPortal.place = function (s) {
     if (k % C.windowEvery === 0 && ok(d.y + C.windowDy)) addPortal(s, 'window', d.side * C.windowX, d.y + C.windowDy, d.side);
     n++;
   });
-  for (y = C.manholeStart; y <= G.exitY - C.yEnd; y += C.manholeEvery) {
-    addPortal(s, 'manhole', rng.range(-C.manholeX, C.manholeX), y + rng.range(-C.manholeJit, C.manholeJit), 0);
-  }
   for (i = 0; i < E.portals.length; i++) E.portals[i].id = i + 1;
 };
 

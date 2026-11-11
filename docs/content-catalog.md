@@ -110,7 +110,7 @@ Budget cost = cost per spawn in the spawn director's budget (game-design.md §6)
 |---|---|---|---|---|---|---|---|---|---|
 | `enm_walker` | Walker / Yürüyen | 10 | 1.2 | 5 | 2 | 1.0 | 0% | Shambles toward the player | L1 |
 | `enm_runner` | Runner / Koşucu | 6 | 2.9 | 4 | 3 | 1.5 | 0% | Sprints toward the player | L1 (seg C) |
-| `enm_crawler` | Crawler / Sürünen | 14 | 1.0 | 6 | 4 | 1.5 | 50% | Emerges from manholes (1.0 s telegraph), low silhouette | L1 (scripted) |
+| `enm_crawler` | Crawler / Sürünen | 14 | 1.0 | 6 | 4 | 1.5 | 50% | Crawls in from the street edge (no entrance animation, D-058), low silhouette | L1 (scripted) |
 | `enm_brute` | Brute / İriyarı | 80 | 0.9 | 15 | 10 | 8.0 | 80% | Slow tank, shoulder-charge 8 m every 6 s (0.8 s telegraph) | L4 |
 | `enm_spitter` | Spitter / Tükürükçü | 15 | 1.1 | 4 | 4 | 3.0 | 0% | Keeps about 5.5 m; acid glob 4 dmg (r 1.0 m) leaves a 3 s puddle; fires every 3 s after a 0.7 s windup. **Deliberate exception** to the 0.8 s telegraph floor (config-enemies4.js), with zehirli | L6 |
 | `enm_bloater` | Bloater / Dombili | 24 | 0.75 | 0 | 5 | 3.0 | 30% | Drifts in and swells (from 3.5 m); bursts on contact or death: 22 dmg to the hero (r 2.2 m), 30 to zombies; toxic cloud r 1.8 m for 3 s (4 dps on zombies, 2 dps on the hero). Mini bloaters come from the bloater boss. | L11 |
@@ -255,7 +255,7 @@ Template: game-design.md §6. Durations are targets for an average player.
 | `int_tea_tray` | Café table with a tea tray | 15 | 6 tea glasses burst outward, 10 dmg each | Comic SFX "ŞANGIR!" |
 | `int_cafe_chairs` | Café chairs | — | Knocked aside (cosmetic, physics-lite) | Pure juice |
 | `int_shutter` | Shop shutter | — | Objective door (opens on script) | Route-level exits |
-| `int_manhole` | Manhole | — | Crawler spawn point (1.0 s telegraph: lid rattles) | Telegraph = audio + visual |
+| `int_manhole` | Manhole | — | **Retired as a spawn point (D-058).** Not placed in levels; the Manhole Cover weapon is unaffected | — |
 
 ---
 

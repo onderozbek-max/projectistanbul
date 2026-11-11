@@ -4,7 +4,7 @@ Object.assign(P.DLG.en, {
   "H01b": [{ t: "Attention, passengers. This line is closed. Please remain seated. Thank you for riding.", ok: 1 }],
   "H01i1a": [{ t: "Ten minutes ago this was dinner. My hair still smells like döner.", j: 1, ok: 1 }],
   "H01i1b": [{ t: "Don't strangle it, Professor. Let the weight do the work. And you still pay me Friday.", ok: 1 }],
-  "H01i2a": [{ t: "Walkers, runners, crawlers up out of the manholes. All of them late for work.", j: 1, ok: 1 }],
+  "H01i2a": [{ t: "Walkers, runners, crawlers along the kerb. All of them late for work.", j: 1, ok: 1 }],
   "H01i3a": [{ t: "Rule one: the head. Rule two: return Usta's knife, clean.", ok: 1 }],
   "H01i3b": [{ t: "Ataköy is 17 km away. I stopped doing the math.", ok: 1 }],
   "H02b": [{ t: "Folks, this way! Eyes on the flag! Nobody wanders off!", ok: 1 }],

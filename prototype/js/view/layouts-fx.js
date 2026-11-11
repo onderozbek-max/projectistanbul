@@ -11,7 +11,7 @@ P.LayoutFx = (function () {
   var AWN = ['#B5401D', '#2E6E8E', '#C9A227', '#2E7D4F'];
   var ART_WASH = 0.42;                               // share of the zone colour over an authored paving tile
   var TINT = 0.45;                                   // share of the hood's walk colour in a zone floor
-  var MARK = { doorW: 0.9, doorD: 0.4, winW: 1.2, winD: 0.35, manholeR: 0.45 };   // spawn marks (m)
+  var MARK = { doorW: 0.9, doorD: 0.4, winW: 1.2, winD: 0.35 };   // spawn marks (m)
   var cache = {};
 
   function rgb(hex) { var n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -60,15 +60,10 @@ P.LayoutFx = (function () {
     });
   }
 
-  // Spawn marks: a door (dark wood with a threshold), a window (pale glass with a sill) and a manhole (iron grate).
+  // Spawn marks: a door (dark wood with a threshold), and a window (pale glass with a sill).
   // Drawn at the facade line the sim published (s.layout.spawns), so the player can see where zombies come from.
   function mark(c, R, p) {
     var X = R.X(p.x), Y = R.Y(p.y), u = R.ppm, w, d;
-    if (p.kind === 'manhole') {
-      c.fillStyle = '#2A2C31'; c.beginPath(); c.arc(X, Y, MARK.manholeR * u, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = '#6E7078'; c.lineWidth = Math.max(1, 0.06 * u); c.stroke();
-      return;
-    }
     w = (p.kind === 'door' ? MARK.doorW : MARK.winW) * u; d = (p.kind === 'door' ? MARK.doorD : MARK.winD) * u;
     if (p.kind === 'door') {
       H.rc(c, X, Y, d, w, '#5A3B25', 1.2);

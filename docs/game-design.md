@@ -223,7 +223,7 @@ Rules:
 
 **Spawn rules (all types):**
 - Enemies spawn in a ring **just outside the camera** (+1.5 m margin), never on screen,
-  except **telegraphed spawns** (crawlers from manholes, 1.0 s telegraph).
+  except **telegraphed spawns** (doors and windows opening, 0.6 s telegraph). Nothing spawns from below the ground (D-058).
 - Route levels: 70% of spawns ahead / sides, 30% behind; behind-spawns only > 7 m from the
   player, with a 0.5 s audio cue (groan) first.
 - The spawn director uses a **budget per second** curve + scripted events from WaveScript

@@ -44,7 +44,7 @@ P.Levels.build = function (s, index) {
   s.layout = P.Layouts.plan(s, info, rng, geo);   // zone and centre landmarks first: street blocks keep clear of them
   layBlocks(geo, rng);
   P.Layouts.slots(s);
-  P.Layouts.spawns(s);                               // door, window and manhole spawn points (Lane A portals)
+  P.Layouts.spawns(s);                               // door and window spawn points (Lane A portals)
   s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY), P.Layouts.marks(s.layout))
     .sort(function (a, b) { return a.y - b.y; });
   civilians(s);
@@ -267,7 +267,7 @@ function spawnBudget(s, dt, rate, mix, behind) {
   g.acc = Math.min(g.acc + rate * dt, cost + 1);
   while (g.acc >= cost && guard++ < 3) {
     if (s.enemies.length >= P.CFG.levels.cap) break;
-    s.routeSpawn = true;                                   // enemies3.js E3.entrance: a route spawn may rise from a manhole or window
+    s.routeSpawn = true;                                   // enemies3.js E3.entrance: a route spawn may rise from a window, balcony or tram door
     var placed = spawnOne(s, g.next, behind);
     s.routeSpawn = false;
     if (!placed) break;
@@ -307,8 +307,9 @@ function routeMix(s, seg) {
 function spawnOne(s, type, behindShare) {
   var pos = spotFor(s, s.rng.spawn.chance(behindShare || 0));
   if (!pos) return false;
-  if (type === 'crawler') {
-    s.dir.telegraphs.push({ x: pos.x, y: pos.y, r: 0.8, t: 0, T: P.CFG.levels.crawlerTelegraph, then: 'emerge', skin: pickSkin(s) });
+  if (type === 'crawler') {   // D-058: crawlers crawl in from off-screen like every other enemy; nothing comes up from below the ground
+    P.Combat.spawnEnemy(s, type, pos.x, pos.y, { skin: pickSkin(s) });
+    if (pos.behind) s.events.push({ type: 'groan', x: pos.x, y: pos.y });
     return true;
   }
   P.Combat.spawnEnemy(s, type, pos.x, pos.y, { skin: pickSkin(s), affix: P.Enemies2.roll(s, type, s.gen.info.hoodIndex) });

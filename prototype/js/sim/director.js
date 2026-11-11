@@ -213,7 +213,9 @@ function scripted(s, dt) {
   if (!f.cat && h.y >= L.catTriggerY) {
     f.cat = true;
     d.bubbles.push({ x: L.cat.x, y: L.cat.y, text: '!', t: 1.8 });
-    d.telegraphs.push({ x: L.manhole.x, y: L.manhole.y, r: 0.8, t: 0, T: L.crawlerTelegraph, then: 'crawler' });
+    P.Combat.spawnEnemy(s, 'crawler', L.crawlerFrom.x, L.crawlerFrom.y, {});   // D-058: it crawls in from the cat's side, not from below the ground
+    P.Director.complete(s, 't_cat');
+    s.events.push({ type: 'crawler' });
     s.events.push({ type: 'catHiss' });
   }
   var EL = L.elites;
@@ -300,11 +302,7 @@ function updateDecor(s, dt) {
     tg.t += dt;
     if (tg.t < tg.T) continue;
     d.telegraphs.splice(i, 1);
-    if (tg.then === 'crawler') {
-      P.Combat.spawnEnemy(s, 'crawler', tg.x, tg.y, {});
-      P.Director.complete(s, 't_cat');
-      s.events.push({ type: 'crawler' });
-    } else if (P.Enemies && P.Enemies.onTele) P.Enemies.onTele(s, tg);
+    if (P.Enemies && P.Enemies.onTele) P.Enemies.onTele(s, tg);
   }
 }
 P.Director.decor = updateDecor;

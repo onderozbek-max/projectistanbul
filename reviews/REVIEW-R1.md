@@ -276,3 +276,71 @@ Authored props and signage for the same three hoods: İstiklal (tram, simit cart
 
 ## Decision needed (one)
 Accept this direction for ground and continue with authored props and signage for the three hoods (my recommendation), or change the ground first.
+
+---
+
+# Owner feedback on enemies (D-058)
+
+Owner, on seeing the new ground: the enemies look like they wear sombreros, and zombies spawn from below the ground ("a gate in the floor opens"), which made no sense. Both fixed and recorded as D-058.
+
+## 1. Sombreros
+The wide straw hat (tourist, gardener) and the wide bucket hat (fisher, mussel seller) read as sombreros. All four now wear caps: tourist white visor cap, gardener and fisher flat olive-brown caps, mussel seller a green cap. The two brim shapes are deleted from `art-characters.js`. Fishermen keep the rod, tourists the selfie stick, so silhouettes still differ.
+The simit seller's tray hat (a plate with gold simit rings) stays; it is the real Istanbul image and reads as a tray in the live shot. Tell me if it still looks like a sombrero to you and it goes too.
+
+## 2. Nothing comes up from below the ground
+Manholes are retired as spawns:
+- Route spawns no longer have a manhole entrance (window, balcony and tram stay).
+- The manhole portals in generated levels are dropped (the level's own doors and windows stay). Side entrances hit balance, so I tuned them (see Balance and Deviations).
+- Crawlers have no entrance animation. They crawl in from the street edge.
+- The İstiklal L1 cat beat: the cat hisses and a crawler walks in from the cat's side (x -5.6, y 176) instead of a manhole rattling.
+- The Manhole Cover weapon is unaffected.
+- `check-entrances` now **fails if any spawn uses a manhole** or any portal is one.
+
+Config: `portal.manhole*` and `layouts.spawn.manhole*` removed, `levelcfg.crawlerFrom` replaces the L1 manhole point. Docs updated: `level-001-istiklal.md`, `game-design.md`, `journey.md`, `content-catalog.md`, `architecture.md`.
+
+## Story lines changed
+English is final. **Turkish needs your OK (two lines, proposed by me):**
+| Id | Was (TR) | Proposed (TR) |
+|---|---|---|
+| `H01i2a` (Hood 1 intro caption) | Yürüyenler, koşanlar, rögardan sürünenler. Hepsi işe geç kalmış gibi. | Yürüyenler, koşanlar, kaldırımdan sürünenler. Hepsi işe geç kalmış gibi. |
+| `BK.env.door` (a door or window is about to open) | Rögar kapağı kalkıyor! | Kapı sarsılıyor, geri çekil! |
+
+English: `H01i2a` "crawlers along the kerb"; `BK.fk.crawler` "It crawled in off the kerb. Didn't even knock."; `BK.env.door` "That door is shaking. Back off slowly." Also changed: `tip.crawler` (UI, both languages), and the unused `ev.manhole` and `env.manhole` strings are removed. The matching beat intents in `dialogue/intents.js` are updated.
+
+## Tests
+`check-entrances` (updated, 6 seeds), `test-env`, `test-horde`, `test-ceiling`, `test-enemy-behaviors`, `test-dialogue`, `test-meta` (122), `check-ids`, `check-hood-keys`, `check-death-causes`, `check-objective-strings`, `check-banned` all pass. `test-arsenal` and `test-arsenal-w` were not run (unrelated to this change; the first takes minutes on this loaded machine).
+
+## Balance
+Bot, `kite-generic`, expected loadout, seeds 1..N, clean exports of HEAD vs the staged D-058 state. "No-death" is the first-attempt proxy; the design target for L10 is about 70% (game-design §7).
+
+| Level | Build | Seeds | Clear | No-death | Deaths/run |
+|---|---|---|---|---|---|
+| L10 (Galata boss) | HEAD | 400 | 95% | 72% | 0.33 |
+| L10 | D-058, first cut | 400 | 89% | 57% | 0.55 |
+| L10 | D-058, tuned (shipped) | 300 | 92% | 66% | 0.42 |
+
+**What I found.** Removing manholes cost L10 about 15 points. A bisect (300 seeds each) showed two causes, about 7 points each: (1) route entrances were all at the side walls after the manhole (centre lane) kind went, so enemies flank the hero instead of arriving in front of the gun; (2) the replacement door portals were also at the side walls. Crawlers having no entrance made no difference (73% with the crawler change alone reverted).
+
+**Tuning (recorded under Deviations).** Entrance chance 0.3 to 0.15, entrance distance ahead 5-8 m to 8-11 m, and the extra door portals and extra door marks dropped (portal pressure now comes from the level's own doors and windows only). Rise time 1.0 s was tried and did not help. Other levels are unchanged (spot table below).
+
+Spot checks of the shipped state against HEAD (100 seeds each, no-death / deaths per run):
+
+| Level | HEAD | D-058 shipped |
+|---|---|---|
+| L2 (route) | 96% / 0.03 | 95% / 0.05 |
+| L22 (route) | 94% / 0.07 | 95% / 0.05 |
+| L30 (boss) | 55% / 0.65 | 68% / 0.46 |
+| L50 (boss) | 60% / 0.54 | 64% / 0.52 |
+| L97 (route) | 70% / 0.34 | 69% / 0.34 |
+| L1 (hand-made, cat beat) | not measured on HEAD | 88% / 0.13, 100% clear |
+
+All within noise except L30, which got easier (100 seeds, so treat as noise too). L10 is the only level that stays a few points under HEAD (66% against 72%).
+
+## Deviations
+1. **Numbers changed for balance:** `entrance.chance` 0.3 to 0.15, `entrance.aheadMin/aheadMax` 5-8 to 8-11 (`config-enemies3.js`); the extra door portals (`portal.extra*`) and extra door marks (`layouts.spawn.extra*`) are gone. L10 first-attempt is 66% against a roughly 70% target (HEAD was 72%). I stopped there because further cuts would thin out the windows, balconies and trams that replace the manholes. Say if you want it closer to 72%.
+2. `check-entrances` now defaults to 6 seeds (was 3): with the lower entrance chance, 3 seeds missed the tram in Sirkeci.
+3. `BK.fk.crawler` TR is unchanged: it never mentioned manholes.
+4. The manhole drawing, mark and 'rattle' sound code is deleted (nothing triggers it any more). The Manhole Cover weapon is untouched.
+
+## Screenshots
+`reviews/media/R1/arenas/l02-after-d058.png` (İstiklal, live run) and `l17-after-d058.png` (Karaköy, live run): caps, no wide brims, and crawlers walk in from the street edge with no ground gate. The stills render the working tree, so other people's uncommitted work (vehicles, comic busts, fire animation) shows in them; it is not part of this commit.

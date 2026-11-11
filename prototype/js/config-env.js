@@ -55,9 +55,9 @@
     cable: { chance: 0.5, len: 4, reach: 2.2, every: 3.5, telegraph: 0.8, show: 0.4, dmg: 8, stun: 0.35, heroDmg: 8, y0: 0.25, y1: 0.85,
       xMax: 3 },
 
-    // ---- A5 · doors, windows and manholes: telegraph, then 2-4 enemies emerge within 0.6 m of the opening. ----
+    // ---- A5 · doors and windows: telegraph, then 2-4 enemies emerge within 0.6 m of the opening. ----
     portal: { telegraph: 0.6, gap: 0.2, nMin: 2, nMax: 4, ahead: 9, past: 2, behind: 12, maxActive: 2, chance: 0.6, tries: 3,
-      offset: 0.6, manholeJit: 3, runnerShare: 0.3, windowEvery: 2, manholeEvery: 30, manholeX: 1.2, windowDy: 9, yStart: 8, yEnd: 10,
-      doorX: 4.9, windowX: 4.7, manholeStart: 20 },   // inside the 5 m half-width view (AUDIT-6 A5): the telegraph must be seen
+      offset: 0.6, runnerShare: 0.3, windowEvery: 2, windowDy: 9, yStart: 8, yEnd: 10,
+      doorX: 4.9, windowX: 4.7 },   // inside the 5 m half-width view (AUDIT-6 A5): the telegraph must be seen
   };
 })(P.CFG);

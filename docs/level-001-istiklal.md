@@ -63,7 +63,7 @@ Floors stay mid-value (`stone_grey`) throughout so zombies, XP and telegraphs re
   "Beyoğlu Plak", a pastry shop, a phone repair stall. **No real brands.**
 - Street furniture: chestnut/corn cart, red glass simit cart, a brass **shoe-shine box**,
   café tables with tea trays, street lamps, flower stand, balloon seller's cart, scaffolding on
-  one building, manhole covers, shop shutters.
+  one building, drain grates, shop shutters.
 - Debris (storytelling): dropped shopping bags, a spilled shoe-shine kit, an abandoned
   bağlama, a stroller (empty, upright, no implication beyond panic), scattered simits.
 - **Ambient vignettes (no gameplay):** balloons drifting up out of frame after the balloon
@@ -107,7 +107,7 @@ In-engine, letterboxed, with two interactive beats. TR is the primary VO; subtit
 | `t_xp` | Restaurant → Segment A | Collect XP | Arrow to the first droplet outside pickup radius: "Topla" / "Collect" | First XP collected |
 | `t_card` | Segment A (~15 s) | Level-up choice | Scripted cards `[Nail Gun*, Döner Knife L2, Running Shoes]`, Nail Gun highlighted (proposal; config `scriptedFirstCard` has no highlight flag): "Birini seç" / "Pick one" | Card chosen |
 | `t_env` | Segment B | Interactables | When a cluster passes the gas canister: "Tüpe vur!" / "Hit the canister!" | Canister explodes (or the cluster passes) |
-| `t_cat` | Segment C | Cat warning | No text. The cat hisses + a "!" above it; the manhole rattles (1.0 s telegraph) | Crawler emerges |
+| `t_cat` | Segment C | Cat warning | No text. The cat hisses + a "!" above it | A crawler crawls in from the cat's side (D-058) |
 | `t_hold` | Segment D | Survive a hold zone | "Dayan!" / "Hold on!" + the shutter's diegetic progress | Shutter fully open |
 
 Prompts are skipped automatically if the player already did the action. Steps log
@@ -128,7 +128,7 @@ the tram lane is x ∈ [−1.3, +1.3].
         |   SEGMENT D: HOLD ZONE (14 x 36 m)                  x=+7,y=226|    opens over 60 s
  y=194  |-------------------------------------------------------------- |
         |   SEGMENT C: TRAM TRACK                                       |
-        |   [cat on sill x=-6.5,y=170]  (manhole x=-3,y=176)            |
+        |   [cat on sill x=-6.5,y=170]  (crawler enters x=-5.6,y=176)  |
         |            [ TRAM  x=0, y=146-158, 2.6 x 12 m ]               |
  y=124  |---------------------------------------------------------------|
         |   SEGMENT B: CHESTNUT CORNER                                  |
@@ -169,7 +169,7 @@ Times are relative to segment entry. "Budget" uses enemy costs from content-cata
 - **Runners intro:** 2 runners at entry from ahead. Bark: "Bunlar KOŞUYOR mu?!" (These ones RUN?!)
 - Mix: ~30 walkers + ~8 runners; budget 1.8/s; behind-spawns enabled.
 - The stalled tram splits the avenue into two lanes (each ~5.7 m); its roof fades to 30% alpha when the player is beside it.
-- **Cat beat:** at y = 165, the windowsill cat at (−6.5, 170) hisses; 1.0 s later the manhole at (−3, 176) rattles and a **crawler** emerges.
+- **Cat beat:** at y = 165, the windowsill cat at (−6.5, 170) hisses and a **crawler** crawls in from the same side, entering at (−5.6, 176) (D-058: nothing comes up from below the ground).
 - Signal bars: 2 (call gets choppy).
 
 ### Segment D · Hold (y 194–230, 60 s)
@@ -222,7 +222,7 @@ gameplay never pauses for it. Lines play at segment entries (after the first car
 | Restaurant | L0 (ambient, TV murmur) | Sizzle, TV jingle, the knife "şak" |
 | A | L1 darbuka pulse | Crowd panic fading, distant car alarms, phone ringing on the ground |
 | B | L2 bass + strings | Chestnut crackle, canister hiss → boom, comic "KÜT!" |
-| C | L2 + tension riser | Tram creak, cat hiss, manhole rattle |
+| C | L2 + tension riser | Tram creak, cat hiss, scrabbling on stone |
 | D | L3 full | Shutter grinding up (rising pitch = progress), streetlight hum clicks |
 | Exit | Music cut → silence → title stinger | Shutter slam, phone "no service" tone |
 

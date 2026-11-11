@@ -141,7 +141,7 @@ P.CFG = {
     simitCart: { x: 5, y: 70 }, chestnutCart: { x: -4, y: 80 },
     canisters: [ { x: 4, y: 100 }, { x: -5, y: 210 }, { x: 3, y: 218 } ],
     elites: { firstY: 140, firstX: 3.5, holdT: 28 },                     // V3: one elite in C, one mid-hold, each drops a Mini Chest
-    cat: { x: -6.5, y: 170 }, manhole: { x: -3, y: 176 }, catTriggerY: 165, crawlerTelegraph: 1.0,
+    cat: { x: -6.5, y: 170 }, crawlerFrom: { x: -5.6, y: 176 }, catTriggerY: 165,
     civilians: { groups: 4, perGroup: 3, fleeSpeed: 4.2, life: 7 },      // V2: fewer, real people (no "rain")
     grabY: 30, clusterY: 90, clusterDoorY: 105, clusterCount: 10,
     chestnutBarkY: 70,

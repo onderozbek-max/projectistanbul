@@ -62,7 +62,7 @@ ATTACKS.forEach(a => {
   notes.push(a.type + ' events ok=' + a.want.every(w => r.seen.has(w)) + ' pose=' + r.pose.toFixed(2));
 });
 
-// 3. CR-2 entrance exemption: only route or horde spawns (s.routeSpawn) may rise from a manhole or window.
+// 3. CR-2 entrance exemption: only route or horde spawns (s.routeSpawn) may rise from a window, door, balcony or tram.
 // Set pieces (ev, anchored, elite) and plain spawns outside the route keep their spot.
 (function () {
   const s = newSim(23, 7), h = s.hero, N = 60, y = h.y + 12;

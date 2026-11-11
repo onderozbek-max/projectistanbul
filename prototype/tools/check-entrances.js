@@ -1,9 +1,9 @@
 // Spawn entrance checks (AUDIT-7 CR-2, WAVE3 items 2-3) on generated levels, headless and seeded. Budget spawns
-// (levels.js spawnBudget) and horde spawns (horde.js, s.routeSpawn) are route spawns: they may rise from a manhole,
+// (levels.js spawnBudget) and horde spawns (horde.js, s.routeSpawn) are route spawns: they may rise from a window, balcony or tram door,
 // window, balcony or tram and move. Set pieces (event spawns, anchored balconies, elites) never get an entrance and
 // never move. Portal doors (env-portal.js) rise in place. Tram entrances need a hood whose journey.js vehicles list
 // 'tram'. Every hood runs at stages 1 and 3; the hero walks up the route so marks and set pieces happen.
-// Usage: node prototype/tools/check-entrances.js [--seeds=3] [--secs=30]
+// Usage: node prototype/tools/check-entrances.js [--seeds=6] [--secs=30]
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
@@ -14,8 +14,8 @@ const FILES = [...fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAl
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const P = globalThis.P;
 const args = Object.fromEntries(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v === undefined ? true : v]));
-const SEEDS = parseInt(args.seeds || '3', 10), SECS = parseFloat(args.secs || '30'), DT = 1 / 60, STAGES = [1, 3];
-const KINDS = ['manhole', 'window', 'door', 'balcony', 'tram'];
+const SEEDS = parseInt(args.seeds || '6', 10), SECS = parseFloat(args.secs || '30'), DT = 1 / 60, STAGES = [1, 3];
+const KINDS = ['window', 'door', 'balcony', 'tram'];
 const fails = [], notes = [];
 const check = (cond, msg) => { if (!cond) fails.push(msg); };
 
@@ -67,10 +67,10 @@ HOODS.forEach((h, hi) => STAGES.forEach(st => {
 }));
 const get = c => stats[c] || { n: 0, risen: 0, moved: 0, kinds: {} };
 
-// 1. Budget spawns (the spawnBudget route): manhole, window and balcony entrances happen, and they move the spawn.
+// 1. Budget spawns (the spawnBudget route): window and balcony entrances happen, and they move the spawn.
 const BUDGET = get('budget');
 check(BUDGET.n > 0, 'no budget spawns were seen');
-['manhole', 'window', 'balcony'].forEach(k => check((BUDGET.kinds[k] || 0) > 0, 'budget (route) spawns never used a ' + k + ' entrance'));
+['window', 'balcony'].forEach(k => check((BUDGET.kinds[k] || 0) > 0, 'budget (route) spawns never used a ' + k + ' entrance'));
 check(BUDGET.moved > 0, 'budget (route) spawns never moved to an entrance');
 
 // 2. Set pieces: seen, and never given an entrance or moved.
@@ -83,6 +83,9 @@ check(get('route').moved > 0, 'horde (route) spawns never moved to an entrance')
 const PORTAL = get('portal');
 check((PORTAL.kinds.door || 0) > 0, 'no door entrance from an env portal');
 check(PORTAL.moved === 0, 'portal spawns moved (' + PORTAL.moved + ')');
+
+// 3b. D-058: nothing comes up from below the ground. No spawn of any class used a manhole, and no portal is a manhole.
+Object.keys(stats).forEach(c => check(!(stats[c].kinds.manhole), c + ' spawns used a manhole entrance (D-058)'));
 
 // 4. Tram: only in hoods whose vehicles list 'tram'. Samatya has none; each tram hood gets at least one.
 const tramHoods = [];
@@ -102,5 +105,5 @@ const rows = ['budget', 'route', 'set', 'portal', 'plain'].map(c => {
 console.log(rows.join('\n'));
 notes.forEach(n => console.log('  ' + n));
 if (fails.length) { console.log('FAIL check-entrances (' + fails.length + '):\n  ' + fails.join('\n  ')); process.exitCode = 1; }
-else console.log('PASS check-entrances: budget and horde spawns enter from manholes, windows, balconies and tram stops; ' +
+else console.log('PASS check-entrances: budget and horde spawns enter from windows, balconies and tram stops, none from below the ground; ' +
   'set pieces 0; tram only in tram hoods (' + HOODS.length + ' hoods x ' + STAGES.length + ' stages x ' + SEEDS + ' seeds, ' + SECS + ' s)');

@@ -4,7 +4,7 @@ Object.assign(P.DLG.tr, {
   "H01b": [{ t: "Hat kapalı! Sarı çizginin gerisine geçin! Bilet kontrolü var!", ok: 1 }],
   "H01i1a": [{ t: "Dürümcüden çıktım. Saçım hâlâ döner kokuyor.", ok: 1 }],
   "H01i1b": [{ t: "Afiyet olsun! Bıçağı sıkma.", ok: 1 }],
-  "H01i2a": [{ t: "Yürüyenler, koşanlar, rögardan sürünenler. Hepsi işe geç kalmış gibi.", ok: 1 }],
+  "H01i2a": [{ t: "Yürüyenler, koşanlar, kaldırımdan sürünenler. Hepsi işe geç kalmış gibi.", ok: 1 }],
   "H01i3a": [{ t: "Kural bir: kafaya. Kural iki: yine kafaya", ok: 1 }],
   "H01i3b": [{ t: "17 kilometre kaldı. Hesap yapmayı bıraktım.", ok: 1 }],
   "H02b": [{ t: "Herkes bana baksın! Bayrağı takip edin!", ok: 1 }],

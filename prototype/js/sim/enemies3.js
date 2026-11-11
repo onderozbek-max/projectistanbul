@@ -1,7 +1,7 @@
 // v0.7 enemies (lane C, AUDIT-6 C2/C3), wave 2 (C2-C3 gaps): kurye (scooter courier: a telegraphed diagonal dash across
 // the street), copci (street sweeper: pushes a wheelie bin, and every second push a crate, at the hero; each rolls, shoves
 // zombies, hits the hero and leaves a trash slick where it stops), spawn entrances (A5 openings rise for 0.6 s; route
-// spawns may use a manhole, window, balcony or tram door; a layout's openings, if it lists any) and the boss-attack hooks
+// spawns may use a window, balcony or tram door; a layout's openings, if it lists any) and the boss-attack hooks
 // for taksici and kasapBoss (bosses.js). Entrances and roster adds only run on generated levels (s.gen), and never in a
 // boss arena (summoned adds keep their spot). Numbers: config-enemies3.js, config-enemies4.js.
 P.Enemies3 = {};
@@ -153,7 +153,6 @@ P.Enemies3 = {};
   E3.entrance = function (s, e) {
     if (!s.gen || s.gen.arena || e.boss || e.state !== 'active') return;
     if (e.door) { startEntrance(s, e, openingKind(e.door.kind), cfg4().portalRise, 0); return; }
-    if (e.type === 'crawler') { startEntrance(s, e, 'manhole', cfg().entrance.crawlerT, 0); return; }
     // AUDIT-7 CR-2: only route and horde spawns move (s.routeSpawn). Set pieces keep their spot: event spawns (evId: rescue
     // trappers, chest guards, loot runners), balconies (anchored), elites and the scripted calls. They may still rise in place.
     if (!s.routeSpawn || e.evId || e.anchored || e.elite) return;
@@ -165,14 +164,14 @@ P.Enemies3 = {};
     if (op) { kind = op.kind; x = op.x; y = op.y; k = { T: cfg4().portalRise, drop: 0 }; }
     else {
       kind = pickKind(rng, E, s.gen.hood); k = E.kinds[kind]; y = h.y + rng.range(E.aheadMin, E.aheadMax);
-      x = kind === 'manhole' ? rng.range(-E.manholeX, E.manholeX) : (rng.chance(0.5) ? -1 : 1) * (E.sideX + rng.range(-E.sideJit, E.sideJit));
+      x = (rng.chance(0.5) ? -1 : 1) * (E.sideX + rng.range(-E.sideJit, E.sideJit));
     }
     if (y > s.geo.exitY - X4.exitGap || blockedAt(s.geo, x, y, E.blockR)) return;
     e.x = x; e.y = y;
     startEntrance(s, e, kind, k.T, k.drop || 0);
   };
 
-  function openingKind(k) { return k === 'window' || k === 'manhole' ? k : 'door'; }
+  function openingKind(k) { return k === 'window' ? k : 'door'; }
 
   // Doors and windows from the level layout, when the layout lists them: s.layout.openings = [{ kind, x, y }] (none yet;
   // layouts.js has chokepoints, and the A5 portals cover doors and windows). The nearest opening ahead of the hero wins.

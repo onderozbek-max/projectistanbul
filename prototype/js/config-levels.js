@@ -99,7 +99,7 @@
     ceiling: { hard: 200, boss: 220 },
     spawnAhead: { gap: 0.5, depth: 7 }, spawnBehind: { gap: 1.0, depth: 6 }, sideX: 6.2,
     ambush: { walkers: 8, runners: 4, x: 5.6, yMin: 2, yMax: 5 },
-    introCount: 3, eliteLead: 8, crawlerTelegraph: 1.0, arenaBossAhead: 13, bossIntro: 1.6,
+    introCount: 3, eliteLead: 8, arenaBossAhead: 13, bossIntro: 1.6,
     civilians: { groups: 2, perGroup: 3, fleeSpeed: 4.0, life: 8 },
     // Blocks: AABB obstacles, central lane |x| < laneClear stays open for pathing.
     block: { laneClear: 1.6, sideMin: 2.2, sideMax: 6.6, slot: 9, startClear: 8, sideChance: 0.75,

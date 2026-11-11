@@ -14,14 +14,13 @@
       binSpeed: 1.6, binLife: 2.5, binDmg: 8, binKb: 1.0, binShove: 1.2, binHitCd: 0.6,
       trash: { r: 1.1, t: 6, dps: 2, heroDps: 3 } },
     // Spawn entrances (generated levels only). A spawn that lands off-screen (ahead or at a side wall) may move to an
-    // on-screen feature ahead of the hero. Kinds are weighted; T is the rise or drop time (s). Crawlers always come
-    // out of a manhole (their own emerge telegraph).
+    // on-screen feature ahead of the hero. Kinds are weighted; T is the rise or drop time (s). Nothing comes up from
+    // below the ground (D-058); crawlers have no entrance and crawl in from the street edge.
     entrance: {
-      chance: 0.3, aheadMin: 5, aheadMax: 8, sideX: 4.0, sideJit: 0.5, manholeX: 3.2, blockR: 0.5,
+      chance: 0.15, aheadMin: 8, aheadMax: 11, sideX: 4.0, sideJit: 0.5, blockR: 0.5,
       kinds: {
-        manhole: { w: 3, T: 0.6 }, window: { w: 2, T: 0.6 }, balcony: { w: 2, T: 0.5, drop: 2.0 }, tram: { w: 1, T: 0.6 },
+        window: { w: 5, T: 0.6 }, balcony: { w: 2, T: 0.5, drop: 2.0 }, tram: { w: 1, T: 0.6 },
       },
-      crawlerT: 0.5,
     },
     // Death: the damage source (kill event src, weapon id) picks the pose. Unknown sources fall back to blunt.
     deathPose: {

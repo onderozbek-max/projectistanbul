@@ -233,7 +233,6 @@ P.EnemyFx = (function () {
       case 'bossDie': bossDie(s, ev); break;
       case 'bossSlam': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: SLAM, t0: s.t, dur: 0.5 }); sfx('bruteStomp', 0, s, ev.x); break;
       case 'toxicPool': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: TOXIC, t0: s.t, dur: 0.4 }); break;
-      case 'emerge': sfx('rattle', 200, s, ev.x); break;
       case 'summon': sfx('snarl', 300, s, ev.x); break;
       case 'ambush': P.Fx.letter(s.hero.x, s.hero.y + 2, '!'); sfx('crowdScream', 0, s); break;
       case 'groan': sfx('groan', 400, s, ev.x); break;
@@ -298,7 +297,7 @@ P.EnemyFx = (function () {
   // Spawn entrance: a cue sound, and a call-out at most every 4 s so a horde does not flood the screen.
   function entranceFx(s, ev) {
     var key = 'ev.' + ev.kind;
-    sfx(ev.kind === 'manhole' ? 'rattle' : 'doorSlam', 200, s, ev.x);
+    sfx('doorSlam', 200, s, ev.x);
     if (s.t - EF.letterT < 4 || P.t(key) === key) return;
     EF.letterT = s.t;
     P.Fx.letter(ev.x, ev.y + 1.4, P.t(key));

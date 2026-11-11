@@ -31,12 +31,12 @@ P.ArtChars = (function () {
   // base = torso/arm colour when it differs from col; c2 = secondary (vest, apron, stripes, skirt).
   var OUT = {
     waiter: { top: 'vest', col: '#F4F1EA', c2: '#1E1E24', pants: '#2B2E3A', shoe: '#1A1A1E', hair: 'short', hc: '#2A1E16', acc: ['bowtie'], prop: 'tray', propC: '#C9CED6', propHand: 'L' },
-    tourist: { top: 'tee', col: '#F2C14E', c2: '#3D8BFF', pants: '#8B7355', shorts: true, shoe: '#EDEDED', sleeve: 'short', hair: 'short', hc: '#6B4A2E', hat: 'straw', hatC: '#E8D7A8', prop: 'selfie', propC: '#1E1E24', propHand: 'R', back: 'backpack', bc: '#3D8BFF' },
+    tourist: { top: 'tee', col: '#F2C14E', c2: '#3D8BFF', pants: '#8B7355', shorts: true, shoe: '#EDEDED', sleeve: 'short', hair: 'short', hc: '#6B4A2E', hat: 'cap', hatC: '#F4F1EA', prop: 'selfie', propC: '#1E1E24', propHand: 'R', back: 'backpack', bc: '#3D8BFF' },
     shopper: { top: 'cardigan', col: '#8E5BA8', c2: '#E9D9F0', pants: '#3A3F4C', shoe: '#6B4A2E', hair: 'bun', hc: '#3B2A1E', prop: 'bag', propC: '#E9E4D8', propHand: 'R' },
     student: { top: 'hoodie', col: '#4F7A4A', pants: '#2B3346', shoe: '#F4F1EA', hair: 'short', hc: '#1E1712', back: 'backpack', bc: '#3D6E9E' },
     musician: { top: 'jacket', col: '#2F3A4A', c2: '#B5651D', pants: '#1E1E24', shoe: '#1A1A1E', hair: 'long', hc: '#1E1712', hat: 'beret', hatC: '#7A1F2B', prop: 'case', propC: '#7A4A2A', propHand: 'L' },
     barista: { top: 'apron', col: '#E2D6C0', c2: '#2F5B4A', pants: '#2B2E3A', shoe: '#1A1A1E', hair: 'short', hc: '#3B2A1E', prop: 'mug', propC: '#F4F1EA', propHand: 'R' },
-    fisher: { top: 'vest', col: '#C9A13B', c2: '#6B7A4A', pants: '#5A4A36', shoe: '#4A3A2A', hair: 'short', hc: '#6B4A2E', hat: 'bucket', hatC: '#8A7A4A', prop: 'rod', propC: '#8A5A34', propHand: 'R' },
+    fisher: { top: 'vest', col: '#C9A13B', c2: '#6B7A4A', pants: '#5A4A36', shoe: '#4A3A2A', hair: 'short', hc: '#6B4A2E', hat: 'cap', hatC: '#8A7A4A', prop: 'rod', propC: '#8A5A34', propHand: 'R' },
     worker: { top: 'hivis', col: '#E8A33B', c2: '#C9CED6', pants: '#4A4F57', shoe: '#2A2A2A', hair: 'short', hc: '#2A1E16', hat: 'hardhat', hatC: '#F2D54B' },
     commuter: { top: 'suit', col: '#3B4048', base: '#E8E8E8', c2: '#7A2E2E', pants: '#3B4048', shoe: '#2A2A2A', hair: 'short', hc: '#1E1712', prop: 'briefcase', propC: '#6B4A2E', propHand: 'L' },
     vendor: { top: 'shirt', col: '#F4F1EA', pants: '#2F3A4A', shoe: '#2A2A2A', hair: 'short', hc: '#3B2A1E', hat: 'tray', hatC: '#9C6B3A' },
@@ -46,7 +46,7 @@ P.ArtChars = (function () {
     pigeonman: { top: 'coat', col: '#6B5B45', pants: '#3E3A35', shoe: '#2A2A2A', hair: 'short', hc: '#8A8F98', hat: 'cap', hatC: '#5E5040', acc: ['moustache'], prop: 'sack', propC: '#D9C9A8', propHand: 'L' },
     driver: { top: 'jacket', col: '#5E3A23', c2: '#3A2A1E', pants: '#2B3346', shoe: '#2A2A2A', hair: 'short', hc: '#1E1712', hat: 'cap', hatC: '#2A2A2A' },
     granny: { top: 'dress', col: '#B9A7D9', c2: '#E9B3C0', pants: '#E9B3C0', shoe: '#3A2A2A', hair: 'bun', hc: '#A8A8B0', prop: 'handbag', propC: '#8A5A34', propHand: 'L', acc: ['glasses'] },
-    gardener: { top: 'overall', col: '#4C6C8A', base: '#E6DCC4', pants: '#4C6C8A', shoe: '#4A3A2A', hair: 'short', hc: '#6B4A2E', hat: 'straw', hatC: '#D9B66A', prop: 'shovel', propC: '#8A8F98', propHand: 'R' },
+    gardener: { top: 'overall', col: '#4C6C8A', base: '#E6DCC4', pants: '#4C6C8A', shoe: '#4A3A2A', hair: 'short', hc: '#6B4A2E', hat: 'cap', hatC: '#8A7A4A', prop: 'shovel', propC: '#8A8F98', propHand: 'R' },
     jogger: { top: 'tracksuit', col: '#2B2E3A', c2: '#F4F1EA', pants: '#2B2E3A', shoe: '#F4F1EA', hair: 'band', hc: '#1E1712', hatC: '#E9A23B' },
     picnicker: { top: 'gingham', col: '#5B8FA8', c2: '#F4F1EA', pants: '#E6DCC4', shoe: '#8A5A34', hair: 'bob', hc: '#6B4A2E', prop: 'basket', propC: '#C9A46A', propHand: 'L' },
     sailor: { top: 'stripe', col: '#2B4A6F', c2: '#F4F1EA', pants: '#F4F1EA', shoe: '#1A1A1E', hair: 'short', hc: '#2A1E16', hat: 'cap', hatC: '#2B4A6F' },
@@ -55,7 +55,7 @@ P.ArtChars = (function () {
     // Hood-typical outfits (workstream F). Generic trades; no uniforms, flags or religious dress.
     simitci: { top: 'shirt', col: '#F4F1EA', c2: '#C0392B', pants: '#2B3346', shoe: '#2A2A2A', hair: 'short', hc: '#1E1712', hat: 'tray', hatC: '#9C6B3A' },
     midyeci: { top: 'apron', col: '#F4F1EA', c2: '#2F5B4A', pants: '#2B2E3A', shoe: '#1A1A1E', hair: 'short', hc: '#2A1E16', hat: 'cap', hatC: '#2E7D4F', prop: 'tray', propC: '#C9CED6', propHand: 'L' },
-    balikci: { top: 'vest', col: '#E8E1D2', c2: '#E9A23B', pants: '#3A4A5A', shoe: '#4A3A2A', hair: 'short', hc: '#6B4A2E', hat: 'bucket', hatC: '#6B7A4A', prop: 'rod', propC: '#8A5A34', propHand: 'R' },
+    balikci: { top: 'vest', col: '#E8E1D2', c2: '#E9A23B', pants: '#3A4A5A', shoe: '#4A3A2A', hair: 'short', hc: '#6B4A2E', hat: 'cap', hatC: '#6B7A4A', prop: 'rod', propC: '#8A5A34', propHand: 'R' },
     vapurcu: { top: 'jacket', col: '#1B4965', c2: '#F4F1EA', pants: '#1B4965', shoe: '#1A1A1E', hair: 'short', hc: '#3B2A1E', hat: 'cap', hatC: '#1B4965' },
     halici: { top: 'shirt', col: '#7A4F8C', pants: '#3A3F4C', shoe: '#2A2A2A', hair: 'short', hc: '#2A1E16', acc: ['moustache'] },
     kuyumcu: { top: 'suit', col: '#2B2E3A', base: '#F4F1EA', c2: '#7A2E2E', pants: '#2B2E3A', shoe: '#1A1A1E', hair: 'short', hc: '#8A8F98', acc: ['glasses'], tie: '#7A2E2E' },
@@ -312,8 +312,6 @@ P.ArtChars = (function () {
     // Domes stop above the brows (fringe edge at hd.y - 0.2); brims sit on the dome edge.
     if (id === 'cap') { R.paint(c, capPath(hd, B.headRx * 1.06, B.headRy * 1.08, -0.1), col, sh(col), LW); R.paint(c, R.ell(x + 0.13, y - 0.19, 0.14, 0.035, -0.12), col, sh(col), 0.012); }
     else if (id === 'beret') R.paint(c, R.ell(x - 0.02, y - B.headRy * 0.9, 0.21, 0.08, -0.15), col, sh(col), LW);
-    else if (id === 'straw') { R.paint(c, R.ell(x, y - 0.2, 0.37, 0.085), '#E8D7A8', sh('#E8D7A8'), LW); R.paint(c, capPath(hd, B.headRx, B.headRy * 1.1, -0.1), col, sh(col), 0.012); }
-    else if (id === 'bucket') { R.paint(c, R.ell(x, y - 0.2, 0.3, 0.08), col, sh(col), LW); R.paint(c, capPath(hd, B.headRx * 1.02, B.headRy * 1.08, -0.1), col, sh(col), 0.012); }
     else if (id === 'hardhat') { R.paint(c, capPath(hd, B.headRx * 1.05, B.headRy * 1.1, -0.1), col, sh(col), LW); R.paint(c, R.rrect(x - 0.25, y - 0.21, 0.5, 0.05, 0.02), col, sh(col), 0.012); }
     else if (id === 'toque') { R.paint(c, R.rrect(x - 0.17, y - B.headRy - 0.27, 0.34, 0.28, 0.06), col, sh(col), LW); R.paint(c, R.rrect(x - 0.19, y - B.headRy - 0.04, 0.38, 0.07, 0.03), col, sh(col), 0.012); }
     else if (id === 'tray') { R.paint(c, R.ell(x, y - B.headRy - 0.14, 0.36, 0.07), col, sh(col), LW); for (var i = -1; i <= 1; i++) R.paint(c, R.ell(x + i * 0.12, y - B.headRy - 0.2, 0.06, 0.035), '#E9A23B', '#B5651D', 0.008); }

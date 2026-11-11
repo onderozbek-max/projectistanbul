@@ -354,9 +354,6 @@ P.Enemies.onTele = function (s, tg) {
   if (tg.then === 'stomp') {
     s.events.push({ type: 'bruteStomp', x: tg.x, y: tg.y, r: tg.r });
     if (dist(h, tg) - hr <= tg.r) { P.Combat.damageHero(s, tg.dmg, 'brute'); P.Combat.pushHero(s, h.x - tg.x, h.y - tg.y, tg.kb); }
-  } else if (tg.then === 'emerge') {
-    P.Combat.spawnEnemy(s, 'crawler', tg.x, tg.y, { skin: tg.skin });
-    s.events.push({ type: 'emerge', x: tg.x, y: tg.y });
   } else if (tg.then === 'puddle') {
     P.Enemies.puddle(s, tg.x, tg.y, tg.r, tg.T2, tg.dps);
     s.events.push({ type: 'spitLand', x: tg.x, y: tg.y, r: tg.r });

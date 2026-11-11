@@ -144,7 +144,7 @@ WeaponInstance    =   def + current level + runtime state (cooldown timers, orbi
   + **budget curve** (points per second, piecewise linear) + **enemy weight table per time window**
   + active `ModifierDef`s.
 - Patterns: `ring_offscreen`, `line_ahead`, `cluster`, `from_points(tag)` (doorways, alleys,
-  manholes placed as markers in the level scene), `both_ends` (bridge).
+  placed as markers in the level scene), `both_ends` (bridge).
 - Route levels: `SegmentTrigger` and `HoldZone` markers in the scene switch the director's active
   segment config; hold zones lock the corridor until timer/objective completion.
 - Respects the global cap (300) and per-type caps; refunds budget when capped.

@@ -184,7 +184,7 @@ livery.
 - **Ground:** stone slabs and rails. **Water:** none (gulls only).
 - **Light:** evening, then dusk. Streetlights fail one by one in stage 3.
 - **Roster:** walker, runner, crawler, diner (L1 only; generated levels drop it, D-056). Skins: waiter, tourist, shopper, student.
-- **Twist:** diners turn (a human becomes a zombie after 2.5 s), in the scripted L1. Manhole crawlers under the rails.
+- **Twist:** diners turn (a human becomes a zombie after 2.5 s), in the scripted L1. Crawlers along the rails.
 - **Stage 3:** Kestaneci's chestnut cart charges down the lane. Defend the cart (O7). Drops the
   Chestnut Brazier idea (future weapon, section 12 of weapons-skills.md).
 - **Stage 4:** overhead tram wires. Cut the wires (O4) to drop a Live Cable pickup.

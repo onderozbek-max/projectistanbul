@@ -6,7 +6,7 @@
     // normal-enemy windups follow design-system 6 rule 3 (>= 0.5 s). Exempt from this 0.8 s floor, by design: spitter and
     // zehirli (0.7 s, a deliberate exception decided 2026-11-10, R1 audit §9 decision 5) and parkur (0.5 s, the normal-enemy minimum).
     telegraphMin: 0.8,
-    portalRise: 0.6,         // A5 openings (door, window, manhole from env-portal.js): rise time from the opening (C2)
+    portalRise: 0.6,         // A5 openings (door, window from env-portal.js): rise time from the opening (C2)
     openReach: 4,            // a layout opening counts as ahead of the hero up to aheadMax + openReach metres (enemies3.js)
     entrance: {              // route spawns that may move to a feature (enemies3.js E3.entrance)
       aheadY: 3,             // "ahead" = more than aheadY metres in front of the hero

@@ -27,9 +27,9 @@
       events: [{ k: 'ambush', w: 2 }, { k: 'loot', w: 1 }, { k: 'hack', w: 2 }], hack: ['atm', 'cell', 'traffic'] },
     // Free floor spots for env props (Lane A), along the route, both sidewalks, kept clear of solids.
     slot: { every: 6, side: 5.8, clear: 1.0, max: 120 },
-    // Door, window and manhole spawn points (s.layout.spawns, Lane A portals). Doors at the facade line (sideX, just
-    // beyond the visible half-width), windows on the opposite side winOff m further up, manholes on the centre lane.
-    spawn: { from: 10, every: 16, endGap: 6, sideX: 5.4, winOff: 8, clear: 0.8, manholeOff: 16, manholeEvery: 32, manholeX: 1.2 },
+    // Door and window spawn points (s.layout.spawns, Lane A portals). Doors at the facade line (sideX, just beyond the
+    // visible half-width), windows on the opposite side winOff m further up.
+    spawn: { from: 10, every: 16, endGap: 6, sideX: 5.4, winOff: 8, clear: 0.8 },
     // Bot route hint (tools/bot.js targetOf): walk to the next chokepoint within `look` m; a choke counts as passed `passed` m past it.
     route: { look: 30, passed: 0.6 },
   };

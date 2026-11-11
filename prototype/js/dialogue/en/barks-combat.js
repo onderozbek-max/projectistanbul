@@ -106,7 +106,7 @@ Object.assign(P.DLG.en, {
   ],
   "BK.fk.crawler": [
     { t: "A crawler. Low to the ground. Eyes down, feet moving.", ok: 1 },
-    { t: "It came up out of a manhole. Didn't even knock.", j: 1, ok: 1 },
+    { t: "It crawled in off the kerb. Didn't even knock.", j: 1, ok: 1 },
     { t: "How did this one crawl all the way up the street?", ok: 1 },
   ],
   "BK.fk.diner": [

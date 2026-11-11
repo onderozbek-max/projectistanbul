@@ -21,7 +21,7 @@ Object.assign(P.DLG.en, {
   "BK.env.door": [
     { t: "A door's opening. Get ready. Get ready.", ok: 1 },
     { t: "Someone's at the window. Don't look at them.", ok: 1 },
-    { t: "The manhole cover is moving. Back off slowly.", ok: 1 },
+    { t: "That door is shaking. Back off slowly.", ok: 1 },
     { t: "This building never liked me. Now it's proving it.", j: 1, ok: 1 },
   ],
   "BK.env.explode": [
