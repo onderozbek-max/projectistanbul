@@ -236,7 +236,7 @@ P.ArtChars = (function () {
     if (st === 'long' || st === 'bob') R.paint(c, R.ell(hd[0], hd[1] + 0.1, B.headRx * 1.1, B.headRy * (st === 'long' ? 1.25 : 1.02)), rc.look.hair, rc.look.hairS, LW);
   };
   C.face = function (c, rc, J) {
-    var B = rc.B, hd = J.hd, F = rc.face || {}, x = hd[0], y = hd[1], ex = 0.075, ey = y + 0.005;
+    var B = rc.B, hd = J.hd, F = rc.face || {}, x = hd[0], y = hd[1], ex = F.big ? 0.082 : 0.075, ey = y + (F.big ? 0.02 : 0.005);
     if (rc.back) return;
     R.paint(c, R.ell(x - B.headRx, y + 0.02, 0.035, 0.05), rc.look.skin, rc.look.skinS, 0.012);
     R.paint(c, R.ell(x + B.headRx, y + 0.02, 0.035, 0.05), rc.look.skin, rc.look.skinS, 0.012);
@@ -250,7 +250,7 @@ P.ArtChars = (function () {
     if (rc.acc && rc.acc.indexOf('earbuds') >= 0) earbuds(c, rc, J, x, y);
   };
   function eyes(c, rc, x, y, ex, F) {
-    var rx = F.big ? 0.04 : 0.034, ry = F.big ? 0.05 : 0.042, iris = F.eyes || INK, i, cx;
+    var rx = F.big ? 0.047 : 0.034, ry = F.big ? 0.06 : 0.042, iris = F.eyes || INK, i, cx;
     for (i = -1; i <= 1; i += 2) {
       cx = x + i * ex;
       if (F.glow) {
@@ -260,8 +260,9 @@ P.ArtChars = (function () {
         continue;
       }
       R.paint(c, R.ell(cx, y, rx, ry), '#FFFFFF', null, 0.012);
-      R.paint(c, R.ell(cx + 0.004, y + 0.004, rx * 0.62, ry * 0.7), iris, null, 0.006);
-      R.paint(c, R.ell(cx - rx * 0.25, y - ry * 0.3, rx * 0.25, rx * 0.25), '#FFFFFF', null, 0.004);
+      R.paint(c, R.ell(cx + 0.004, y + 0.006, rx * (F.big ? 0.74 : 0.62), ry * (F.big ? 0.8 : 0.7)), iris, null, 0.006);
+      R.paint(c, R.ell(cx - rx * 0.28, y - ry * 0.3, rx * 0.3, rx * 0.3), '#FFFFFF', null, 0.004);
+      if (F.big) R.paint(c, R.ell(cx + rx * 0.3, y + ry * 0.32, rx * 0.14, rx * 0.14), '#FFFFFF', null, 0.003);
     }
   }
   function brows(c, x, y, ex, F) {
@@ -318,6 +319,6 @@ P.ArtChars = (function () {
     else if (id === 'band') line(c, [[x - B.headRx * 0.95, y - 0.11], [x + B.headRx * 0.95, y - 0.11]], 0.03, col);
     else if (id === 'cap' || id === 'sailor') R.paint(c, R.ell(x, y - 0.1, B.headRx, B.headRy * 0.8), col, sh(col), LW);
   };
-  C.heroFace = { eyes: '#1E1712', mouth: 'smile', brow: 'focus', blush: false, glow: false, big: true };
+  C.heroFace = { eyes: '#6B3E24', mouth: 'smile', brow: 'focus', blush: true, glow: false, big: true };
   return C;
 })();

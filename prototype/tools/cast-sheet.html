@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Cast sheet (character design review)</title>
+<style>
+body{margin:0;background:#1b1c26;color:#ddd;font:12px system-ui;padding:12px}
+h2{margin:14px 0 6px;color:#FFD166;font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.c{background:#5E636B;text-align:center;border-radius:6px;padding:4px}
+canvas{display:block}
+</style></head><body>
+<div id="out"></div>
+<script>window.P = window.P || {}; P.goreRGB = function (s) { return ['86,14,20','120,20,28','160,24,36'][s||0]; };</script>
+<script src="../js/config.js"></script>
+<script src="../js/journey.js"></script>
+<script src="../js/view/art-rig.js"></script>
+<script src="../js/view/art-characters.js"></script>
+<script src="../js/view/art-enemies.js"></script>
+<script src="../js/view/sprites.js"></script>
+<script src="../js/view/portraits.js"></script>
+<script src="../js/view/comic-busts.js"></script>
+<script src="../js/view/comic-busts-hair.js"></script>
+<script src="../js/view/comic-busts-cast.js"></script>
+<script>
+(function(){
+  var out=document.getElementById('out'),dpr=2;
+  var q=new URLSearchParams(location.search);
+  var who=(q.get('who')||'arda,anne,baba,usta,kaan,mila,ada,dede,ahmet,shopkeeper,news,stranger,zombie').split(',');
+  var moods=(q.get('moods')||'neutral,happy,scared,determined,shout,sad').split(',');
+  var S=+(q.get('s')||150);
+  function cell(parent,label,w,h,fn,bg){var d=document.createElement('div');d.className='c';if(bg)d.style.background=bg;var cv=document.createElement('canvas');cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+'px';cv.style.height=h+'px';var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);fn(g);d.appendChild(cv);d.appendChild(document.createTextNode(label));parent.appendChild(d);}
+  who.forEach(function(w){var h=document.createElement('h2');h.textContent=w;out.appendChild(h);var r=document.createElement('div');r.className='row';out.appendChild(r);
+    moods.forEach(function(m){cell(r,w+' / '+m,S,S,function(g){P.ComicBusts.draw(g,w,m,S/2,S,S*0.95,{});},'#3a3d52');});});
+  var h=document.createElement('h2');h.textContent='in-game hero (walk)';out.appendChild(h);var r=document.createElement('div');r.className='row';out.appendChild(r);
+  [0,0.25,0.5,0.75].forEach(function(p){var HS=+(q.get('hs')||1.6);cell(r,'phase '+p,260,330,function(g){g.fillStyle='#5E636B';g.fillRect(0,0,260,330);P.Sprites.hero(g,130,270,{u:39*1.22*HS,face:1,phase:p*6.28,still:false,flash:0,arms:'knife',knifeA:-0.45});});});
+})();
+</script></body></html>

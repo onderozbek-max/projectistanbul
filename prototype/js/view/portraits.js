@@ -3,7 +3,7 @@
 // burst lines, stars). Unit box: x in [-0.5, 0.5], y in [-1, 0] (bottom centre anchor), total height = h.
 P.Portraits = (function () {
   var PT = {}, INK = '#14151F', TAU = Math.PI * 2, SM = P.ArtRig.smooth, cache = {}, cacheN = 0, dots = null;
-  PT.list = ['arda', 'anne', 'baba', 'usta', 'friend', 'shopkeeper', 'news', 'stranger', 'zombie'];
+  PT.list = ['arda', 'anne', 'baba', 'usta', 'kaan', 'mila', 'ada', 'dede', 'ahmet', 'shopkeeper', 'news', 'stranger', 'zombie'];
   PT.moods = ['neutral', 'scared', 'angry', 'determined', 'sad', 'happy', 'shout', 'hurt'];
 
   // who -> look. Names: Arda (player), Anne = Mom Leyla, Baba = Dad Selim, Usta = the döner master (unnamed in docs),
@@ -217,6 +217,7 @@ P.Portraits = (function () {
   }
   // Draw a bust, bottom-centred at (x, y) in ctx pixels with total height h.
   PT.draw = function (ctx, who, mood, x, y, h, opts) {
+    if (P.ComicBusts && P.ComicBusts.draw) { P.ComicBusts.draw(ctx, who, mood, x, y, h, opts || {}); return; }
     var o = opts || {}, S = SPEC[who] || SPEC.stranger, m = MOOD[mood] || MOOD.neutral;
     ctx.save(); ctx.translate(x, y); ctx.scale((o.flip ? -1 : 1) * h, h);
     if (o.alpha !== undefined) ctx.globalAlpha *= o.alpha;

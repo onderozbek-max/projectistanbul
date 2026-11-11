@@ -18,9 +18,9 @@ P.ComicArt = (function () {
   var INK = '#14151F', TAU = Math.PI * 2;
   var WASH = { warm: 'rgba(255,160,70,.16)', night: 'rgba(20,30,70,.36)', red: 'rgba(215,38,61,.22)',
                cold: 'rgba(70,150,210,.16)', sepia: 'rgba(190,140,80,.40)', none: null };
-  var PAL = { arda: '#3D8BFF', anne: '#E9A23B', baba: '#5C6B7A', usta: '#F4EBDD', friend: '#D7263D',
-              shopkeeper: '#8A8F98', news: '#1B4965', stranger: '#2C2F42', zombie: '#7D8B6A' };
-  var INIT = { arda: 'A', anne: 'L', baba: 'S', usta: 'U', friend: 'K', shopkeeper: 'A', news: 'H', stranger: '?', zombie: 'Z' };
+  var PAL = { arda: '#3D8BFF', anne: '#E9A23B', baba: '#5C6B7A', usta: '#F4EBDD', friend: '#D7263D', kaan: '#D7263D',
+              mila: '#F2B632', ada: '#7FC8C0', dede: '#4E6A84', ahmet: '#B98A5A', shopkeeper: '#8A8F98', news: '#1B4965', stranger: '#2C2F42', zombie: '#7D8B6A' };
+  var INIT = { arda: 'A', anne: 'L', baba: 'S', usta: 'U', friend: 'K', kaan: 'K', mila: 'M', ada: 'D', dede: 'H', ahmet: 'A', shopkeeper: 'A', news: 'H', stranger: '?', zombie: 'Z' };
   var KIND = { body: 'speech', speech: 'speech', display: 'title', title: 'title', hand: 'hand' };
   var halfPat = null, waiting = [];
   A.ready = false;   // true once the faces have loaded or failed (the fallback stack is then final)
