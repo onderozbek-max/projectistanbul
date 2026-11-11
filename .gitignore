@@ -36,3 +36,6 @@ game/export/
 # Dialogue review CSVs (editor input may contain names; export on demand with prototype/tools/dialogue-export.js)
 reviews/dialogue/*.csv
 reviews/dialogue/work/
+
+# Playwright MCP scratch (page snapshots)
+.playwright-mcp/
