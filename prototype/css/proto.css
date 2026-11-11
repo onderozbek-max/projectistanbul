@@ -308,6 +308,7 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 #scr-pause .panel .h1 { color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+#phone.reduce-motion *, #phone.reduce-motion *::before, #phone.reduce-motion *::after { animation: none !important; transition: none !important; }   /* same rule, from the in-game Reduce motion switch */
 
 /* level-up fit (390x844; AUDIT-7 U3): title, three cards, reroll, build strip, all above the home-indicator inset.
    Centred in the play height, so the cards sit within thumb reach and the strip never clips (v0.7 clipped at 857 pt). */

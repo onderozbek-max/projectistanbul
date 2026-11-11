@@ -42,6 +42,7 @@ P.EnemyFx = (function () {
       else if (tg.kind === 'ring') drawRing(R, tg);
     });
     s.enemies.forEach(function (e) { if (e.type === 'bloater' && e.swell > 0) drawSwell(R, e, t); });
+    s.enemies.forEach(function (e) { if (e.boss && e.windup > 0) drawBossWind(R, e); });
     s.enemies.forEach(function (e) { if (e.type === 'hardhat' && e.helmet) drawHelmet(R, e); if (e.anchored) drawBalcony(R, e); });
     drawSplats(R, s);
   };
@@ -106,6 +107,19 @@ P.EnemyFx = (function () {
     c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.fillStyle = hexA(col, 0.16); c.fill();
     c.setLineDash([8, 6]); c.strokeStyle = col; c.lineWidth = 2.5; c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
     c.lineWidth = 5; c.beginPath(); c.arc(X, Y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); c.stroke();
+  }
+
+  // Boss windup (T4): a ring closes on the boss's feet as the attack charges, then a bar mark reads at full charge. Steady, no pulse, so it
+  // adds no flashing; the shape (closing ring, bar) is the non-colour cue next to the telegraph on the ground.
+  function drawBossWind(R, e) {
+    var c = R.ctx, u = R.ppm, X = R.X(e.x), Y = R.Y(e.y), p = clamp01(e.windup), r = (e.r + 0.9 * (1 - p)) * u;
+    c.strokeStyle = hexA(DANGER, 0.25 + 0.55 * p); c.lineWidth = 3 + 2 * p;
+    c.beginPath(); c.ellipse(X, Y, r * 1.1, r * 0.5, 0, 0, Math.PI * 2); c.stroke();
+    if (p > 0.6) {
+      c.fillStyle = DANGER; c.strokeStyle = '#14151F'; c.lineWidth = 2;
+      c.beginPath(); c.rect(X - 0.06 * u, Y - (e.r * 2 + 1.1) * u, 0.12 * u, 0.4 * u); c.fill(); c.stroke();
+      c.beginPath(); c.arc(X, Y - (e.r * 2 + 0.45) * u, 0.08 * u, 0, Math.PI * 2); c.fill(); c.stroke();
+    }
   }
 
   // Hardhat: a yellow helmet arc on the side it faces (world angle faceA; screen Y is flipped).

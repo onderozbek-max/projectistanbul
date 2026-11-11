@@ -187,14 +187,14 @@ P.RenderWorld = (function () {
   function drawCart(R, k, t) {
     var c = R.ctx;
     if (!k.alive) { rect(R, k.x - 0.7, k.y - 0.4, k.x + 0.7, k.y + 0.4, 'rgba(20,21,31,0.35)'); return; }
-    var col = k.flash > 0 ? '#FFFFFF' : (k.kind === 'simit' ? '#C0392B' : '#3A2A1E');
+    var col = P.Sprites.propFlashOk(k) ? '#FFFFFF' : (k.kind === 'simit' ? '#C0392B' : '#3A2A1E');
     rect(R, k.x - 0.9, k.y - 0.6, k.x + 0.9, k.y + 0.6, col, '#14151F', 2);
     if (k.kind === 'simit') rect(R, k.x - 0.7, k.y - 0.1, k.x + 0.7, k.y + 0.5, 'rgba(255,255,255,0.45)', '#14151F', 1);
     else { c.fillStyle = 'rgba(255,120,40,' + (0.6 + 0.3 * Math.sin(t * 8)) + ')'; c.beginPath(); c.arc(R.X(k.x), R.Y(k.y + 0.1), 0.3 * R.ppm, 0, Math.PI * 2); c.fill(); }
   }
   function drawCanister(R, k) {
     var c = R.ctx;
-    rect(R, k.x - 0.28, k.y - 0.43, k.x + 0.28, k.y + 0.43, k.flash > 0 ? '#FFFFFF' : '#C0392B', '#14151F', 2);
+    rect(R, k.x - 0.28, k.y - 0.43, k.x + 0.28, k.y + 0.43, P.Sprites.propFlashOk(k) ? '#FFFFFF' : '#C0392B', '#14151F', 2);
     rect(R, k.x - 0.12, k.y + 0.43, k.x + 0.12, k.y + 0.6, '#14151F');
     c.fillStyle = '#14151F'; c.font = 'bold ' + Math.round(0.28 * R.ppm) + 'px system-ui'; c.textAlign = 'center';
     c.fillText(P.lang === 'tr' ? 'TÜP' : 'GAS', R.X(k.x), R.Y(k.y - 0.75));

@@ -15,7 +15,7 @@ P.WFx = (function () {
   function mods() { return [P.WFx2, P.WFx3, P.WFx4, P.SkillsFx]; }
 
   W.reset = function () {
-    W.gunA = 0; W.recoil = 0; W.sinceFire = 9; W.throwT = 0; W.parts = []; W.hs = [];
+    W.gunA = 0; W.recoil = 0; W.sinceFire = 9; W.throwT = 0; W.parts = [];
     W.combo = { n: 0, t: 0, best: 0 };
     mods().forEach(function (m) { if (m && m.reset) m.reset(); });
   };
@@ -27,14 +27,6 @@ P.WFx = (function () {
   W.pan = function (s, x) { return Math.max(-1, Math.min(1, (x - s.hero.x) / (P.CFG.view.widthM / 2))); };
   W.gold = function () { return !!(W.sim && P.Skills.frenzyOn(W.sim)); };
 
-  // Crit feel: at most perSec hit-stops per second, only for heavy weapons or crit kills.
-  W.hitStop = function () {
-    var now = performance.now(), K = P.CFG.skills.crit;
-    W.hs = W.hs.filter(function (t) { return now - t < 1000; });
-    if (W.hs.length >= K.perSec) return;
-    W.hs.push(now);
-    P.HitStop = Math.max(P.HitStop || 0, K.hitStop);
-  };
 
   W.onEvent = function (ev, s) {
     var i, a;
@@ -48,7 +40,7 @@ P.WFx = (function () {
       case 'hit': hit(ev, s); break;
       case 'blast': blast(ev, s); break;
       case 'kill': comboKill(s); break;
-      case 'critKill': W.hitStop(); break;
+      case 'critKill': P.Feel.hitStop('critKill'); break;
       case 'shockwave':
         add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r * 1.3, t: 0.4, T: 0.4, col: '255,209,102' });
         for (i = 0; i < 16; i++) { a = i / 16 * Math.PI * 2; add({ k: 'ray', x: ev.x, y: ev.y, a: a, t: 0.5, T: 0.5 }); }
@@ -87,7 +79,6 @@ P.WFx = (function () {
     var i, heavy = !!HEAVY[ev.src], pn = W.pan(s, ev.x);
     if (ev.crit) {
       add({ k: 'impact', x: ev.x, y: ev.y, t: 0.2, T: 0.2 });
-      if (heavy) W.hitStop();
       P.Sfx.play('crit', 60, { pan: pn });
     }
     if (ev.src === 'knife') add({ k: 'slash', x: ev.x, y: ev.y + 0.5, a: Math.atan2(ev.dy, ev.dx) + Math.PI / 2 + rnd(-0.3, 0.3), t: 0.12, T: 0.12 });

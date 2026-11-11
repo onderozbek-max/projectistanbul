@@ -203,8 +203,19 @@ P.Sprites = (function () {
   };
   // Guardrail (no flashes faster than 3 per second): one white hit flash per enemy per feel.enemyFlashGap. A hit that
   // lands during an allowed flash keeps it; a suppressed flash stays suppressed until it ends. Squash plays on every hit.
-  var flashSt = {}, flashCalls = 0;
+  var flashSt = {}, flashCalls = 0, propFlash = typeof WeakMap === 'function' ? new WeakMap() : null;
+  // Same rule for props (carts, canisters, cover): one white flash per object, at most 3 in any 1 s, none under Reduce flashing.
+  S.propFlashOk = function (k) {
+    var now = performance.now() / 1000, st, hit = (k.flash || 0) > 0;
+    if (P.Settings.reduceFlash || !propFlash) return false;
+    st = propFlash.get(k);
+    if (!st) { st = { on: false, ok: false, at: -1e9 }; propFlash.set(k, st); }
+    if (!hit) { st.on = false; st.ok = false; }
+    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap; if (st.ok) st.at = now; }
+    return hit && st.ok;
+  };
   function enemyFlashOk(e, now) {
+    if (P.Settings.reduceFlash) return false;
     var k = e.id, st = flashSt[k], hit = (e.flash || 0) > 0;
     if (!st) st = flashSt[k] = { on: false, ok: false, at: -1e9, seen: now };
     if (now - st.seen > 0.2) st.on = false;             // not drawn for a while (off screen): the next hit is a new flash

@@ -5,8 +5,16 @@ P.CFG.feel2 = {
   // Damped spring on a struck enemy: squash, a short wobble back to rest, a tilt away from the hit and a small shove (px = unit fractions).
   spring: { tau: 0.085, omega: 38, squashY: 0.24, squashX: 0.18, tiltRad: 0.2, tiltTau: 0.12, shoveU: 0.13, shoveTau: 0.1,
             heavy: 1.6, crit: 1.35, boss: 0.5, life: 0.45, max: 400 },
-  // Hit-stop: a short freeze of the simulation (the view keeps animating). Off under Reduce motion (main.js).
-  hitStop: { normal: 0.014, heavy: 0.034, minGap: 0.15, perSec: 5 },
+  // Hit-stop (design-system.md section 7): a short freeze of the simulation (the view keeps animating). Heavy hits 40 ms, boss hits and crit kills 60 ms,
+  // never for ordinary swarm hits, at most one per minGap s across every source (feel.js owns the limiter). Off under Reduce motion (main.js).
+  hitStop: { heavy: 0.04, boss: 0.06, critKill: 0.06, minGap: 0.25 },
+  // Pickup: a small ring pings at the hero when a drop is collected (one per `gap` s, so a stream of XP reads as one pulse train, well under
+  // 3 flashes a second per colour of change); `trail` is the length (m) of the streak behind a drop that is flying to the hero;
+  // `lift` is the height (m) of the arc a drop pops out on while it holds (sim `pop`, `popT` is the longest hold we scale by).
+  pickup: { gap: 0.09, life: 0.22, r0: 0.2, r1: 0.65, trail: 0.4, lift: 0.4, popT: 0.25,
+            col: { xp: '124,240,142', jeton: '233,162,59', simit: '217,160,80', chest: '255,209,102' } },
+  // Ash wisps: a kill lets go of a few grey wisps that rise and thin out (design-system.md section 7, death dissolve). Crowd budget `perFrame`.
+  wisp: { n: 2, life: 0.6, rise: 0.9, size: 0.12, alpha: 0.38, perFrame: 6 },
   // Camera kick in screen px, opposite or along the action; decays exponentially.
   kick: { knife: 2.0, hit: 1.4, heavy: 6.0, hero: 4.0, dash: 5.0, ult: 7.0, decay: 12 },
   // Arcing drops (fake height): blood per hit, gibs per kill. Gravity matches weapons-fx debris.

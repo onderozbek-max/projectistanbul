@@ -42,13 +42,14 @@
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && !('reduceMotion' in data)) {
     P.Settings.reduceMotion = true;
   }
-  // Pushes the settings that have a live hook: music level, HUD mirror (joystick side) and the flashing class.
+  // Pushes the settings that have a live hook: music level, HUD mirror (joystick side), the flashing class and the motion class.
   P.applySettings = function () {
     if (P.Music && P.Music.setVolume) P.Music.setVolume(MUSIC_BASE * P.Settings.musicVol / 100);
     var ph = typeof document !== 'undefined' ? document.getElementById('phone') : null;
     if (!ph) return;
     ph.classList.toggle('lefty', P.Settings.joySide === 'left');
     ph.classList.toggle('reduce-flash', !!P.Settings.reduceFlash);
+    ph.classList.toggle('reduce-motion', !!P.Settings.reduceMotion);   // the in-game switch does what the OS query does
   };
   // Gore colour: red blood (default, pending owner decision D-024) or DS 'ink splats'. View-only.
   P.goreRGB = function (shade) {

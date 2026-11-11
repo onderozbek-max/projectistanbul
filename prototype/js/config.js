@@ -113,7 +113,7 @@ P.CFG = {
     canister: { hp: 10, radius: 0.4, blast: 2.5, enemyDmg: 60, playerDmg: 15, trauma: 0.3 },
   },
   feel: {                                                                 // DS 6-7
-    hitFlash: 0.06, hitStopCritKill: 0.05, hitStopMinGap: 0.25, stabHitStop: 0.08,
+    hitFlash: 0.06, stabHitStop: 0.08,
     traumaPlayerHit: 0.2, traumaDecay: 1.5, maxShakePx: 12, maxShakeDeg: 1,
     scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.03, punchTime: 0.12,
     dmgNumberLife: 0.7, dmgNumberRise: 0.6, dmgNumberMax: 40, dmgMerge: 0.2, lowHpFrac: 0.3,

@@ -237,6 +237,7 @@
 @media (prefers-reduced-motion: reduce) {
   .meta-root *, .meta-root *::before, .meta-root *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+#phone.reduce-motion .meta-root *, #phone.reduce-motion .meta-root *::before, #phone.reduce-motion .meta-root *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 
 /* ---- v0.5 (workstream C): tabs, attributes, arsenal, hub, welcome ---- */
 .meta-tabs { position: absolute; left: 12px; right: 12px; top: 104px; z-index: 6; display: flex; gap: 6px; }

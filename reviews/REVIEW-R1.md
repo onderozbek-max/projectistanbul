@@ -427,3 +427,31 @@ Four new names, from the brief: **Vapur Pastanesi**, **Karabiber Kemal**, **Bile
 - Kit pieces the brief names that no hood's kit places (luggage cart, ice-cream cart, dye drums, tea-garden tables, pier bollards in Eminönü, kilims, lanterns, laundry lines) are still not done; they need a kit change, which shifts level generation and balance.
 - The Aksaray dolmuş and taxi overlap in the screenshot only because the still tool spaces its rows 3.4 m apart; in the game the sim spaces blocks.
 - `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-death-causes` and `test-meta` (122) pass; the game page loads with no errors. No automated tests cover props.
+
+---
+
+# T4 part 1: animation and feel (in progress)
+
+Scope check first: the v0.9 animation pass (feel.js, vehicles.js, fire animation) was already committed in the triage, so T4 starts from the owner list: hit-stop and shake tuning, spawn and death, dash and pickup, boss telegraphs, UI motion, bark timing, reduce motion, flash safety.
+
+## Done in this slice
+| Item | Change |
+|---|---|
+| Hit-stop | Was two limiters (feel.js 14 and 34 ms, weapons-fx 35 ms) and a rule-breaking 14 ms stop on plain crits. Now one limiter, `P.Feel.hitStop(kind)`, at design-system.md section 7 values: **heavy 40 ms, boss 60 ms, crit kill 60 ms, max one per 0.25 s, never for swarm hits.** Two unused config keys removed. Off under Reduce motion (main.js, unchanged). |
+| Reduce motion | The in-game switch now also stops CSS animation and transitions (class `reduce-motion` on `#phone`), as the OS setting already did. Before, the switch only affected canvas effects. |
+| Flash safety | Carts, canisters and enemies now obey Reduce flashing (they ignored it). Carts and canisters get the same rule as enemies: one white flash per object, at most 3 in any second (`P.Sprites.propFlashOk`). Muzzle stars and impact sparks are about 12 px, far below the area that matters for the 3-per-second rule, so I left them. |
+| Pickup | XP and other drops pop out on a small arc with a ground shadow while they hold; a drop flying to Arda drags a short colour streak; a small ring pings at Arda per pickup (one per 0.09 s). |
+| Death | Kills release two ash wisps that rise and thin out (design-system.md section 7 dissolve). The weapon-specific fall poses already existed. |
+| Boss telegraph | A ring closes on the boss's feet while an attack winds up, and a bar mark shows at full charge. Steady (no pulse), so it adds no flashing, and the shape works without colour. Ground telegraphs by attack already existed and already use per-attack colour. |
+
+## Deviations
+- **XP ease-in is not exact.** DS says the droplets arc in with a 0.25 s ease-in. The magnet speed is simulation (linear, 8 m/s plus hero speed), and changing it moves balance, so I did not touch it. The streak and ring carry the feel. If you want true ease-in, it is a sim change with a bot re-run.
+- Bark timing: no change. `P.Barks` already runs the 10 to 18 s cadence and yields to the legacy director bark. Nothing to fix.
+
+## Checks
+- New `tools/test-feel.js`: hit-stop values, 0.25 s gap, at most 4 per second, Reduce motion path, unused keys gone. Passes.
+- Existing: test-ceiling, test-dialogue, test-enemy-behaviors, test-env, test-horde, test-meta (122), check-ids, check-hood-keys, check-objective-strings, check-death-causes pass. The long `test-arsenal.js` was not run (over 10 min; this slice changes no sim code).
+- Game page, level 1, real-time headless run with synthetic pickup, kill, boss-hit and boss-windup states: no exceptions; boss hit sets a 60 ms stop.
+
+## Not yet done in T4
+Spawn markers for ordinary horde spawns, dash trail polish, UI motion beyond the reduce-motion fix, before and after clips, and the Low-device frame-time numbers (needs your phone).

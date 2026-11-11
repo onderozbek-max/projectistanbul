@@ -64,9 +64,19 @@ P.Render = (function () {
   }
 
   function drawDrops(s) {
-    var c = R.ctx, t = performance.now() / 1000, u = R.ppm;
+    var c = R.ctx, t = performance.now() / 1000, u = R.ppm, pk = P.CFG.feel2.pickup, hero = s.hero;
     s.drops.forEach(function (d, i) {
-      var X = R.X(d.x), Y = R.Y(d.y) - Math.sin(t * 4 + i) * 0.06 * u;
+      var X = R.X(d.x), Y = R.Y(d.y) - Math.sin(t * 4 + i) * 0.06 * u, lift = 0, hd, tx, ty;
+      if (d.pop > 0 && d.pop <= pk.popT && !P.Settings.reduceMotion) {   // pops out on a small arc (the sim holds it for `pop` s)
+        lift = Math.sin(Math.PI * (1 - d.pop / pk.popT)) * pk.lift;
+        c.fillStyle = 'rgba(0,0,0,0.2)'; c.beginPath(); c.ellipse(X, Y, 0.14 * u, 0.06 * u, 0, 0, Math.PI * 2); c.fill();
+        Y -= lift * u;
+      } else if (d.mag && d.kind !== 'chest' && !P.Settings.reduceMotion) {   // flying to the hero: a streak behind it
+        hd = Math.hypot(hero.x - d.x, hero.y - d.y) || 1;
+        tx = R.X(d.x - (hero.x - d.x) / hd * pk.trail); ty = R.Y(d.y - (hero.y - d.y) / hd * pk.trail);
+        c.strokeStyle = 'rgba(' + (pk.col[d.kind] || pk.col.simit) + ',0.45)'; c.lineWidth = 0.1 * u; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(tx, ty); c.lineTo(X, Y); c.stroke();
+      }
       if (d.kind === 'xp') {
         c.fillStyle = 'rgba(91,209,110,0.25)'; c.beginPath(); c.arc(X, Y, 0.22 * u, 0, Math.PI * 2); c.fill();
         c.fillStyle = '#7CF08E'; c.strokeStyle = '#14151F'; c.lineWidth = 1.5;

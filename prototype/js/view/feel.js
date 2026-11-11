@@ -8,7 +8,7 @@
 // The simulation never reads anything here. Numbers: P.CFG.feel2 (config-feel.js).
 P.Feel = (function () {
   var F = {}, HEAVY = { sledge: 1, canister: 1, cluster: 1, cleaver: 1, finale: 1, chainsaw: 1 }, TAU = Math.PI * 2;
-  var hurtMap = {}, hurtN = 0, parts = [], hsAt = [], hero = { x: 0, y: 0, dist: 0, step: 0, v: 0, moving: false, was: false, at: -9, kind: 0, a: 0 };
+  var hurtMap = {}, hurtN = 0, parts = [], hsLast = -9, ringAt = -9, wispLeft = 0, hero = { x: 0, y: 0, dist: 0, step: 0, v: 0, moving: false, was: false, at: -9, kind: 0, a: 0 };
   var fxLeft = 0, HS = { x: 1, y: 1, ox: 0, r: 0 }, HERO = { x: 1, y: 1, lean: 0.03 }, knifeLast = { a: 0, t: -9 };
 
   function C() { return P.CFG.feel2; }
@@ -17,7 +17,7 @@ P.Feel = (function () {
   function rm() { return !!(P.Settings && P.Settings.reduceMotion); }
   function ease(t) { return t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t); }
 
-  F.reset = function () { hurtMap = {}; hurtN = 0; parts.length = 0; hsAt.length = 0; hero.dist = 0; hero.step = 0; hero.was = false; hero.at = -9; knifeLast.t = -9; };
+  F.reset = function () { hurtMap = {}; hurtN = 0; parts.length = 0; hsLast = -9; hero.dist = 0; hero.step = 0; hero.was = false; hero.at = -9; knifeLast.t = -9; };
 
   // ---------- hit spring ----------
   function startHurt(ev) {
@@ -48,13 +48,13 @@ P.Feel = (function () {
   F.stopped = function (e) { return Math.hypot(e.vx || 0, e.vy || 0) < C().idle.speedEps && !(e.kbT > 0); };
 
   // ---------- hit-stop and camera kick ----------
-  function hitStop(heavy) {
-    var k = C().hitStop, t = now(), i;
-    for (i = hsAt.length - 1; i >= 0; i--) if (t - hsAt[i] > 1) hsAt.splice(i, 1);
-    if (hsAt.length >= k.perSec || (hsAt.length && t - hsAt[hsAt.length - 1] < k.minGap)) return;
-    hsAt.push(t);
-    P.HitStop = Math.max(P.HitStop || 0, heavy ? k.heavy : k.normal);
-  }
+  // kind: 'heavy' | 'boss' | 'critKill'. One limiter for every source (this and weapons-fx critKill both come through here).
+  F.hitStop = function (kind) {
+    var k = C().hitStop, t = now();
+    if (t - hsLast < k.minGap) return;
+    hsLast = t;
+    P.HitStop = Math.max(P.HitStop || 0, k[kind] || k.heavy);
+  };
   F.kick = function (dx, dy, px) {
     var c = P.Fx.cam, m = Math.hypot(dx, dy) || 1;
     if (rm()) return;
@@ -77,6 +77,11 @@ P.Feel = (function () {
       add({ k: big ? 'gib' : 'drop', x: x, y: y, z: rnd(0.2, 0.7), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: rnd(k.vzMin, k.vzMax) * (big ? 1.2 : 1),
             r: big ? rnd(0.05, 0.09) : rnd(0.025, 0.05), t: rnd(0.6, 1) * k.life, T: k.life, bounced: 0 });
     }
+  }
+  function wisps(x, y) {
+    var w = C().wisp, i;
+    if (rm() || wispLeft <= 0) return;
+    for (i = 0; i < w.n; i++, wispLeft--) add({ k: 'wisp', x: x + rnd(-0.15, 0.15), y: y, z: 0.15, vx: rnd(-0.2, 0.2), vy: rnd(-0.05, 0.1), vz: w.rise * rnd(0.7, 1.2), r: w.size * rnd(0.8, 1.3), t: w.life * rnd(0.8, 1.1), T: w.life });
   }
   function dust(x, y, n, size, spread) {
     var d = C().dust, i;
@@ -112,11 +117,19 @@ P.Feel = (function () {
         startHurt(ev);
         drops(ev.x, ev.y, ev.dx, ev.dy, k.drops.perHit, false);
         tagFx(ev);
-        if (heavy || ev.crit) { hitStop(heavy); F.kick(ev.dx || 0, ev.dy || 0, heavy ? k.kick.heavy : k.kick.hit * 1.5); }
+        if (heavy || ev.crit) { if (heavy) F.hitStop(ev.boss ? 'boss' : 'heavy'); F.kick(ev.dx || 0, ev.dy || 0, heavy ? k.kick.heavy : k.kick.hit * 1.5); }
         else if (ev.src === 'knife') F.kick(ev.dx || 0, ev.dy || 0, k.kick.hit);
         break;
       case 'kill':
+        wisps(ev.x, ev.y);
         drops(ev.x, ev.y, ev.dx, ev.dy, k.drops.perKill, true);
+        break;
+      case 'pickup':
+        px = k.pickup;
+        if (!rm() && now() - ringAt >= px.gap) {
+          ringAt = now();
+          add({ k: 'ring', x: s.hero.x, y: s.hero.y - 0.2, z: 0, vx: 0, vy: 0, vz: 0, r: 0, t: px.life, T: px.life, col: px.col[ev.kind] || px.col.simit });
+        }
         break;
       case 'swing': F.kick(ev.ax || 0, ev.ay || 0, k.kick.knife); break;
       case 'wfire':   // weapon recoil: the view jolts back from the muzzle; the heaviest shots also squash the hero
@@ -158,7 +171,7 @@ P.Feel = (function () {
 
   F.update = function (dt, s) {
     var h = s.hero, d = C().dust, i, p, dist, phase, step, k = C().drops;
-    fxLeft = C().hitFx.perFrame;
+    fxLeft = C().hitFx.perFrame; wispLeft = C().wisp.perFrame;
     if (dt > 0) {
       dist = Math.hypot(h.x - hero.x, h.y - hero.y);
       if (dist > 2) dist = 0;   // teleport or first frame
@@ -176,7 +189,8 @@ P.Feel = (function () {
       p = parts[i]; p.t -= dt;
       if (p.t <= 0) { if (p.k === 'drop' || p.k === 'gib') land(p); parts.splice(i, 1); continue; }
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
-      if (p.k === 'dust' || p.k === 'foam') { p.vx *= 0.94; p.vy *= 0.94; if (p.k === 'foam') p.vz *= 0.92; continue; }
+      if (p.k === 'ring') continue;
+      if (p.k === 'dust' || p.k === 'foam' || p.k === 'wisp') { p.vx *= 0.94; p.vy *= 0.94; if (p.k === 'foam') p.vz *= 0.92; continue; }
       p.vz -= k.gravity * dt;
       if (p.z <= 0) {
         p.z = 0;
@@ -188,13 +202,24 @@ P.Feel = (function () {
 
   // Drawn after the particle layer: ground shadow under anything airborne, then the particle at its height.
   F.draw = function (R) {
-    var c = R.ctx, u = R.ppm, i, p, a, X, Y, d = C().dust, rgbB = P.goreRGB(2), rgbG = P.goreRGB(1);
+    var c = R.ctx, u = R.ppm, i, p, a, X, Y, ringR, d = C().dust, rgbB = P.goreRGB(2), rgbG = P.goreRGB(1);
     for (i = 0; i < parts.length; i++) {
       p = parts[i]; a = Math.min(1, p.t / p.T * 2);
       X = R.X(p.x); Y = R.Y(p.y + p.z);
       if (p.k === 'dust') {
         c.fillStyle = 'rgba(176,164,146,' + (d.alpha * p.t / p.T).toFixed(3) + ')';
         c.beginPath(); c.ellipse(X, Y, p.r * u * (1.6 - p.t / p.T * 0.6), p.r * u * 0.6 * (1.6 - p.t / p.T * 0.6), 0, 0, TAU); c.fill();
+        continue;
+      }
+      if (p.k === 'wisp') {
+        c.fillStyle = 'rgba(150,146,140,' + (C().wisp.alpha * p.t / p.T).toFixed(3) + ')';
+        c.beginPath(); c.ellipse(X, Y, p.r * u * (1 + (1 - p.t / p.T) * 0.9), p.r * u * 0.8 * (1 + (1 - p.t / p.T) * 0.9), 0, 0, TAU); c.fill();
+        continue;
+      }
+      if (p.k === 'ring') {
+        a = p.t / p.T; ringR = C().pickup;
+        c.strokeStyle = 'rgba(' + p.col + ',' + (0.8 * a).toFixed(3) + ')'; c.lineWidth = 2;
+        c.beginPath(); c.ellipse(X, Y, (ringR.r0 + (ringR.r1 - ringR.r0) * (1 - a)) * u, (ringR.r0 + (ringR.r1 - ringR.r0) * (1 - a)) * u * 0.45, 0, 0, TAU); c.stroke();
         continue;
       }
       if (p.k === 'spark') {
