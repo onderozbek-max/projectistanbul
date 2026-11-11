@@ -327,7 +327,7 @@ A skin rolls its behaviour once, at spawn, with `chance` 0.2 per eligible spawn 
 | Skin | minHood | Behavior | Key numbers | Telegraph / counter |
 |---|---|---|---|---|
 | Fisher / Balıkçı (`fisher`) | 2 | Casts a hook line at the hero from 6 m with line of sight. On a hit the hero is dragged 2.5 m toward the fisher over 0.25 s, no damage. Cooldown 4.5 s, first cast after 2.0 s | Telegraph 0.6 s (lane, 0.3 m wide) | Dash, a wall, leaving the line or a boss/hack/cinematic cancels the pull |
-| Musician / Müzisyen (`musician`) | 1 | While it lives, walkers within 6 m move 1.15x faster (one flat buff, no stacking) | Radius 6 m, speedMul 1.15 | Faint dotted ring (view only); no telegraph |
+| Musician / Müzisyen (`musician`) | 2 | While it lives, walkers within 6 m move 1.15x faster (one flat buff, no stacking) | Radius 6 m, speedMul 1.15; from Karaköy (hood index 2), not Galata: on the Galata boss (L10) it cost 14 points of no-death in the bot (lead, R1) | Faint dotted ring (view only); no telegraph |
 | Hamal / Hamal (`hamal`) | 4 | Walks at 0.8x. A hit from behind (hero in the rear half-plane of its heading) does 0.5x damage. On death leaves a breakable crate (`crates`, 25 hp) that blocks walking | rearMul 0.5, rearCos 0, crateT 8.0 s, crate 1.0 x 1.0 m | Crate is a level-style box; no telegraph |
 
 ### 11.2 New enemy types

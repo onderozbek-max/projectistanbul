@@ -3,8 +3,8 @@
 Branch `r1/birds-cats` (from `r1/enemy-wave1` at `ccaaab9`). Not pushed. Executed by the lead after the implementation subagent
 died with an API error after 81 tool calls (see Deviations 7); the lead inspected the repo state, verified every piece and finished the work.
 
-**Status: the balance gate FAILED on two levels (L43 and L10). I stopped tuning, as the brief says. Both causes are isolated below.
-A human playtest and an owner decision are needed before this merges.**
+**Status: the balance gate first FAILED on two levels (L43 and L10); both are now decided. L10 was fixed (musician `minHood` 2, owner accepted the
+lead's recommendation; L6 to L10 now equal the baseline exactly). L43 is accepted by the lead and owner as designed (see Decisions). Both causes are isolated below.**
 
 ## Summary
 - **Cayci slow 0.65 to 0.75** (`config-enemies5.js`, `docs/content-catalog.md` §11, test).
@@ -35,7 +35,7 @@ Plus one commit for `tools/bench-fauna.js`, the screenshots and this packet.
 | Task | AC | Status | Evidence |
 |---|---|---|---|
 | A | cayci slow 0.75 in config, docs and test | PASS | `config-enemies5.js`, content-catalog §11, `test-enemy-behaviors` |
-| A | bot gate (L8 reach, median time, clear and no-death) | **FAIL (L43, L10)** | Balance below |
+| A | bot gate (L8 reach, median time, clear and no-death) | L8 PASS; L10 fixed (musician `minHood` 2); L43 accepted by decision | Balance and Decisions below |
 | B | look by hood geography; every hood in exactly one list | PASS | `test-enemy-behaviors` section 9 |
 | B | no thief in H01 to H04, thief from H05 | PASS | same |
 | B | the two looks give the same sim digest | PASS | same (pigeon vs seagull override) |
@@ -142,10 +142,11 @@ None for this task.
 7. **The implementation subagent died** (API error, 81 tool calls, with the bot runs and some edits half done). The lead did not trust its report: re-read the diff,
    re-ran every check, re-ran the bot gate and finished the fixes. The commits above are verified work.
 8. **`tools/bench-fauna.js` is new** (not requested): it is how the Performance numbers were produced.
-9. No sim number changed except cayci slow 0.75, as named in the brief.
+9. **Musician `minHood` 1 to 2** (a wave-1 number, changed on the owner's acceptance of the lead's recommendation after the gate failed on L10). Doc updated (content-catalog §11).
+10. No other sim number changed except cayci slow 0.75, as named in the brief.
 
 ## Known issues
-- **Balance gate fails on L43 and L10** (Balance). Neither is caused by the fisher drag, so the brief's lever does not apply.
+- **L43 median clear time is +70% in the bot** with the thief on. Accepted as designed (Decisions); watch it in real play.
 - The **48 px silhouette check** for the pigeon was not made. In flight, at phone size, the pigeon thief reads gull-like (see `thief-pigeon-l37-beyazit.png`).
   The ground pigeon is clear. Needs the owner's eye.
 - **Device frame time** not measured.
@@ -153,18 +154,17 @@ None for this task.
 - TR lines for `guvercin` and `kedi` are drafts; the owner has to approve them in `tr-D2.csv`.
 
 ## Questions for the lead (owner decisions)
-1. **Thief placement vs the bot (L43).** Keep the thief in every hood from H05 (the design) and accept that the bot reads it as 60% slower but safer, then judge it in a
-   human playtest? Or reduce it: at most one live thief, or start at stage 3? I recommend a playtest first: the bot policy, not the player, is the likely cause.
-2. **Musician buff (L10).** It costs 14 points of no-death on the Galata boss. Options: `minHood` 1 to 2, `speedMul` 1.15 to 1.10, or accept. This is wave-1 content,
-   outside this task, so I changed nothing.
-3. Approve or rewrite the 6 TR lines in `reviews/dialogue/tr-D2.csv`.
+All three were answered; see Decisions below.
 
-## Update after review
-- TR lines for `guvercin` and `kedi` approved by the owner (11 keep, 1 rewrite), imported with `ok` (`7ca9d9f`). Question 3 is closed.
-- `?thief=0` review shortcut added (`d8e3e95`) and an A/B playtest sheet written: `reviews/PLAYTEST-thief.md`. Question 1 is open until that is played.
+## Decisions (owner delegated 1, accepted 2, approved 3)
+1. **Thief: keep it in every hood from H05, as designed.** The owner asked the lead to decide without a playtest. Reasons: the bot's slowdown is probably a policy
+   artifact (it chases the thief's drops); the thief is safer for the bot (no-death 92% vs 83%); and it is one config value to cap later
+   (`thief.from`, or at most one live thief) if real play shows drag. The `?thief=0` shortcut (`d8e3e95`) stays for that.
+2. **Musician: `minHood` 1 to 2** (config-skins.js, content-catalog §11). Applied. Re-run, 50 seeds, current vs `be4bd08`: **L6, L7, L8, L9, L10 are identical**
+   (L10: clear 96%, no-death 76%, median 136 s, 0.28 deaths/run). Galata keeps the musician as a story skin only until Karaköy.
+3. TR lines for `guvercin` and `kedi` approved by the owner (11 keep, 1 rewrite), imported with `ok` (`7ca9d9f`).
 
 ## Proposed next steps
-1. Owner playtest of L22, L37 and L43 (thief), `reviews/PLAYTEST-thief.md`; decide question 1. Question 2: lead recommends `minHood` 2 for the musician.
-2. Pigeon 48 px silhouette sheet, and a device frame-time run.
-3. Stage `index.html` with the three script lines above and merge once the gate is decided.
-4. Then the enemy cap and diner change (D-056), a separate task.
+1. Pigeon 48 px silhouette sheet, and a device frame-time run (both still owed).
+2. Stage `index.html` with the three script lines above and merge to `main`.
+3. Then the enemy cap and diner change (D-056), a separate task.

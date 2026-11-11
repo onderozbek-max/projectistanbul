@@ -2,7 +2,7 @@
 // sim/skins-fisher.js). A skin is a zombie outfit (journey.js hood.skins); a skin listed here gives its zombies a job.
 // Caps: a behaviour is rolled once at spawn, with chance per eligible spawn and at most maxAlive live behaviour enemies
 // of that skin, so a crowd of fishers never hooks all at once. minHood is the 0-based hood index it phases in at
-// (the hoods that list the skin: fisher from Karaköy, musician from Galata, hamal from Eminönü).
+// (the hoods that list the skin: fisher from Karaköy, musician from Galata (behaves from Karaköy, see below), hamal from Eminönü).
 (function (C) {
   C.skins = {
     // Fisher (olta): casts a hook line at the hero from castRange when it has line of sight. The line is a 0.6 s lane
@@ -17,7 +17,9 @@
     // Musician (müzisyen): while it lives, walkers within radius move speedMul faster (flat: one buff, no stacking).
     // Radius 6 m is about the half-width of the 10 m view, so the buff reads as "the crowd around the musician".
     musician: {
-      types: ['walker'], minHood: 1, chance: 0.2, maxAlive: 2,
+      // minHood 2 (Karaköy), not 1 (Galata): with the buff on the Galata boss (L10) the bot's no-death rate fell 76% to 62%;
+      // from hood 2 it is back at 76% (R1 review). The Galata musician is only a story skin until then.
+      types: ['walker'], minHood: 2, chance: 0.2, maxAlive: 2,
       radius: 6.0, speedMul: 1.15,
     },
     // Hamal (porter, a crate on the back): walks speedMul of normal speed. A hit from behind (the hero in the back half-plane
