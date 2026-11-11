@@ -24,6 +24,7 @@
 |---|---|
 | Dimension | **2D**, top-down **3/4 view** (we see the ground plus the lower floors of building facades on the corridor edges) (D-007) |
 | Style | Hand-painted environments with soft texture; characters with **bold ink outlines** (3–4 px at reference) and 2–3 tone cel shading |
+| Pipeline (D-057) | **Backgrounds: authored vector (SVG)**, hand-drawn with `night_ink` outlines, slight wobble, paint grain and cel shading (warm light side, cool shadow side), never generated. **Characters and busts: the procedural engine** (`ComicBusts`, `ComicCast`). Samples and the comparison are in `reviews/media/R1/style-samples/`; sources in `design/style-samples/`. |
 | Proportions | Heroes ~ 1 : 4.5 head-to-body (stylized, expressive faces readable at small size); zombies ~ 1 : 5, slumped |
 | Hero size on screen | ~ 1.0 m tall in-world ≈ 90 px at reference (+ ground ring) |
 | Lighting | Painted time of day per level (golden hour → blue hour → night); dynamic 2D lights for night modifier only (Mid/High), baked fallback (Low) |
@@ -242,6 +243,8 @@ and select hood ends (H01 at L5, H04 at L20, H06 at L30, and L100; `journey.md` 
    outline weight, palette drift, perspective mismatch.
 6. **Provenance log:** `art/PROVENANCE.csv`: asset, tool, model/version, prompt ID, date,
    license notes, human edits. Required for store/legal questions.
+   Hand-authored assets (the vector backgrounds of D-057) need no entry; the file is created
+   when the first generated or third-party asset arrives.
 7. **Naming:** `<category>_<subject>_<variant>_<state>.<ext>`, e.g.
    `enm_walker_tourist_walk.png`, `ui_card_frame_rare.png`, `vfx_tea_glass_shatter.png`.
 8. **Atlases:** enemies and VFX packed into texture atlases per district; separate HD variants

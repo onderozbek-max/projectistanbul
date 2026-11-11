@@ -201,3 +201,38 @@ L10 (peak 105), L22 (164), L30 (126), L43 (188), L50 (153). Matches D-056's expe
 
 ## Known issues
 - Not measured on a device; D-056 says not to lower the ceiling before the Low-device run (M0-T4).
+
+---
+
+# R1-T2: art direction (style samples)
+
+Same three subjects, three pipelines, all at 390x844 (exported at 2x, 780x1688) in `reviews/media/R1/style-samples/`. File names are `<subject>-<pipeline>.png`.
+Subjects: `building` (Atakoy block, golden hour), `flat` (Arda's family flat, evening), `panel` (comic page panel, Arda and Kaan on the bridge, inside the 366x704 page area).
+
+| Pipeline | What it is | Source |
+|---|---|---|
+| `base` | Today's engine, unchanged (`ComicArt.scene` 'apartment' and 'bridge', `fin_flat`, `ComicBusts`). Drawn from the working tree. | prototype/js/view |
+| `a` | Stronger procedural: more canvas shapes (windows, shutters, awning, rug), then a post pass that adds ink edges and paper grain to the background. Busts are drawn after it, untouched. | `design/style-samples/a-procedural.js` |
+| `b` | Authored vector: hand-written SVG with ink outlines, wobble, paint grain, cel shading (warm light side, cool shadow side). | `design/style-samples/b-vector/*.svg` |
+
+Re-render: `design/style-samples/stage.html?pipe=base|a|b&subj=building|flat|panel` (needs Chrome).
+
+## What the samples show
+- **Backgrounds are the weak spot, not the characters.** In `panel-base` the busts are good (ink outline, paper halo, readable faces) and the bridge behind them is a grey smear. The building is beige slabs with no detail, the flat is rectangles and dots.
+- **`a` does not fix it.** A post pass cannot add things that are not drawn. Every extra prop costs hand-written shape code, and the result (`building-a`, `flat-a`) is cleaner but still generic. It is also the most code to keep alive.
+- **`b` fixes it.** `building-b` and `flat-b` read as the same game as the busts: Atakoy shutters, bakery steam, laundry, scooter; tea cups on the table, night window, carpet, Dad's Letter on the wall.
+- **`b` is weaker on people.** The SVG Arda and Kaan in `panel-b` are simpler than the engine busts (flat faces, stripes not following the body). Do not use B for characters.
+- Guardrails: no real brands or crests, no state symbols, mosque only as a distant skyline silhouette, no flashes, no lettering in any sample.
+
+## Recommendation: B for backgrounds, keep the engine busts
+Authored vector backgrounds (B), with the existing procedural busts on top. That is the `panel-b` background with the `panel-base` busts. One style, two methods, each used where it is strongest.
+- Cost: one authored SVG per scene (Ch.1 needs roughly 30 backgrounds, about 25 comic scenes and 5 arenas), an estimated 1-2 hours each. Static, small files, fast to load, scale to any phone.
+- Not done: pipeline C (generate then hand-check). Generation needs paid Figma credits, so I did not run it. B already clears the bar, so I recommend not spending.
+- Provenance: all `b` files are authored by hand, no generation, so nothing is logged in `art/PROVENANCE.csv` yet. The file is created when the first generated or third-party asset arrives.
+
+## Decision
+**Accepted 2026-11-10** (owner: "yes i agree with your suggestion"): B for backgrounds, engine busts for characters. Recorded as D-057 in `docs/product.md` section 17; `docs/design-system.md` section 2 and 12 and `design/style-exploration.md` updated. Unblocks T3 (arenas) and T4 (animation and feel).
+
+## Deviations
+1. The baseline is drawn from the working tree, which holds other in-progress comic-bust edits (not committed). It may differ slightly from `main`.
+2. Samples are static; nothing in the game loads them yet.

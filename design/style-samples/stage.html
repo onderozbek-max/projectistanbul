@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R1-T2 style stage</title>
+<!-- One sample per page, 390x844 scaled to fit the window. ?pipe=base|a|b  &subj=building|flat|panel
+     base = today's engine as is. a = stronger procedural (engine + extra canvas detail + ink/cel/grain pass).
+     b = authored vector (b-vector/*.svg). Open: stage.html?pipe=a&subj=flat -->
+<style>
+  html, body { margin: 0; background: #14151F; height: 100%; overflow: hidden; }
+  #box { width: 390px; height: 844px; transform-origin: 0 0; position: absolute; left: 0; top: 0; background: #F4EBDD; }
+  canvas, img { width: 390px; height: 844px; display: block; }
+</style>
+<div id="box"></div>
+<script src="../../prototype/js/config.js"></script>
+<script src="../../prototype/js/strings.js"></script>
+<script src="../../prototype/js/view/art-rig.js"></script>
+<script src="../../prototype/js/view/art-characters.js"></script>
+<script src="../../prototype/js/view/portraits.js"></script>
+<script src="../../prototype/js/view/comic-busts.js"></script>
+<script src="../../prototype/js/view/comic-busts-hair.js"></script>
+<script src="../../prototype/js/view/comic-busts-cast.js"></script>
+<script src="../../prototype/js/view/comic-art.js"></script>
+<script src="../../prototype/js/view/finale-scenes.js"></script>
+<script src="a-procedural.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), pipe = q.get('pipe') || 'base', subj = q.get('subj') || 'building';
+  var box = document.getElementById('box');
+  var k = q.get('native') ? 1 : Math.min(innerWidth / 390, innerHeight / 844);
+  box.style.transform = 'scale(' + k + ')';
+  function dumpOut(cv) { var o = document.createElement('pre'); o.id = 'out'; o.textContent = 'PNG:' + cv.toDataURL('image/png'); document.body.appendChild(o); }
+  if (pipe === 'b') {
+    var im = new Image();
+    im.onload = function () {
+      if (q.get('dump')) { var d = document.createElement('canvas'); d.width = 780; d.height = 1688; d.getContext('2d').drawImage(im, 0, 0, 780, 1688); dumpOut(d); }
+    };
+    im.src = 'b-vector/' + subj + '.svg'; box.appendChild(im); return;
+  }
+  var DPR = 2, cv = document.createElement('canvas'); cv.width = 390 * DPR; cv.height = 844 * DPR;
+  box.appendChild(cv);
+  var c = cv.getContext('2d'); c.scale(DPR, DPR);
+  var A = P.ComicArt;
+  if (pipe === 'a') { P.StyleA.draw(c, subj, DPR); if (q.get('dump')) dumpOut(cv); return; }
+  // baseline: exactly what the engine draws today
+  if (subj === 'panel') {
+    c.fillStyle = '#F4EBDD'; c.fillRect(0, 0, 390, 844);
+    c.save(); c.translate(12, 64); c.beginPath(); c.rect(0, 0, 366, 704); c.clip();
+    A.scene(c, 366, 704, 'bridge', 7); A.wash(c, 366, 704, 'warm'); A.halftone(c, 366, 704, 0.25);
+    A.bust(c, 'arda', 'neutral', 100, 690, 300, {});
+    A.bust(c, 'kaan', 'neutral', 270, 690, 300, { flip: true });
+    A.vignette(c, 366, 704, 0.25);
+    c.restore(); c.strokeStyle = '#14151F'; c.lineWidth = 3; c.strokeRect(12, 64, 366, 704);
+    if (q.get('dump')) dumpOut(cv);
+    return;
+  }
+  A.scene(c, 390, 844, subj === 'building' ? 'apartment' : 'fin_flat', 7);
+  if (subj === 'building') { A.wash(c, 390, 844, 'warm'); A.halftone(c, 390, 844, 0.25); }
+  A.vignette(c, 390, 844, 0.25);
+  if (q.get('dump')) dumpOut(cv);
+})();
+</script>

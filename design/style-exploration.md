@@ -5,6 +5,11 @@
 > The visual rules that any direction must obey are in [design-system.md](../docs/design-system.md)
 > (readability §6, palette §3, art direction §2). This brief explores *looks* within those rules.
 
+> **Update 2026-11-10 (R1-T2, D-057):** the prototype look is direction **A, Ink & Tea**, built with a mixed pipeline:
+> authored vector backgrounds plus the existing procedural busts. Samples: `reviews/media/R1/style-samples/`, sources: `design/style-samples/`.
+> Directions B and C stay unused. The generate-then-hand-check path (paid Figma credits) was not run; the M4-T1 style frames below
+> still apply when and if generated art is added.
+
 ---
 
 ## 1. Goal
