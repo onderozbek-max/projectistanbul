@@ -21,7 +21,7 @@ Object.assign(P.DLG.tr, {
   "BK.env.door": [
     { t: "Kapı açılıyor. Hazır ol.", ok: 1 },
     { t: "Pencerede biri var.", ok: 1 },
-    { t: "Kapı sarsılıyor, geri çekil!", ok: 1 },
+    { t: "Kanalizasyon kapağı hareket ediyor. Kaçmalıyım.", ok: 1 },
     { t: "Bu bina bana kin besliyor galiba.", j: 1, ok: 1 },
   ],
   "BK.env.explode": [

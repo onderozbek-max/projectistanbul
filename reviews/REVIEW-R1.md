@@ -299,11 +299,11 @@ Manholes are retired as spawns:
 Config: `portal.manhole*` and `layouts.spawn.manhole*` removed, `levelcfg.crawlerFrom` replaces the L1 manhole point. Docs updated: `level-001-istiklal.md`, `game-design.md`, `journey.md`, `content-catalog.md`, `architecture.md`.
 
 ## Story lines changed
-English is final. **Turkish needs your OK (two lines, proposed by me):**
+English is final. **Turkish: `H01i2a` approved by the owner; `BK.env.door` replaced with the owner's own wording:**
 | Id | Was (TR) | Proposed (TR) |
 |---|---|---|
 | `H01i2a` (Hood 1 intro caption) | Yürüyenler, koşanlar, rögardan sürünenler. Hepsi işe geç kalmış gibi. | Yürüyenler, koşanlar, kaldırımdan sürünenler. Hepsi işe geç kalmış gibi. |
-| `BK.env.door` (a door or window is about to open) | Rögar kapağı kalkıyor! | Kapı sarsılıyor, geri çekil! |
+| `BK.env.door` (a door or window is about to open) | Rögar kapağı kalkıyor! | Kanalizasyon kapağı hareket ediyor. Kaçmalıyım. (owner's wording) |
 
 English: `H01i2a` "crawlers along the kerb"; `BK.fk.crawler` "It crawled in off the kerb. Didn't even knock."; `BK.env.door` "That door is shaking. Back off slowly." Also changed: `tip.crawler` (UI, both languages), and the unused `ev.manhole` and `env.manhole` strings are removed. The matching beat intents in `dialogue/intents.js` are updated.
 
