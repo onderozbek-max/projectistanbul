@@ -161,7 +161,7 @@ P.CFG = {
       { y: 22, ev: 'ambush', opts: { types: ['runner'], n: 5, x: 6.2 } },            // runner pack, early in A
       { y: 44, ev: 'loot' },                                                         // simit-tray runner in A
       { y: 50, ev: 'hack', opts: { kind: 'cell', x: -5.9, y: 66 } },                 // phone-shop booster (B)
-      { y: 96, ev: 'set', opts: { type: 'bloater', x: 6.4, y: 112, label: 'bloater' } },   // Şişman Garson (B)
+      { y: 96, ev: 'set', opts: { type: 'bloater', x: 6.4, y: 112, label: 'bloater' } },   // Dombili / Bloated Waiter (B)
       { y: 118, ev: 'ambush', opts: { types: ['walker'], n: 7, x: -6.2 } },          // alley horde, arrow (B)
       { y: 132, ev: 'set', opts: { type: 'spitter', x: -6.0, y: 138, anchored: true, label: 'spitter' } }, // balcony (C)
       { y: 178, ev: 'blackout', opts: { T: 7 } },                                    // power cut (C)

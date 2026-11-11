@@ -382,6 +382,8 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 #scr-down .btn { min-height: 56px; white-space: nowrap; }
 #scr-down .btn.wide { margin-top: 12px; }
 #scr-down .panel .caption { margin-top: 8px; }
+#down-line { font-style: italic; text-align: center; color: rgba(255,255,255,.92); margin: 2px 12px 6px; min-height: 1.2em; }
+#down-line:empty { display: none; }
 /* F5: settings rows: stepped values read as buttons; the note sits under the list. */
 .toggle.step { min-width: 96px; }
 #settings-note { margin: 12px 4px 0; font-size: 14px; color: rgba(255,255,255,.7); }

@@ -1,5 +1,5 @@
 // Visuals for level events and hack terminals (v0.5, workstream B). Draws from s.ev.list, s.hacks and sim events.
-// Merges the config strings (C.levelStrings -> P.STR) and call lines (C.levelLines -> P.LINES) at load.
+// Merges the config strings (C.levelStrings -> P.STR) at load.
 P.EventsFx = (function () {
   var EV = {}, C = P.CFG;
   var DANGER = 'rgba(255,77,46,', GOLD = 'rgba(255,209,102,', SIGNAL = 'rgba(124,199,255,', CAGE = 'rgba(181,230,85,';
@@ -8,8 +8,6 @@ P.EventsFx = (function () {
   Object.keys(C.levelStrings || {}).forEach(function (k) {
     P.STR.tr[k] = C.levelStrings[k].tr; P.STR.en[k] = C.levelStrings[k].en;
   });
-  P.LINES = P.LINES || {};
-  Object.keys(C.levelLines || {}).forEach(function (id) { P.LINES[id] = C.levelLines[id]; });
 
   EV.reset = function () {};
   function label(key) { return P.t(key); }

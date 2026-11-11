@@ -6,7 +6,14 @@
   var KEY = 'istanbul_proto_v1';
   var MUSIC_BASE = 0.7;   // music level 100 = the prototype's default mix (P.Music starts at 0.7)
   var MUSIC_STEPS = [0, 25, 50, 75, 100], SHAKE_STEPS = [0, 50, 100];
-  var defaults = { lang: 'tr', sound: true, subs: true, reduceMotion: false, dmgNumbers: true, blood: true,
+  // First launch: the phone's language picks the script. Any tr* gives Turkish, anything else gives English (D-051). The result is
+  // saved as the player's setting and the Settings control overrides it. ?lang=tr|en overrides for testing and is not saved.
+  P.detectLang = function (list) {
+    for (var i = 0; list && i < list.length; i++) if (/^tr([-_]|$)/i.test(String(list[i]))) return 'tr';
+    return 'en';
+  };
+  var phoneLangs = typeof navigator === 'undefined' ? [] : navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+  var defaults = { lang: P.detectLang(phoneLangs), sound: true, subs: true, reduceMotion: false, dmgNumbers: true, blood: true,
                    firstRunDone: false, l1Cleared: false, coldOpenSeen: false, installId: null,
                    musicVol: 100, haptics: true, joySide: 'right', shake: 100, reduceFlash: false, devTools: false };
   var LANGS = ['tr', 'en'];
@@ -48,6 +55,7 @@
     if (P.Settings.blood === false) return ['20,21,31', '34,36,48', '48,50,64'][shade || 0];
     return ['86,14,20', '120,20,28', '160,24,36'][shade || 0];
   };
-  P.lang = P.Settings.lang;
+  var urlLang = typeof location !== 'undefined' && /[?&]lang=(tr|en)(&|$)/.exec(location.search);
+  P.lang = urlLang ? urlLang[1] : P.Settings.lang;
   P.saveSettings();
 })();

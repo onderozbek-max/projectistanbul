@@ -55,6 +55,8 @@ message log the player can open at any time. Characters appear as comic busts in
 - **Text is not baked into the art.** Bubbles, SFX lettering and captions are separate layers, in TR and EN (DS §10).
 - **Max 60 words per page** in Turkish (about 45 in English). Turkish runs about 20–30% longer. Design bubbles for Turkish.
 - **Speaker tails** point at the speaker. Max 2 bubbles per panel.
+- **Bubble count per panel can differ by language** (D-051). The panel art, speakers and meaning are fixed; each language fills the
+  bubbles from its own script within the panel's limit.
 - **Panel border:** 6 px night ink on paper (DS §9.1).
 - **Flashes:** none. Cuts are cuts. The dizi triple zoom is the only fast move, and only at cliffhangers (DS §9.2).
 

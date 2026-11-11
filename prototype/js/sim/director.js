@@ -32,7 +32,7 @@ P.Director.complete = function (s, id) {
 
 // ---------- subtitles (phone call) and barks ----------
 P.Director.say = function (s, ids) {
-  ids.forEach(function (id) { if (!P.LINES || P.LINES[id]) s.dir.call.queue.push(id); });
+  ids.forEach(function (id) { s.dir.call.queue.push(id); });
 };
 
 P.Director.bark = function (s, id, who) {
@@ -44,8 +44,8 @@ function updateTalk(s, dt) {
   if (c.active) c.t += dt;
   if (c.sub) { c.sub.t -= dt; if (c.sub.t <= 0) c.sub = null; }
   if (!c.sub && c.queue.length) {
-    var id = c.queue.shift(), line = P.LINES && P.LINES[id], len = line ? line[1].length : 40;
-    c.sub = { id: id, t: Math.min(4.5, Math.max(2.2, len * 0.065)) };
+    var id = c.queue.shift();
+    c.sub = { id: id, t: P.CFG.callDur[id] || P.CFG.callDurDefault };
   }
   b.cd = Math.max(0, b.cd - dt);
   if (b.cur) { b.cur.t -= dt; if (b.cur.t <= 0) b.cur = null; }
