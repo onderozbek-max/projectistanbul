@@ -1,0 +1,231 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Arena still (R1-T3)</title>
+<!-- One arena frame as a PNG. ?hood=0..19 &stage=1..5 &y=metres &blocks=1 &dump=1 (writes <pre id=out>PNG:data...</pre>), &dpr=1|2.
+     Built from world-preview.html. Used for before/after screenshots: Chrome --headless=new --dump-dom. -->
+<style>html,body{margin:0;background:#14151F}#game{width:390px;height:844px;display:block}</style>
+<canvas id="game" width="390" height="844"></canvas>
+<script>window.P = {};</script>
+<script src="../js/config.js"></script>
+<script src="../js/config-weapons.js"></script>
+<script src="../js/config-levels.js"></script>
+<script src="../js/config-layouts.js"></script>
+<script src="../js/config-enemies3.js"></script>
+<script src="../js/config-bosses.js"></script>
+<script src="../js/config-enemies4.js"></script>
+<script src="../js/config-enemies5.js"></script>
+<script src="../js/config-fauna.js"></script>
+<script src="../js/config-skins.js"></script>
+<script src="../js/config-stats.js"></script>
+<script src="../js/config-power.js"></script>
+<script src="../js/config-feel.js"></script>
+<script src="../js/config-weapons2.js"></script>
+<script src="../js/config-weapons3.js"></script>
+<script src="../js/config-env.js"></script>
+<script src="../js/config-objectives.js"></script>
+<script src="../js/config-modifiers.js"></script>
+<script src="../js/config-horde.js"></script>
+<script src="../js/strings.js"></script>
+<script src="../js/journey.js"></script>
+<script src="../js/strings-weapons.js"></script>
+<script src="../js/meta/strings-meta.js"></script>
+<script src="../js/story/strings-story.js"></script>
+<script src="../js/strings-journey.js"></script>
+<script src="../js/strings-enemies3.js"></script>
+<script src="../js/strings-enemies4.js"></script>
+<script src="../js/strings-enemies5.js"></script>
+<script src="../js/strings-weapons2.js"></script>
+<script src="../js/strings-weapons3.js"></script>
+<script src="../js/meta/strings-meta2.js"></script>
+<script src="../js/strings-feel.js"></script>
+<script src="../js/strings-env.js"></script>
+<script src="../js/strings-progress.js"></script>
+<script src="../js/strings-ui2.js"></script>
+<script src="../js/strings-cards.js"></script>
+<script src="../js/strings-horde.js"></script>
+<script src="../js/sim/rng.js"></script>
+<script src="../js/sim/world.js"></script>
+<script src="../js/sim/combat.js"></script>
+<script src="../js/sim/weapons.js"></script>
+<script src="../js/sim/weapons2.js"></script>
+<script src="../js/sim/weapons3.js"></script>
+<script src="../js/sim/weapons4.js"></script>
+<script src="../js/sim/weapons5.js"></script>
+<script src="../js/sim/mastery.js"></script>
+<script src="../js/sim/enemies.js"></script>
+<script src="../js/sim/enemies2.js"></script>
+<script src="../js/sim/skills.js"></script>
+<script src="../js/sim/bosses.js"></script>
+<script src="../js/sim/layouts.js"></script>
+<script src="../js/sim/levels.js"></script>
+<script src="../js/sim/enemies3.js"></script>
+<script src="../js/sim/skins.js"></script>
+<script src="../js/sim/skins-fisher.js"></script>
+<script src="../js/sim/enemies4.js"></script>
+<script src="../js/sim/enemies4-marti.js"></script>
+<script src="../js/sim/enemies4-cayci.js"></script>
+<script src="../js/sim/events.js"></script>
+<script src="../js/sim/events-kinds.js"></script>
+<script src="../js/sim/env.js"></script>
+<script src="../js/sim/env-kinds.js"></script>
+<script src="../js/sim/env-zones.js"></script>
+<script src="../js/sim/env-rules.js"></script>
+<script src="../js/sim/env-portal.js"></script>
+<script src="../js/sim/hack.js"></script>
+<script src="../js/sim/modifiers.js"></script>
+<script src="../js/sim/objectives.js"></script>
+<script src="../js/sim/objectives-kinds.js"></script>
+<script src="../js/sim/progression.js"></script>
+<script src="../js/sim/weapons6.js"></script>
+<script src="../js/sim/horde.js"></script>
+<script src="../js/sim/director.js"></script>
+<script src="../js/sim/sim.js"></script>
+<script src="../js/view/settings.js"></script>
+<script src="../js/view/icons.js"></script>
+<script src="../js/view/icons-evo.js"></script>
+<script src="../js/view/sfx-bank.js"></script>
+<script src="../js/view/sfx-bank2.js"></script>
+<script src="../js/view/sfx.js"></script>
+<script src="../js/view/indoor.js"></script>
+<script src="../js/view/fx.js"></script>
+<script src="../js/view/render.js"></script>
+<script src="../js/view/render-world.js"></script>
+<script src="../js/view/restaurant-props.js"></script>
+<script src="../js/view/restaurant-art.js"></script>
+<script src="../js/view/art-rig.js"></script>
+<script src="../js/view/art-characters.js"></script>
+<script src="../js/view/art-enemies.js"></script>
+<script src="../js/view/sprites.js"></script>
+<script src="../js/view/art-enemies3.js"></script>
+<script src="../js/view/art-enemies4.js"></script>
+<script src="../js/view/art-enemies5.js"></script>
+<script src="../js/view/art-enemies6.js"></script>
+<script src="../js/view/portraits.js"></script>
+<script src="../js/view/weapons-fx.js"></script>
+<script src="../js/view/feel.js"></script>
+<script src="../js/view/vehicles.js"></script>
+<script src="../js/view/weapons-fx2.js"></script>
+<script src="../js/view/skills-fx.js"></script>
+<script src="../js/view/weapons-fx3.js"></script>
+<script src="../js/view/enemies-fx.js"></script>
+<script src="../js/view/enemies-fx2.js"></script>
+<script src="../js/view/enemies-fx-w1.js"></script>
+<script src="../js/view/weapons-fx4.js"></script>
+<script src="../js/view/fire-anim-prim.js"></script>
+<script src="../js/view/fire-anim-held.js"></script>
+<script src="../js/view/fire-anim-held2.js"></script>
+<script src="../js/view/fire-anim-fx.js"></script>
+<script src="../js/view/fire-anim-fx2.js"></script>
+<script src="../js/view/fire-anim-held3.js"></script>
+<script src="../js/view/fire-anim-fx3.js"></script>
+<script src="../js/view/fire-anim-held4.js"></script>
+<script src="../js/view/fire-anim-fx4.js"></script>
+<script src="../js/view/fire-anim.js"></script>
+<script src="../js/view/events-fx.js"></script>
+<script src="../js/view/istanbul.js"></script>
+<script src="../js/view/istanbul-props.js"></script>
+<script src="../js/view/istanbul-props2.js"></script>
+<script src="../js/view/istanbul-props-env.js"></script>
+<script src="../js/view/env-fx.js"></script>
+<script src="../js/view/fauna-art.js"></script>
+<script src="../js/view/fauna.js"></script>
+<script src="../js/view/arena-art-data.js"></script>
+<script src="../js/view/arena-art.js"></script>
+<script src="../js/view/istanbul-themes.js"></script>
+<script src="../js/view/istanbul-landmarks.js"></script>
+<script src="../js/view/layouts-fx.js"></script>
+<script src="../js/view/layouts-centre.js"></script>
+<script src="../js/view/hood-card.js"></script>
+<script src="../js/view/screens.js"></script>
+<script src="../js/view/coldopen.js"></script>
+<script src="../js/story/strings-finale.js"></script>
+<script src="../js/dialogue/dialogue.js"></script>
+<script src="../js/dialogue/beats-core.js"></script>
+<script src="../js/dialogue/beats-story-hoods.js"></script>
+<script src="../js/dialogue/beats-barks.js"></script>
+<script src="../js/dialogue/batches.js"></script>
+<script src="../js/dialogue/intents.js"></script>
+<script src="../js/dialogue/tr/barks-cards.js"></script>
+<script src="../js/dialogue/tr/barks-combat.js"></script>
+<script src="../js/dialogue/tr/barks-hoods-01-10.js"></script>
+<script src="../js/dialogue/tr/barks-hoods-11-20.js"></script>
+<script src="../js/dialogue/tr/barks-world.js"></script>
+<script src="../js/dialogue/tr/cards-flavour.js"></script>
+<script src="../js/dialogue/tr/core.js"></script>
+<script src="../js/dialogue/tr/finale.js"></script>
+<script src="../js/dialogue/tr/story-hoods-01-10.js"></script>
+<script src="../js/dialogue/tr/story-hoods-11-20.js"></script>
+<script src="../js/dialogue/tr/story-levels.js"></script>
+<script src="../js/dialogue/en/barks-cards.js"></script>
+<script src="../js/dialogue/en/barks-combat.js"></script>
+<script src="../js/dialogue/en/barks-hoods-01-10.js"></script>
+<script src="../js/dialogue/en/barks-hoods-11-20.js"></script>
+<script src="../js/dialogue/en/barks-world.js"></script>
+<script src="../js/dialogue/en/cards-flavour.js"></script>
+<script src="../js/dialogue/en/core.js"></script>
+<script src="../js/dialogue/en/finale.js"></script>
+<script src="../js/dialogue/en/story-hoods-01-10.js"></script>
+<script src="../js/dialogue/en/story-hoods-11-20.js"></script>
+<script src="../js/dialogue/en/story-levels.js"></script>
+<script src="../js/story/story-data.js"></script>
+<script src="../js/story/barks.js"></script>
+<script src="../js/story/finale-data.js"></script>
+<script src="../js/story/finale.js"></script>
+<script src="../js/meta/meta-save.js"></script>
+<script src="../js/meta/meta-data.js"></script>
+<script src="../js/meta/meta-unlocks.js"></script>
+<script src="../js/meta/meta-power.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var hood = parseInt(q.get('hood') || '0', 10), stage = parseInt(q.get('stage') || '1', 10), Y = parseFloat(q.get('y') || '40');
+  var showBlocks = q.get('blocks') !== '0', DPR = parseInt(q.get('dpr') || '2', 10);
+  var BLOCKS = [
+    { kind: 'car', x: -1.3, y: 36, w: 1.8, h: 4.2 }, { kind: 'taxi', x: 1.2, y: 52, w: 1.8, h: 4.3 },
+    { kind: 'dolmus', x: -1.2, y: 70, w: 1.9, h: 4.6 }, { kind: 'bus', x: 1.4, y: 98, w: 2.5, h: 9 },
+    { kind: 'barrier', x: 0, y: 128, w: 2.4, h: 0.6 }, { kind: 'kiosk', x: -2.2, y: 150, w: 1.4, h: 1.1 },
+    { kind: 'bench', x: 2.1, y: 168, w: 1.6, h: 0.5 }, { kind: 'bin', x: -2.4, y: 182, w: 0.5, h: 0.5 },
+    { kind: 'planter', x: 2.4, y: 192, w: 1.2, h: 1.2 }, { kind: 'crates', x: -2.6, y: 202, w: 1.2, h: 1.0 },
+    { kind: 'tables', x: 2.8, y: 212, w: 1.6, h: 1.2 }, { kind: 'cart', x: -1.0, y: 222, w: 1.2, h: 0.8 },
+    { kind: 'tree', x: 0.6, y: 118, w: 1.0, h: 1.0 }, { kind: 'bollard', x: -0.8, y: 86, w: 0.4, h: 0.4 },
+    { kind: 'mystery', x: 1.8, y: 60, w: 1, h: 1 }
+  ];
+  var ui = { exit: { checked: false }, blocks: { checked: showBlocks } };
+  function fakeSim(level) {
+    var li = P.Journey.level(level), theme = li.hood.theme;
+    return {
+      seed: 1, t: 0, runT: 0, mode: 'play', levelIndex: level, levelInfo: li, theme: theme,
+      // geo.sub: stage number (1..5) exercises the sub-location path; the L1 path ignores geo.
+      geo: { xMin: -4.6, xMax: 4.6, length: 230, exitY: 230, holdY: 200, holdT: 56, boss: null, exitOpen: ui.exit.checked,
+        blocks: ui.blocks.checked ? BLOCKS : [], sub: li.stage },
+      hero: { x: 0, y: 0, fx: 0, fy: 1, hp: 100, maxHp: 100, moving: false, invuln: 0, pickupRadius: 1.2, sinceHit: 99,
+        weapons: { knife: 1 }, passives: {}, cds: {}, chainA: 0, swingDir: 1, regenOn: false, hitFlash: 0 },
+      enemies: [], drops: [], projs: [], nails: [], zones: [], events: [], enemyTele: [], enemyShots: [], hacks: [], ev: { list: [], helpers: [] },
+      props: { carts: [], canisters: [], doorOpen: false, shutter: 0, shutterOpen: false, scaffoldDown: false },
+      dir: { civilians: [], telegraphs: [], flags: {}, bubbles: [], barks: { cur: null, queue: [] }, tut: { active: null }, hold: { active: false }, zoomOut: false }
+    };
+  }
+
+  var canvas = document.getElementById('game'), level = hood * 5 + stage, sim = fakeSim(level), cam;
+  P.Render.init(canvas); P.Render.resize(DPR);
+  P.Fx.reset(sim); cam = P.Fx.cam;
+  sim.hero.x = 0; sim.hero.y = Y;
+  if (q.get('live')) {   // a real run: the sim walks the hero up the street for &secs seconds so enemies, weapons and props are on screen
+    sim = P.createSim(parseInt(q.get('seed') || '5', 10), { levelIndex: level, loadout: null });
+    sim.mode = 'play'; sim.hero.hp = sim.hero.maxHp = 1e9;
+    P.Fx.reset(sim); cam = P.Fx.cam;
+    for (var i = 0; i < parseFloat(q.get('secs') || '25') * 60; i++) { P.stepSim(sim, 1 / 60, { x: 0, y: 1 }); sim.events.length = 0; }
+    Y = sim.hero.y;
+  }
+  if (q.get('noart')) P.ArenaArt.tile = function () { return null; };   // baseline: the baked canvas tiles
+  function shoot() {
+    for (var k = 0; k < 3; k++) {
+      cam.y = Y; cam.x = 0; cam.w = P.CFG.view.widthM; cam.ox = 0; cam.oy = 0; cam.rot = 0; cam.zoom = 1; cam.trauma = 0; cam.punchT = 0;
+      P.Render.frame(sim, null);
+    }
+    if (q.get('dump')) { var o = document.createElement('pre'); o.id = 'out'; o.textContent = 'PNG:' + canvas.toDataURL('image/png'); document.body.appendChild(o); }
+  }
+  var tries = 0;
+  (function wait() { if (!P.ArenaArt.ready() && tries++ < 100) return setTimeout(wait, 50); setTimeout(shoot, 100); })();
+})();
+</script>

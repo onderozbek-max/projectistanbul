@@ -309,11 +309,14 @@ P.Themes = (function () {
   }
   var SIDE_SIZE = { facade: [3.4, 6], grass: [4, 4], garden: [3.4, 4], walls: [3.4, 6], tracks: [4, 1.4], site: [3.4, 4] };
 
+  T.flush = function () { CACHE = {}; };   // ArenaArt calls this once its images have decoded
   // Tile record: { cv, w, h, k } in metres; null for water (animated in render-world).
   T.tile = function (th, role, k) {
     if (k !== cacheK) { CACHE = {}; cacheK = k; }
     var key = th.id + '|' + role, t = CACHE[key];
     if (t !== undefined) return t;
+    var art = P.ArenaArt && role !== 'rails' ? P.ArenaArt.tile(th.id, role, k) : null;   // R1-T3: authored SVG tile when the hood has one
+    if (art) return (CACHE[key] = art);
     t = null;
     if (role === 'ground' || role === 'walk') {
       var kind = role === 'walk' ? th.walk : (th.lanes ? 'lanes' : th.bays ? 'bays' : th.ground);

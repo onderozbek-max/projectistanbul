@@ -9,6 +9,7 @@ P.LayoutFx = (function () {
   var FLOOR = { plaza: '#CDBFA6', market: '#B59A78', chicane: '#A39C8F', waterfront: '#B8AD96', bridge: '#8D877C', arena: '#7C7467' };
   var STEP = { plaza: 3, market: 2, chicane: 2.5, waterfront: 6, bridge: 1.5, arena: 4 };
   var AWN = ['#B5401D', '#2E6E8E', '#C9A227', '#2E7D4F'];
+  var ART_WASH = 0.42;                               // share of the zone colour over an authored paving tile
   var TINT = 0.45;                                   // share of the hood's walk colour in a zone floor
   var MARK = { doorW: 0.9, doorD: 0.4, winW: 1.2, winD: 0.35, manholeR: 0.45 };   // spawn marks (m)
   var cache = {};
@@ -46,6 +47,13 @@ P.LayoutFx = (function () {
     G.zones.forEach(function (z) {
       if (z.y1 < y0 || z.y0 > y1) return;
       var a = Math.max(z.y0, y0), b = Math.min(z.y1, y1), x0 = G.xMin, x1 = G.xMax;
+      var art = P.RenderWorld && P.RenderWorld.artTile ? P.RenderWorld.artTile(R, theme, 'walk') : null;
+      if (art) {   // R1-T3: the hood's authored paving, washed with the zone's own colour so plaza, market and arena stay distinct
+        P.RenderWorld.fillTile(R, art, x0, x1, a, b, 0, 1);
+        c.save(); c.globalAlpha = ART_WASH; c.fillStyle = FLOOR[z.kind] || FLOOR.plaza;
+        c.fillRect(R.X(x0), R.Y(b), (x1 - x0) * R.ppm, (b - a) * R.ppm); c.restore();
+        return;
+      }
       c.fillStyle = floorOf(z.kind, theme);
       c.fillRect(R.X(x0), R.Y(b), (x1 - x0) * R.ppm, (b - a) * R.ppm);
       lines(R, z, a, b, x0, x1);

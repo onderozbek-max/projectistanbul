@@ -236,3 +236,43 @@ Authored vector backgrounds (B), with the existing procedural busts on top. That
 ## Deviations
 1. The baseline is drawn from the working tree, which holds other in-progress comic-bust edits (not committed). It may differ slightly from `main`.
 2. Samples are static; nothing in the game loads them yet.
+
+---
+
+# R1-T3: Istanbul arenas, first pass (three hoods, ground only)
+
+## What is done
+- **20 briefs** in `docs/hood-visual-briefs.md` (landmarks, props with solid or dressing flags, materials by palette token, fictional signs, light, sound, contrast with neighbours). Open questions are resolved there as lead decisions you can overrule.
+- **Authored ground for three hoods**: İstiklal (granite setts plus tram rails set in the road, pale paving), Kapalıçarşı (worn flagstones, amber dust in the joints), Ataköy (patched, cracked asphalt, courtyard paving). Style per D-057: `night_ink` joints, three stone tones, warm highlight top-left, cool shade bottom-right.
+- **Plaza, market, arena and bridge floors** of generated levels now use the hood's authored paving with the zone colour as a wash. These floors covered most of the screen in Ataköy and were flat grey before.
+- **Mechanism**: `js/view/arena-art.js` rasterizes embedded SVG per zoom step and plugs into the existing theme tile cache (`Themes.tile`), so every hood that gets a tile picks it up with no draw-code change. The other 17 hoods still use the old tiles until their SVGs exist. If an image fails to load, the old tile is used.
+- Sources: `art/arenas/*.svg` (review copies), `tools/gen-arena-art.js` (seeded generator, run it to rebuild), `js/view/arena-art-data.js` (generated, loaded by the game).
+
+## Before and after (`reviews/media/R1/arenas/`)
+| Hood | Before | After |
+|---|---|---|
+| İstiklal L1 (scripted level, hero alone) | `h01-before.png` | `h01-after.png` |
+| İstiklal L2 (live run, enemies on screen) | `l02-before-live.png` | `l02-after-live.png` |
+| Kapalıçarşı L32 (live run) | `l32-before-live.png` | `l32-after-live.png` |
+| Ataköy L97 (live run) | `l97-before-live.png` | `l97-after-live.png` |
+
+Stills are rendered by `prototype/tools/arena-still.html` (`?hood=&stage=&y=&live=1&noart=1&dump=1`, Chrome headless, 390x844 at 2x). The "before" shots use `noart=1`, which is today's baked tiles.
+
+## Honest read
+- **Ground is clearly better** and enemies stay readable on it (olive zombies on mid-value stone; compare the live shots). The cobbles are bigger and calmer than a literal setts pattern on purpose, so they do not fight sprites at 390 px.
+- **The ground alone does not say "Istanbul".** It says "old stone street". The camera is pinned to the corridor centre and shows only 10 m across, so facades never appear; what makes a hood recognisable on screen is the props, signs and overhead (string lights, awnings, the Galata Tower in the distance). Those are still the old procedural art. I expect the owner check "could only be Istanbul" to fail on this pass for that reason.
+- Hood accents (the 2 per hood in the briefs) are not applied yet.
+
+## Next (needs your call, see Decision)
+Authored props and signage for the same three hoods: İstiklal (tram, simit cart, chestnut cart, awnings, shop signs), Kapalıçarşı (lantern, stall awnings, shutters), Ataköy (laundry lines, kapıcı booth, bread crates, shutters). Then the other 17 hoods' ground, then their props.
+
+## Performance and tests
+- Not measured on a device. One extra raster per zoom step per tile (about 160 px square), done once, then the same pattern fill as before. Data is 91 KB of SVG text in one file.
+- No automated test loads view code (loaders exclude `js/view/`), so nothing in the test suite covers this. Syntax-checked, and rendered end to end in Chrome headless for all four views above. A real device frame-time run is still owed (see Known issues).
+
+## Deviations
+1. The ground tiles are produced by a seeded script with hand-set shapes, palette and shading, not drawn stone by stone. D-057 says authored; this is authored geometry rules, not hand-placed stones. Props and signs will be hand-written SVG.
+2. Other uncommitted work in the tree (feel, vehicles, comic busts) is included in the screenshots because the stills render the working tree. It is not part of this commit.
+
+## Decision needed (one)
+Accept this direction for ground and continue with authored props and signage for the three hoods (my recommendation), or change the ground first.

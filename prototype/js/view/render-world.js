@@ -11,6 +11,8 @@ P.RenderWorld = (function () {
     if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw || 2; c.strokeRect(X, Y, w, h); }
   }
   W.rect = rect;
+  W.artTile = function (R, id, role) { return artTile(R, id, role); };   // for layouts-fx.js zone floors (R1-T3)
+  W.fillTile = function (R, t, x0, x1, y0, y1, ox, sx) { fillTile(R, t, x0, x1, y0, y1, ox, sx); };
 
   var cobble = { ppm: 0, pat: null };
   function cobblePattern(R) {
@@ -36,27 +38,43 @@ P.RenderWorld = (function () {
 
   function hash(n) { var x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
 
+  // R1-T3: an authored SVG tile (arena-art.js) as a pattern record, or null when the hood has none or it is still decoding.
+  function artTile(R, id, role) {
+    var t = P.ArenaArt && P.ArenaArt.tile(id, role, Math.max(8, Math.round(R.ppm / 4) * 4));
+    if (t && !t.pat) t.pat = R.ctx.createPattern(t.cv, 'repeat');
+    return t || null;
+  }
+
+
   W.drawGround = function (R, s, y0, y1) {
     ambience(s);
     if (!isL1(s)) { genGround(R, s, y0, y1); return; }
     var c = R.ctx, lv = L(), cor = lv.corridor, i;
     var ya = Math.max(0, y0), yb = Math.min(cor.yMax + 4, y1);
-    var pat = cobblePattern(R);
-    if (pat.setTransform && window.DOMMatrix) pat.setTransform(new DOMMatrix().translate(R.X(0), R.Y(0)).scale(2 * R.ppm / cobble.T));
-    c.fillStyle = pat; c.fillRect(R.X(cor.xMin), R.Y(yb), (cor.xMax - cor.xMin) * R.ppm, (yb - ya) * R.ppm);
+    var artG = artTile(R, 'istiklal', 'ground'), artW = artTile(R, 'istiklal', 'walk'), artR = artTile(R, 'common', 'rails');
+    if (artG) fillTile(R, artG, cor.xMin, cor.xMax, ya, yb, 0, 1);
+    else {
+      var pat = cobblePattern(R);
+      if (pat.setTransform && window.DOMMatrix) pat.setTransform(new DOMMatrix().translate(R.X(0), R.Y(0)).scale(2 * R.ppm / cobble.T));
+      c.fillStyle = pat; c.fillRect(R.X(cor.xMin), R.Y(yb), (cor.xMax - cor.xMin) * R.ppm, (yb - ya) * R.ppm);
+    }
     rect(R, -1.6, ya, 1.6, yb, 'rgba(20,21,31,0.10)');
-    lv.rails.forEach(function (rx) {
+    if (artR) fillTile(R, artR, -1.2, 1.2, ya, yb, -1.2, 1);
+    else lv.rails.forEach(function (rx) {
       c.strokeStyle = '#3E4148'; c.lineWidth = Math.max(3, 0.12 * R.ppm); c.beginPath(); c.moveTo(R.X(rx), R.Y(ya)); c.lineTo(R.X(rx), R.Y(yb)); c.stroke();
       c.strokeStyle = '#B9BEC6'; c.lineWidth = Math.max(1, 0.04 * R.ppm); c.stroke();
     });
     [-1, 1].forEach(function (sd) {
       var a0 = sd > 0 ? 4.6 : -7, a1 = sd > 0 ? 7 : -4.6;
-      rect(R, a0, ya, a1, yb, '#4B4A50');
-      c.strokeStyle = 'rgba(20,21,31,0.55)'; c.lineWidth = 1;
-      c.beginPath();
-      for (var sy = Math.ceil(ya / 1.2) * 1.2; sy < yb; sy += 1.2) { c.moveTo(R.X(a0), R.Y(sy)); c.lineTo(R.X(a1), R.Y(sy)); }
-      c.moveTo(R.X((a0 + a1) / 2), R.Y(ya)); c.lineTo(R.X((a0 + a1) / 2), R.Y(yb));
-      c.stroke();
+      if (artW) fillTile(R, artW, sd * 4.6, sd * 7, ya, yb, sd * 4.6, sd);
+      else {
+        rect(R, a0, ya, a1, yb, '#4B4A50');
+        c.strokeStyle = 'rgba(20,21,31,0.55)'; c.lineWidth = 1;
+        c.beginPath();
+        for (var sy = Math.ceil(ya / 1.2) * 1.2; sy < yb; sy += 1.2) { c.moveTo(R.X(a0), R.Y(sy)); c.lineTo(R.X(a1), R.Y(sy)); }
+        c.moveTo(R.X((a0 + a1) / 2), R.Y(ya)); c.lineTo(R.X((a0 + a1) / 2), R.Y(yb));
+        c.stroke();
+      }
       var cx = sd > 0 ? 4.6 : -4.6;
       c.strokeStyle = '#8A8F98'; c.lineWidth = Math.max(3, 0.12 * R.ppm); c.beginPath(); c.moveTo(R.X(cx), R.Y(ya)); c.lineTo(R.X(cx), R.Y(yb)); c.stroke();
       c.strokeStyle = '#14151F'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(R.X(cx - sd * 0.08), R.Y(ya)); c.lineTo(R.X(cx - sd * 0.08), R.Y(yb)); c.stroke();
@@ -309,6 +327,8 @@ P.RenderWorld = (function () {
   }
   function tramRails(R, ya, yb) {
     var c = R.ctx, u = R.ppm;
+    var art = artTile(R, 'common', 'rails');
+    if (art) { fillTile(R, art, -1.2, 1.2, ya, yb, -1.2, 1); return; }
     [-0.7, 0.7].forEach(function (rx) {
       c.strokeStyle = '#3E4148'; c.lineWidth = Math.max(3, 0.12 * u); c.beginPath(); c.moveTo(R.X(rx), R.Y(ya)); c.lineTo(R.X(rx), R.Y(yb)); c.stroke();
       c.strokeStyle = '#B9BEC6'; c.lineWidth = Math.max(1, 0.04 * u); c.stroke();
