@@ -23,7 +23,8 @@ P.ComicLayout = (function () {
     [false, true].forEach(function (wide) { [18, 17, 16, 15].forEach(function (px) { plan.push({ bust: 1, wide: wide, px: px }); }); });
     BUST_STEPS.slice(1).forEach(function (b) { plan.push({ bust: b, wide: true, px: 15 }); });
     [14, 13, 12].forEach(function (px) { BUST_STEPS.slice(3).forEach(function (b) { plan.push({ bust: b, wide: true, px: px }); }); });
-    plan.push({ bust: BUST_STEPS[BUST_STEPS.length - 1], wide: true, px: 12, overlap: true });
+    plan.push({ bust: BUST_STEPS[BUST_STEPS.length - 1], wide: true, full: true, px: 12 });
+    plan.push({ bust: BUST_STEPS[BUST_STEPS.length - 1], wide: true, full: true, px: 12, overlap: true });
     return plan;
   })();
   L.AREA = AREA; L.CPS = CPS; L.POP = POP;
@@ -82,9 +83,12 @@ P.ComicLayout = (function () {
   // Each item: {kind, bottom (0 when not stacked), ...}. g = {px, wide, band}; y is the stack cursor.
   // R1-T0: a balloon never sits across the tail of a balloon above it. `avoid` holds the x spans of those tails; the
   // balloon takes the free span on its own side, or the other side when its own is too narrow. Returns {x, w}.
-  function placeBubble(avoid, side, bw, W, need) {
-    var m = W * 0.03, lo = m, hi = W - m, floor = Math.max(need, MIN_BW);
-    (avoid || []).forEach(function (a) {
+  // Only tails of OTHER speakers count: a tail passing behind a balloon of the same speaker still points at the right person.
+  // `clear` is false when no free span fits (the caller then tries a smaller type size, see layoutPanel).
+  function placeBubble(avoid, side, bw, W, need, who) {
+    var m = W * 0.03, lo = m, hi = W - m, floor = Math.max(need, MIN_BW), mine, bx, clear = true;
+    mine = (avoid || []).filter(function (a) { return a.who !== who; });
+    mine.forEach(function (a) {
       var bx = side === 'l' ? lo : Math.max(lo, hi - bw);
       if (bx >= a.x1 || bx + Math.min(bw, hi - lo) <= a.x0) return;
       var left = [lo, a.x0 - 2], right = [a.x1 + 2, hi];
@@ -94,22 +98,24 @@ P.ComicLayout = (function () {
       }
     });
     bw = Math.min(bw, hi - lo);
-    return { x: side === 'l' ? lo : hi - bw, w: bw };
+    bx = side === 'l' ? lo : hi - bw;
+    mine.forEach(function (a) { if (bx < a.x1 && bx + bw > a.x0) clear = false; });
+    return { x: bx, w: bw, clear: clear };
   }
   function bubbleItem(p, d, g, y) {
     var s = L.resolve(d[1]); if (!s) return null;
     var k = d[0] === 's' ? 'shout' : d[0] === 't' ? 'thought' : 'speech', side = d[2] || s.side;
-    var bw = p.w < 220 ? p.w * 0.8 : Math.min(p.w * (g.wide ? 0.8 : 0.62), g.wide ? 300 : 240);
+    var bw = p.w < 220 ? p.w * (g.full ? 0.96 : 0.8) : Math.min(p.w * (g.wide ? 0.8 : 0.62), g.wide ? 300 : 240);
     // AUDIT-6 F10: words never break. A balloon too narrow for its longest word widens to fit it (up to the panel).
     var ins = T.insets(k, s.tag).x, need = T.longest(p.c, s.caps, 'speech', g.px) + 2 * ins;
     if (need > bw) bw = Math.min(p.w * 0.96, need);
     if (s.tag && y > TOP) y += TAG_UP;           // the name tag hangs 11 px above the balloon: keep it off the item above
-    var pl = placeBubble(g.avoid, side, bw, p.w, need); bw = pl.w;
+    var pl = placeBubble(g.avoid, side, bw, p.w, need, s.who); bw = pl.w;
     var f = T.measure(p.c, s.caps, bw - 2 * ins, 'speech', g.px), h = T.boxH(f.lines, f.lh, s.tag, k);
     var bx = pl.x, bust = bustFor(p, s.who);
     var tx = bust ? bust.x : p.w / 2, ty = bust ? bust.base - bust.h * 0.86 : p.h * 0.9;
     return { kind: 'bubble', shape: k, who: s.who, caps: s.caps, len: s.caps.length, lines: f.lines, px: f.px, lh: f.lh,
-             x: bx, y: y, w: bw, h: h, tx: tx, ty: ty, name: s.tag, dur: s.caps.length / CPS, bottom: y + h };
+             x: bx, y: y, w: bw, h: h, tx: tx, ty: ty, name: s.tag, dur: s.caps.length / CPS, bottom: y + h, clear: pl.clear };
   }
   function captionItem(p, d, g, y) {
     var s = L.resolve(d[1]); if (!s) return null;
@@ -160,13 +166,14 @@ P.ComicLayout = (function () {
   function hasTailBelow(it) { return it.kind === 'bubble' && it.tx != null && it.ty > it.bottom; }
   function stack(p, defs, g0) {
     var order = defs.map(function (d, i) { return i; }), items = [], ok = true, y = TOP, it;
-    var g = { px: g0.px, wide: g0.wide, band: g0.band, avoid: [] };
+    var g = { px: g0.px, wide: g0.wide, full: g0.full, band: g0.band, avoid: [] };
     order.sort(function (a, b) { return (defs[a][0] === 'c' ? 0 : 1) - (defs[b][0] === 'c' ? 0 : 1) || a - b; });
     order.forEach(function (i) {
       it = layoutItem(p, defs[i], g, y);
       if (!it) return;
       it.src = i; items.push(it);
-      if (hasTailBelow(it)) g.avoid.push(tailSpan(it, TAIL_HALF));
+      if (hasTailBelow(it)) { var sp = tailSpan(it, TAIL_HALF); sp.who = it.who; g.avoid.push(sp); }
+      if (g0.strict && it.clear === false) ok = false;                 // a balloon across another speaker's tail: try a smaller size
       if (it.bottom > 0) {
         y = it.bottom + GAP;
         if (it.bottom > g.band || it.bottom > p.h - GAP) ok = false;
@@ -174,14 +181,36 @@ P.ComicLayout = (function () {
     });
     return { ok: ok, items: items, total: timeline(items), px: g.px };
   }
+  // Words never break, so the largest type size is capped where the longest word of any balloon or caption still fits the widest
+  // box it can get (balloon 96% of the panel, caption 92%). Height alone let a long word spill past the box (R1 layout audit).
+  function pxCap(p, defs) {
+    var cap = PX_ALL[0];
+    defs.forEach(function (d) {
+      var k = d[0], s, kind, maxW, px;
+      if (k === 'b' || k === 's' || k === 't') { s = L.resolve(d[1]); kind = k === 's' ? 'shout' : k === 't' ? 'thought' : 'speech'; maxW = p.w * 0.96; }
+      else if (k === 'c') { s = L.resolve(d[1]); kind = 'caption'; maxW = p.w * 0.92; }
+      if (!s) return;
+      for (px = PX_ALL[0]; px > PX_ALL[PX_ALL.length - 1]; px--) {
+        if (T.longest(p.c, s.caps, 'speech', px) + 2 * T.insets(kind, kind === 'caption' ? false : s.tag).x <= maxW + 0.5) break;
+      }
+      cap = Math.min(cap, px);
+    });
+    return cap;
+  }
   // Runs the plan. Sets p.items, p.total, p.px, p.busts, and the flags p.overlap / p.overflow.
+  // Pass 1 (strict) wants every balloon clear of other speakers' tails and never covers a bust; pass 2 drops the tail rule, then
+  // the whole plan runs (down to the last resort that covers the busts). A tail crossing is a lesser fault than a covered bust.
   function layoutPanel(p) {
-    var defs = p.data.it || [], res = null, last = null, chosen = null, i, a, r;
-    for (i = 0; i < PLAN.length && !res; i++) {
-      a = PLAN[i]; layoutBusts(p, a.bust);
-      r = stack(p, defs, { px: a.px, wide: a.wide, band: a.overlap ? p.h - GAP : textBand(p) });
-      r.overlap = !!a.overlap; last = r; chosen = a;
-      if (r.ok) res = r;
+    var defs = p.data.it || [], res = null, last = null, chosen = null, cap = pxCap(p, defs), pass, i, a, r;
+    for (pass = 0; pass < 2 && !res; pass++) {
+      for (i = 0; i < PLAN.length && !res; i++) {
+        a = PLAN[i];
+        if (a.px > cap || (pass === 0 && a.overlap)) continue;
+        layoutBusts(p, a.bust);
+        r = stack(p, defs, { px: a.px, wide: a.wide, full: a.full, strict: pass === 0, band: a.overlap ? p.h - GAP : textBand(p) });
+        r.overlap = !!a.overlap; last = r; chosen = a;
+        if (r.ok) res = r;
+      }
     }
     res = res || last;
     layoutBusts(p, chosen.bust);
@@ -238,7 +267,7 @@ P.ComicLayout = (function () {
     bubs.forEach(function (a) {
       if (!hasTailBelow(a)) return;
       var sp = tailSpan(a, 8);
-      bubs.forEach(function (b) { if (b !== a && b.y >= a.bottom - 1 && b.y < a.ty && b.x < sp.x1 && b.x + b.w > sp.x0) sum.tailOut++; });
+      bubs.forEach(function (b) { if (b !== a && b.who !== a.who && b.y >= a.bottom - 1 && b.y < a.ty && b.x < sp.x1 && b.x + b.w > sp.x0) sum.tailOut++; });
     });
     boxes.forEach(function (b) {
       if (!b.name) return;
