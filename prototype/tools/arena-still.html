@@ -39,6 +39,7 @@
 <script src="../js/meta/strings-meta2.js"></script>
 <script src="../js/strings-feel.js"></script>
 <script src="../js/strings-env.js"></script>
+<script src="../js/strings-signs.js"></script>
 <script src="../js/strings-progress.js"></script>
 <script src="../js/strings-ui2.js"></script>
 <script src="../js/strings-cards.js"></script>
@@ -131,6 +132,8 @@
 <script src="../js/view/fauna.js"></script>
 <script src="../js/view/arena-art-data.js"></script>
 <script src="../js/view/arena-art.js"></script>
+<script src="../js/view/arena-props-data.js"></script>
+<script src="../js/view/arena-props.js"></script>
 <script src="../js/view/istanbul-themes.js"></script>
 <script src="../js/view/istanbul-landmarks.js"></script>
 <script src="../js/view/layouts-fx.js"></script>
@@ -190,6 +193,15 @@
     { kind: 'tree', x: 0.6, y: 118, w: 1.0, h: 1.0 }, { kind: 'bollard', x: -0.8, y: 86, w: 0.4, h: 0.4 },
     { kind: 'mystery', x: 1.8, y: 60, w: 1, h: 1 }
   ];
+  if (q.get('kit')) {   // R1-T3: the hood's street kit (journey.js) laid out in two columns, both variants of each kind; &extra=a,b adds kinds
+    var kitKinds = P.Journey.hoods[hood].kit.concat((q.get('extra') || '').split(',').filter(Boolean)), n = 0;
+    BLOCKS = [];
+    kitKinds.forEach(function (kd) {
+      var sz = P.CFG.levels.kinds[kd] || [1, 1];
+      [0, 0.99].forEach(function (v) { var bx = n % 2 ? 2.2 : -2.2, by = Y - 9 + Math.floor(n / 2) * 3.4; BLOCKS.push({ kind: kd, x: bx, y: by, w: sz[0], h: sz[1], v: v, rc: { xMin: bx - sz[0] / 2, xMax: bx + sz[0] / 2, yMin: by - sz[1] / 2, yMax: by + sz[1] / 2 } }); n++; });
+    });
+    showBlocks = true;
+  }
   var ui = { exit: { checked: false }, blocks: { checked: showBlocks } };
   function fakeSim(level) {
     var li = P.Journey.level(level), theme = li.hood.theme;
@@ -226,6 +238,6 @@
     if (q.get('dump')) { var o = document.createElement('pre'); o.id = 'out'; o.textContent = 'PNG:' + canvas.toDataURL('image/png'); document.body.appendChild(o); }
   }
   var tries = 0;
-  (function wait() { if (!P.ArenaArt.ready() && tries++ < 100) return setTimeout(wait, 50); setTimeout(shoot, 100); })();
+  (function wait() { if (!(P.ArenaArt.ready() && P.ArenaProps.ready()) && tries++ < 100) return setTimeout(wait, 50); setTimeout(shoot, 100); })();
 })();
 </script>

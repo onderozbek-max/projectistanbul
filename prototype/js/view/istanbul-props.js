@@ -318,6 +318,7 @@ P.Props = (function () {
   };
 
   M.draw = function (kind, R, x, y, o) {
+    if (o && o.theme && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, kind, o)) return;   // R1-T3: authored art for the hood's kit
     var f = REG[kind] || REG.crate;
     f(R.ctx, R.X(x), R.Y(y), R.ppm, o || {});
   };

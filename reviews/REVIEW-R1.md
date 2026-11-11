@@ -344,3 +344,45 @@ All within noise except L30, which got easier (100 seeds, so treat as noise too)
 
 ## Screenshots
 `reviews/media/R1/arenas/l02-after-d058.png` (İstiklal, live run) and `l17-after-d058.png` (Karaköy, live run): caps, no wide brims, and crawlers walk in from the street edge with no ground gate. The stills render the working tree, so other people's uncommitted work (vehicles, comic busts, fire animation) shows in them; it is not part of this commit.
+
+---
+
+# T3, part 2: authored street props (İstiklal, Kapalıçarşı, Ataköy)
+
+The street kit each hood already places (`journey.js` `kit`) now has authored vector art instead of the grey procedural boxes. Same style as the ground: night_ink outlines, warm highlight top-left, cool shade bottom-right. Facades never show on screen (camera is 10 m wide), so the kit is where the hood's character can actually be seen.
+
+Screenshots (`reviews/media/R1/arenas/`): `kit-istiklal.png`, `kit-hood6.png` (Kapalıçarşı), `kit-hood19.png` (Ataköy). Each is the hood's kit laid out in two columns on its own ground, both variants of each kind.
+
+| Hood | Kit kind | Authored as |
+|---|---|---|
+| İstiklal | `cart` (2 variants) | simit cart with a red and cream striped canopy, simit rings under glass; chestnut roaster cart with a copper drum, embers, steam and a chestnut tray |
+| İstiklal | `tables` | two café tables with check cloths, tea glasses and bentwood chairs |
+| İstiklal | `bench`, `bin` | slatted wooden bench; green city bin with a gold band |
+| Kapalıçarşı | `lx_stall` | jeweller counter: glass case with gold and gems under a kilim-red awning |
+| Kapalıçarşı | `crates` | pile of rolled kilims with diamond patterns |
+| Kapalıçarşı | `cart` | tea-tray cart: brass tray ringed with tea glasses and a samovar |
+| Kapalıçarşı | `planter` | turquoise glazed pot with a flowering bush |
+| Ataköy | `planter` | stucco planter box with geraniums |
+| Ataköy | `bin`, `bench` | courtyard bin; Bosphorus-blue bench |
+| Ataköy | `car` (2 colours) | parked hatchback facing the viewer, blue or white |
+
+## How it works
+- `tools/gen-arena-props.js` builds the SVGs from `tools/arena-props/{lib,istiklal,bazaar,atakoy}.js` and writes `art/arenas/props/*.svg` plus `js/view/arena-props-data.js`. Re-run it after editing a prop.
+- `js/view/arena-props.js` draws them. `P.Props.draw` tries the authored art first when the block carries a theme, and falls back to the old procedural prop while an image decodes or when a hood has none. Hoods without authored props are unchanged.
+- **Sign words are not baked into the art.** The vendor signs (`SİMİT`, `DEDE KESTANECİ`, `NAZLI KUYUMCU`, `KAHVECİ SADIK`) are written at runtime from keys in the new `js/strings-signs.js`, so they follow the language and Turkish casing.
+- Sim untouched: no spawn, placement or collision change. Only the view reads the art.
+
+## Needs your eye (Turkish owner check)
+Four shop and vendor names, from `docs/hood-visual-briefs.md`: **Dede Kestaneci**, **Nazlı Kuyumcu**, **Kahveci Sadık**, **Simit**. Say if any should change.
+
+## Not done yet
+- Props the brief names that the kit does not place: kilims on arches, brass lanterns, numbered shutter terminals, laundry lines, kapıcı booth, bread crates. They need either a kit change (which shifts level generation and balance) or the overhead and dressing layer, so I want your call before touching them.
+- Shopfront signs (Lale Kırtasiye, Gece Eczanesi, Yıldız Fırını, Mavi Panjur Lokantası and so on) are on facades that never show on screen. They would only matter if the camera or facade design changes.
+- The other 17 hoods still use procedural props.
+
+## Tests
+`check-ids`, `check-hood-keys`, `check-objective-strings`, `test-meta` (122) pass. The game page loads with no console errors. There are no automated tests for props or themes in this repo, so the check is visual (the three screenshots).
+
+## Deviations
+1. `tools/arena-still.html` gets a `?kit=1` mode and waits for the prop images; the block draw call in `render-world.js` now passes `theme` and a variant value `v`.
+2. The still tool needed a bounding box on its blocks because of someone else's uncommitted render change (ambient-occlusion padding), which is not part of this work.
