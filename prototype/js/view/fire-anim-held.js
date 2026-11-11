@@ -154,8 +154,8 @@ P.FireAnimHeld = P.FireAnimHeld || {};
 
   // ---------- Fireworks (Havai Fişek): hold the tube, back-blast, the rocket goes ----------
   H.fireworks = { T: 0.34, held: function (F, G, k) {
-    var t = k.t, kick = t > 0.12 ? 0.06 * Math.exp(-(t - 0.12) / 0.05) : 0, c;
-    arms(F, G, G.pt(0, 0, 0.12 - kick, -0.02, 0), G.pt(1, 2, 0.3 - kick * 0.5, -0.04, 0.04));
+    var t = k.t, kick = t > 0.12 ? 0.11 * Math.exp(-(t - 0.12) / 0.06) : 0, c, aim = t < 0.12 ? 0.025 * M.eo(t / 0.12) : 0;   // lift the tube to aim, then the launch slams back
+    arms(F, G, G.pt(0, 0, 0.12 - kick, -0.02 + aim - kick * 0.25, 0), G.pt(1, 2, 0.3 - kick * 0.5, -0.04 + aim, 0.04));
     c = F.c; M.begin(F, HK.mx, HK.my, G.ang);
     M.rr(c, -0.1, -0.04, 0.42, 0.08, 0.03); M.ink(F, '#D7263D', 1.6);
     c.fillStyle = '#E9A23B'; c.fillRect(-0.02, -0.042, 0.05, 0.084);
@@ -179,7 +179,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   }
   H.cable = { T: 0.3, held: function (F, G, k) {
     var c = F.c, jx = F.rm ? 0 : M.rnd(-0.02, 0.02), jy = F.rm ? 0 : M.rnd(-0.02, 0.02), f = k.f, tk = Math.floor(k.t / 0.05), hm, tail, i;
-    hm = G.pt(0, 0, 0.3 + jx, 0.02 + jy, 0);
+    hm = G.pt(0, 0, 0.3 + jx - 0.09 * Math.exp(-k.t / 0.06), 0.02 + jy + 0.03 * Math.exp(-k.t / 0.08), 0);   // the discharge snaps the hand back
     arms(F, G, hm, G.pt(1, 2, 0.02, -0.2, -0.08));
     tail = G.pt(2, 2, 0.02, -0.25, 0.06);
     var mx = (HK.mx + tail.x) / 2, my = (HK.my + tail.y) / 2 - 0.06;

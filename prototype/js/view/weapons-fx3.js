@@ -58,14 +58,14 @@ P.WFx3 = (function () {
   // ---------- arm poses (hero back hand, called from WFx.heroBackHand) ----------
   // Returns true when it drew the arm. Spear: pulled back (0-0.4) then thrust (0.4-1). Extinguisher: braced, pushed.
   M.armPose = function (c, sh, u, f, skin, sleeve) {
-    if (anim.spear < 0.25) return spearArm(c, sh, u, skin, sleeve, anim.spear / 0.25);
-    if (anim.ext < 0.3) return extArm(c, sh, u, skin, sleeve, anim.ext / 0.3);
+    if (anim.spear < 0.25) return spearArm(c, sh, u, f, skin, sleeve, anim.spear / 0.25);
+    if (anim.ext < 0.3) return extArm(c, sh, u, f, skin, sleeve, anim.ext / 0.3);
     return false;
   };
 
-  function spearArm(c, sh, u, skin, sleeve, p) {
-    var sa = -anim.spearA, back = p < 0.4 ? p / 0.4 : 1 - (p - 0.4) / 0.6, reach = (0.34 - back * 0.22) * u;
-    var hx = sh.x + Math.cos(sa) * reach, hy = sh.y + Math.sin(sa) * reach;
+  function spearArm(c, sh, u, f, skin, sleeve, p) {
+    var sa = -anim.spearA + P.WFx.awayTilt(-anim.spearA, f), back = p < 0.4 ? p / 0.4 : 1 - (p - 0.4) / 0.6, reach = (0.34 - back * 0.22) * u;
+    var hx = sh.x + Math.cos(sa) * reach + P.WFx.awayShift(sa, f, u), hy = sh.y + Math.sin(sa) * reach;
     P.WFx.limbI(c, sh.x, sh.y, hx, hy, sleeve, 0.09 * u);
     c.save(); c.translate(hx, hy); c.rotate(sa);
     c.strokeStyle = '#7A5230'; c.lineWidth = 3; c.beginPath(); c.moveTo(-0.5 * u, 0); c.lineTo(0.7 * u, 0); c.stroke();
@@ -76,9 +76,9 @@ P.WFx3 = (function () {
     return true;
   }
 
-  function extArm(c, sh, u, skin, sleeve, p) {
-    var sa = -anim.extA, kick = Math.sin(Math.min(1, p) * Math.PI) * 0.1, reach = (0.36 - kick) * u;
-    var hx = sh.x + Math.cos(sa) * reach, hy = sh.y + Math.sin(sa) * reach;
+  function extArm(c, sh, u, f, skin, sleeve, p) {
+    var sa = -anim.extA + P.WFx.awayTilt(-anim.extA, f), kick = Math.sin(Math.min(1, p) * Math.PI) * 0.1, reach = (0.36 - kick) * u;
+    var hx = sh.x + Math.cos(sa) * reach + P.WFx.awayShift(sa, f, u), hy = sh.y + Math.sin(sa) * reach;
     P.WFx.limbI(c, sh.x, sh.y, hx, hy, sleeve, 0.09 * u);
     c.save(); c.translate(hx, hy); c.rotate(sa);
     c.fillStyle = '#D7263D'; c.strokeStyle = INK; c.lineWidth = 2;

@@ -166,10 +166,23 @@ P.WFx = (function () {
   W.limbI = limbI;
   W.dot = dot;
 
+  // Aim in screen radians (y down). Aiming up the screen the shot arm's hand would sit in front of the face, so it slides out past
+  // the head, away from the body centre (the back shoulder sits at -f). Ramps smoothly from 17 to 60 degrees above horizontal.
+  W.awayShift = function (aim, f, u) {
+    var a = Math.max(0, Math.min(1, (-Math.sin(aim) - 0.3) / 0.5));
+    return -f * 0.4 * u * a;
+  };
+  // The same ramp tilts the weapon outward (radians to add to the aim), so it leans away from the head instead of standing on it.
+  W.awayTilt = function (aim, f) {
+    var a = Math.max(0, Math.min(1, (-Math.sin(aim) - 0.3) / 0.5));
+    return -f * 0.24 * a;
+  };
+
   function gunArm(c, sh, u, f, skin, sleeve) {
     var aim = W.sinceFire < 1.2 ? -W.gunA : (f > 0 ? 0.35 : Math.PI - 0.35);
     var kick = W.recoil, side = Math.cos(aim) >= 0 ? 1 : -1, ang = aim - side * kick * 0.35;
-    var reach = (0.32 - kick * 0.08) * u, hx = sh.x + Math.cos(ang) * reach, hy = sh.y + Math.sin(ang) * reach;
+    ang += W.awayTilt(ang, f);
+    var reach = (0.32 - kick * 0.08) * u, hx = sh.x + Math.cos(ang) * reach + W.awayShift(ang, f, u), hy = sh.y + Math.sin(ang) * reach;
     limbI(c, sh.x, sh.y, hx, hy, sleeve, 0.09 * u);
     c.save(); c.translate(hx, hy); c.rotate(ang); if (side < 0) c.scale(1, -1);
     c.fillStyle = '#E9A23B'; c.strokeStyle = INK; c.lineWidth = 2;

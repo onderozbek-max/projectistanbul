@@ -16,26 +16,37 @@ P.FireAnim = (function () {
   function defOf(id) {
     if (cache[id] !== undefined) return cache[id];
     var H = P.FireAnimHeld && P.FireAnimHeld[id], E = P.FireAnimFx && P.FireAnimFx[id];
-    return (cache[id] = H ? { T: H.T, held: H.held, rev: H.rev, over: H.over, fire: E && E.fire, tick: E && E.tick, revTick: E && E.revTick } : null);
+    return (cache[id] = H ? { T: H.T, held: H.held, rev: H.rev, over: H.over, fire: E && E.fire, tick: E && E.tick, revTick: E && E.revTick, draw: E && E.draw } : null);
   }
 
   function makeGeom() {
-    var G = { hx: 0, hy: 0, ang: 0, ca: 1, sa: 0, side: 1, mx: 0, my: 0, ox: 0, oy: 0, cx: 0, cy: 0, P: [] };
+    var G = { hx: 0, hy: 0, ang: 0, ca: 1, sa: 0, side: 1, mx: 0, my: 0, ox: 0, oy: 0, cx: 0, cy: 0, ext: 0, dx: 0, P: [] };
     for (var i = 0; i < 24; i++) G.P.push({ x: 0, y: 0 });
     // Point (fwd, up, lat) metres from a base: 0 = main shoulder, 1 = off shoulder, 2 = midline. Writes slot i.
     G.pt = function (i, base, fwd, up, lat) {
       var bx = base === 0 ? G.mx : base === 1 ? G.ox : G.cx, by = base === 0 ? G.my : base === 1 ? G.oy : G.cy, o = G.P[i];
-      o.x = bx + G.ca * fwd - G.sa * lat; o.y = by + G.sa * fwd + G.ca * lat + up; return o;
+      o.x = bx + G.ca * (fwd + G.ext) - G.sa * lat + G.dx; o.y = by + G.sa * (fwd + G.ext) + G.ca * lat + up; return o;
     };
     return G;
   }
 
   // The main hand is the shoulder on the aim side, so the shot arm always reaches outward.
+  // Shoulder side with hysteresis: it flips only once the aim is clearly on the other side, so a target almost straight above or
+  // below no longer swaps the shot arm (and teleports the weapon) from one shot to the next.
+  // Aiming away from the camera (up the screen) the weapon would be painted across the face, so the whole grip slides out to the
+  // aim side by `dx` and reaches a little further (`ext`); `away` ramps smoothly with the aim angle, so nothing pops.
   function setGeom(F, h, ang) {
-    var G = F.G, cs = Math.cos(ang), side = cs >= 0 ? 1 : -1;
-    G.hx = h.x; G.hy = h.y; G.ang = ang; G.ca = cs; G.sa = Math.sin(ang); G.side = side;
+    var G = F.G, cs = Math.cos(ang), sn = Math.sin(ang), away = Math.max(0, Math.min(1, (sn - 0.3) / 0.5)), side;
+    // Aiming away from the camera the shot arm is the sprite's back arm (the side opposite its facing), the same one the resting
+    // arm uses between shots (weapons-fx.js awayShift), so the weapon stays on one side of the head from shot to rest and back.
+    if (F.awayMode ? away < 0.25 : away > 0.5) F.awayMode = !F.awayMode;
+    if (F.awayMode) F.side = h.fx >= 0 ? -1 : 1;
+    else if (cs > 0.22) F.side = 1; else if (cs < -0.22) F.side = -1; else if (!F.side) F.side = cs >= 0 ? 1 : -1;
+    side = F.side;
+    G.hx = h.x; G.hy = h.y; G.ang = ang; G.ca = cs; G.sa = sn; G.side = side;
     G.mx = h.x + side * SHX_MAIN; G.my = h.y + SHY; G.ox = h.x + side * SHX_OFF; G.oy = G.my;
     G.cx = h.x; G.cy = G.my;
+    G.ext = 0.12 * away; G.dx = side * 0.26 * away;
     return G;
   }
 

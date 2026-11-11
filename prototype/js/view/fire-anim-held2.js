@@ -29,7 +29,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
 
   // ---------- Fire extinguisher (Yangın Tüpü): held horizontal, nozzle forward, pressure kick ----------
   H.extinguisher = { T: 0.3, held: function (F, G, k) {
-    var t = k.t, kick = 0.04 * Math.exp(-t / 0.06), wob = 0.12 * Math.sin(t * 40) * Math.exp(-t / 0.1), c;
+    var t = k.t, kick = 0.085 * Math.exp(-t / 0.07), wob = 0.14 * Math.sin(t * 40) * Math.exp(-t / 0.12), c;
     arms(F, G, G.pt(0, 0, 0.2 - kick, -0.02, 0), G.pt(1, 2, 0.14 - kick, -0.07, -0.02));
     c = F.c; M.begin(F, HK.mx, HK.my, G.ang); c.rotate(wob);
     M.rr(c, -0.13, -0.05, 0.26, 0.1, 0.05); M.ink(F, '#D7263D', 1.6);
@@ -91,7 +91,8 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   // ---------- Blowtorch (Pürmüz): ignite, then a blue core with an orange jet and heat shimmer ----------
   H.torch = { T: 0.4, held: function (F, G, k) {
     var t = k.t, ign = M.seg(t, 0, 0.05), flick = 0.92 + 0.08 * Math.sin(t * 60), L = 0.42 * flick * M.seg(t, 0.04, 0.12), c, j, i;
-    arms(F, G, G.pt(0, 0, 0.2, 0, 0), G.pt(1, 2, 0.14, -0.08, 0.02));
+    var pb = t < 0.05 ? 0.05 * M.eo(t / 0.05) : 0.05 * Math.exp(-(t - 0.05) / 0.09);   // draw back to ignite, then the jet pushes the hand forward
+    arms(F, G, G.pt(0, 0, 0.2 - pb, 0, 0), G.pt(1, 2, 0.14 - pb * 0.6, -0.08, 0.02));
     c = F.c; M.begin(F, HK.mx, HK.my, G.ang);
     M.rr(c, -0.1, -0.045, 0.2, 0.09, 0.03); M.ink(F, '#4A6FA5', 1.6);
     M.rr(c, -0.13, 0.02, 0.1, 0.07, 0.02); M.ink(F, '#E4572E', 1.4);
@@ -201,7 +202,12 @@ P.FireAnimHeld = P.FireAnimHeld || {};
 
   // ---------- Chainsaw (Motorlu Testere): rev vibration, cut thrust; `rev` is the idle revving pose ----------
   function saw(F, G, k, rev) {
-    var t = k.t, kick = rev ? 0 : 0.1 * Math.sin(Math.PI * M.clamp01(t / 0.16)), vib = rev && !F.rm ? 0.012 : 0;
+    var t = k.t, kick = 0, vib = rev && !F.rm ? 0.012 : 0;
+    if (!rev) {                                          // wind back, thrust through the cut, ease home
+      if (t < 0.05) kick = -0.06 * M.eo(t / 0.05);
+      else if (t < 0.12) kick = M.lerp(-0.06, 0.1, M.ei((t - 0.05) / 0.07));
+      else kick = M.lerp(0.1, 0, M.eo(M.seg(t, 0.12, 0.3)));
+    }
     var vx = vib ? M.rnd(-vib, vib) : 0, vy = vib ? M.rnd(-vib, vib) : 0, c, ph = rev ? (t * 3.7) % 1 : (t * 2) % 1, i;
     arms(F, G, G.pt(0, 2, 0.1 + kick + vx, -0.03 + vy, 0.04), G.pt(1, 2, 0.2 + kick + vx, -0.03 + vy, -0.04));
     c = F.c; M.begin(F, HK.mx, HK.my, G.ang);
