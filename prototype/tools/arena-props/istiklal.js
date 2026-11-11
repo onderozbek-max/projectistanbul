@@ -44,7 +44,7 @@ function simitCart() {
   for (let i = 0; i < 8; i++) s += rect(-w / 2 + i * sw, cy0, sw, cy1 - cy0, i % 2 ? '#F4EBDD' : '#C0392B', { lw: LW * 0.6 });
   for (let i = 0; i < 8; i++) s += path(`M${f(-w / 2 + i * sw)} ${f(cy1)}Q${f(-w / 2 + (i + 0.5) * sw)} ${f(cy1 + 0.12)} ${f(-w / 2 + (i + 1) * sw)} ${f(cy1)}Z`, i % 2 ? '#F4EBDD' : '#C0392B', { lw: LW * 0.6 });
   s += L.edges(-w / 2, cy0, w, cy1 - cy0 + 0.1, { k: 0.8 });
-  return prop('cart', 1.4, 0.9, [-0.76, cy0 - 0.02, 0.76, yb + 0.5], s, { label: { key: 'sign.simit', x: -0.5, y: yb - hg + 0.1, w: 1.0, h: 0.34, col: '#FFE2A8' } });
+  return prop('cart', 1.4, 0.9, [-0.76, cy0 - 0.02, 0.76, yb + 0.5], s, { label: { key: 'sign.simit', text: 'Simit', x: -0.5, y: yb - hg + 0.1, w: 1.0, h: 0.34, col: '#FFE2A8' } });
 }
 
 function chestnutCart() {
@@ -61,7 +61,7 @@ function chestnutCart() {
   s += drum(-0.14, mid - 0.2, 0.06, 0.03, 0.3, '#8A8F98', '#5A5F68', { lw: LW * 0.8 });
   s += `<circle cx="-0.14" cy="${f(mid - 0.62)}" r="0.07" fill="#fff" opacity="0.3"/><circle cx="-0.1" cy="${f(mid - 0.78)}" r="0.09" fill="#fff" opacity="0.22"/>`;
   s += poly([[0.66, yt + 0.22], [0.78, yt + 0.22], [0.72, yt + 0.02]], '#F4EBDD', { lw: LW * 0.7 });
-  return prop('cart', 1.4, 0.9, [-0.76, mid - 0.9, 0.82, yb + 0.5], s, { label: { key: 'sign.kestane', x: -0.62, y: yb - hg + 0.07, w: 1.24, h: 0.32, col: '#F4EBDD' } });
+  return prop('cart', 1.4, 0.9, [-0.76, mid - 0.9, 0.82, yb + 0.5], s, { label: { key: 'sign.kestane', text: 'Dede Kestaneci', x: -0.62, y: yb - hg + 0.07, w: 1.24, h: 0.32, col: '#F4EBDD' } });
 }
 
 function bench() {

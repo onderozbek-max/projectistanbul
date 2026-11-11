@@ -386,3 +386,44 @@ Four shop and vendor names, from `docs/hood-visual-briefs.md`: **Dede Kestaneci*
 ## Deviations
 1. `tools/arena-still.html` gets a `?kit=1` mode and waits for the prop images; the block draw call in `render-world.js` now passes `theme` and a variant value `v`.
 2. The still tool needed a bounding box on its blocks because of someone else's uncommitted render change (ambient-occlusion padding), which is not part of this work.
+
+---
+
+# T3, part 3: authored street props for the other 17 hoods
+
+Every hood now has authored art for each kind its street kit places (`journey.js` `kit`), so all 20 hoods are covered. The first three (İstiklal, Kapalıçarşı, Ataköy) stay bespoke. The other 17 come from shared parametric builders that each hood configures with its own palette and vendor, so the style stays consistent and a colour change is a one-line edit.
+
+Screenshots (`reviews/media/R1/arenas/`): `kits-sheet-1.png` (Galata, Karaköy, Köprü, Eminönü, Sirkeci), `kits-sheet-2.png` (Beyazıt, Kumkapı, Laleli, Aksaray, Yenikapı), `kits-sheet-3.png` (Samatya, Yedikule, Kazlıçeşme, Zeytinburnu), `kits-sheet-4.png` (Bakırköy, Sahil, Marina). Each column is one hood's kit on its own ground.
+
+| Hood | What the kit became (accent from the brief) |
+|---|---|
+| Galata | tavla tables with backgammon boards, shutter-green bench, ivy planter, stone post (#2E5E4E) |
+| Karaköy | coral pastry stall "Vapur Pastanesi", iron quay bollards, coral check café tables, tram-stop barrier (#E07A5F) |
+| Köprü (bridge) | rust mooring bollards, tackle crates, iron barrier, dark bin (#A5542B) |
+| Eminönü | red corn cart, spice sacks, spice stall "Karabiber Kemal", fish-bread tables (#A8322D) |
+| Sirkeci | steel-blue station benches, ticket kiosk "Bilet Gişesi", planter (#5E7A8C) |
+| Beyazıt | book crates, plane trees, green bench and bin (#4F7A3A) |
+| Kumkapı | wooden fishing boat, fish-on-ice crates, meze tables, iron mooring bollards |
+| Laleli | carton stacks, handcart, loading truck, sodium-night bin (#8B6B4A) |
+| Aksaray | cream dolmuş, yellow taxi with roof light, hazard barrier, kerb bollards (#E5C02A) |
+| Yenikapı | hazard barriers, timber station benches, platform bollards (#7A5230) |
+| Samatya | check café tables, dawn-pink bench and bollards, geranium planter (#A8322D, #E7A6A0) |
+| Yedikule | terracotta planters, garden cart with produce, plane trees (#2E5E4E) |
+| Kazlıçeşme | park benches, plane trees, bins, pale-blue path bollards (#7FB8C9) |
+| Zeytinburnu | dyed bale stacks, fabric-bolt cart, delivery truck in dye teal and magenta (#2A7F80, #A8327D) |
+| Bakırköy | arcade kiosk "Börekçi Nazmiye", school-green bench, planter (#4F7A62) |
+| Sahil | pink and mint pastel benches, bollards and bins, palm trees (#F2B8C6, #A8D8C4) |
+| Marina | white yacht with a teal stripe, brass mooring bollards, gear crates, parasol tables (#3B9C9C, #C9A227) |
+
+## What changed in the build
+- New builders: `tools/arena-props/kit-street.js`, `kit-goods.js`, `kit-vehicles.js`; the per-hood table is `tools/arena-props/hoods.js`. All under the 300-line preference.
+- `gen-arena-props.js` now also **writes `js/strings-signs.js`** from the label texts, so sign words live in one place (change the text in the builder config, then re-run). Sign words total 8.
+- `arena-props-data.js` is about 290 KB (82 images). It decodes at start; no per-frame cost beyond the cached draw.
+
+## Needs your eye (Turkish owner check)
+Four new names, from the brief: **Vapur Pastanesi**, **Karabiber Kemal**, **Bilet Gişesi**, **Börekçi Nazmiye**. Earlier four: Dede Kestaneci, Nazlı Kuyumcu, Kahveci Sadık, Simit.
+
+## Notes
+- Kit pieces the brief names that no hood's kit places (luggage cart, ice-cream cart, dye drums, tea-garden tables, pier bollards in Eminönü, kilims, lanterns, laundry lines) are still not done; they need a kit change, which shifts level generation and balance.
+- The Aksaray dolmuş and taxi overlap in the screenshot only because the still tool spaces its rows 3.4 m apart; in the game the sim spaces blocks.
+- `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-death-causes` and `test-meta` (122) pass; the game page loads with no errors. No automated tests cover props.

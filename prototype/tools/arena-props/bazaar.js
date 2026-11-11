@@ -24,7 +24,7 @@ function jewellerStall() {
   for (let i = 0; i < 7; i++) s += path(`M${f(-w / 2 + i * sw)} ${f(cy0 + 0.62)}Q${f(-w / 2 + (i + 0.5) * sw)} ${f(cy0 + 0.78)} ${f(-w / 2 + (i + 1) * sw)} ${f(cy0 + 0.62)}Z`, i % 2 ? '#F4EBDD' : KILIM, { lw: LW * 0.6 });
   s += L.edges(-w / 2, cy0, w, 0.7, { k: 0.8 });
   s += ell(0.7, yt + 0.9, 0.05, 0.04, '#FFD27A', { lw: LW * 0.5 });
-  return prop('lx_stall', w, d, [-w / 2 - 0.05, cy0 - 0.02, w / 2 + 0.05, yb + 0.06], s, { label: { key: 'sign.kuyumcu', x: -0.8, y: yb - hg + 0.1, w: 1.6, h: 0.5, col: '#FFE2A8' } });
+  return prop('lx_stall', w, d, [-w / 2 - 0.05, cy0 - 0.02, w / 2 + 0.05, yb + 0.06], s, { label: { key: 'sign.kuyumcu', text: 'Nazlı Kuyumcu', x: -0.8, y: yb - hg + 0.1, w: 1.6, h: 0.5, col: '#FFE2A8' } });
 }
 
 // Rolled carpets: a pile of kilim rolls, ends showing their pattern.
@@ -55,7 +55,7 @@ function teaCart() {
   s += drum(-0.46, mid + 0.12, 0.19, 0.095, 0.4, '#E8BE63', BRASS_D);
   s += drum(-0.46, mid - 0.2, 0.1, 0.05, 0.12, BRASS, BRASS_D, { lw: LW * 0.8 });
   s += `<circle cx="-0.46" cy="${f(mid - 0.55)}" r="0.07" fill="#fff" opacity="0.3"/><circle cx="-0.42" cy="${f(mid - 0.7)}" r="0.09" fill="#fff" opacity="0.2"/>`;
-  return prop('cart', 1.4, 0.9, [-0.76, mid - 0.82, 0.76, yb + 0.5], s, { label: { key: 'sign.kahveci', x: -0.62, y: yb - hg + 0.07, w: 1.24, h: 0.32, col: '#FFE2A8' } });
+  return prop('cart', 1.4, 0.9, [-0.76, mid - 0.82, 0.76, yb + 0.5], s, { label: { key: 'sign.kahveci', text: 'Kahveci Sadık', x: -0.62, y: yb - hg + 0.07, w: 1.24, h: 0.32, col: '#FFE2A8' } });
 }
 
 // Turquoise glazed pot with a small bush.
