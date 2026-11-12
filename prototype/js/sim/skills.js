@@ -60,7 +60,7 @@ function dashMul(s) {
 function tryDash(s, S, input) {
   var h = s.hero, D = P.CFG.skills.dash;
   if (S.dash || h.dashCd > 0 || s.mode !== 'play') return;
-  if (P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s)) return;   // daily "Kaçış yok" (no dash)
+  if (P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s)) return;   // daily "Depar yok" (no dash)
   var dx = input.x || 0, dy = input.y || 0, m = Math.hypot(dx, dy);
   if (m > 0.2) { dx /= m; dy /= m; } else {
     dx = h.fx; dy = h.fy; m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;

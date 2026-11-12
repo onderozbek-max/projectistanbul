@@ -31,7 +31,7 @@ Object.assign(P.STR.tr, {
   'stat.pull': 'Çekim', 'stat.area': 'Alan', 'stat.crit': 'Kritik', 'stat.dodge': 'Nazar',
   'stat.pickup': 'Toplama', 'stat.pulse': 'Çekim dalgası',
   'evo.title': 'EVRİM!', 'evo.label': 'EVRİM', 'evo.from': '{from} → {to}',
-  'frenzy.on': 'ÇILGINLIK!', 'dash.name': 'Kaçış', 'dash.hud': 'KAÇ', 'nearMiss': 'KIL PAYI!',
+  'frenzy.on': 'ÇILGINLIK!', 'dash.name': 'Depar', 'dash.hud': 'DEPAR', 'nearMiss': 'KIL PAYI!',
   'nazar.dodge': 'NAZAR!', 'ult.name': 'Nazar Patlaması', 'ult.hud': 'NAZAR', 'ult.ready': 'NAZAR HAZIR!',
   'fx.boom': 'BUM!',
 });

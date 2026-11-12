@@ -5,7 +5,7 @@
 // Turkish uses decimal commas and "%35" style percentages (as in strings-weapons2.js).
 Object.assign(P.STR.tr, {
   'item.blacksmith': 'Demirci Vuruşu', 'desc.blacksmith': 'Her vuruş, vurduğu her düşman için biraz can kazandırır.',
-  'item.stormshield': 'Şimşek Kalkanı', 'desc.stormshield': 'Arda’nın etrafında dönen bir ark en yakın düşmanı çarpar. Kaçış da çarpar.',
+  'item.stormshield': 'Şimşek Kalkanı', 'desc.stormshield': 'Arda’nın etrafında dönen bir ark en yakın düşmanı çarpar. Depar da çarpar.',
   'item.foamstorm': 'Köpük Fırtınası', 'desc.foamstorm': 'Daha geniş ve yapışkan bir huni; tükürüğü de engeller.',
   'item.netspear': 'Zıpkın Ağı', 'desc.netspear': 'Saplanan düşmanlar ağa dolanır; her vuruşun bir kısmı ipe gider.',
   'item.lake': 'Ateş Gölü', 'desc.lake': 'Birbirine değen ateş havuzları birleşip daha uzun süren ve yavaşlatan bir göl olur.',
