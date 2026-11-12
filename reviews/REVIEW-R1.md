@@ -430,6 +430,80 @@ Four new names, from the brief: **Vapur Pastanesi**, **Karabiber Kemal**, **Bile
 
 ---
 
+# T3, part 4: authored ground for the other 17 hoods
+
+Correction first: in the last status I told you the 17 hoods still needed props. That was wrong; their props were already done (part 3). What was missing was their **ground**. That is this slice. All 20 hoods now have authored ground and walk tiles, so ground and props are consistent everywhere.
+
+Screenshots (`reviews/media/R1/arenas/`): `ground-sheet-1.png` (Galata, Karaköy, Köprü, Eminönü, Sirkeci), `ground-sheet-2.png` (Beyazıt, Kumkapı, Laleli, Aksaray, Yenikapı), `ground-sheet-3.png` (Samatya, Yedikule, Kazlıçeşme, Zeytinburnu), `ground-sheet-4.png` (Bakırköy, Sahil, Marina). Each column is one hood, stage 1, no blocks, so you see the floor only. Live runs with enemies on the ground: `ground-live-kazlicesme.png`, `ground-live-marina.png`, `ground-live-aksaray.png`.
+
+| Hood | Ground | Walk strip |
+|---|---|---|
+| Galata | stone stair treads with a cool riser band under each | setts |
+| Karaköy | quay asphalt | large quay slabs |
+| Köprü | iron-bolted deck planks, rail-brown | lighter planks |
+| Eminönü | worn cobble | slabs |
+| Sirkeci | station floor tile, ink joints | pale platform tile |
+| Beyazıt | square setts | slabs |
+| Kumkapı | cobble, lifted so it stays mid value | slabs |
+| Laleli | asphalt with faint carton-brown stains | tile |
+| Aksaray | asphalt with dashed lane paint | slabs |
+| Yenikapı | gritty site asphalt with timber-brown stains | slabs |
+| Samatya | warm cobble | slabs |
+| Yedikule | rough cobble with moss specks | grass |
+| Zeytinburnu | cracked concrete with faint dye teal and magenta stains | slabs |
+| Kazlıçeşme | lawn with soft blotches and tufts | promenade tile |
+| Bakırköy | school-yard tile with cream joints | tile |
+| Sahil | asphalt with a green cycle strip and pale edge lines | promenade tile |
+| Marina | amber timber pontoon planks | planks |
+
+## How it works
+- Same mechanism as part 1 (`ArenaArt` plugs into the theme tile cache), so there is **no draw-code change**. Each hood uses the ground kind its theme already names (`istanbul-themes.js`) and the theme's own ground colours, lifted a little, so the hood-to-hood tint order and zone washes are as before.
+- The generator is now split: `tools/arena-ground/lib.js` (stone, paving and asphalt builders moved out unchanged), `kinds.js` (planks, grass, colour helpers), `hoods.js` (the table above). `tools/gen-arena-art.js` stays the entry point; run it after editing a hood. All files are under 100 lines.
+- The three hoods from part 1 are **byte-identical** after the refactor (checked by hash of the generated SVGs).
+- Sim untouched.
+
+## Honest read
+- **Ground now varies by hood**: planks, cobble, lawn, lane paint and tile each read differently at a glance, and the neighbours are easy to tell apart (Eminönü cobble, then Sirkeci tile, then Beyazıt setts).
+- **Readability was checked live, and it caught one problem.** Olive zombies on the first Kazlıçeşme lawn almost vanished. I darkened and cooled the lawn toward the brief's lawn green `#3F6B3A` and softened the blotches; the live shot after that is the one in the folder. Marina and Aksaray read well.
+- **Still not "could only be Istanbul".** Ground plus props is better, but the overhead layer (string lights, awnings, the Galata Tower in the distance) is still the old procedural art. I expect that check to pass or fail on that layer, not on the floor.
+- **Size:** `arena-art-data.js` grew from 91 KB to 628 KB (34 more tiles, plus the floor details below). It decodes at start like the props do. I trimmed stone counts to get here; if load time on a real phone is a problem I can decode per hood instead of all at once.
+
+## Needs your eye
+- Look at the four sheets and say which hoods feel wrong. The ones I would check first: Sirkeci (a regular tile grid, a bit like graph paper), Bakırköy (same), Samatya (cool blue-grey at its dawn tint).
+- Same Turkish name check as part 3 (eight sign words); still open.
+
+## Deviations
+1. Aksaray's lane dashes and Sahil's cycle strip repeat every 4 m, not every 2 m like the baked tiles; the street reads less like a grating.
+2. Laleli and Yenikapı use asphalt, as in `istanbul-themes.js`, not the tile the briefs mention. The code wins until you say otherwise.
+3. The asphalt repair patches in the new hoods are one faint patch per tile; Ataköy keeps its two stronger ones (untouched, by choice).
+4. No automated tests cover ground art; `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-death-causes` and `test-meta` (122) pass, and every hood rendered with no console errors in the still tool.
+
+## Floor details (second pass, after "do we have unique ground for each hood?")
+The honest answer to that question was "partly": the 17 tiles were distinct files, but six hoods shared cobble and six shared asphalt, so they differed mostly in tint. This pass gives the weakest hoods one landmark each. Shots: the four `ground-sheet-*.png` are re-rendered; live: `ground-live-yenikapi.png`.
+
+| Hood | Floor detail |
+|---|---|
+| Karaköy | two coral painted quay lines (dashed) and harbour puddles |
+| Eminönü | wet patches and silver fish scales |
+| Sirkeci | yellow dotted tactile guide strip |
+| Beyazıt | plane leaves (green and gold) and pigeon feathers |
+| Kumkapı | wet stone, melted-ice patches, red and gold lantern reflections |
+| Laleli | flattened cardboard scraps and tyre marks |
+| Yenikapı | yellow and ink hazard patches and timber offcuts |
+| Samatya | a worn lighter path and dawn-pink petals |
+| Bakırköy | chalk hopscotch, stars and circles |
+
+- **Repeat problem, caught in the first render.** At the 4 m tile, cartons, hazard patches and hopscotch repeated like wallpaper. Karaköy, Laleli and Yenikapı are now 9.2 x 12 m (the corridor is 9.2 m wide, so nothing repeats across it), and Bakırköy is 12 x 12 m. Bigger tiles are built from the small seamless tile through an SVG pattern, so the data stays small. The stone hoods keep 4 m tiles with small, soft marks, which do not read as a pattern.
+- **Nothing in the floor opens.** No manholes, grates or covers, because D-058 retired the "gate in the floor" and I did not want that read back in.
+- Marks are low contrast; the live Yenikapı shot shows zombies and the hazard patches still read separately.
+- Code: `tools/arena-ground/marks.js` (60 lines). The three part 1 hoods are still byte-identical.
+
+## Not done yet
+- Overhead and dressing layer (kilims, lanterns, laundry lines and so on), still behind the kit-change question from part 2.
+- Phone check of the ground at real size and frame time.
+
+---
+
 # T4 part 1: animation and feel (in progress)
 
 Scope check first: the v0.9 animation pass (feel.js, vehicles.js, fire animation) was already committed in the triage, so T4 starts from the owner list: hit-stop and shake tuning, spawn and death, dash and pickup, boss telegraphs, UI motion, bark timing, reduce motion, flash safety.
