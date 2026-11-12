@@ -279,6 +279,7 @@ P.RenderWorld = (function () {
       sideGround(R, th, sd, ya, yb);
       kerb(R, sd, ya, yb, th);
     });
+    if (P.ArenaSky) P.ArenaSky.draw(R, s, th, ya, yb);   // R1-T3: distant landmarks at the edges, slower than the street
     if (th.tracks) tramRails(R, ya, yb);
     P.Landmarks.draw(R, s, y0, y1);
   }

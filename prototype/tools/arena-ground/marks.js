@@ -21,10 +21,18 @@ function carton(r, W, H) {
   return poly(pts, '#A8845A', 0.85) + line(pts[0][0], pts[0][1], pts[2][0], pts[2][1], '#7A5A38', 0.02, 0.6);
 }
 // Plane-tree leaf.
-function leaf(r, W, H, col) {
-  const [x, y] = at(r, W, H, 0.4), s = 0.09 + r() * 0.05, a = r() * 360;
+function leaf(r, W, H, col, pos) {
+  const [x, y] = pos || at(r, W, H, 0.4), s = 0.09 + r() * 0.05, a = r() * 360;
   return `<path transform="rotate(${a.toFixed(0)} ${f(x)} ${f(y)})" d="M${f(x - s)} ${f(y)}Q${f(x)} ${f(y - s * 0.9)} ${f(x + s)} ${f(y)}Q${f(x)} ${f(y + s * 0.9)} ${f(x - s)} ${f(y)}Z" fill="${col}" fill-opacity="0.85" stroke="${INK}" stroke-width="0.015" stroke-opacity="0.6"/>`;
 }
+
+// Ataköy: dappled shade under street trees and fallen leaves, scattered through the two 4.6 m windows the 12 m tile shows.
+function dapple(r, cx, cy, tint) {
+  let b = '';
+  for (let i = 0; i < 7; i++) b += el(cx + (r() - 0.5) * 1.1, cy + (r() - 0.5) * 0.9, 0.25 + r() * 0.3, 0.18 + r() * 0.22, tint, 0.1, (r() * 180) | 0);
+  return b;
+}
+const inWindow = (r, W) => { const x = r() < 0.5 ? 0.5 + r() * 3.6 : W - 4.1 + r() * 3.6; return x; };
 
 const n = (W, H, per) => Math.max(1, Math.round(W * H / 16 * per));
 const MARKS = {
@@ -40,6 +48,10 @@ const MARKS = {
     for (let k = 0; k < n(W, H, 0.45); k++) { const [x, y] = at(r, W, H, 1.0); b += `<g transform="translate(${f(x)} ${f(y)}) rotate(${(r() * 40 - 20).toFixed(0)})"><rect width="1.5" height="0.42" fill="#C9A227" fill-opacity="0.8" stroke="${INK}" stroke-width="0.03"/>`;
       for (let i = 0; i < 7; i++) b += `<path d="M${f(i * 0.22 + 0.02)} 0.42L${f(i * 0.22 + 0.2)} 0L${f(i * 0.22 + 0.3)} 0L${f(i * 0.22 + 0.12)} 0.42Z" fill="${INK}" fill-opacity="0.75"/>`; b += '</g>'; }
     for (let i = 0; i < n(W, H, 1.0); i++) { const [x, y] = at(r, W, H, 0.7); b += `<rect x="${f(x)}" y="${f(y)}" width="0.7" height="0.12" rx="0.02" fill="#8A6038" stroke="${INK}" stroke-width="0.025" transform="rotate(${(r() * 180).toFixed(0)} ${f(x)} ${f(y)})"/>`; }
+    return b; },
+  atakoy: (r, W, H) => { let b = '';
+    for (let i = 0; i < 12; i++) b += dapple(r, inWindow(r, W), 0.8 + r() * (H - 1.6), '#0C1A12');
+    for (let i = 0; i < 46; i++) b += leaf(r, W, H, ['#6E9A48', '#B08A3A', '#4F7A3A'][i % 3], [inWindow(r, W), 0.3 + r() * (H - 0.6)]);
     return b; },
   // Eminönü: wet patches and silver fish scales.
   eminonu: (r, W, H) => { let b = puddle(r, W, H, '#3B6E8C') + puddle(r, W, H, '#3B6E8C'); for (let i = 0; i < 16; i++) { const [x, y] = at(r, W, H, 0.3); b += el(x, y, 0.025, 0.014, '#DDE6EE', 0.8, (r() * 180) | 0); } return b; },

@@ -504,6 +504,97 @@ The honest answer to that question was "partly": the 17 tiles were distinct file
 
 ---
 
+# T3, part 5: authored overhead rigs (first slice)
+
+The overhead layer was the last un-authored part of the arena. This slice covers the rigs that cross the lane: string lights, lanterns, bunting, laundry lines and the bazaar vault, for 13 hoods. It also fixes two rule breaks I found while reading the code (below).
+
+Screenshots (`reviews/media/R1/arenas/`): `overhead-sheet-1.png` (İstiklal stage 2, Galata, Karaköy, Eminönü, Beyazıt), `overhead-sheet-2.png` (Kumkapı, Laleli, Samatya, Kazlıçeşme, Bakırköy), `overhead-sheet-3.png` (Marina, Ataköy, Kapalıçarşı). Each frame shows two rigs of the hood.
+
+| Hood | Rig |
+|---|---|
+| İstiklal (stages 2 to 5) | warm bulbs on a wire |
+| Karaköy | paper lanterns, coral and cream |
+| Eminönü | amber and sumac-red bulbs |
+| Beyazıt | bulbs with a plane-leaf garland |
+| Kazlıçeşme | warm festoon bulbs with leaves |
+| Bakırköy | school-green, cream and yellow bunting |
+| Marina | teal, white and brass nautical bunting |
+| Kumkapı | red and gold paper lanterns |
+| Kapalıçarşı | stone vault with a blue underside, four kilims and five brass lanterns |
+| Galata | laundry line: blue and green tees and towels |
+| Laleli | laundry line: carton-brown and grey work clothes |
+| Samatya | laundry line: blanket red and dawn pink |
+| Ataköy | laundry line: white sheets and pastels |
+
+Laundry has three arrangements per hood so neighbouring lines differ. The kilims and the brass lanterns are the first things in the arena that could only be a Kapalıçarşı.
+
+## Two rule breaks fixed
+1. **Overhangs now fade to 30% under the player and under telegraphs** (design-system 6, rule 5, "non-negotiable"). They did not fade before: laundry sat at a fixed 70% over the hero. The fade eases in about 0.15 s and works per rig. Test frame: Karaköy with the hero under a lantern string, lanterns at about 30%. The lamp rigs are unchanged (see below).
+2. **Shop signs flickered at about 6 times a second**, over the "no more than 3 flashes a second" rule (design-system 11, WCAG 2.3.1). It is now about once a second, and Reduce flashes switches it off. The lamp flicker (`o.flick`) also exceeded 3 per second but no caller sets it, so nothing changed there.
+
+## How it works
+- `tools/gen-arena-overhead.js` builds the SVGs from `tools/arena-overhead/{rigs,hoods}.js` and writes `art/arenas/overhead/*.svg` and `js/view/arena-overhead-data.js` (171 KB). Re-run it after editing a rig.
+- `js/view/arena-overhead.js` draws them. `genOverhead` in `istanbul.js` tries the authored rig first and falls back to the procedural one while an image decodes or when a hood has none.
+- **Glows are drawn at runtime**, not baked: the bulbs and lanterns light up with a slow twinkle (about 0.5 per second; steady with Reduce motion).
+- Sim untouched.
+
+## Not done in this slice
+- **Lamp rigs** (Köprü, Sirkeci, Aksaray, Sahil): the lamp posts sit at 6.4 m, off the 5 m half-frame, so only their glow shows. They need a rethink, not just art.
+- **No rig at all** in Yenikapı, Yedikule and Zeytinburnu (briefs want the Marmaray ceiling and escalators, ivy, sawtooth roofs).
+- **Distant landmarks** (Galata Tower, Süleymaniye and the rest) are still not in the arena; there is no distant layer, and landmarks sit at fixed world metres. This is the biggest gap for "could only be Istanbul" and needs your call on a parallax layer.
+- Facades start at 6.2 m, outside the frame, so they cannot show.
+- Level 1's scripted overhead (İstiklal stage 1) is unchanged.
+- Frame time could not be measured: headless Chrome freezes `performance.now`. The cost is one image draw per rig plus about 16 small glow draws, but I have not measured it on a phone.
+
+## Needs your eye
+- Do the lanterns, bunting and laundry read as the right Istanbul? Kapalıçarşı and Karaköy look strongest to me; the laundry clothes are small and pale in Laleli and Samatya.
+- **Ataköy's ground (part 1) now looks like wallpaper**: its repair patches repeat every 4 m, the problem I fixed in the new hoods. It was not part of this slice and I left it byte-identical; say if you want it redone.
+
+## Deviations
+1. `tools/arena-still.html` gets `&settle=1` (14 frames 80 ms apart) so eased effects reach their end state in a still.
+2. The sign flicker change alters existing behaviour (rule fix, not a design change).
+3. Checks: `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-death-causes` and `test-meta` (122) pass; the game page loads with no console errors. There are no automated tests for overhead art.
+
+---
+
+# T3, part 6: Ataköy redone, and the skyline layer (first slice)
+
+Both follow from your answers to the part 5 questions: Ataköy is "a modern neighbourhood with trees", and yes to a parallax skyline.
+
+## Ataköy, redone
+Screenshot: `reviews/media/R1/arenas/sky-sheet-1.png` (last column). The old ground (cracked asphalt with repair patches) is gone, so the part 1 "byte-identical" note no longer holds for Ataköy; İstiklal and Kapalıçarşı are still identical.
+- **Ground:** clean 2 m concrete courtyard slabs (brief: "courtyard tile and concrete paths"), with soft dappled tree shade and fallen leaves (green, olive, gold), on a 12 x 12 m tile so nothing repeats like wallpaper.
+- **Walk strip:** warm stucco-beige interlocking pavers in brick bond.
+- **Trees:** a new `canopy` overhead rig. Street-tree canopies reach in over the lane edge from alternating sides every 18 m, and fade to 30% under the player like the other overhead art (design-system 6 rule 5).
+- The laundry lines stay (the brief wants them).
+
+## Skyline: side-edge peeks (your choice)
+Screenshots: `sky-shapes.png` (the 11 silhouettes), `sky-sheet-1.png` (Galata, Eminönü, Yedikule, Marina, Ataköy in play).
+- **What it is:** distant landmarks drawn as roof-level elevations at the left and right edges of the street. They scroll at 0.55 of the street's speed, so they read as far away. They fade out toward the lane and stay at about 1.7 m from each edge, so the lane centre is never covered.
+- **Draw order:** under actors, telegraphs and overhead art, above the sidewalk strip. Combat readability is untouched.
+- **Shapes (11):** Galata Tower, mosque with two minarets (background only, never damaged), minaret pair, station clock tower, Beyazıt fire tower, city-wall tower, factory chimney with sawtooth roof, excavation crane, yacht masts, apartment block, street tree.
+- **Per hood:** Galata and İstiklal get the Galata Tower; Eminönü, Köprü and Karaköy mixes of domes, minarets and the tower; Sirkeci the clock tower; Beyazıt the fire tower; Yedikule and Samatya wall towers; Zeytinburnu and Kazlıçeşme chimneys; Yenikapı the dig crane; Marina masts; Bakırköy, Aksaray, Sahil and Ataköy apartment blocks and trees. Kapalıçarşı (indoors) has none.
+- **Code:** `tools/gen-arena-sky.js`, `tools/arena-sky/{shapes,hoods}.js`, runtime `js/view/arena-sky.js` (54 lines), data `js/view/arena-sky-data.js` (37 KB). Hooked into the ground pass in `render-world.js`. Sim untouched.
+
+## Honest read
+- **At 10 m wide a landmark is a slice, not a postcard.** Each peek shows a strip about 1.7 m wide, so you see the tower's side and, as it scrolls, its cap, but never the whole building at once. It adds depth and a sense of place; it will not by itself make a frame "could only be Istanbul". The sheet shows this.
+- The left-hand peeks are the same art flipped, so their light comes from the top right (a mild inconsistency at haze strength).
+
+## Needs your eye
+- Do the peeks read as far away, and are they too strong or too faint? The knobs are `K` (0.55), `ALPHA` (0.92) and `EDGE` (4.4 m) at the top of `arena-sky.js`.
+- Which hoods feel wrong for their landmark? The table is `tools/arena-sky/hoods.js`.
+
+## Not done
+- No time-of-day haze tint (the skyline takes the global tint only).
+- No landmark for Kapalıçarşı (indoors), and no sea or water horizon.
+- Phone check of the strip width at real size, and frame time (headless Chrome cannot measure it).
+
+## Deviations
+1. `tools/arena-still.html` now waits for the overhead and skyline images too.
+2. Checks: `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-death-causes` and `test-meta` (122) pass; the game page loads with no console errors.
+
+---
+
 # T4 part 1: animation and feel (in progress)
 
 Scope check first: the v0.9 animation pass (feel.js, vehicles.js, fire animation) was already committed in the triage, so T4 starts from the owner list: hit-stop and shake tuning, spawn and death, dash and pickup, boss telegraphs, UI motion, bark timing, reduce motion, flash safety.

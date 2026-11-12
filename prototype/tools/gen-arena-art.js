@@ -22,10 +22,6 @@ const TILES = {
     ground: paving(21, 4, 4, { rows: 6, cols: [4, 6], gap: 0.018, jitter: 0.06, round: 0.16, line: 0.04, tones: FLAG, hi: 0.45, lo: 0.5, joint: '#2A1F18', extra: DUST }),
     walk: paving(22, 2, 2, { rows: 3, cols: [2, 3], gap: 0.016, jitter: 0.05, round: 0.14, line: 0.04, tones: FLAG, hi: 0.45, lo: 0.45, joint: '#2A1F18', extra: DUST }),
   },
-  atakoy: {
-    ground: asphalt(31, 4, 4, { base: '#585B64', light: '#6E727C', dark: '#454851', patch: '#4B4E57' }),
-    walk: paving(32, 2, 2, { rows: 3, cols: [2, 3], gap: 0.014, jitter: 0.03, round: 0.1, line: 0.04, tones: PAVE, hi: 0.5, lo: 0.4 }),
-  },
   common: { rails: rails() },
 };
 Object.assign(TILES, require('./arena-ground/hoods.js'));   // the other 17 hoods

@@ -134,6 +134,10 @@
 <script src="../js/view/arena-art.js"></script>
 <script src="../js/view/arena-props-data.js"></script>
 <script src="../js/view/arena-props.js"></script>
+<script src="../js/view/arena-overhead-data.js"></script>
+<script src="../js/view/arena-overhead.js"></script>
+<script src="../js/view/arena-sky-data.js"></script>
+<script src="../js/view/arena-sky.js"></script>
 <script src="../js/view/istanbul-themes.js"></script>
 <script src="../js/view/istanbul-landmarks.js"></script>
 <script src="../js/view/layouts-fx.js"></script>
@@ -231,12 +235,14 @@
   }
   if (q.get('noart')) P.ArenaArt.tile = function () { return null; };   // baseline: the baked canvas tiles
   if (q.get('noprops')) P.ArenaProps.draw = function () { return false; };   // baseline: the procedural props
-  function shoot() {
-    for (var k = 0; k < 3; k++) {
+  function shoot() {   // &settle=1 renders 14 frames 80 ms apart, so eased effects (the overhead fade under the hero) reach their end state
+    var k = 0, n = q.get('settle') ? 14 : 3;
+    (function step() {
       cam.y = Y; cam.x = 0; cam.w = P.CFG.view.widthM; cam.ox = 0; cam.oy = 0; cam.rot = 0; cam.zoom = 1; cam.trauma = 0; cam.punchT = 0;
       P.Render.frame(sim, null);
-    }
-    if (q.get('dump')) { var o = document.createElement('pre'); o.id = 'out'; o.textContent = 'PNG:' + canvas.toDataURL('image/png'); document.body.appendChild(o); }
+      if (++k < n) return q.get('settle') ? setTimeout(step, 80) : step();
+      if (q.get('dump')) { var o = document.createElement('pre'); o.id = 'out'; o.textContent = 'PNG:' + canvas.toDataURL('image/png'); document.body.appendChild(o); }
+    })();
   }
   function bench() {   // ?bench=1: render cost per frame (ms) over a live walk; prints BENCH:{median,p95,p99,max,over16,n}
     var t = [], n = parseInt(q.get('frames') || '240', 10), i, o, s0;
@@ -251,6 +257,6 @@
     document.body.appendChild(o);
   }
   var tries = 0;
-  (function wait() { if (!(P.ArenaArt.ready() && P.ArenaProps.ready()) && tries++ < 100) return setTimeout(wait, 50); setTimeout(q.get('bench') ? bench : shoot, 100); })();
+  (function wait() { if (!(P.ArenaArt.ready() && P.ArenaProps.ready() && P.ArenaOverhead.ready() && P.ArenaSky.ready()) && tries++ < 100) return setTimeout(wait, 50); setTimeout(q.get('bench') ? bench : shoot, 100); })();
 })();
 </script>

@@ -42,4 +42,13 @@ function grass(seed, W, H, o) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W * 100}" height="${H * 100}">${b}</svg>`;
 }
 
-module.exports = { shade, tri, planks, grass };
+// Interlocking pavers in brick bond (every other row shifted by half a paver); seamless when W and H divide by the paver size.
+function pavers(seed, W, H, o) {
+  const r = rng(seed), cw = o.cw, rh = o.rh, g = o.gap || 0.012; let body = '';
+  for (let i = 0; i < Math.round(H / rh); i++) for (let c = -1; c <= Math.round(W / cw); c++) {
+    body += stone(r, c * cw - (i % 2) * cw / 2 + g, i * rh + g, cw - 2 * g, rh - 2 * g, { jitter: 0, round: 0.05, line: o.line || 0.02, tones: o.tones, hi: o.hi || 0.4, lo: o.lo || 0.35 });
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W * 100}" height="${H * 100}"><rect width="${W}" height="${H}" fill="${o.joint}"/>${body}</svg>`;
+}
+
+module.exports = { shade, tri, planks, grass, pavers };

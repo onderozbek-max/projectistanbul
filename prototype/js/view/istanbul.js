@@ -286,11 +286,16 @@ P.Decor = (function () {
   function genOverhead(R, s, y0, y1) {
     var th = P.RenderWorld.themeOf(s), rig = th.overhead, hp = P.RenderWorld.hoodPos(s), t = performance.now() / 1000;
     for (var y = Math.ceil(y0 / 12) * 12; y < y1 && rig !== 'none'; y += 12) {
+      var ry = rig === 'laundry' ? y + 3 : y;
+      if (P.ArenaOverhead && P.ArenaOverhead.draw(R, s, th.id, rig, 0, ry, { v: hash(y * 0.37) })) continue;   // R1-T3: authored rig, fades under the player
       if (rig === 'strings') P.Props.draw('strings', R, 0, y, {});
       else if (rig === 'lanterns') P.Props.draw('lanterns', R, 0, y, { n: 12 });
       else if (rig === 'laundry') P.Props.draw('laundry', R, 0, y + 3, { k: Math.floor(hash(y) * 6) });
       else if (rig === 'vault') P.Props.draw('vault', R, 0, y, {});
       else if (rig === 'lamps') { P.Props.draw('lamp', R, 6.4, y, {}); P.Props.draw('lamp', R, -6.4, y + 6, {}); }
+    }
+    if (rig !== 'none' && P.ArenaOverhead && P.ArenaOverhead.has(th.id, 'canopy')) for (var ty = Math.ceil(y0 / 18) * 18; ty < y1; ty += 18) {   // street trees reaching over the lane edge (Ataköy)
+      P.ArenaOverhead.draw(R, s, th.id, 'canopy', 0, ty + 2, { v: hash(ty * 0.11) < 0.5 ? 0 : 0.99 });
     }
     if (hp >= 5 && hp <= 17) for (var q = Math.floor(y0 / 40) * 40; q < y1; q += 40) {
       if (hash(q * 0.7) < 0.5) P.Props.draw('smoke', R, (hash(q) < 0.5 ? -1 : 1) * 8.6, q, { n: 6, a: 0.22 });
@@ -304,7 +309,7 @@ P.Decor = (function () {
       if (hash(y * 1.7 + side) < 0.45) return;
       var txt = th.sign[Math.floor(hash(y * 9 + side * 3) * n)], col = SIGN_COL[Math.floor(hash(y + side * 5) * SIGN_COL.length)];
       var X = R.X(side * 5.35), Y = R.Y(y + 1.2), w = 1.5 * u, hh = 0.55 * u;
-      var flick = hash(y * 4.4 + side) < 0.2 && Math.sin(t * 37 + y) > 0.2 ? 0.25 : 1;
+      var flick = hash(y * 4.4 + side) < 0.2 && Math.sin(t * 6 + y) > 0.2 && !(P.Settings && P.Settings.reduceFlash) ? 0.25 : 1;   // about 1 flicker a second: under the 3 flashes a second limit (design-system 11)
       c.globalAlpha = flick * signAlpha('sign' + side + ':' + y, X, Y, w, hh);
       c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(R.X(side * 7.05), Y - hh * 0.6); c.lineTo(X - side * w * 0.45, Y - hh * 0.6); c.stroke();
       c.fillStyle = col[0]; c.fillRect(X - w / 2, Y - hh / 2, w, hh); c.strokeRect(X - w / 2, Y - hh / 2, w, hh);

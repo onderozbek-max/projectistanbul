@@ -4,7 +4,7 @@
 // Hood id => theme id. Seeds are fixed, so output is stable.
 'use strict';
 const { COOL, paving, asphalt, tiledUp, rng } = require('./lib.js');
-const { shade, tri, planks, grass } = require('./kinds.js');
+const { shade, tri, planks, grass, pavers } = require('./kinds.js');
 const MK = require('./marks.js');
 
 const stones = (seed, W, o) => paving(seed, W, W, Object.assign({ gap: 0.012, jitter: 0.04, round: 0.26, line: 0.03, hi: 0.38, lo: 0.42 }, o));
@@ -15,7 +15,14 @@ const tiles = (seed, W, n, base, joint, o) => paving(seed, W, W, Object.assign({
 const RISER = (r, W, H) => { let b = ''; const rh = H / 12; for (let i = 0; i < 12; i++) b += `<rect x="0" y="${(i + 1) * rh - 0.08}" width="${W}" height="0.07" fill="${COOL}" fill-opacity="0.38"/>`; return b; };
 const MOSS = (r, W, H) => { let b = ''; for (let i = 0; i < 40; i++) b += `<circle cx="${(r() * W).toFixed(2)}" cy="${(r() * H).toFixed(2)}" r="${(0.02 + r() * 0.03).toFixed(3)}" fill="#5E7A4A" opacity="0.6"/>`; return b; };
 
+// Ataköy is a modern neighbourhood with street trees: clean courtyard slabs under dappled shade, interlocking pavers on the walk.
+const atakoySlabs = paving(31, 4, 4, { rows: 2, cols: [2, 2], exact: true, gap: 0.014, jitter: 0, round: 0.03, line: 0.025, tones: ['#7A7C82', '#808288', '#868890'], hi: 0.35, lo: 0.3, joint: '#3A3C44' });
+
 module.exports = {
+  atakoy: {
+    ground: tiledUp(atakoySlabs, 12, 12, MK.atakoy(rng(32), 12, 12)),
+    walk: pavers(33, 2, 2, { cw: 0.4, rh: 0.2, tones: ['#B7A98E', '#BEB095', '#C6B89D'], joint: '#4A4438' }),
+  },
   galata: {
     ground: stones(41, 4, { rows: 12, cols: [1, 2], jitter: 0.02, round: 0.05, line: 0.035, tones: tri('#45474F', 0.1), hi: 0.5, lo: 0.4, joint: '#2F3138', extra: RISER }),
     walk: slab(42, '#55575E'),
