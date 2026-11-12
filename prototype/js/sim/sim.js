@@ -22,6 +22,9 @@ P.createSim = function (seed, opts) {
   };
   s.theme = s.levelInfo.hood.theme;
   s.fx = attrFx(o);
+  s.perk = P.Perks ? P.Perks.set(o.loadout && o.loadout.perks) : {};   // Street Tree perks learned for this run (perks.js)
+  s.pk = {};   // per-run perk state (counters, once-per-run flags); each perk uses its own key, e.g. s.pk.shock
+  if (s.perk['cha.3']) s.rerolls += P.CFG.perks.regular.rerolls;   // Regular (cha.3): extra free card rerolls
   s.tally = P.Tally.create();
   s.loadout = o.loadout || null;
   P.Events.init(s);
@@ -109,8 +112,8 @@ function stepHero(s, dt, input) {
   }
   h.invuln = Math.max(0, h.invuln - dt);
   h.sinceHit += dt;
-  var mk = P.CFG.passives.medkit, lv = h.passives.medkit || 0;
-  h.regenOn = lv > 0 && h.sinceHit >= mk.regenDelay && h.hp < h.maxHp;
+  var mk = P.CFG.passives.medkit, lv = h.passives.medkit || 0, delay = s.perk['grit.2'] ? P.CFG.perks.teaBreak.delay : mk.regenDelay;   // Tea Break (grit.2)
+  h.regenOn = lv > 0 && h.sinceHit >= delay && h.hp < h.maxHp;
   if (h.regenOn) h.hp = Math.min(h.maxHp, h.hp + lv * mk.regenPerLevel * dt);
 }
 

@@ -22,5 +22,8 @@ P.CFG.power = {
     masteryPerHood: 0.2,       // weapon mastery rank per hood (0..5, config-weapons2.js mastery.need)
     masteryWeapons: ['knife', 'nailgun'],   // the L1 kit weapons that the typical player levels
     ult: 'nazar',               // the ultimate the expected player brings
+    killsPerLevel: 500,         // Street Tree budget: lifetime kills per cleared level (ASSUMPTION, measure with the bot)
+    perkOrder: ['str.1', 'agg.1', 'grit.1', 'pace.1', 'int.1', 'cha.1', 'str.2', 'agg.2', 'grit.2', 'pace.2', 'int.2', 'cha.2',
+      'str.3', 'agg.3', 'grit.3', 'pace.3', 'int.3', 'cha.3', 'str.4', 'agg.4', 'grit.4', 'pace.4', 'int.4', 'cha.4'],   // the typical build, tier by tier
   },
 };

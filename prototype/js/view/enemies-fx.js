@@ -245,6 +245,7 @@ P.EnemyFx = (function () {
         sfx('bossIntro', 0, s); break;
       case 'bossRage': P.Fx.letter(ev.x, ev.y + 2, label('boss.rage', 'ÖFKE!', 'RAGE!')); sfx('snarl', 0, s, ev.x); break;
       case 'bossDie': bossDie(s, ev); break;
+      case 'perkRing': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: '#FFFFFF', t0: s.t, dur: 0.3 }); break;
       case 'bossSlam': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: SLAM, t0: s.t, dur: 0.5 }); sfx('bruteStomp', 0, s, ev.x); break;
       case 'toxicPool': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: TOXIC, t0: s.t, dur: 0.4 }); break;
       case 'summon': sfx('snarl', 300, s, ev.x); break;

@@ -116,7 +116,8 @@ P.ObjKinds = (function () {
   K.escort = {
     init: function (s, o) {
       var C = T().escort, h = s.hero, side = s.rng.level.chance(0.5) ? 1 : -1;
-      o.civ = { x: clampX(s, h.x + side * C.start), y: h.y + 0.4, hp: C.hp, max: C.hp, alive: true };
+      var hp = s.perk['cha.2'] ? P.CFG.perks.friendlyFaces.escortT : C.hp;   // Friendly Faces (cha.2): longer contact time
+      o.civ = { x: clampX(s, h.x + side * C.start), y: h.y + 0.4, hp: hp, max: hp, alive: true };
     },
     step: function (s, o, dt) {
       var C = T().escort, c = o.civ, h = s.hero, d = dist(c, h), step;

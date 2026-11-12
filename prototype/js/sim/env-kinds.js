@@ -95,6 +95,7 @@ P.Env.blast = function (s, x, y, from) {
     dx = e.x - x; dy = e.y - y; d = Math.hypot(dx, dy) || 1;
     if (d - e.r <= B.r) { P.Combat.damageEnemy(s, e, B.enemyDmg, dx / d, dy / d, B.kb, false, cause); en++; }
   }
+  if (P.Combat.hasPerk(s, 'str.2')) P.Combat.blastShove(s, x, y, B.r);   // Cart Shover (str.2): enemies just outside the blast
   if (Math.hypot(h.x - x, h.y - y) - P.CFG.hero.radius <= B.r) { P.Combat.damageHero(s, B.heroDmg, cause); hitHero = true; }
   P.Env.chainAt(s, x, y, B.r, 'chain', C.fuse.chain);
   for (i = 0; i < E.recs.length; i++) {

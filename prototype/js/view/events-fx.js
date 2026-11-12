@@ -109,13 +109,13 @@ P.EventsFx = (function () {
     c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.fillStyle = SIGNAL + (a * 0.25) + ')'; c.fill();
     c.setLineDash(H.state === 'active' ? [] : [8, 6]); c.strokeStyle = SIGNAL + a + ')'; c.lineWidth = 2.5;
     c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-    if (H.state === 'active') {
+    if (H.state === 'active' || (!done && p > 0)) {   // an idle terminal with progress is a Second Look (int.2) terminal
       c.lineWidth = 6; c.beginPath(); c.arc(X, Y, r * 0.8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); c.stroke();
     }
     if (H.alarm > 0) { c.strokeStyle = DANGER + (0.5 + 0.4 * Math.sin(t * 9)) + ')'; c.lineWidth = 4; c.beginPath(); c.arc(X, Y, r * 1.1, 0, Math.PI * 2); c.stroke(); }
     if (H.rush > 0) {
       var T = C.hack.tram;
-      rectWorld(R, H.x - T.w / 2, H.x + T.w / 2, H.y - T.back, H.y + T.len, DANGER + '0.3)');
+      rectWorld(R, H.x - T.w / 2, H.x + T.w / 2, H.y - T.back, H.y + (H.lane || T.len), DANGER + '0.3)');
     }
   }
 
@@ -191,7 +191,7 @@ P.EventsFx = (function () {
       case 'eventStart': startLetter(s, ev); break;
       case 'hackStart': sfx('tink', 300, s, ev.x); break;
       case 'hackDone': P.Fx.letter(ev.x, ev.y + 1.2, label('hack.done')); sfx('bell', 0, s, ev.x); break;
-      case 'hackFail': P.Fx.letter(ev.x, ev.y + 1.2, label('hack.lost')); break;
+      case 'hackFail': P.Fx.letter(ev.x, ev.y + 1.2, label(ev.kept ? 'hack.weak' : 'hack.lost')); break;
       case 'signalRestored': P.Fx.letter(s.hero.x, s.hero.y + 2, label('ev.signal')); sfx('bell', 0, s); break;
       case 'signalLost': P.Fx.letter(s.hero.x, s.hero.y + 2, label('hack.lost')); sfx('phoneBuzz', 0, s); break;
       case 'stunWave': sfx('shock', 0, s, ev.x); break;

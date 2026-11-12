@@ -34,6 +34,7 @@ P.Hack.step = function (s, dt) {
   s.hacks = list.filter(function (x) {
     return x.state !== 'done' || x.doneT < P.CFG.hack.fadeT || x.alarm > 0 || x.rush > 0;
   });
+  if (s.pk.mark) markExpire(s);
 };
 
 // Progress while the hero is inside the zone.
@@ -52,17 +53,30 @@ function advance(s, H, dt) {
 }
 
 function decay(s, H, dt) {
-  H.prog = Math.max(0, H.prog - dt * P.CFG.hack.decay / P.CFG.hack.T);
   H.near = 0;
+  if (s.perk['int.2'] && !s.pk.look) { s.pk.look = 1; fail(s, H, true); return; }   // Second Look (int.2): once per run
+  H.prog = Math.max(0, H.prog - dt * P.CFG.hack.decay / P.CFG.hack.T);
   if (H.prog > 0) return;
+  fail(s, H, false);
+}
+
+function fail(s, H, kept) {
+  var ev = { type: 'hackFail', id: H.id, kind: H.kind, x: H.x, y: H.y, reason: 'left' };
   H.state = 'idle';
-  s.events.push({ type: 'hackFail', id: H.id, kind: H.kind, x: H.x, y: H.y, reason: 'left' });
+  if (kept) ev.kept = true;
+  s.events.push(ev);
 }
 
 function startHack(s, H) {
-  var N = P.CFG.hack.noise;
   H.state = 'active'; H.tickT = 0;
   s.events.push({ type: 'hackStart', id: H.id, kind: H.kind, x: H.x, y: H.y });
+  if (!s.perk['int.1']) noiseWave(s, H);   // Quick Fingers (int.1): a quiet hack spawns nobody and lures nobody
+  if (s.levelIndex === 1) P.Director.bark(s, 'barkHack');
+}
+
+// Hacking makes noise: a small wave spawns and nearby zombies are lured to the box.
+function noiseWave(s, H) {
+  var N = P.CFG.hack.noise;
   for (var i = 0; i < N.wave; i++) {
     var p = P.Events.farSpot(s, H.x, H.y, N.spawnMin, N.spawnMax, false);
     if (p) P.Events.spawn(s, null, 'walker', p.x, p.y, {});
@@ -71,7 +85,6 @@ function startHack(s, H) {
     if (!e.boss) e.lure = { x: H.x, y: H.y, t: N.lureT };
   });
   s.events.push({ type: 'hackNoise', id: H.id, x: H.x, y: H.y, n: N.wave });
-  if (s.levelIndex === 1) P.Director.bark(s, 'barkHack');
 }
 
 function finish(s, H) {
@@ -90,13 +103,14 @@ var OUTCOMES = {
     P.Events.coins(s, H.x, H.y, A.coins + (bonus ? A.bonus : 0), A.coinV);
   },
   traffic: function (s, H, bonus) {
-    var T = P.CFG.hack.traffic, stun = T.stunT + (bonus ? T.bonusT : 0);
+    var T = P.CFG.hack.traffic, stun = (T.stunT + (bonus ? T.bonusT : 0)) * backdoor(s);
     P.Events.near(s, H.x, H.y, T.r).forEach(function (e) { if (P.Status && P.Status.apply) P.Status.apply(e, 'stun', stun); });
     s.events.push({ type: 'stunWave', id: H.id, x: H.x, y: H.y, r: T.r, T: stun });
   },
   cell: function (s, H) {
     s.events.push({ type: 'signalRestored', id: H.id, source: 'hack', x: H.x, y: H.y });
     P.Director.onSignal(s);
+    if (s.perk['int.3']) markNext(s, H);   // Signal Boost (int.3)
   },
   shutter: function (s, H, bonus) {
     var S = P.CFG.hack.shutter, n = S.chest + (bonus ? 1 : 0);
@@ -116,8 +130,8 @@ var OUTCOMES = {
     s.events.push({ type: 'carAlarm', id: H.id, x: H.x, y: H.y, T: A.lureT });
   },
   tram: function (s, H) {
-    var T = P.CFG.hack.tram, x0 = H.x - T.w / 2, x1 = H.x + T.w / 2, y0 = H.y - T.back, y1 = H.y + T.len;
-    H.rush = T.rushT;
+    var T = P.CFG.hack.tram, x0 = H.x - T.w / 2, x1 = H.x + T.w / 2, y0 = H.y - T.back, y1 = H.y + T.len * backdoor(s);
+    H.rush = T.rushT; H.lane = T.len * backdoor(s);
     s.events.push({ type: 'tramRush', id: H.id, x: H.x, y0: y0, y1: y1, w: T.w });
     for (var i = 0; i < s.enemies.length; i++) {
       var e = s.enemies[i];
@@ -145,4 +159,23 @@ function nearestBlock(s, H, r) {
     if (d < bd) { bd = d; best = b; }
   });
   return best;
+}
+
+// ---------- Street Tree perks (R1-T5). Each hook runs only when its perk is learned (s.perk). ----------
+// Backdoor (int.4): multiplier on the traffic stun and on the length of the tram crush lane. Not the ATM payout.
+function backdoor(s) { return s.perk['int.4'] ? P.CFG.perks.backdoor.mul : 1; }
+
+// Signal Boost (int.3): the next terminal in list order (wrapping round) that is not done gets the mark.
+function markNext(s, H) {
+  var list = s.hacks, n = list.length, at = list.indexOf(H), k, t;
+  for (k = 1; k < n; k++) {
+    t = list[(at + k) % n];
+    if (t.state !== 'done') { s.pk.mark = { id: t.id, until: s.t + P.CFG.perks.signalBoost.markT }; return; }
+  }
+}
+
+// The mark ends when its terminal is hacked or gone, or when its time runs out.
+function markExpire(s) {
+  var m = s.pk.mark, t = s.hacks.filter(function (x) { return x.id === m.id; })[0];
+  if (!t || t.state === 'done' || s.t >= m.until) delete s.pk.mark;
 }

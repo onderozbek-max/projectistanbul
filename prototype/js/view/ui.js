@@ -145,8 +145,8 @@ P.UI = (function () {
     el.streak.classList.remove('hidden');
     TIERS.forEach(function (t) { if (n >= t && lastN < t) { tierKey = 'combo.' + t; tierT = 1.3; } });
     lastN = n;
-    el['streak-label'].textContent = tierT > 0 && tierKey ? P.t(tierKey) : P.t('combo.label') + ' ' + n + '/' + F.threshold;
-    el['streak-fill'].style.width = Math.min(100, n / F.threshold * 100) + '%';
+    el['streak-label'].textContent = tierT > 0 && tierKey ? P.t(tierKey) : P.t('combo.label') + ' ' + n + '/' + k.threshold;
+    el['streak-fill'].style.width = Math.min(100, n / k.threshold * 100) + '%';
   }
 
   // L1 dialogue lines now present as comic pop-ins (P.Story.forLine picks bust, side, mood).

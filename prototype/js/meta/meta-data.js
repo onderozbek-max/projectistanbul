@@ -263,7 +263,7 @@ P.Meta = P.Meta || {};
     var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
     lo = { gear: gearSum(s), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
-      mastery: masteryRanks(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
+      mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
     if (o.daily) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; lo.daily = true; }
     return lo;
   };

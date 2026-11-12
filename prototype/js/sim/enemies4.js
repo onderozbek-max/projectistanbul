@@ -37,12 +37,14 @@
   };
 
   // Per-step frame (enemies.js frame): the hero's slow timer, refreshed while the hero stands in a tea puddle.
+  // The refresh is gated by P.Skills.wetSlowOn (pace.1 Quick Feet, pace.3 Parkour).
   P.Enemies4.frame = function (s, dt) {
-    var T = s.tea || (s.tea = { slowT: 0 }), h = s.hero, i, z;
+    var T = s.tea || (s.tea = { slowT: 0 }), h = s.hero, i, z, inside = false;
     for (i = 0; i < s.zones.length; i++) {
       z = s.zones[i];
-      if (z.kind === 'tea' && dist(h, z) <= z.r + P.CFG.hero.radius) T.slowT = P.CFG.enemies5.cayci.slow.t;
+      if (z.kind === 'tea' && dist(h, z) <= z.r + P.CFG.hero.radius) inside = true;
     }
+    if (P.Skills.wetSlowOn(s, 'dryTea', inside)) T.slowT = P.CFG.enemies5.cayci.slow.t;
     T.slowT = Math.max(0, T.slowT - dt);
   };
 

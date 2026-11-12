@@ -25,6 +25,7 @@ if (!P.Enemies || !P.Enemies.frame) P.Enemies = { frame: function () {} };   // 
 if (!P.Sfx) P.Sfx = { play: function () {} };
 if (!P.Fx) P.Fx = { addTrauma: function () {}, letter: function () {}, punch: function () {} };
 if (!P.Sprites) P.Sprites = { person: function () {}, shadow: function () {} };
+if (!P.Feel) P.Feel = { hitStop: function () {} };   // T4: weapons-fx.js asks Feel for hit-stop (feel.js is not loaded here)
 
 const args = Object.fromEntries(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v === undefined ? true : v]));
 const SECS = parseFloat(args.secs || (args.quick ? '10' : '60')), PATH_SECS = parseFloat(args['paths-secs'] || (args.quick ? '4' : '60'));

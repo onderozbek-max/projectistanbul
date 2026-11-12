@@ -12,6 +12,10 @@ function sk(s) {
     act: { id: null, t: 0, T: 0, cd: 0, cdT: 0, hits: 0 } });
 }
 
+// Street Tree perks (perks.js): s.perk is the learned set, s.pk the per-run state bag (perk keys, see sim.js).
+function perkOn(s, id) { return !!(s.perk && s.perk[id]); }
+function pkOf(s) { return s.pk || (s.pk = {}); }
+
 P.Skills.init = function (s) {
   var h = s.hero;
   h.dashCd = 0; h.iframes = 0; h.ult = 0; h.dashing = false;
@@ -32,8 +36,8 @@ function onKill(s, S, e) {
   if (s.t - S.lastKillT > K.frenzy.window) S.streak = 0;
   S.streak++;
   S.lastKillT = s.t;
-  if (S.streak >= K.frenzy.threshold && S.frenzyT <= 0) {
-    S.streak = 0; S.frenzyT = K.frenzy.time;
+  if (S.streak >= P.Skills.frenzyThreshold(s) && S.frenzyT <= 0) {
+    S.streak = 0; S.frenzyT = K.frenzy.time; pkOf(s).frenzyAdded = 0;
     s.events.push({ type: 'frenzy', on: true, t: K.frenzy.time });
   }
 }
@@ -63,8 +67,38 @@ function tryDash(s, S, input) {
   }
   S.dash = { dx: dx, dy: dy, t: 0, T: D.time, speed: D.dist / D.time };
   S.nearMissDone = false;
-  h.dashCd = D.cooldown * dashMul(s); h.dashCdMax = h.dashCd; h.iframes = D.iframes; h.dashing = true;
+  h.dashCd = dashCooldown(s); h.dashCdMax = h.dashCd; h.iframes = D.iframes; h.dashing = true;
+  if (perkOn(s, 'pace.1')) perkClearSlow(s);
   s.events.push({ type: 'dash', x: h.x, y: h.y, ax: dx, ay: dy, dist: D.dist, T: D.time });
+}
+
+// pace.4 Dolmus Rider: the first dash of the run (each level is one stage) has no cooldown.
+function dashCooldown(s) {
+  var pk = pkOf(s);
+  if (perkOn(s, 'pace.4') && !pk.dolmus) { pk.dolmus = true; return 0; }
+  return P.CFG.skills.dash.cooldown * dashMul(s);
+}
+
+// pace.1 Quick Feet: a dash clears the hero's slow. The puddle and tea slows that are on now stay off on that wet
+// tile (pk.dryPud, pk.dryTea, see P.Skills.wetSlowOn), so the next step does not put them back.
+function perkClearSlow(s) {
+  var pk = pkOf(s);
+  if (s.env && s.env.heroMul < 1) pk.dryPud = true;
+  if (s.tea && s.tea.slowT > 0) { s.tea.slowT = 0; pk.dryTea = true; }
+}
+
+// pace.2 Slipstream: the dash has passed through slipstream.n distinct enemies. Refund once per dash.
+function perkSlipstream(s, d) {
+  var C = P.CFG.perks.slipstream, h = s.hero, seen = d.seen || (d.seen = {}), i, e;
+  if (d.refunded) return;
+  for (i = 0; i < s.enemies.length; i++) {
+    e = s.enemies[i];
+    if (e.dead || e.state !== 'active') continue;
+    if (Math.hypot(e.x - h.x, e.y - h.y) <= e.r + P.CFG.hero.radius) seen[e.id] = true;
+  }
+  if (Object.keys(seen).length < C.n) return;
+  d.refunded = true;
+  h.dashCd = Math.max(0, (h.dashCd || 0) - C.refund * h.dashCdMax);
 }
 
 function stepDash(s, S, dt) {
@@ -73,6 +107,7 @@ function stepDash(s, S, dt) {
   var adv = Math.min(dt, d.T - (d.t - dt));
   h.x += d.dx * d.speed * adv; h.y += d.dy * d.speed * adv;
   clampHero(s);
+  if (perkOn(s, 'pace.2')) perkSlipstream(s, d);
   if (d.t >= d.T) { S.dash = null; h.dashing = false; }
 }
 
@@ -214,7 +249,10 @@ function regenCay(s, S, input, dt) {
 function tickTimers(s, S, dt) {
   if (S.frenzyT > 0) {
     S.frenzyT -= dt;
-    if (S.frenzyT <= 0) { S.frenzyT = 0; s.events.push({ type: 'frenzy', on: false }); }
+    if (S.frenzyT <= 0) {
+      S.frenzyT = 0; s.events.push({ type: 'frenzy', on: false });
+      if (perkOn(s, 'agg.4')) P.Perks.ring(s, s.hero.x, s.hero.y);   // agg.4 Last Laugh
+    }
   }
   if (S.ultT > 0) S.ultT = Math.max(0, S.ultT - dt);
 }
@@ -250,6 +288,29 @@ P.Skills.cdScale = function (s) {
 
 P.Skills.frenzyOn = function (s) { return sk(s).frenzyT > 0; };
 P.Skills.dashing = function (s) { return !!sk(s).dash; };
+
+// Kill streak that starts frenzy: agg.1 Hot Streak lowers it (P.CFG.perks.hotStreak), otherwise the base threshold.
+P.Skills.frenzyThreshold = function (s) {
+  return perkOn(s, 'agg.1') ? P.CFG.perks.hotStreak.threshold : P.CFG.skills.frenzy.threshold;
+};
+
+// agg.2 Blood Rush: adds dt seconds to the ACTIVE frenzy (no-op when frenzy is off). The caller checks the perk and
+// passes the extension and the cap (P.CFG.perks.bloodRush). The total added in one frenzy never exceeds capT.
+P.Skills.extendFrenzy = function (s, dt, capT) {
+  var S = sk(s), pk = pkOf(s), add;
+  if (!(S.frenzyT > 0)) return;
+  add = Math.max(0, Math.min(dt, capT - (pk.frenzyAdded || 0)));
+  S.frenzyT += add;
+  pk.frenzyAdded = (pk.frenzyAdded || 0) + add;
+};
+
+// Wet tiles slow the hero while it stands in one (env-zones heroWet: 'dryPud'; enemies4 frame: 'dryTea'). A dash
+// clears that slow (perkClearSlow) and pace.3 Parkour removes it. The dry flag ends when the hero leaves the tile kind.
+P.Skills.wetSlowOn = function (s, src, inside) {
+  var pk = pkOf(s);
+  if (!inside && pk[src]) pk[src] = false;
+  return inside && !pk[src] && !perkOn(s, 'pace.3');
+};
 
 // Crit chance including the Nazar charm. E2: damageEnemy should roll with this value.
 P.Skills.critChance = function (s) {
@@ -321,7 +382,8 @@ P.Skills.hud = function (s) {
   var S = sk(s), D = P.CFG.skills.dash, a = S.act, noDash = !!(P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s));
   return { dashFrac: noDash ? 0 : Math.max(0, 1 - (s.hero.dashCd || 0) / (s.hero.dashCdMax || D.cooldown)), dashReady: !noDash && !(s.hero.dashCd > 0),
     ult: s.hero.ult || 0, ultReady: (s.hero.ult || 0) >= 1, ultId: P.Skills.ultId(s),
-    frenzy: S.frenzyT > 0, frenzyFrac: S.frenzyT / P.CFG.skills.frenzy.time, streak: S.streak,
+    frenzy: S.frenzyT > 0, frenzyFrac: Math.min(1, S.frenzyT / P.CFG.skills.frenzy.time), threshold: P.Skills.frenzyThreshold(s),
+    streak: S.streak,
     active: { id: P.Skills.activeId(s), on: a.t > 0, onFrac: a.T > 0 ? a.t / a.T : 0,
       ready: a.cd <= 0 && !(a.t > 0), cdFrac: a.cdT > 0 ? 1 - a.cd / a.cdT : 1 } };
 };

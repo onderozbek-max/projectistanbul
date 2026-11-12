@@ -223,6 +223,7 @@
     'hack.tram': { tr: 'Tram kumandası', en: 'Tram control' },
     'hack.done': { tr: 'BAĞLANDI', en: 'LINKED' },
     'hack.lost': { tr: 'KESİLDİ', en: 'LOST' },
+    'hack.weak': { tr: 'ZAYIF BAĞLANTI', en: 'WEAK SIGNAL' },
     'ev.ambush': { tr: 'PUSU!', en: 'AMBUSH!' },
     'ev.loot': { tr: 'Tepsiyi yakala!', en: 'Catch the tray!' },
     'ev.rescue': { tr: 'Birini kurtar!', en: 'Rescue someone!' },
