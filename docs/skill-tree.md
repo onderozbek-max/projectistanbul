@@ -1,6 +1,6 @@
 # Project Istanbul: Cross-Level Skill Tree ("Street Tree")
 
-> **Status:** v0.2 · 2026-11-12 · **Accepted** (D-059 in `product.md` §17; Q1, Q2, Q3, Q5, Q6 answered, Q4 and Q7 open) · Task: R1-T5
+> **Status:** v0.2 · 2026-11-12 · **Accepted** (D-059 in `product.md` §17; Q1 to Q6 answered, Q7 open) · Task: R1-T5
 > **Owner brief (D-054, item 4):** "cross-level skill tree and progression". Design doc first: what persists between levels, costs and currencies, ties to bond meters and the existing Survival Skills, caps, monetization guardrails. Owner approves, then implement and tune with the bot sim.
 > **Related:** [attributes.md](attributes.md) · [game-design.md](game-design.md) §7, §8 · [business-plan.md](business-plan.md) §5 · [narrative.md](narrative.md) (bond meters) · wireframe `design/lofi/11-skills.html`
 > **Built so far (steps 1 and 2 of §8):** `js/config-tree.js`, save v3, the Street Cred spend rule, `js/config-perks.js` and the 24 perk effects with their tests. The screen, bonds and telemetry are not built.
@@ -167,12 +167,12 @@ Files stay at or under 600 lines; perk effects go in their own file, not into `c
 
 ## 9. Questions for the owner
 
-**Answered 2026-11-12 (owner accepted the recommendations):** Q1 perks only, Q2 free respec once per chapter and never sold, Q3 six branches of four, Q5 Survival Skills stay retired, Q6 Kaan only in the slice. **Still open:** Q4 and Q7.
+**Answered 2026-11-12 (owner accepted the recommendations):** Q1 perks only, Q2 free respec once per chapter and never sold, Q3 six branches of four, Q5 Survival Skills stay retired, Q6 Kaan only in the slice. **Q4 answered 2026-11-12:** the 24-perk list with the owner's TR names and descriptions, in `reviews/PERK-TEXT-R1-T5.md`. **Still open:** Q7.
 
 1. **Q1: Street Cred spend rule.** Perks only (recommended), or perks and attribute points share SC as they do today?
 2. **Q2: Respec.** Free once per chapter and never sold (recommended, matches attributes.md), or keep the 50 Altın respec from business-plan?
 3. **Q3: Tree shape.** Six branches of four nodes, one rank each (recommended), or the old three branches (Offense, Defense, Utility) with ranks 1-3?
-4. **Q4: Perk list.** Keep, rewrite or replace the placeholders in §4.3. TR names are yours.
+4. **Q4: Perk list.** *Answered:* approved (5 rows rewritten by the owner, the rest ok). Text lives in `reviews/PERK-TEXT-R1-T5.md`; the Dash is **Depar** in TR.
 5. **Q5: Survival Skills.** Confirm the name stays retired and `11-skills.html` is repurposed as the Street Tree screen.
 6. **Q6: Bonds.** Kaan only in the slice, with the combo ultimate at bond 50?
 7. **Q7: Docs to fix.** Should I correct the seven conflicts in §2.1 once you pick a side?

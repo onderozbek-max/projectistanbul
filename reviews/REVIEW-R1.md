@@ -589,3 +589,60 @@ Within the noise at 30 seeds (about plus or minus 9 points). Game-design section
 
 ## Proposed next steps
 Step 3, the Street Tree screen from the wireframe (Fight and Street pages, learn, respec, locked Bond tab), in EN and TR, with screenshots at 390x844. It needs your Turkish perk names and descriptions (24 pairs) or I draft EN and mark TR as proposed. Then step 4 (Kaan bond) and step 5 (telemetry).
+
+---
+
+# R1-T5 step 3: the Street Tree screen
+
+Owner answers used: the perk text list is approved (5 rows rewritten by the owner, 19 "ok"); the Dash is **Depar** in TR; metres are written "1m". Built from `design/lofi/11-skills.html`. Screenshots (390x844, headless browser, seeded save: Strength 4, Aggression 2, Grit 1, Pace 2, Intelligence 1, Charm 3) are in `reviews/media/R1/tree/`.
+
+## Done
+| Item | Change |
+|---|---|
+| Screen | New `js/meta/meta-tree.js` (126 lines). Header with back, title and the Street Cred chip; page switch Fight (Strength, Aggression, Grit) and Street (Pace, Intelligence, Charm) plus a disabled **Bond · L20** tab; 3 columns x 4 tiers; detail panel with name, tier, description, requirement line and the Learn button; respec link and the "earn Street Cred by fighting" hint |
+| Node states | learned (gold, tick), available (gold outline, `◆cost`), not enough Street Cred (muted outline, `◆cost`), locked by rank (dashed, dimmed, lock icon and the rank needed). Lock and cost are text on every node, never color only; each node has an `aria-label` with name and state |
+| Rank source | Branch headers and "(you have N)" show the **spent** rank, the same value the gate uses. The Karakter screen shows spent plus ready points, so the two can differ by design |
+| Respec | The free respec burns once per chapter, so it takes two taps: the first turns the link into "Sıfırlansın mı? 5 Sokak Tecrübesi geri gelir. Onaylamak için tekrar dokun." (any other tap cancels). Used: the link reads "Bu bölümdeki sıfırlama hakkı kullanıldı" and is disabled. Nothing learned: disabled, and it does not burn the free respec |
+| Persistence | `P.Meta.treeState / treeLearn / treeRespec` in `meta-data.js`: Street Cred and the tree are written together in one save |
+| Strings | `js/meta/strings-tree.js`: the 24 perk names and descriptions copied verbatim from the approved list, the 11 screen keys, and 6 new keys (below) |
+| Entry point | A fifth tab, **Ağaç / Tree**, in the map's tab strip (after Karakter). Tab font 11 to 10 px so five labels fit inside the margins |
+| Karakter note | `attr.panelNote` said Street Cred "goes anywhere", which is no longer true. It now points to the Tree tab |
+| Tests | `test-tree.js` (165 checks, was 67): learn persists and costs Street Cred, a rank-locked or unknown perk is refused, respec refunds, a second respec in the chapter is refused, an empty respec does not burn it, the run loadout carries the learned perks, every perk and screen key has EN and TR text and a name that fits a node. `test-meta` (122) and `test-dialogue` pass |
+| Other | `Depar` rename (committed earlier); `tools/lib-load.js` skips the new view file like the other panels; wireframe node names updated to the final perk names, and Shockwave is drawn locked (Strength 3 is under its gate of 4; the old wireframe drew it available) |
+
+## Screenshots (`reviews/media/R1/tree/`)
+- `tree-en-available.png`: Fight page, EN. Killing Spree selected and available.
+- `tree-tr-locked-by-rank.png`: TR, Wall Breaker selected: "Güç 6 gerekir (sende 4)", Learn disabled.
+- `tree-tr-not-enough-sc.png`: TR, Shockwave selected with 0 Street Cred: rank is fine, Learn disabled, warning line.
+- `tree-tr-respec-confirm.png`: TR, after learning Killing Spree (Street Cred 7 to 6) and one tap on respec.
+- `tree-tr-street-respec-used.png`: TR, Street page after the respec was used (Street Cred back to 11, link disabled). Shows İyi İsim, Hızlı Parmaklar, Kedi refleksi with the correct Turkish capitals.
+- `tab-strip-tr.png`: the five-tab strip.
+
+## Proposed text (not covered by your "ok")
+These are my drafts. TR is yours to rewrite.
+| Key | EN | TR |
+|---|---|---|
+| tab.tree | Tree | Ağaç |
+| tree.tier | {attr} · tier {n} | {attr} · kademe {n} |
+| tree.short | Not enough Street Cred (you have {sc}) | Yeterli Sokak Tecrübesi yok (sende {sc}) |
+| tree.respecConfirm | Respec? Refunds {n} Street Cred. Tap again to confirm. | Sıfırlansın mı? {n} Sokak Tecrübesi geri gelir. Onaylamak için tekrar dokun. |
+| tree.bond.locked (screen-reader label of the disabled Bond tab) | Kaan joins at level 20. His perks are earned by playing together, never bought. | Kaan 20. seviyede katılır. Yetenekleri birlikte oynayarak kazanılır, satın alınmaz. |
+| tree.pick (unused for now) | Tap a perk to see what it does. | Ne işe yaradığını görmek için bir yeteneğe dokun. |
+| attr.panelNote (changed) | Training bars fill from how you play. Ready points only go to their own attribute. Spend Street Cred on perks in the Tree tab. | Eğitim çubukları oynayış tarzından dolar. Hazır puanlar yalnızca kendi özelliğine gider. Sokak Tecrübesi ile Ağaç sekmesinde yetenek öğrenirsin. |
+
+## Deviations
+- **Entry point:** the wireframe has a bottom "Squad" tab with a Tree | Gear segment. The prototype has neither, so the tree is a fifth tab in the map's existing tab strip.
+- **Touch targets:** nodes (64 px tall), page buttons, Learn and the respec link are 48 px or more. The map's tab strip is 32 px tall (existing, not changed by me).
+- **Bond tab:** visible and disabled (no Bond page yet; step 4).
+- **Cost on the node:** `◆1` is a short form of "1 Street Cred"; the full words are in the detail panel and the node's `aria-label`.
+- No pulse on a newly learned node under reduced motion (the existing reduce-motion rule covers the pop animation).
+
+## Known issues
+- `tools/meta-preview.html` was already broken before this step (it loads too few scripts: `P.CFG.skills` is undefined there and the map fails to build). I added the new scripts to it but did not repair it; screenshots came from the real page (`index.html`) with `P.Meta.open()`.
+- `tree.pick` is defined but not shown anywhere yet.
+- `test-arsenal.js` full run (over 10 minutes) not repeated.
+- Q7 (seven doc conflicts, including `attributes.md` section 3) is still open.
+- Reviewing the screen on a real phone is still to do (frame time and thumb reach).
+
+## Proposed next steps
+Step 4: the Kaan bond (meter fill, the L20 join, the Bond page). Step 5: telemetry (perk learned, respec, Street Cred balance). Before that, your TR for the six proposed strings above, and a go or no-go on the two-tap respec.

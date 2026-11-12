@@ -62,7 +62,8 @@
   // v0.5 tab strip under the top bar: Karakter, Silahlar, Görevler, Hatıralar.
   function buildTabs() {
     tabsEl = el('div', 'meta-tabs', root);
-    [['attr', 'tab.attr', function () { showPanel('attr'); }], ['ars', 'tab.ars', function () { showPanel('ars'); }],
+    [['attr', 'tab.attr', function () { showPanel('attr'); }], ['tree', 'tab.tree', function () { showPanel('tree'); }],
+      ['ars', 'tab.ars', function () { showPanel('ars'); }],
       ['daily', 'tab.daily', function () { showPanel('hub', 'daily'); }], ['coll', 'tab.coll', function () { showPanel('hub', 'coll'); }]
     ].forEach(function (d) {
       var b = el('button', 'meta-tab', tabsEl);
@@ -71,20 +72,23 @@
   }
   function buildPanels() {
     if (M.Attr) M.Attr.build(root, { onBack: hidePanel });
+    if (M.TreeUI) M.TreeUI.build(root, { onBack: hidePanel });
     if (M.Arsenal) M.Arsenal.build(root, { onBack: hidePanel });
     if (M.Hub) M.Hub.build(root, { onBack: hidePanel });
   }
-  // Panels replace the map while open. name: 'attr' | 'ars' | 'hub' (hub tab: 'daily' | 'coll').
+  // Panels replace the map while open. name: 'attr' | 'tree' | 'ars' | 'hub' (hub tab: 'daily' | 'coll').
   function showPanel(name, hubTab) {
     sfx('uiOpen'); Map.hide(); bottom.classList.add('is-hidden'); tabsEl.classList.add('is-hidden');
     panelOpen = name;
     if (name === 'attr') M.Attr.show();
+    else if (name === 'tree') M.TreeUI.show();
     else if (name === 'ars') M.Arsenal.show();
     else M.Hub.show(hubTab);
   }
   function hidePanel() {
     if (!panelOpen) return;
     if (M.Attr) M.Attr.hide();
+    if (M.TreeUI) M.TreeUI.hide();
     if (M.Arsenal) M.Arsenal.hide();
     if (M.Hub) M.Hub.hide();
     panelOpen = null; sfx('uiBack');
@@ -401,6 +405,7 @@
     sheetHood = -1; sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden');
     Map.hide(); Gear.hide();
     if (M.Attr) M.Attr.hide();
+    if (M.TreeUI) M.TreeUI.hide();
     if (M.Arsenal) M.Arsenal.hide();
     if (M.Hub) M.Hub.hide();
     panelOpen = null;

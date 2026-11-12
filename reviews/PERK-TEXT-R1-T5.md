@@ -1,10 +1,10 @@
 # Street Tree perk text (R1-T5 step 3): approve or rewrite
 
-> **Status:** draft 2026-11-12 · TR is **proposed**, written in the game's existing words (frenzy = ÇILGINLIK, Dash = Depar, can for HP, sn for seconds, First Aid Kit = İlk Yardım Çantası). TR is the owner's call (D-051): rewrite freely. EN is American English.
+> **Status:** approved 2026-11-12 (was a draft) · TR is **proposed**, written in the game's existing words (frenzy = ÇILGINLIK, Dash = Depar, can for HP, sn for seconds, First Aid Kit = İlk Yardım Çantası). TR is the owner's call (D-051): rewrite freely. EN is American English.
 > **Limits:** a name has to fit a 52 px node on two lines (about 8 letters a line). A description should fit two lines of the detail panel (about 60 characters).
 > **How to answer:** write "ok" or your replacement next to any row. Numbers in the text come from `prototype/js/config-perks.js`; if you change a number there, the text has to change too.
 > **Owner decisions (2026-11-12):** the Dash is **Depar** everywhere in TR (HUD, stat, daily modifier, achievement, perks; applied in the strings). Metres are written without a space (`1m`, `1,5m`, `5m`).
-> **Owner answers so far (2026-11-12):** `str.1`, `pace.2`, `agg.1`, `int.2`, `grit.4` (TR by the owner; EN names drafted to follow them). The other 19 rows are still waiting for ok or a rewrite.
+> **Owner answers so far (2026-11-12):** `str.1`, `pace.2`, `agg.1`, `int.2`, `grit.4` (TR by the owner; EN names drafted to follow them). The other 19 rows: **ok** (owner, 2026-11-12). All 24 rows are approved and now live in `prototype/js/meta/strings-tree.js`.
 > **Renamed since the first list:** `str.2` Cart Shover is now **Blast Shove** (carts never explode in this game, so the old name promised something that does not exist).
 
 | ID | EN name | EN description | TR name | TR description |

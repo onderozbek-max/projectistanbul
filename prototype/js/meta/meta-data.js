@@ -241,6 +241,26 @@ P.Meta = P.Meta || {};
     return true;
   };
 
+  // ---- Street Tree (D-059): learn and respec persist the hero's Street Cred and the tree together ----
+  M.treeState = function () {
+    var s = load(), ch = String(P.CFG.tree.chapter);
+    return { learned: Object.assign({}, s.tree.learned), sc: s.heroes.arda.stats.sc | 0, ranks: Object.assign({}, s.heroes.arda.stats.attr),
+      respecUsed: (s.tree.respecs[ch] | 0) >= P.CFG.tree.respecPerChapter, spent: P.Tree.spent(s.tree) };
+  };
+  M.treeLearn = function (id) {
+    var s = load(), r = P.Tree.learn(s.heroes.arda.stats, s.tree, id);
+    if (!r) return false;
+    s.heroes.arda.stats = r.prog; s.tree = r.tree; save();
+    return true;
+  };
+  // Returns the refunded Street Cred, or 0 when the chapter's free respec is used or nothing is learned.
+  M.treeRespec = function () {
+    var s = load(), r = P.Tree.respec(s.heroes.arda.stats, s.tree);
+    if (!r) return 0;
+    s.heroes.arda.stats = r.prog; s.tree = r.tree; save();
+    return r.refunded;
+  };
+
   // ---- Run options (daily modifiers etc.) ----
   // beginRun(opts) remembers opts for the next loadout(). openDaily() calls it. opts: {daily, modifiers, seed}.
   M.beginRun = function (opts) { activeRun = opts && typeof opts === 'object' ? opts : null; };

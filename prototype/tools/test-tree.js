@@ -114,5 +114,33 @@ section('save migration v2 -> v3', () => {
   ok(Object.keys(store).length === 0, 'wipe removes the v3, v2 and v1 keys');
 });
 
+section('persistence API used by the Street Tree screen', () => {
+  const s = M.state();
+  s.heroes.arda.stats.attr.str = 2; s.heroes.arda.stats.attr.agg = 1; s.heroes.arda.stats.sc = 5; s.tree = T.newState(); M.save();
+  ok(!M.treeLearn('str.3') && !M.treeLearn('nope') && M.treeState().sc === 5, 'a rank-locked or unknown perk is refused and costs nothing');
+  ok(M.treeLearn('str.1') && M.treeLearn('str.2'), 'learn persists two perks the hero can afford');
+  let st = M.treeState();
+  ok(st.sc === 2 && st.learned['str.1'] === 1 && st.learned['str.2'] === 1 && st.spent === 3 && !st.respecUsed, 'Street Cred drops by the cost and the state reports what was learned');
+  ok(!M.treeLearn('str.2') && M.treeState().sc === 2, 'learning an owned perk again is refused');
+  ok(M.loadout().perks.slice().sort().join() === 'str.1,str.2', 'the run loadout carries the learned perks');
+  ok(M.treeRespec() === 3, 'respec refunds every perk');
+  st = M.treeState();
+  ok(st.sc === 5 && st.spent === 0 && st.respecUsed && Object.keys(st.learned).length === 0, 'after respec the tree is empty, the Street Cred is back and the chapter respec is used');
+  M.treeLearn('agg.1');
+  ok(M.treeRespec() === 0 && M.treeState().learned['agg.1'] === 1 && M.treeState().sc === 4, 'a second respec in the same chapter is refused and changes nothing');
+  M.state().tree = T.newState(); M.save();
+  ok(M.treeRespec() === 0 && !M.treeState().respecUsed, 'respec with nothing learned does nothing and does not burn the free respec');
+});
+
+section('screen strings: every perk and screen key has EN and TR text', () => {
+  const keys = [];
+  T.ids().forEach(id => keys.push('tree.' + id + '.name', 'tree.' + id + '.desc'));
+  ['title', 'page.fight', 'page.street', 'page.bond', 'sc', 'needs', 'learn', 'learned', 'respec', 'respecUsed', 'hint', 'tier', 'short', 'respecConfirm', 'bond.locked', 'pick']
+    .forEach(k => keys.push('tree.' + k));
+  keys.push('tab.tree');
+  keys.forEach(k => ok(P.STR.tr[k] && P.STR.en[k], 'TR and EN text for ' + k));
+  T.ids().forEach(id => ok(P.STR.tr['tree.' + id + '.name'].length <= 20 && P.STR.en['tree.' + id + '.name'].length <= 20, 'perk name fits a node: ' + id));
+});
+
 console.log(fails ? 'test-tree: ' + fails + ' failure(s), ' + passes + ' passed' : 'test-tree: all ' + passes + ' checks pass');
 process.exit(fails ? 1 : 0);
