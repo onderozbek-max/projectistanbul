@@ -538,3 +538,54 @@ Owner accepted the recommendations (D-059 now ACCEPTED): Q1 perks only, Q2 one f
 
 ## Proposed next steps
 Step 2: perk effects as Defs, folded into `P.Power.expectedLoadout`, then a bot run on L1-30 against the game-design section 7 bands. This needs Q4: do you want to keep, rewrite or replace the 24 placeholder perks first, or should I implement the placeholders and you adjust later?
+
+---
+
+# R1-T5 step 2: the 24 perk effects
+
+Owner answers used: Rule 2 (the half-an-attribute-rank cap) covers **percent stat bonuses only**; **accept my swaps**; **code wins** over the docs. Three agents built disjoint file groups in parallel; the lead integrated and ran the checks.
+
+## Done
+| Item | Change |
+|---|---|
+| Config and plumbing | New `js/config-perks.js` (every perk number) and `js/sim/perks.js` (`s.perk` set from the loadout, shared `P.Perks.ring`). `s.pk` is the per-run perk state. `loadout.perks` comes from the save in the game and from `P.Power.expectedPerks` in the bot (Street Cred from `killsPerLevel` x cleared levels, spent down `perkOrder`) |
+| Combat (9 perks) | `combat.js`: str.1 to str.4, agg.2, agg.3, grit.1, grit.3, grit.4. `P.Combat.shove` gained an optional stack argument; `damageHero` returns the damage taken |
+| Movement and frenzy (6 perks) | `skills.js`, `env-zones.js`, `enemies4.js`, `view/ui.js`: pace.1 to pace.4, agg.1, agg.4, plus `P.Skills.extendFrenzy` |
+| Hacks, rescues, regen (9 perks) | `hack.js`, `events-kinds.js`, `events.js`, `objectives-kinds.js`, `sim.js`, new `view/perk-mark.js`: int.1 to int.4, cha.1 to cha.4, grit.2 |
+| Lead fixes | The shove ring stacks onto a push in flight (it overwrote it); Cart Shover also covers env blasts (gas canisters, bomb cars); a rescue that already brings a helper (charm gate) keeps its full 20 s under Neighbourhood; a white fading ring (`perkRing`) shows Shockwave and Last Laugh |
+
+The tree's perks are not learned by anyone yet (no screen), so a normal player sees no change until step 3.
+
+## Tests and balance
+- New: `test-perks-combat`, `test-perks-move`, `test-perks-world`, each with a learned and a not-learned check per perk. The agents ran mutation checks (combat: 11 deliberate breakages, all caught) and **byte-identity digests with no perks learned** (combat: 45 seeded scenarios; movement: 60k steps over 10 levels and 2 seeds; world: 12 seeded runs; all identical to HEAD).
+- Pass: `test-tree`, `test-meta`, `test-dialogue`, `test-feel`, `test-ceiling`, `test-enemy-behaviors`, `test-env`, `test-horde`, the five `check-*` tools.
+- **Bot A/B (30 seeds, kite-generic, one revive allowed), typical player with and without perks:**
+
+| Level | Clear, perks on / off | No-death, perks on / off | Perks owned (typical player) |
+|---|---|---|---|
+| L20 (H04-L5, boss) | 93% / 93% | 70% / 57% | 3 |
+| L30 (H06-L5, boss) | 87% / 87% | 63% / 70% | 9 |
+
+Within the noise at 30 seeds (about plus or minus 9 points). Game-design section 7 targets (L20 about 65%, L30 about 60%) hold. L1-L10 have no perks in the model (attribute rank under 1). The model assumes **500 kills per cleared level** for the Street Cred budget; that is an assumption to measure.
+
+## Deviations
+- Perks differ from the first placeholder list as approved (see `docs/skill-tree.md` 4.3). Hot Streak is 50, not 25 (code base is 60).
+- **int.4 Backdoor (resolved, owner said yes):** the tram half first changed only how long the danger lane was painted (the sim gave `rushT` no gameplay effect). It now lengthens the crush lane x1.5 (12 m to 18 m), the painted lane follows it, and the rush time is unchanged. Test: an enemy 25% past the base lane is crushed only with the perk.
+- **grit.4 Stubborn (changed, owner picked option 3):** the damage reduction is gone (a lethal hit could never be reduced, so the 10% rarely mattered and was invisible). It now pulls healing drops (simit and the like; not XP, coins or chests) to the hero from 5 m while HP is at or below 20% (base pickup radius is 1.5 m). It only moves food closer, so damage and the death path are untouched and it cannot act as a revive.
+- **str.2 Cart Shover:** carts never explode in this game, so it triggers on canister and env blasts only.
+- **grit.1 Thick Skin:** covers the default melee contact; brute charge and bloater contact are not covered.
+- **pace.1 Quick Feet:** the slow stays off until the hero leaves that puddle or tea tile (a one-shot clear would be undone on the next frame).
+- **pace.2 Slipstream:** counts distinct enemies per frame (about 0.33 m steps), so a very thin pass could be missed.
+- **pace.4 Dolmus Rider:** the free dash's own cooldown is 0, so the next dash is also immediate.
+- **grit.3 Iron Stomach:** does not cover the simit reward card (not a drop). Heavy weapons are those flagged `heavy:true`: canister, sledge, blacksmith, cleaver, cluster, finale.
+
+## Known issues (view and text, not built)
+- **int.2 Second Look (resolved):** a terminal that keeps its progress now shows its progress arc while idle, and the label reads `ZAYIF BAĞLANTI` (the owner's wording; EN `WEAK SIGNAL`, my wording) instead of `KESİLDİ` / `LOST`. Key `hack.weak` in `config-levels.js`, in capitals like its sibling `hack.lost`.
+- No perk icons, names or descriptions yet (step 3, TR text yours).
+
+## Also checked
+- **Real game page with all 24 perks learned** (level 22, headless browser, 6 s of play, a shove ring fired): state `play`, 24 perks in the run, no page errors.
+- **`test-arsenal.js --quick` passes** (the full run takes over 10 minutes and was not repeated). Running it exposed a break from my T4 work: `weapons-fx.js` calls `P.Feel.hitStop`, and the test's hand-written file list does not load `feel.js`, so it crashed. Fixed with a no-op `P.Feel` stub in the test, like its other browser-only stand-ins. T4 had skipped this test, so the break had gone unseen.
+
+## Proposed next steps
+Step 3, the Street Tree screen from the wireframe (Fight and Street pages, learn, respec, locked Bond tab), in EN and TR, with screenshots at 390x844. It needs your Turkish perk names and descriptions (24 pairs) or I draft EN and mark TR as proposed. Then step 4 (Kaan bond) and step 5 (telemetry).

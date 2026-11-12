@@ -3,7 +3,7 @@
 > **Status:** v0.2 · 2026-11-12 · **Accepted** (D-059 in `product.md` §17; Q1, Q2, Q3, Q5, Q6 answered, Q4 and Q7 open) · Task: R1-T5
 > **Owner brief (D-054, item 4):** "cross-level skill tree and progression". Design doc first: what persists between levels, costs and currencies, ties to bond meters and the existing Survival Skills, caps, monetization guardrails. Owner approves, then implement and tune with the bot sim.
 > **Related:** [attributes.md](attributes.md) · [game-design.md](game-design.md) §7, §8 · [business-plan.md](business-plan.md) §5 · [narrative.md](narrative.md) (bond meters) · wireframe `design/lofi/11-skills.html`
-> **Built so far (step 1 of §8):** `js/config-tree.js`, save v3, the Street Cred spend rule, `tools/test-tree.js`. Perk effects, the screen, bonds and telemetry are not built.
+> **Built so far (steps 1 and 2 of §8):** `js/config-tree.js`, save v3, the Street Cred spend rule, `js/config-perks.js` and the 24 perk effects with their tests. The screen, bonds and telemetry are not built.
 
 ---
 
@@ -77,18 +77,21 @@ Design response: **fold the tree into the attribute system instead of beside it.
 4. No perk replaces a paid product. In particular, **no revive or second-life perk** (the revive is sold for Altın). The old Survival Skills capstone "Second Wind" is **dropped** for this reason.
 5. Every perk has an icon **and** a text label. Color is never the only cue.
 
-### 4.3 Placeholder perks (owner and writer replace these)
+### 4.3 The 24 perks (built in step 2; names are placeholders, TR names are the owner's)
 
-Names and effects are placeholders to show the shape. TR names are the owner's (D-051). Effects must still pass rules 1 to 5.
+Effects are as built and tested (`js/config-perks.js` holds every number; the hooks are listed in `reviews/REVIEW-R1.md`). The first
+placeholder list was written from the docs; the code disagreed in several places (frenzy starts at a 60-kill streak, not 25; a hack takes
+6 s; the medkit regen delay is already 3 s; there are no vendors, no vaulting and no low-HP state), so the owner approved the changes below
+(2026-11-12: Rule 2 covers percent stat bonuses only; accept the swaps; code wins over the docs).
 
 | Branch | T1 (rank 1, 1 SC) | T2 (rank 2, 2 SC) | T3 (rank 4, 3 SC) | T4 (rank 6, 4 SC) |
 |---|---|---|---|---|
-| STR | Heavy Hands: heavy hits knock back +12% | Cart Shover: carts and canisters you hit travel further | Shockwave: every 8th heavy hit sends a short shove ring | Wall Breaker: heavy hits stagger armored enemies 0.5 s |
-| PACE | Quick Feet: 0.8 s speed boost after a dash | Slipstream: a dash through 3+ enemies refunds 25% of its cooldown | Parkour: vault low props without slowing | Dolmuş Rider: first dash each stage has no cooldown |
-| AGG | Hot Streak: frenzy starts at streak 20 instead of 25 | Blood Rush: boss hits extend frenzy 0.5 s | Finisher: crit kills pop one extra XP gem | Last Laugh: frenzy end releases a small shove ring |
-| INT | Quick Fingers: hack ring stand time 0.5 s to 0.35 s | Second Look: one retry on a failed hack per stage | Signal Boost: cell-booster hint lasts +10 s | Backdoor: terminal rewards +50% |
-| CHA | Good Name: rescued civilians give +20% XP | Friendly Faces: civilians follow you longer | Regular: a vendor restocks once per stage | Neighbourhood: rescued civilians fight for 10 s |
-| GRIT | Thick Skin: first hit each stage deals -30% | Tea Break: regen starts after 3 s instead of 4 | Iron Stomach: pickups heal +20% | Stubborn: below 20% HP, take 10% less damage (no revive) |
+| STR | Heavy Hands: heavy-weapon hits shove the target 1 m extra | Cart Shover: canister and env blasts also shove enemies just outside the blast | Shockwave: every 8th heavy hit sends an instant shove ring | Wall Breaker: heavy hits stun armored enemies 0.5 s |
+| PACE | Quick Feet: a dash clears any tea or puddle slow | Slipstream: a dash through 3+ enemies refunds 25% of its cooldown | Parkour: puddles and tea never slow you | Dolmus Rider: the first dash each stage has no cooldown |
+| AGG | Hot Streak: frenzy starts at a 50-kill streak instead of 60 | Blood Rush: boss hits extend frenzy 0.5 s (max +4 s) | Finisher: crit kills slow enemies within 1.5 m | Last Laugh: when frenzy ends, a shove ring goes off |
+| INT | Quick Fingers: your hacks are quiet (no noise wave) | Second Look: the first failed hack per run keeps its progress | Signal Boost: a cell booster marks the next terminal for 10 s | Backdoor: traffic-light stun and tram crush lane length +50% |
+| CHA | Good Name: rescue hold 2.5 s to 2.0 s | Friendly Faces: escort contact HP time 4 s to 5 s | Regular: +1 free card reroll per run | Neighbourhood: every rescue brings a 10 s helper (gated rescues keep 20 s) |
+| GRIT | Thick Skin: the first contact hit per run stuns the attacker 0.5 s | Tea Break: medkit regen delay 3 s to 2 s | Iron Stomach: simit heals +5 HP | Stubborn: at 20% HP or less, healing drops are pulled to you from 5 m (never a revive) |
 
 ### 4.4 Street Cred budget
 
