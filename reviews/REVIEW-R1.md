@@ -510,3 +510,31 @@ Evidence: `reviews/media/R1/T0/` (390x844, EN and TR).
 
 ## Checks
 `test-dialogue` (550 beats, TR 1169, EN 1172, same digest as baseline), `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-entrances`, `check-death-causes` pass. Comic audit (TR, after the owner's three lines): fail 1 (`kaan_join #2`, pre-existing), overlap 0, cross 3 (all pre-existing). No dedicated comic layout test exists.
+
+---
+
+# R1-T5 step 1: tree data, save v3 and the Street Cred rule
+
+Owner accepted the recommendations (D-059 now ACCEPTED): Q1 perks only, Q2 one free respec per chapter and never sold, Q3 six branches of four, Q5 Survival Skills stay retired, Q6 Kaan only. Q4 (perk list and TR names) and Q7 (doc conflicts) are still open. Step 1 of `docs/skill-tree.md` section 8.
+
+## Done
+| Item | Change |
+|---|---|
+| Tree config and logic | New `js/config-tree.js` (92 lines, pure): 24 perk ids `<attr>.<tier>`, gates at rank 1, 2, 4, 6, costs 1 to 4 (60 SC for the tree), `learn`, `respec` (refunds everything, one free use per chapter), bond helpers. No display strings and no perk effects yet |
+| Save v3 | `nsi.meta.v3` adds `tree` and `bonds`. Reads v3, else v2, else v1; the older keys are kept as backups. A v2 save keeps coins, stars, attributes, SC, mastery, counters and streak |
+| Street Cred rule (Q1) | `P.Stats.allocate` and `spendable` use READY points only. `scNeeded` is removed. The attribute screen's plus button follows the same rule (`meta-stats.js`, one line) |
+| Tests | New `tools/test-tree.js`, 67 checks: gates, costs, rank is the lock, SC is the key, learn does not mutate, respec rules, SC cannot buy attribute points, v2 to v3 migration, damaged saves. A mutation check (one gate changed) fails as it should |
+
+## Checks
+`test-tree` (67), `test-meta`, `test-dialogue`, `test-feel`, `test-ceiling`, `test-enemy-behaviors`, `test-env`, `test-horde`, `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-death-causes`, `check-entrances` pass. `bot.js --seeds=3` runs. The game page loads in a headless browser with a v3 save, no page errors. `test-arsenal.js` not run (over 10 minutes; no sim code changed).
+
+## Deviations
+- **Street Cred has no use until step 3.** Until the tree screen exists, SC accumulates and cannot be spent (it used to buy attribute points). Nothing is lost: the balance is kept and the future screen spends it. The attribute screen still shows the SC count in its pool line. If you want SC spendable sooner, step 3 can come before step 2.
+- No balance numbers changed; the bot sim is not affected (perks have no effects yet).
+
+## Known issues
+- The attribute screen text `attr.pool` still lists Street Cred; the wording is yours (TR) if you want it dropped.
+- `docs/attributes.md` section 3 still describes SK as an attribute gate. That is conflict (d) in Q7, not touched.
+
+## Proposed next steps
+Step 2: perk effects as Defs, folded into `P.Power.expectedLoadout`, then a bot run on L1-30 against the game-design section 7 bands. This needs Q4: do you want to keep, rewrite or replace the 24 placeholder perks first, or should I implement the placeholders and you adjust later?
