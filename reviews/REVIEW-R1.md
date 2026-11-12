@@ -453,5 +453,8 @@ Scope check first: the v0.9 animation pass (feel.js, vehicles.js, fire animation
 - Existing: test-ceiling, test-dialogue, test-enemy-behaviors, test-env, test-horde, test-meta (122), check-ids, check-hood-keys, check-objective-strings, check-death-causes pass. The long `test-arsenal.js` was not run (over 10 min; this slice changes no sim code).
 - Game page, level 1, real-time headless run with synthetic pickup, kill, boss-hit and boss-windup states: no exceptions; boss hit sets a 60 ms stop.
 
-## Not yet done in T4
-Spawn markers for ordinary horde spawns, dash trail polish, UI motion beyond the reduce-motion fix, before and after clips, and the Low-device frame-time numbers (needs your phone).
+## Decided not to build, and what is left
+- **Spawn markers for ordinary horde spawns: not built.** Ordinary spawns happen off-screen, and design-system.md section 6 puts enemies below telegraphs in the visual hierarchy; a marker per spawn is clutter with no spec behind it. What exists stays: the window, balcony and tram entrances, the 0.15 s scale-in, and the surge cue at the side edge for a real horde surge. Say so if you want edge arrows anyway.
+- **Dash polish: nothing to add.** Dash already has speed lines, an afterimage ghost, camera kick, footfall dust and sound.
+- **Before and after clips: not made.** A headless software-render capture is too slow to show 0.2 s effects (my filmstrip of the pickup arc caught only static frames), so I did not commit it. Judge the effects in real play on the phone.
+- **Low-device frame-time numbers: still owed** (needs your phone; see the frame-time notes above).
