@@ -174,8 +174,7 @@ P.RenderWorld = (function () {
   W.drawProps = function (R, s) {
     if (!isL1(s)) { genProps(R, s); return; }
     var c = R.ctx, lv = L(), t = performance.now() / 1000;
-    c.fillStyle = '#3A3E45'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
-    c.beginPath(); c.arc(R.X(lv.manhole.x), R.Y(lv.manhole.y), 0.55 * R.ppm, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.strokeStyle = '#14151F'; c.lineWidth = 2;
     if (!s.dir.flags.cat || s.dir.bubbles.length) {
       c.fillStyle = '#E9A23B'; c.beginPath(); c.ellipse(R.X(lv.cat.x), R.Y(lv.cat.y), 0.35 * R.ppm, 0.2 * R.ppm, 0, 0, Math.PI * 2); c.fill(); c.stroke();
     }
