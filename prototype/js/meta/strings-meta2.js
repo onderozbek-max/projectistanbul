@@ -1,12 +1,12 @@
 // Strings for v0.5 meta: attributes (stats), arsenal, daily, streak, achievements, collection, welcome-back, toasts.
 // TR primary, EN second. Keys follow the spec; {placeholders} are filled by P.t(key, vars).
 Object.assign(P.STR.tr, {
-  'stat.str': 'Güç', 'stat.pace': 'Çeviklik', 'stat.agg': 'Öfke', 'stat.int': 'Zekâ', 'stat.cha': 'Karizma', 'stat.grit': 'Dayanıklılık',
-  'attr.lvlup': 'SEVİYE TAMAM', 'attr.sub': 'Sokak tecrübesi kazandın. Eğitim çubukları doldu.',
+  'stat.str': 'Güç', 'stat.pace': 'Çeviklik', 'stat.agg': 'Vahşet', 'stat.int': 'Zekâ', 'stat.cha': 'Karizma', 'stat.grit': 'Dayanıklılık',
+  'attr.lvlup': 'SEVİYE TAMAM', 'attr.sub': 'Sokak tecrübesi kazandın. Gelişim çubukları doldu.',
   'attr.allocHead': 'Puanları dağıt', 'attr.later': 'Sonra', 'attr.confirm': 'Onayla', 'attr.title': 'KARAKTER',
-  'attr.pool': 'Hazır: {r} · Sokak Tecrübesi: {sc} · Kalan: {left}', 'attr.none': 'Harcanacak puan yok. Eğitim çubuklarını doldurmaya devam et.',
+  'attr.pool': 'Hazır: {r} · Sokak Tecrübesi: {sc} · Kalan: {left}', 'attr.none': 'Harcanacak puan yok. Gelişim çubuklarını doldurmaya devam et.',
   'attr.readyTag': 'hazır', 'attr.minus': 'Azalt', 'attr.plus': 'Artır', 'attr.pop': '+1 {s}!', 'attr.train': 'eğitim %{a}',
-  'attr.panelNote': 'Eğitim çubukları oynayış tarzından dolar. Hazır puanlar yalnızca kendi özelliğine gider. Sokak Tecrübesi ile Ağaç sekmesinde yetenek öğrenirsin.',
+  'attr.panelNote': 'Gelişim çubuğu dolduğunda bir özelliği buradan geliştirebilirsin. Sokak Tecrübesi ile Yetenekler sekmesinden yetenek öğrenirsin.',
   'fx.mightPct': 'Hasar {v}', 'fx.movePct': 'Hız {v}', 'fx.cooldownPct': 'Silah hızı {v}', 'fx.critPct': 'Kritik şansı {v} puan',
   'fx.pickupPct': 'Toplama alanı {v}', 'fx.dashCdPct': 'Depar hızı {v}', 'fx.knockbackPct': 'Geri itme {v}',
   'fx.hackSpeedPct': 'Hack hızı {v}', 'fx.civHelpPct': 'Sivil yardımı {v}', 'fx.coinPct': 'Jeton {v}', 'fx.luckPct': 'Şans {v}',
@@ -61,7 +61,7 @@ Object.assign(P.STR.en, {
   'attr.allocHead': 'Spend your points', 'attr.later': 'Later', 'attr.confirm': 'Confirm', 'attr.title': 'CHARACTER',
   'attr.pool': 'Ready: {r} · Street Cred: {sc} · Left: {left}', 'attr.none': 'No points to spend. Keep filling the training bars.',
   'attr.readyTag': 'ready', 'attr.minus': 'Decrease', 'attr.plus': 'Increase', 'attr.pop': '+1 {s}!', 'attr.train': 'training {a}%',
-  'attr.panelNote': 'Training bars fill from how you play. Ready points only go to their own attribute. Spend Street Cred on perks in the Tree tab.',
+  'attr.panelNote': 'When a training bar fills, you can raise that attribute from here. Spend Street Cred to learn perks in the Tree tab.',
   'fx.mightPct': 'Damage {v}', 'fx.movePct': 'Speed {v}', 'fx.cooldownPct': 'Weapon speed {v}', 'fx.critPct': 'Crit chance {v} pts',
   'fx.pickupPct': 'Pickup radius {v}', 'fx.dashCdPct': 'Dash speed {v}', 'fx.knockbackPct': 'Knockback {v}',
   'fx.hackSpeedPct': 'Hack speed {v}', 'fx.civHelpPct': 'Civilian help {v}', 'fx.coinPct': 'Coins {v}', 'fx.luckPct': 'Luck {v}',

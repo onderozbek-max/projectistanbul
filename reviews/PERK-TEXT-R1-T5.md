@@ -39,7 +39,7 @@ These are small UI strings the Tree screen needs. Drafts, same rules.
 
 | Key | EN | TR |
 |---|---|---|
-| tree.title | Street Tree | Sokak Ağacı |
+| tree.title | Street Tree | Yetenekler (owner, 2026-11-12) |
 | tree.page.fight | Fight | Dövüş |
 | tree.page.street | Street | Sokak |
 | tree.page.bond | Bond · L20 | Bağ · L20 |

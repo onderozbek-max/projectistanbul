@@ -605,7 +605,7 @@ Owner answers used: the perk text list is approved (5 rows rewritten by the owne
 | Respec | The free respec burns once per chapter, so it takes two taps: the first turns the link into "Sıfırlansın mı? 5 Sokak Tecrübesi geri gelir. Onaylamak için tekrar dokun." (any other tap cancels). Used: the link reads "Bu bölümdeki sıfırlama hakkı kullanıldı" and is disabled. Nothing learned: disabled, and it does not burn the free respec |
 | Persistence | `P.Meta.treeState / treeLearn / treeRespec` in `meta-data.js`: Street Cred and the tree are written together in one save |
 | Strings | `js/meta/strings-tree.js`: the 24 perk names and descriptions copied verbatim from the approved list, the 11 screen keys, and 6 new keys (below) |
-| Entry point | A fifth tab, **Ağaç / Tree**, in the map's tab strip (after Karakter). Tab font 11 to 10 px so five labels fit inside the margins |
+| Entry point | A fifth tab, **Yetenekler / Tree**, in the map's tab strip (after Karakter). Tab font 11 to 10 px, gap 4 px and the tabs size to their label so five labels fit inside the margins |
 | Karakter note | `attr.panelNote` said Street Cred "goes anywhere", which is no longer true. It now points to the Tree tab |
 | Tests | `test-tree.js` (165 checks, was 67): learn persists and costs Street Cred, a rank-locked or unknown perk is refused, respec refunds, a second respec in the chapter is refused, an empty respec does not burn it, the run loadout carries the learned perks, every perk and screen key has EN and TR text and a name that fits a node. `test-meta` (122) and `test-dialogue` pass |
 | Other | `Depar` rename (committed earlier); `tools/lib-load.js` skips the new view file like the other panels; wireframe node names updated to the final perk names, and Shockwave is drawn locked (Strength 3 is under its gate of 4; the old wireframe drew it available) |
@@ -622,13 +622,13 @@ Owner answers used: the perk text list is approved (5 rows rewritten by the owne
 These are my drafts. TR is yours to rewrite.
 | Key | EN | TR |
 |---|---|---|
-| tab.tree | Tree | Ağaç |
-| tree.tier | {attr} · tier {n} | {attr} · kademe {n} |
-| tree.short | Not enough Street Cred (you have {sc}) | Yeterli Sokak Tecrübesi yok (sende {sc}) |
+| tab.tree | Tree | Yetenekler (owner, 2026-11-12; was Ağaç) |
+| tree.tier | {attr} · tier {n} | {attr} · {n}. Seviye (owner, 2026-11-12) |
+| tree.short | Not enough Street Cred | Yeterli Sokak Tecrübesi yok (owner: no balance in it) |
 | tree.respecConfirm | Respec? Refunds {n} Street Cred. Tap again to confirm. | Sıfırlansın mı? {n} Sokak Tecrübesi geri gelir. Onaylamak için tekrar dokun. |
 | tree.bond.locked (screen-reader label of the disabled Bond tab) | Kaan joins at level 20. His perks are earned by playing together, never bought. | Kaan 20. seviyede katılır. Yetenekleri birlikte oynayarak kazanılır, satın alınmaz. |
 | tree.pick (unused for now) | Tap a perk to see what it does. | Ne işe yaradığını görmek için bir yeteneğe dokun. |
-| attr.panelNote (changed) | Training bars fill from how you play. Ready points only go to their own attribute. Spend Street Cred on perks in the Tree tab. | Eğitim çubukları oynayış tarzından dolar. Hazır puanlar yalnızca kendi özelliğine gider. Sokak Tecrübesi ile Ağaç sekmesinde yetenek öğrenirsin. |
+| attr.panelNote (changed) | When a training bar fills, you can raise that attribute from here. Spend Street Cred to learn perks in the Tree tab. | Gelişim çubuğu dolduğunda bir özelliği buradan geliştirebilirsin. (owner) Sokak Tecrübesi ile Yetenekler sekmesinden yetenek öğrenirsin. (my wording) |
 
 ## Deviations
 - **Entry point:** the wireframe has a bottom "Squad" tab with a Tree | Gear segment. The prototype has neither, so the tree is a fifth tab in the map's existing tab strip.

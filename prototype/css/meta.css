@@ -240,9 +240,9 @@
 #phone.reduce-motion .meta-root *, #phone.reduce-motion .meta-root *::before, #phone.reduce-motion .meta-root *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 
 /* ---- v0.5 (workstream C): tabs, attributes, arsenal, hub, welcome ---- */
-.meta-tabs { position: absolute; left: 12px; right: 12px; top: 104px; z-index: 6; display: flex; gap: 6px; }
+.meta-tabs { position: absolute; left: 12px; right: 12px; top: 104px; z-index: 6; display: flex; gap: 4px; }
 .meta-tabs.is-hidden { display: none; }
-.meta-tab { flex: 1; min-width: 0; min-height: 32px; padding: 0 2px; border-radius: 10px; border: 2px solid var(--m-ink); background: rgba(31,33,48,.92);
+.meta-tab { flex: 1 1 auto; text-align: center; min-height: 32px; padding: 0 2px; border-radius: 10px; border: 2px solid var(--m-ink); background: rgba(31,33,48,.92);
   color: #F4EBDD; font: 800 10px/1 var(--m-body); letter-spacing: .2px; text-transform: uppercase; }
 .meta-tab.is-on, .meta-tab:active { background: var(--m-gold); color: var(--m-ink); }
 .meta-attr, .meta-tree, .meta-arsenal, .meta-hub { position: absolute; inset: 0; z-index: 35; background: rgba(20,21,31,.97);
