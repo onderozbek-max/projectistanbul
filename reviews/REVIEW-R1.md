@@ -595,6 +595,41 @@ Screenshots: `sky-shapes.png` (the 11 silhouettes), `sky-sheet-1.png` (Galata, E
 
 ---
 
+# T3 wrap-up: acceptance and sign-off
+
+Parts 1 to 6 are done and pushed. This section is the one to read for the T3 decision.
+
+## Acceptance criteria
+| AC (execution-plan R1 T3) | Status | Evidence |
+|---|---|---|
+| 20 briefs in `docs/hood-visual-briefs.md` | Done | The file (473 lines), one brief per hood |
+| Before and after screenshots for three hoods | Done, re-shot in the final state | `reviews/media/R1/arenas/t3-before-three-hoods.png` and `t3-after-three-hoods.png`: İstiklal (L2), Kapalıçarşı (L31), Ataköy (L96), live runs with enemies. "Before" turns off every authored layer (ground, props, overhead, skyline) with the still tool's `noart`, `noprops`, `noover` and `nosky` flags |
+| Owner check: "could only be Istanbul" | **Waiting for you** | See my read below |
+| Rest of the hoods after owner review | Done ahead of review (all 20) | Parts 3 to 6 |
+
+## What is authored now, for all 20 hoods
+Ground and walk tiles (parts 1, 4, 6), street props with sign words (parts 2 and 3), floor details (part 4), overhead rigs for 13 hoods (parts 5 and 6), and a parallax skyline of 11 silhouettes (part 6). Sim untouched throughout; all five repo checks and `test-meta` (122) pass.
+
+## My read of "could only be Istanbul" (honest, strongest to weakest)
+1. **Kapalıçarşı: yes.** Flagstone cobbles, a stone vault with kilims and brass lanterns, a jeweller counter, tea cart and a Kahveci Sadık sign. Nothing else looks like it.
+2. **İstiklal: partly.** Setts, string lights, simit and chestnut carts, a minaret peek. But stage 2 opens on a pale plaza with a bare shopfront; the tram rails and the Tünel are not in that frame.
+3. **Ataköy: reads as a modern Turkish estate, not specifically Istanbul.** Beige blocks with balconies, laundry lines, street trees, a parked car. That matches the brief (it is a residential estate), but a Turkish owner is the right judge of whether it says Bakırköy.
+Across the other 17 hoods the weakest are the ones that share a surface type and rely on small marks (Karaköy, Laleli, Yenikapı). The skyline peeks add depth but are only a strip at 10 m width.
+
+## Open items (all small or need your call)
+- **Your Turkish check, eight sign names:** Simit, Dede Kestaneci, Nazlı Kuyumcu, Kahveci Sadık, Vapur Pastanesi, Karabiber Kemal, Bilet Gişesi, Börekçi Nazmiye.
+- **Lamp rigs** (Köprü, Sirkeci, Aksaray, Sahil) and **no overhead rig** (Yenikapı, Yedikule, Zeytinburnu): the lamp posts sit off-frame; they need a rethink, not just art.
+- **Brief props the kit does not place** (kilims on arches, laundry, luggage and ice-cream carts, dye drums): a kit change would shift level generation and balance, so I held off. Kilims and laundry now exist as overhead art.
+- **Phone check** of ground, overhead and skyline at real size, and frame time on the Low reference device: not measured (headless Chrome freezes `performance.now`).
+- Data size: art data totals about 1.2 MB (ground 680 KB, props 284 KB, overhead 187 KB, sky 37 KB). It decodes at start; per-hood decoding is an option if a phone struggles.
+
+## Questions for the lead
+1. Approve T3 as it stands, or name the hoods you want redone (the sheets are the evidence).
+2. Is "kit change for the brief props" worth the balance risk, or do overhead and floor dressing carry it?
+3. Skyline: keep the edge peeks at this strength, or add the faint top-edge band you passed on?
+
+---
+
 # T4 part 1: animation and feel (in progress)
 
 Scope check first: the v0.9 animation pass (feel.js, vehicles.js, fire animation) was already committed in the triage, so T4 starts from the owner list: hit-stop and shake tuning, spawn and death, dash and pickup, boss telegraphs, UI motion, bark timing, reduce motion, flash safety.

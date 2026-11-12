@@ -235,6 +235,8 @@
   }
   if (q.get('noart')) P.ArenaArt.tile = function () { return null; };   // baseline: the baked canvas tiles
   if (q.get('noprops')) P.ArenaProps.draw = function () { return false; };   // baseline: the procedural props
+  if (q.get('noover')) P.ArenaOverhead.draw = function () { return false; };   // baseline: the procedural overhead rigs
+  if (q.get('nosky')) P.ArenaSky.draw = function () {};   // baseline: no skyline layer
   function shoot() {   // &settle=1 renders 14 frames 80 ms apart, so eased effects (the overhead fade under the hero) reach their end state
     var k = 0, n = q.get('settle') ? 14 : 3;
     (function step() {
