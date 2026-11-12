@@ -14,5 +14,5 @@ Object.assign(P.DLG.tr, {
   "FINb6": [{ t: "Kapı çalındı. Tabii ki tam şimdi.", ok: 1 }],
   "FINb7": [{ t: "Kim o?! Zombiysen çalma, girme, git!", ok: 1 }],
   "FINb8": [{ t: "Arda, Sarıyer'e mi? Ailem Zekeriyaköy'de, hemen yanında. Ben de geliyorum, itiraz yok.", ok: 1 }],
-  "FINb9": [{ t: "Ataköy'de yürüyüş bitti. Sarıyer yolu şimdi başlıyor. Bu sefer Mila da var.", ok: 1 }],
+  "FINb9": [{ t: "Sırada Sarıyer var. Mila da bizimle.", ok: 1 }],
 });
