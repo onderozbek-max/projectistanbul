@@ -159,8 +159,10 @@ P.Barks = (function () {
     if (S.forced !== null) return !S.forced;
     return (s.levelIndex || 1) > 1;
   }
+  // A menu up (level-up cards, pause, chest, down screen) owns the screen: barks wait for nothing and are dropped (see offer).
+  function overlayUp() { return !!(P.UI && P.UI.isOverlay && P.UI.isOverlay()); }
   function blocked(s) {
-    return !!(P.Comic && P.Comic.active && P.Comic.active()) || !!(s.dir && s.dir.barks && s.dir.barks.cur);
+    return !!(P.Comic && P.Comic.active && P.Comic.active()) || !!(s.dir && s.dir.barks && s.dir.barks.cur) || overlayUp();
   }
   function onLevel(s) {
     var L = s.levelInfo, n = s.levelIndex, hh;
@@ -325,6 +327,8 @@ P.Barks = (function () {
   // Arbiter provider: offers the current bubble (anchored above Arda or above the zombie that groans).
   B.offer = function (R, s) {
     var b = S && S.bub, p, a, zombie;
+    // Under a menu the frame still runs (the sim does not), so a bark already on screen is dropped here, not held.
+    if (S && overlayUp()) { B.clear(); return; }
     if (!b || !R || !R.toScreen || !s) return;
     zombie = b.who === 'zombie';
     p = zombie ? (b.z && !b.z.dead ? b.z : null) : s.hero;

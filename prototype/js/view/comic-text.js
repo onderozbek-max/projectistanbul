@@ -59,6 +59,8 @@ P.ComicText = (function () {
   };
 
   // ---------- geometry (shared by drawing, layout and the audit) ----------
+  // A name tag rises this far above its balloon's box (drawn by T.balloon; the layout keeps the gap clear of the item above).
+  T.tagUp = 11;
   // Inset of the text from the box edge: x (sides), top (to the first line), bottom (below the last line).
   // A name tag takes 16 px at the top; a shout's spikes take SPIKE px on every side, so text stays inside the body.
   T.insets = function (kind, name) {
@@ -159,7 +161,7 @@ P.ComicText = (function () {
     if (k === 'shout') spikePath(c, o.x, o.y, o.w, o.h); else roundPath(c, o.x, o.y, o.w, o.h, R_BALLOON);
     c.fill(); c.stroke();
     if (k === 'thought' && o.tx != null) thoughtTrail(c, o);
-    if (o.name) nameTag(c, o.x + 10, o.y - 11, o.name, o.w - 20);
+    if (o.name) nameTag(c, o.x + 10, o.y - T.tagUp, o.name, o.w - 20);
     c.fillStyle = INK; A.setFont(c, 'speech', o.px); c.textBaseline = 'top'; c.textAlign = 'left';
     o.lines.forEach(function (ln, i) { c.fillText(ln, o.x + ins.x, o.y + ins.top + i * o.lh); });
     c.restore();

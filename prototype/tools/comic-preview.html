@@ -143,6 +143,8 @@
 <script src="../js/dialogue/en/story-hoods-11-20.js"></script>
 <script src="../js/dialogue/en/story-levels.js"></script>
 <script src="../js/story/story-data.js"></script>
+<script src="../js/story/strings-finale.js"></script>
+<script src="../js/story/finale-data.js"></script>
 <script src="../js/story/barks.js"></script>
 <script>
 (function () {
@@ -269,11 +271,11 @@
         sums.push(L + ': ' + JSON.stringify(P.ComicLayout.summary(pr)) + '  barks ' + br.length + ', fail ' + br.filter(function (r) { return r.fail || r.overflow; }).length);
       });
       P.lang = prev;
-      var flagged = rows.filter(function (r) { return r.fail || r.overflow || r.overlap; });
+      var flagged = rows.filter(function (r) { return r.fail || r.overflow || r.overlap || r.cross; });
       var show = $('showAll').checked ? rows : flagged;
       var text = 'rows ' + rows.length + ', flagged ' + flagged.length + '\n' + sums.join('\n') + '\n';
       text += show.map(function (r) {
-        return r.lang + '  ' + r.kind + '  ' + r.id + '  px ' + r.px + (r.fail ? '  FAIL' : '') + (r.overlap ? '  OVERLAP' : '') + (r.overflow ? '  OVERFLOW' : '');
+        return r.lang + '  ' + r.kind + '  ' + r.id + '  px ' + r.px + (r.fail ? '  FAIL' : '') + (r.overlap ? '  OVERLAP' : '') + (r.overflow ? '  OVERFLOW' : '') + (r.cross ? '  CROSS' : '');
       }).join('\n');
       $('audit').textContent = text;
       say('audit ' + langs.join('+') + ': ' + flagged.length + ' flagged of ' + rows.length);
