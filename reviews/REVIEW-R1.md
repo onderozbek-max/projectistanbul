@@ -458,3 +458,55 @@ Scope check first: the v0.9 animation pass (feel.js, vehicles.js, fire animation
 - **Dash polish: nothing to add.** Dash already has speed lines, an afterimage ghost, camera kick, footfall dust and sound.
 - **Before and after clips: not made.** A headless software-render capture is too slow to show 0.2 s effects (my filmstrip of the pickup arc caught only static frames), so I did not commit it. Judge the effects in real play on the phone.
 - **Low-device frame-time numbers: still owed** (needs your phone; see the frame-time notes above).
+
+---
+
+# R1-T5: cross-level skill tree (design doc, proposed)
+
+Design only. No gameplay code changed. Doc: `docs/skill-tree.md`. Decision: **D-059, PROPOSED** (`docs/product.md` section 17). Wireframe: `design/lofi/11-skills.html` (the retired Survival Skills screen, repurposed).
+
+## Summary
+- **Street Tree:** six branches (one per attribute), four one-rank perks each at attribute rank 1, 2, 4, 6, costing 1 to 4 Street Cred. **Rank is the lock, Street Cred is the key.**
+- **No new currency** (four stay), Survival Skills stay retired (D-044), no revive perk, no paid respec.
+- Perks are utility and sidegrades, each number at most half an attribute rank, so the bot bands in game-design section 7 should not move.
+- **Bond meters** are a separate play-earned layer (no currency, never sold). Slice scope: Kaan only, from L20.
+- Money can only buy Street Cred, and perks sit behind practice-earned ranks, so paying cannot skip the tree.
+
+## Findings you should know about
+- **Street Cred supply is lower than the docs say.** The code curve (`450 x n^1.35`) gives about 32 SC at 50k lifetime kills; attributes.md targets about 100. The full Ch1 tree costs 60 SC, so a player fills about half. The 50k figure assumes about 500 kills per clear and needs a bot measurement.
+- **Seven doc and code conflicts** are listed in `skill-tree.md` section 2.1 (Skill Credits still sold, 50 Altın respec vs no paid respec, Kaan at L30 vs L20, GRIT numbers, mastery 0-10 vs 0-5, and more). I did not edit those docs.
+- **Bug found and fixed (not T5):** `W.drawProps` in `render-world.js` still read `lv.manhole` after D-058 retired it, so Level 1's prop pass threw every frame and the hero, bubbles and barks were not drawn. Removed the manhole draw; Level 1 now renders with no errors (headless run, state `play`, no page errors).
+
+## Deviations
+None to numbers. One design change is proposed (D-059) and waits for you.
+
+## Questions for the lead
+Q1 to Q7 in `docs/skill-tree.md` section 9. The two that block implementation: **Q1** (does Street Cred buy perks only, or also attribute points as today) and **Q3** (six branches of four, or the old three branches with ranks 1-3).
+
+## Proposed next steps
+After approval: config-tree.js and save migration, perk effects folded into `P.Power.expectedLoadout`, bot run on L1-30, then the screen.
+
+---
+
+# R1-T0: housekeeping (comic layout and bark check)
+
+Evidence: `reviews/media/R1/T0/` (390x844, EN and TR).
+
+| Item | Result |
+|---|---|
+| Name tag over the bubble above | Fixed (`comic-layout.js`, `comic-text.js`) on H07i3, H10i2, H19i2 |
+| Kaan tail crossing the Arda bubble (H10i2, H19i2) | Fixed, EN and TR |
+| Finale SFX cut at the bottom (FINb) | Fixed, "TAK TAK!" fully inside the panel, EN and TR |
+| Bark `BK.self#2` (TR, 98 chars) | Fits the bubble at 390x844; EN also fits |
+| Bark under the level-up overlay | Fixed: bubble is dropped when an overlay is up (`barks.js`), verified in both languages |
+| `H14i3a` (TR) | **Owner wording applied:** "Her attığı adımda anahtarlar şıngırdıyor. Bekçinin gizlilik sıfır." ("Kapı görevlisinin" clipped 1 px, "Bekçinin" fits). Audit clean |
+| `H11i3a` (TR) | **Owner wording applied:** "Dolmuşun kapısı açık, içi karanlık. Şöför \"atla koçum, yer var\" diye beni çağırıyor." Audit clean (spelling "Şöför" kept as written) |
+| `FINb9` (TR) | **Owner wording applied:** "Sırada Sarıyer var. Mila da bizimle." (one line). The FINb TR overlap is gone (audit overlap 0) |
+
+## Not fixed
+- **FINb TR (resolved):** the overlap was caused by a two-line `FINb9`; the owner's one-line wording clears it. Remaining on that panel: Arda's shout tail runs under Mila's balloon (cross 1, pre-existing).
+- **Pre-existing:** FINa TR (Arda's tail under Anne's balloon), `l1_outro #2`, TR `kaan_join #2`, EN `hood_kapalicarsi #2`.
+- **Dialogue PR blocked:** `gh auth status` fails ("token in keyring is invalid"). Run `gh auth refresh -h gecgithub01.walmart.com`, then the PR for `dialogue/two-native-scripts` can open.
+
+## Checks
+`test-dialogue` (550 beats, TR 1169, EN 1172, same digest as baseline), `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-entrances`, `check-death-causes` pass. Comic audit (TR, after the owner's three lines): fail 1 (`kaan_join #2`, pre-existing), overlap 0, cross 3 (all pre-existing). No dedicated comic layout test exists.

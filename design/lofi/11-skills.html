@@ -2,41 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>11 Survival Skills | Project Istanbul lo-fi</title>
+<title>11 Street Tree | Project Istanbul lo-fi</title>
 <link rel="stylesheet" href="lofi.css"><script src="lofi.js" defer></script>
 </head>
 <body>
 <nav class="pager" id="pager" aria-label="Screens"></nav>
 <div class="page">
-  <main class="phone" aria-label="Phone: survival skills tree">
+  <main class="phone" aria-label="Phone: street tree">
     <div class="screen">
-      <div class="seg" role="tablist"><a href="11-skills.html" aria-current="true">Skills</a><a href="12-gear.html">Gear</a></div>
+      <div class="seg" role="tablist"><a href="11-skills.html" aria-current="true">Tree</a><a href="12-gear.html">Gear</a></div>
       <div class="row between">
-        <div class="row"><span class="seg" style="width:180px"><span class="on">Arda</span><span class="lock">Kaan · L30</span></span></div>
-        <span class="chip"><i style="background:var(--player)"></i>7 credits</span>
+        <div class="row"><span class="seg" style="width:260px"><span class="on">Fight</span><span>Street</span><span class="lock">Bond · L20</span></span></div>
+        <span class="chip"><i style="background:var(--player)"></i>7 SC</span>
       </div>
       <div class="tree">
-        <span class="head">Offense</span><span class="head">Defense</span><span class="head">Utility</span>
-        <div class="node learned sel">FORK<br>DISC.<span class="pips"><i class="on"></i><i></i><i></i></span></div>
-        <div class="node learned">THICK<br>HOODIE<span class="pips"><i class="on"></i><i class="on"></i><i></i></span></div>
-        <div class="node learned">STREET<br>SMART<span class="pips"><i class="on"></i><i></i><i></i></span></div>
-        <div class="node">CRIT<br>EYE<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node">SECOND<br>HELPING<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node">LUCKY<br>FIND<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node locked">AREA<br>+<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node locked">ARMOR<br>+<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node locked">MAGNET<br>+<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node locked">CDR<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node locked">REGEN<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node locked">XP<br>+<span class="pips"><i></i><i></i><i></i></span></div>
-        <div class="node locked cap">SECOND<br>WIND</div>
+        <span class="head">Strength 3</span><span class="head">Aggression 2</span><span class="head">Grit 4</span>
+        <div class="node learned">HEAVY<br>HANDS</div>
+        <div class="node learned">HOT<br>STREAK</div>
+        <div class="node learned">THICK<br>SKIN</div>
+        <div class="node learned">CART<br>SHOVER</div>
+        <div class="node sel">BLOOD<br>RUSH</div>
+        <div class="node">TEA<br>BREAK</div>
+        <div class="node">SHOCK-<br>WAVE</div>
+        <div class="node locked">FINISHER</div>
+        <div class="node">IRON<br>STOMACH</div>
+        <div class="node locked">WALL<br>BREAKER</div>
+        <div class="node locked">LAST<br>LAUGH</div>
+        <div class="node locked">STUBBORN</div>
       </div>
       <div class="panel col">
-        <div class="row between"><span class="title">Fork Discipline</span><span class="cap">Offense · tier 1 · rank 1/3</span></div>
-        <span>+10% Fork damage per rank.</span>
-        <span class="cap">Next rank: 2 credits · Capstone needs 10 points in one branch</span>
-        <a class="btn primary wide" href="11-skills.html">Learn rank 2 · 2 credits</a>
-        <div class="row between"><a class="cap" href="11-skills.html">Respec (first one free)</a><a class="cap" href="15-store.html">Get credits</a></div>
+        <div class="row between"><span class="title">Blood Rush</span><span class="cap">Aggression · tier 2</span></div>
+        <span>Boss hits extend frenzy by 0.5 s.</span>
+        <span class="cap">Needs Aggression 2 (you have 2) · Cost 2 Street Cred</span>
+        <a class="btn primary wide" href="11-skills.html">Learn · 2 Street Cred</a>
+        <div class="row between"><a class="cap" href="11-skills.html">Respec (free once this chapter)</a><span class="cap">Earn Street Cred by fighting</span></div>
       </div>
       <nav class="tabbar" aria-label="Main">
         <a href="02-world-map.html"><span></span>Map</a>
@@ -48,14 +47,16 @@
     </div>
   </main>
   <section class="notes">
-    <h1>11 Survival Skills tree</h1>
-    <p class="ref">Specs: game-design.md 8.1, 8.3 · business-plan.md 5.2, 6</p>
+    <h1>11 Street Tree</h1>
+    <p class="ref">Specs: skill-tree.md (proposed, D-059) · attributes.md · game-design.md 8.1 · business-plan.md 5.1</p>
     <ol>
-      <li>Owner request: <b>"credits to improve skills"</b>. Three branches (Offense / Defense / Utility), five tiers, ranks 1-3, plus a capstone (Arda: <b>Second Wind</b>).</li>
-      <li>Cost = tier × rank in Skill Credits. Credits: +2 per hero level, star chests, bosses, pass, and bundles (max 2 per week).</li>
-      <li>Credits are the <b>scarcest earnable resource</b> by design, so each node feels like a decision.</li>
-      <li>Kaan's tab is visible but locked ("joins at L30"): a teaser for the story.</li>
-      <li>Node labels are placeholders; final nodes per game-design.md 8.3. Icons + text, never color only.</li>
+      <li><b>Replaces the retired Survival Skills tree</b> (D-044). Six branches, one per attribute, in two pages: <b>Fight</b> (Strength, Aggression, Grit) and <b>Street</b> (Pace, Intelligence, Charm). Four nodes per branch.</li>
+      <li><b>Rank is the lock, Street Cred is the key.</b> A node needs a minimum attribute rank (1, 2, 4, 6 in Ch1) and costs 1 to 4 Street Cred. The branch header shows the current rank. A node shows the lock and the cost in text, never color only.</li>
+      <li>Node states: learned (filled), available (outline), locked (dimmed, rank too low). Each node has one rank, so no pips.</li>
+      <li><b>Bond page</b> (third tab) is locked until Kaan joins at L20 (D-045). It lists companion perks that are earned by the bond meter, with <b>no cost</b>. Mila and Ada appear as locked teasers.</li>
+      <li>One free respec per chapter, never sold. <b>No store link, offer or timer on this screen.</b></li>
+      <li>The primary button reads <b>Learn</b> with the cost when a node is available, and <b>Learned</b> (disabled) when owned. Node names are placeholders; TR names are the owner's.</li>
+      <li>Touch targets stay 48 dp or larger. Reduced-motion: no node pulse.</li>
     </ol>
   </section>
 </div>
