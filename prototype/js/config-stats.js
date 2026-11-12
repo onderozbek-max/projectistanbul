@@ -2,7 +2,7 @@
 // Six attributes per hero: str, pace, agg, int, cha, grit. Each runs 0..P.CFG.stats.max.
 //  - LEARN BY DOING: each attribute has a training bar fed by playstyle (P.Stats.trainingFromTally).
 //    A full bar makes that attribute READY: one point you may spend on that attribute only.
-//  - STREET CRED (SC): lifetime kill milestones give SC points. SC can go to any attribute.
+//  - STREET CRED (SC): lifetime kill milestones give SC points. SC pays for Street Tree perks (config-tree.js), not attribute points.
 //  - EFFECTS: P.Stats.effects(levels) returns fractions for createSim (B applies the fields).
 // Units: *Pct fields are fractions (0.30 = +30%). cooldownPct and dashCdPct are REDUCTIONS
 // (0.20 = 20% shorter). critPct is an absolute crit chance added (0.02 = +2 points).
@@ -183,39 +183,26 @@ P.Stats.applyLevel = function (prog, tally, won) {
   return { prog: p, gains: gains };
 };
 
-// Spend a draft allocation { str: n, ... }. READY points on an attribute go first, the rest use SC.
-// Returns the new progress object, or null when the draft is not affordable or would exceed max.
+// Spend a draft allocation { str: n, ... } on READY points only (practice-earned). Street Cred no longer buys attribute
+// points: it pays for Street Tree perks (config-tree.js, D-059 Q1). Returns the new progress object, or null when the
+// draft needs more READY points than an attribute has or would exceed max.
 P.Stats.allocate = function (prog, draft) {
-  var C = P.CFG.stats, p = P.Stats.normalize(prog), i, s, n, fromReady, fromSC;
+  var C = P.CFG.stats, p = P.Stats.normalize(prog), i, s, n;
   for (i = 0; i < C.ids.length; i++) {
     s = C.ids[i];
     n = Math.max(0, Math.floor(+(draft && draft[s]) || 0));
     if (!n) continue;
-    fromReady = Math.min(n, p.ready[s]);
-    fromSC = n - fromReady;
-    if (fromSC > p.sc) return null;
+    if (n > p.ready[s]) return null;
     if (p.attr[s] + n > C.max) return null;
-    p.ready[s] -= fromReady;
-    p.sc -= fromSC;
+    p.ready[s] -= n;
     p.attr[s] += n;
   }
   return p;
 };
 
-// Street Cred a draft would consume (draft points beyond each attribute's READY count).
-P.Stats.scNeeded = function (prog, draft) {
-  var C = P.CFG.stats, total = 0, i, s, n;
-  for (i = 0; i < C.ids.length; i++) {
-    s = C.ids[i];
-    n = Math.max(0, Math.floor(+(draft && draft[s]) || 0));
-    total += Math.max(0, n - (prog.ready[s] | 0));
-  }
-  return total;
-};
-
-// Points that can be spent right now on any attribute (ready on all + SC).
+// Points that can be spent right now on attributes: the READY points on all six.
 P.Stats.spendable = function (prog) {
-  var C = P.CFG.stats, total = prog.sc | 0, i;
+  var C = P.CFG.stats, total = 0, i;
   for (i = 0; i < C.ids.length; i++) total += prog.ready[C.ids[i]] | 0;
   return total;
 };

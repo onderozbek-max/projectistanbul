@@ -35,7 +35,7 @@ P.Meta = P.Meta || {};
     var next = Object.assign({}, draft);
     if (p.attr[s] + (draft[s] || 0) >= C.max) return false;
     next[s] = (draft[s] || 0) + 1;
-    return draftTotal() + 1 <= P.Stats.spendable(p) && P.Stats.scNeeded(p, next) <= p.sc;
+    return next[s] <= (p.ready[s] | 0);
   }
   function statRow(ctx, p, s) {
     var row = el('div', 'meta-attr-row', ctx.box), v = p.attr[s] + (draft[s] || 0);

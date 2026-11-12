@@ -9,7 +9,7 @@ P.Meta = P.Meta || {};
 
   // ---- Named constants (economy, progression, gear) ----
   M.CFG = {
-    storageKey: 'nsi.meta.v2', levelCount: LEVELS, levelsPerHood: J.levelsPerHood, hoodCount: J.hoods.length,
+    storageKey: 'nsi.meta.v3', levelCount: LEVELS, levelsPerHood: J.levelsPerHood, hoodCount: J.hoods.length,
     totalKm: J.totalKm, startWeapon: 'knife', starsMax: 3, masteryBadgeRank: 5,
     coins: {
       clearBase: 40,        // clear reward = clearBase + clearPerLevel * level (GD 8.7)
