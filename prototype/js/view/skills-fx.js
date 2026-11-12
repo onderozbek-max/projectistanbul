@@ -10,7 +10,7 @@ P.SkillsFx = (function () {
   var pops = [];
   var ghosts = [], trail = [], ult = null, eye = null, banner = null, evo = null, vac = null, ghostT = 0, icons = {},
     slipSeen = [], slipDone = false,
-    kit = { convoy: null, horn: null };   // latest v0.5 ult payloads (lanes, car size, horn radius)
+    kit = { convoy: null, horn: null, tackle: null };   // latest v0.5 ult payloads (lanes, car size, horn radius)
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function noop() {}
 
@@ -34,7 +34,8 @@ P.SkillsFx = (function () {
         P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: 0.9, t: 0.3, T: 0.3, col: BLUE });
         P.Sfx.play('nearMiss', 150, { pan: pn });
         break;
-      case 'ult': if (ev.id === 'convoy' || ev.id === 'horn') startSweep(ev); else startUlt(ev); break;
+      case 'ult': if (ev.id === 'convoy' || ev.id === 'horn' || ev.id === 'tackle') startSweep(ev); else startUlt(ev); break;
+      case 'tackleStab': stabFx(ev, pn); break;
       case 'ultReady': P.Fx.letter(h.x, h.y + 1.4, P.t('ult.ready')); P.Sfx.play('ultReady', 300); break;
       case 'frenzy': if (ev.on) { showBanner('frenzy.on', 1.2); P.Sfx.play('frenzy', 300); } break;
       case 'nazarDodge':
@@ -83,6 +84,13 @@ P.SkillsFx = (function () {
     P.Fx.addTrauma(ev.id === 'horn' ? 0.25 : 0.3);
     P.Sfx.play('ult');
     P.Sfx.play(ev.id === 'horn' ? 'ferryHorn' : 'bell', 300);
+  }
+
+  // Tackle & Stab: a gold ring and a shake where the stab lands (the sim fires tackleStab once, at the end of Kaan's charge).
+  function stabFx(ev, pn) {
+    P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r, t: 0.35, T: 0.35, col: GOLD });
+    P.Fx.addTrauma(0.4);
+    P.Sfx.play('hit', 100, { pan: pn });
   }
 
   // Dash-through: each enemy the dash passes within SLIP_R gets an afterimage at the contact; the third one
@@ -157,7 +165,18 @@ P.SkillsFx = (function () {
     for (i = 0; i < list.length; i++) {
       if (list[i].kind === 'convoy') drawConvoy(c, R, list[i]);
       else if (list[i].kind === 'horn') drawHorn(c, R, list[i]);
+      else if (list[i].kind === 'tackle') drawTackle(c, R, list[i]);
     }
+  }
+
+  // Kaan's charge: a dashed lane from Arda to the landing point and Kaan himself running along it (view only; the sim owns the hit).
+  function drawTackle(c, R, w) {
+    var u = R.ppm, C = kit.tackle || P.CFG.ults.tackle, p = Math.min(1, w.t / w.T), hx = w.x0 + w.dx * C.dist * p, hy = w.y0 + w.dy * C.dist * p;
+    c.setLineDash([8, 8]); c.strokeStyle = 'rgba(' + GOLD + ',0.45)'; c.lineWidth = C.laneW * u * 0.5;
+    c.beginPath(); c.moveTo(R.X(w.x0), R.Y(w.y0)); c.lineTo(R.X(hx), R.Y(hy)); c.stroke();
+    c.setLineDash([]);
+    P.Sprites.person(c, R.X(hx), R.Y(hy - 0.25), { u: u * 1.22, face: w.dx >= 0 ? 1 : -1, phase: w.t * 14, skin: '#C98E6B', shirt: '#2F6B4F',
+      pants: '#22242E', hair: '#1B1B22', still: false, flash: 0, arms: 'idle', backHand: noop });
   }
 
   // Cars drive up the screen (world +y) from y0 to y0 + 2hh; the swept band stays behind each car.

@@ -646,3 +646,60 @@ These are my drafts. TR is yours to rewrite.
 
 ## Proposed next steps
 Step 4: the Kaan bond (meter fill, the L20 join, the Bond page). Step 5: telemetry (perk learned, respec, Street Cred balance). Before that, your TR for the six proposed strings above, and a go or no-go on the two-tap respec.
+
+---
+
+# R1-T5 step 4: the Kaan bond and Tackle & Stab
+
+Owner answers used: Kaan joins at **L20** (D-045); the bond fills **per level plus the join** (no Kaan body in the sim); the combo ultimate is **Kaan's tackle, then Arda's stab**. Screenshots are in `reviews/media/R1/bond/` (390x844, headless browser, seeded save).
+
+## Done
+| Item | Change |
+|---|---|
+| Bond rules | New `js/config-bond.js` (pure): `P.CFG.bond.kaan` (every number) and `P.Bond.joined / tier / gain`. Earned by play only; never costs Street Cred; never sold |
+| Earning (slice) | The first clear of L20 joins Kaan (+5). Each first clear after it gives +4, +1 more for 3 stars, +2 more on a boss level (L25, L30). A repeat clear gives +1. A loss gives nothing. First clears of L20 to L30 add up to **49 at 2 stars** and **59 at 3 stars**, so bond 50 needs one 3-star clear or one repeat clear: the combo ultimate arrives around the end of the slice |
+| Save and results | `meta-data.js`: gain is applied in `apply()` (meter in `bonds.kaan`), returned as `pending.bond.kaan` (gain, value, thresholds crossed, joined). `M.bondState()`. The loadout carries `bonds.kaan` (0 before he joins, whatever the save says) and `bondHpPct` |
+| Threshold 25 | **Kaan's Watch:** +3% max HP (`auraHpPct`; two Grit ranks), added in `applyLoadout` |
+| Threshold 50 | **Tackle & Stab** (`C.ults.tackle`, unlock needs bond 50 and journey level 21). Kaan charges 8 m toward the nearest active enemy in 0.6 s (else straight up), shoving and stunning 1.0 s everything in a 1.6 m lane (bosses are shoved, never stunned); then the stab hits everything within 3.5 m of where he stops for 80 damage. Same charge bar, button and slot as the other ultimates. `skills.js`: `ultTackle`, `tackleHead`, `tackleStab`. A locked or unequipped one falls back to Nazar |
+| Arsenal | A bond ultimate shows "Kaan bağı 50 olunca açılır" / "Unlocks at Kaan bond 50" instead of a kill count |
+| Bond page | `meta-bond-ui.js`, drawn inside the Yetenekler screen. The Bond tab is disabled ("Bağ · L20") until Kaan joins, then enabled. Kaan's meter with ticks at 25, 50, 75, a row per threshold (reached, not yet), 75 and 100 as "a later chapter", Mila and Ada as locked teasers, and "Bond fills by playing. It is never sold." No cost, no store link |
+| Map toasts | After a level: "Kaan ekibe katıldı!" on the join, "Kaan bağı +4", and one more when 25 or 50 is crossed |
+| View | `skills-fx.js`: the banner, a dashed lane, Kaan running along it (a green-shirt figure) and a gold ring and shake at the stab |
+| Tests | New `tools/test-bond.js` (61 checks): meter maths, join, caps and thresholds, the 49 and 59 totals, save integration, the 25 aura, the 50 unlock and equip, the sim (stab, shove, stun, boss never stunned, out-of-lane untouched, fallbacks, aura HP), strings. Mutation checks: removing the stab damage or the stun makes checks fail. `test-tree` 165, `test-meta` 122, `test-perks-*`, `test-dialogue`, `test-ceiling`, `test-feel` pass |
+
+## Screenshots (`reviews/media/R1/bond/`)
+- `bond-tr-30.png`: the Bond page at bond 30 (aura reached, Tackle & Stab not yet).
+- `bond-ult-locked-tr.png`: Arsenal, "Çelme & Bıçak, Kaan bağı 50 olunca açılır" (the panel was scrolled, so the title screen shows below it).
+- `bond-tackle-charge.png`: L22 in play, 0.18 s into Tackle & Stab: Kaan running up the lane, enemies knocked back, the banner. The DEPAR button also fits (it was an open check).
+
+## Proposed text (owner: "go with your recommendations", 2026-11-12, so these drafts stand; TR can still be rewritten)
+| Key | EN | TR |
+|---|---|---|
+| ult.tackle (name, HUD) | Tackle & Stab (TACKLE) | Çelme & Bıçak (ÇELME) |
+| ult.tackle.desc | Kaan charges the nearest enemy, knocking down and stunning whatever is in his way. Arda stabs where he lands. | Kaan en yakın düşmana atılır, yoluna çıkanı devirip sersemletir. Arda indiği yere bıçağı saplar. |
+| bond.t25 | Kaan's Watch: +3% max HP. | Kaan Kollar: Canın %3 artar. |
+| bond.t50.desc | A new ultimate. Equip it in Arsenal. | Yeni ulti. Silahlar sekmesinden seç. |
+| bond.later | A later chapter / Not unlocked yet. | Sonraki bölüm / Henüz açılmadı. |
+| bond.soon (Mila, Ada) | Not yet | Henüz değil |
+| bond.meter | Bond {n}/{max} | Bağ {n}/{max} |
+| bond.hint | Bond fills by playing. It is never sold. | Bağ oynayarak dolar. Satın alınmaz. |
+| bond.joined / gain / reached | Kaan joins the squad! / Kaan bond +{n} / Kaan bond: {name} | Kaan ekibe katıldı! / Kaan bağı +{n} / Kaan bağı: {name} |
+| ars.ultNeedBond | Unlocks at Kaan bond {n} | Kaan bağı {n} olunca açılır |
+| tree.page.bondOn | Bond | Bağ |
+
+## Deviations
+- **No "kills near Kaan" and no dialogue choices.** Kaan has no body in the sim, and the prototype has no dialogue choices, so two of the three sources in the design doc (section 6) are not built. I also dropped the "high kill count" bonus I first described: stars and boss levels carry it.
+- **Numbers are mine.** The thresholds (25, 50, 75, 100) are from the doc. The earning amounts, the +3% aura and every Tackle & Stab number are proposed. `content-catalog` lists Kaan's own ultimate as Ground Slam (3.5 m, 80 damage, stun 1 s); I took its 3.5 m and 80 for the stab.
+- **Rule 2** (half an attribute rank) is for perks, so I did not apply it to the bond aura. +3% is two Grit ranks; say if you want it at the half-rank value (0.75%).
+- **Bot sim not rerun.** The bot's typical loadout has no bond, so the L1 to L30 bands cannot move; the aura (+3% HP) and the new ultimate only exist for a real save after L20.
+- **Doc conflict h (new, yours to decide):** `content-catalog.md` makes L30 a story fight against Kaan that ends with "Kaan joins". With him joining at L20, what happens at L30? I only fixed the one `game-design.md` row that said "after Kaan joins (L30)"; the L30 boss text and `hero_kaan` "Slice (L30)" are unchanged.
+- The mid-charge screenshot was frozen by pausing the animation loop right after the cast, because a normal screenshot lands after the 0.6 s charge.
+
+## Known issues
+- No EN screenshot of the Bond page (strings are covered by `test-bond`).
+- The HUD ultimate button is the same generic eye icon for every ultimate.
+- Telemetry (`bond_threshold`) is step 5.
+- A bond ultimate is equipped by hand in Arsenal; nothing equips it for you when it unlocks.
+
+## Proposed next steps
+Step 5: telemetry (`perk_learned`, `perk_respec`, `bond_threshold`, plus `currency_flow` for Street Cred), with an event dump from a bot run, and the final T5 packet. Owner decisions on this step (2026-11-12, "go with your recommendations"): the +3% aura stays, the proposed TR text stands, and conflict h (what L30 is once Kaan joins at L20) is parked until the T7 story-density review, since that table writes the Kaan beats for L1 to L30.

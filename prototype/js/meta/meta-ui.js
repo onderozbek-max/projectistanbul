@@ -316,6 +316,13 @@
       if (b1.done >= n && b0.done < n) toast(t('meta.allDone'));
     }
     (p.newGear || []).forEach(function (id) { toast(t('meta.ret.gear', { item: t('meta.item.' + id) })); });
+    bondToasts(p.bond && p.bond.kaan);
+  }
+  // Kaan's bond after a level: the join, the points earned and any threshold crossed (25: aura, 50: Tackle & Stab).
+  function bondToasts(k) {
+    if (!k || k.gain <= 0) return;
+    toast(t(k.joined ? 'bond.joined' : 'bond.gain', { n: k.gain }));
+    k.crossed.forEach(function (at) { if (at === 25 || at === 50) toast(t('bond.reached', { name: t('bond.t' + at + '.name') })); });
   }
   function cancelAll() {
     cancels.forEach(function (c) { c(); });

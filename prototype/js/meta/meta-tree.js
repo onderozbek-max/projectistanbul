@@ -89,21 +89,29 @@ P.Meta = P.Meta || {};
     if (M.treeRespec() > 0) sfx('uiBack');
     render();
   }
-  function drawPages() {
+  function drawPages(joined) {
     panel.pages.innerHTML = '';
     ['fight', 'street'].forEach(function (p) {
       var b = el('button', 'meta-tree-page' + (p === page ? ' is-on' : ''), panel.pages);
       b.textContent = t('tree.page.' + p); b.dataset.page = p;
       b.addEventListener('click', function () { page = p; sel = null; confirming = false; sfx('uiTap'); render(); });
     });
-    var bond = el('button', 'meta-tree-page is-locked', panel.pages);
-    bond.textContent = t('tree.page.bond'); bond.disabled = true; bond.setAttribute('aria-label', t('tree.bond.locked'));
+    var bond = el('button', 'meta-tree-page' + (joined ? (page === 'bond' ? ' is-on' : '') : ' is-locked'), panel.pages);
+    bond.dataset.page = 'bond';
+    bond.textContent = t(joined ? 'tree.page.bondOn' : 'tree.page.bond');
+    if (!joined) { bond.disabled = true; bond.setAttribute('aria-label', t('tree.bond.locked')); return; }
+    bond.addEventListener('click', function () { page = 'bond'; confirming = false; sfx('uiTap'); render(); });
   }
   function render() {
-    var st = M.treeState();
-    if (!sel || PAGES[page].indexOf(sel.split('.')[0]) < 0) sel = firstPick(st);
+    var st = M.treeState(), kaan = M.bondState().kaan, onBond = page === 'bond' && kaan.joined;
+    if (page === 'bond' && !kaan.joined) page = 'fight';
     panel.sc.textContent = t('tree.sc', { n: st.sc });
-    drawPages(); drawGrid(st); drawDetail(st); drawFoot(st);
+    drawPages(kaan.joined);
+    [panel.grid, panel.detail, panel.foot].forEach(function (n) { n.classList.toggle('meta-hidden', onBond); });
+    panel.bond.classList.toggle('meta-hidden', !onBond);
+    if (onBond) { M.BondUI.draw(panel.bond, kaan); return; }
+    if (!sel || PAGES[page].indexOf(sel.split('.')[0]) < 0) sel = firstPick(st);
+    drawGrid(st); drawDetail(st); drawFoot(st);
     lastLearned = null;
   }
   function build(host, opts) {
@@ -115,6 +123,7 @@ P.Meta = P.Meta || {};
     panel.sc = el('span', 'meta-tree-sc', head);
     panel.pages = el('div', 'meta-tree-pages', panel.root);
     panel.grid = el('div', 'meta-tree-grid', panel.root);
+    panel.bond = el('div', 'meta-bond meta-hidden', panel.root);
     panel.detail = el('div', 'meta-tree-detail', panel.root);
     panel.foot = el('div', 'meta-tree-foot', panel.root);
   }
@@ -122,5 +131,6 @@ P.Meta = P.Meta || {};
   T.show = function () { if (panel) { confirming = false; sel = null; panel.root.classList.remove('meta-hidden'); render(); } };
   T.hide = function () { if (panel) panel.root.classList.add('meta-hidden'); confirming = false; };
   T.isOpen = function () { return !!panel && !panel.root.classList.contains('meta-hidden'); };
+  T.showBond = function () { if (panel) { page = 'bond'; render(); } };
   T.select = function (id) { if (panel && P.Tree.node(id)) { page = PAGES.fight.indexOf(id.split('.')[0]) >= 0 ? 'fight' : 'street'; sel = id; render(); } };
 })(P.Meta);

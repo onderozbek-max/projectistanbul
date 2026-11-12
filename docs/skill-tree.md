@@ -3,7 +3,7 @@
 > **Status:** v0.2 · 2026-11-12 · **Accepted** (D-059 in `product.md` §17; Q1 to Q6 answered, Q7 open) · Task: R1-T5
 > **Owner brief (D-054, item 4):** "cross-level skill tree and progression". Design doc first: what persists between levels, costs and currencies, ties to bond meters and the existing Survival Skills, caps, monetization guardrails. Owner approves, then implement and tune with the bot sim.
 > **Related:** [attributes.md](attributes.md) · [game-design.md](game-design.md) §7, §8 · [business-plan.md](business-plan.md) §5 · [narrative.md](narrative.md) (bond meters) · wireframe `design/lofi/11-skills.html`
-> **Built so far (steps 1 and 2 of §8):** `js/config-tree.js`, save v3, the Street Cred spend rule, `js/config-perks.js` and the 24 perk effects with their tests. The screen, bonds and telemetry are not built.
+> **Built so far (steps 1 to 4 of §8):** `js/config-tree.js`, save v3, the Street Cred spend rule, `js/config-perks.js` and the 24 perk effects, the Yetenekler screen, and the Kaan bond (`js/config-bond.js`, the Bond page, Tackle & Stab), with their tests. Telemetry is not built.
 
 ---
 
@@ -41,11 +41,12 @@ One save, `nsi.meta.v2` (`meta/meta-save.js`).
 |---|---|---|
 | a | `business-plan.md` §6 still sells **Skill Credits**; D-043 merged them into Street Cred | Street Cred only |
 | b | `business-plan.md:127` sells a **respec for 50 Altın**; `attributes.md` §3.3 says no respec is sold for money | No paid respec (the stricter rule) |
-| c | `11-skills.html` says Kaan joins at **L30**; D-045 says **L20** | L20 |
+| c | `11-skills.html` says Kaan joins at **L30**; D-045 says **L20** | L20 (**owner confirmed 2026-11-12**; `game-design.md` squad-welcome row fixed; the wireframe no longer says L30) |
 | d | `attributes.md` §3 says rank needs practice **and** SK; code lets SC alone buy a point when no READY point exists | Open question Q1 |
 | e | `attributes.md` §6 says GRIT is +3% HP/rank with half value after rank 5; code is 1.5% per point, no halving | Code wins until the owner says otherwise |
 | f | `attributes.md:62` targets about 100 SK in Ch1; the code curve gives about **32** at 50k lifetime kills (see §4.3) | Plan on the code curve |
 | g | `10-workshop.html` shows mastery 0-10 bought with Jeton; game-design §8.4 and code say 0-5, kill-based | Code and §8.4 win |
+| h | `content-catalog.md` L30 is a story fight against Kaan that ends with "Kaan joins" (and `hero_kaan` is "Slice (L30)"); with the join at L20 (c), what is L30? | **Parked until the T7 story-density review (owner, 2026-11-12):** the code joins him after L20 (the `kaan_join` page); the L30 fight text is not changed |
 
 ---
 
@@ -126,8 +127,8 @@ From narrative.md: three bond meters, Arda with Kaan, Mila and Ada, raised by di
 |---|---|
 | Currency | **None.** Bonds are earned by play only, never bought, never gated by Street Cred |
 | Meter | 0 to 100 per companion, saved in `nsi.meta.v3` as `bonds: { kaan, mila, ada }` |
-| Thresholds (proposed) | 25: a small passive aura. 50: combo ultimate unlocks. 75: second aura. 100: bond scene |
-| Earned by | Kills while the companion is within range, story beats (via the existing dialogue beats), gifts found in levels |
+| Thresholds | 25: a small passive aura (**built:** Kaan's Watch, +3% max HP). 50: combo ultimate unlocks (**built:** Tackle & Stab). 75: second aura and 100: bond scene (stubs, shown as "a later chapter") |
+| Earned by | **Built (slice):** the L20 clear (join, +5), each first clear after it (+4, +1 for 3 stars, +2 for a boss level), a repeat clear (+1). All numbers in `config-bond.js`. **Not built:** kills while the companion is near (there is no Kaan body in the sim yet), dialogue choices (the prototype has none), gifts |
 | Slice scope | **Kaan only**, from L20 (D-045). Mila and Ada show as locked teasers |
 | Tree link | The "Bond" page of the tree shows the companion perks next to the attribute branches. Combo ultimates are drawn from the same ult slot as today's ults, so they add choice, not a second kit |
 | Paywall | Never. Business-plan §5.1: story is never paywalled |
@@ -156,7 +157,7 @@ Because the narrative doc places Kaan's *branch* at L251-280 (Ch3), only the met
 | 1 | `config-tree.js` (6 x 4 nodes, gates, costs). Save migration `v2` to `v3` (`tree.learned`, `bonds`). SC spend rule per Q1 | New `tools/test-tree.js`: costs, gates, respec refund, migration; `test-meta` still passes |
 | 2 | Perk effects in the sim, each behind its Def; fold into `P.Power.expectedLoadout` | `test-ceiling`, `test-enemy-behaviors`; bot sim L1-30 vs §7 bands |
 | 3 | Tree screen from the wireframe, in both languages | Screenshots at 390x844 in EN and TR; no hardcoded strings |
-| 4 | Bond meter for Kaan, from L20 | Dialogue tests pass; one combo ult screenshot |
+| 4 | Bond meter for Kaan, from L20 | Dialogue tests pass; one combo ult screenshot (**done**, `test-bond.js`) |
 | 5 | Telemetry events | Event dump from a bot run |
 
 Each step ends with a packet section in `reviews/REVIEW-R1.md` and waits for feedback.

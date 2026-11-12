@@ -198,6 +198,9 @@
     nazar: { unlock: 1 },
     convoy: { unlock: 6, T: 2.6, dmg: 40, laneW: 1.1, carLen: 1.6, lanes: [-2.2, 0, 2.2], push: 1.2, slowMo: 0.3 },
     horn: { unlock: 11, T: 1.2, dmg: 22, stun: 1.8, r: 8.0, push: 2.2, slowMo: 0.3 },
+    // Tackle & Stab (Kaan bond 50, R1-T5 step 4): Kaan charges dist metres at the nearest enemy in T s (shove and stun, never a boss),
+    // then a stab hits everything within stabR of where he lands. Journey level 21 = after Kaan joins (L20). PROPOSED numbers.
+    tackle: { unlock: 21, bond: 50, T: 0.6, dist: 8, laneW: 1.6, push: 2.0, stun: 1.0, stabR: 3.5, stabDmg: 80, stabPush: 1.6, slowMo: 0.3 },
   };
   C.debugMastery = undefined;   // lead sets from ?mastery=N: every weapon treated as that rank
 })(P.CFG);

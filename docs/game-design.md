@@ -378,7 +378,7 @@ tuxedo, calico, ginger kitten) that follow you. **Cosmetics give no stats.**
 | Starter Pack | After clearing L5 | Shown once; available 72 h |
 | District Pack | On entering a new district | Shown once per district |
 | Boss Helper | After failing the same boss twice | Max once per boss, never during a run |
-| Squad Welcome | After Kaan joins (L30) | Shown once |
+| Squad Welcome | After Kaan joins (L20, D-045) | Shown once |
 **Offer ethics:** max **one** pop-up offer per session, never during a run or a story scene,
 no fake countdowns, every offer also reachable from the store, prices always shown in local currency.
 

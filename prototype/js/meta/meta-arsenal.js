@@ -63,7 +63,7 @@ P.Meta = P.Meta || {};
     var b = el('button', 'meta-ars-ult' + (u.unlocked ? '' : ' is-locked') + (M.state().heroes.arda.ult === u.id ? ' is-on' : ''), ultBox);
     b.disabled = !u.unlocked;
     el('div', 'meta-ars-name', b).textContent = nameOf('ult.', u.id);
-    el('div', 'meta-ars-kills', b).textContent = u.unlocked ? t('ars.ultOn') : t('ars.ultNeed', { n: fmtNum(u.need) });
+    el('div', 'meta-ars-kills', b).textContent = u.unlocked ? t('ars.ultOn') : u.needBond ? t('ars.ultNeedBond', { n: u.needBond }) : t('ars.ultNeed', { n: fmtNum(u.need) });
     b.addEventListener('click', function () { if (M.setUlt(u.id)) { sfx('uiTap'); renderAll(); } });
   }
   function renderUlts() {

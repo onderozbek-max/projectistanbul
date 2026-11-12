@@ -53,7 +53,7 @@ P.createSim = function (seed, opts) {
 function applyLoadout(s, ld) {
   var h = s.hero, g = (ld && ld.gear) || {}, C = P.CFG, f = s.fx;
   h.gear = g;
-  h.maxHp = C.hero.maxHp * (1 + (g.maxHpPct || 0) + f.maxHpPct); h.hp = h.maxHp;
+  h.maxHp = C.hero.maxHp * (1 + (g.maxHpPct || 0) + f.maxHpPct + ((ld && ld.bondHpPct) || 0)); h.hp = h.maxHp;   // bondHpPct: Kaan bond 25 aura
   h.baseMight = (g.mightPct || 0) + f.mightPct; h.baseMove = (g.movePct || 0) + f.movePct;
   h.baseCdr = (g.cooldownPct || 0) + f.cooldownPct;
   h.pickupRadius = C.hero.pickupRadius * (1 + (g.pickupPct || 0) + f.pickupPct);

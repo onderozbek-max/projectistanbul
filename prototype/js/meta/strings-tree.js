@@ -135,3 +135,33 @@ Object.assign(P.STR.en, {
   "tree.bond.locked": "Kaan joins at level 20. His perks are earned by playing together, never bought.",
   "tree.pick": "Tap a perk to see what it does."
 });
+
+// Kaan bond (R1-T5 step 4): the Bond page, the combo ultimate Tackle & Stab, the result toasts. My drafts, accepted by the owner 2026-11-12 (TR can still be rewritten).
+Object.assign(P.STR.tr, {
+  "tree.page.bondOn": "Bağ",
+  "bond.kaan": "Kaan", "bond.mila": "Mila", "bond.ada": "Ada", "bond.soon": "Henüz değil",
+  "bond.meter": "Bağ {n}/{max}",
+  "bond.t25.name": "Kaan Kollar", "bond.t25.desc": "Canın %3 artar.",
+  "bond.t50.name": "Çelme & Bıçak", "bond.t50.desc": "Yeni ulti. Silahlar sekmesinden seç.",
+  "bond.later.name": "Sonraki bölüm", "bond.later.desc": "Henüz açılmadı.",
+  "bond.hint": "Bağ oynayarak dolar. Satın alınmaz.",
+  "bond.joined": "Kaan ekibe katıldı!", "bond.gain": "Kaan bağı +{n}", "bond.reached": "Kaan bağı: {name}",
+  "ars.ultNeedBond": "Kaan bağı {n} olunca açılır",
+  "ult.tackle": "Çelme & Bıçak", "ult.tackle.name": "Çelme & Bıçak",
+  "ult.tackle.desc": "Kaan en yakın düşmana atılır, yoluna çıkanı devirip sersemletir. Arda indiği yere bıçağı saplar.",
+  "ult.tackle.hud": "ÇELME"
+});
+Object.assign(P.STR.en, {
+  "tree.page.bondOn": "Bond",
+  "bond.kaan": "Kaan", "bond.mila": "Mila", "bond.ada": "Ada", "bond.soon": "Not yet",
+  "bond.meter": "Bond {n}/{max}",
+  "bond.t25.name": "Kaan's Watch", "bond.t25.desc": "+3% max HP.",
+  "bond.t50.name": "Tackle & Stab", "bond.t50.desc": "A new ultimate. Equip it in Arsenal.",
+  "bond.later.name": "A later chapter", "bond.later.desc": "Not unlocked yet.",
+  "bond.hint": "Bond fills by playing. It is never sold.",
+  "bond.joined": "Kaan joins the squad!", "bond.gain": "Kaan bond +{n}", "bond.reached": "Kaan bond: {name}",
+  "ars.ultNeedBond": "Unlocks at Kaan bond {n}",
+  "ult.tackle": "Tackle & Stab", "ult.tackle.name": "Tackle & Stab",
+  "ult.tackle.desc": "Kaan charges the nearest enemy, knocking down and stunning whatever is in his way. Arda stabs where he lands.",
+  "ult.tackle.hud": "TACKLE"
+});

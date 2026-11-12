@@ -129,6 +129,7 @@ function nearMiss(s, S) {
 // ---------- Ultimates: loadout.ult (meta), gated by journey level; Nazar is the fallback ----------
 P.Skills.ultId = function (s) {
   var id = (s.loadout && s.loadout.ult) || 'nazar', U = P.CFG.ults[id];
+  if (U && U.bond && !(s.loadout && s.loadout.bonds && (s.loadout.bonds.kaan | 0) >= U.bond)) return 'nazar';   // a bond ult needs its bond
   return U && (U.unlock || 1) <= (s.levelIndex || 1) ? id : 'nazar';
 };
 
@@ -165,7 +166,21 @@ function ultHorn(s, S) {
   s.events.push({ type: 'ult', id: 'horn', x: h.x, y: h.y, r: C.r, T: C.T, slowMo: C.slowMo });
 }
 
-var ULT = { nazar: ultNazar, convoy: ultConvoy, horn: ultHorn };
+// Tackle & Stab (Kaan bond 50): Kaan charges from Arda toward the nearest enemy; the sweep (stepSweeps) shoves and stuns what it
+// touches, then a stab lands where he stops. The direction is fixed at the cast (the nearest active enemy, else straight up).
+function ultTackle(s, S) {
+  var h = s.hero, C = P.CFG.ults.tackle, best = null, bd = 1e9, dx = 0, dy = 1, d;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active') return;
+    d = Math.hypot(e.x - h.x, e.y - h.y);
+    if (d < bd) { bd = d; best = e; }
+  });
+  if (best && bd > 0.01) { dx = (best.x - h.x) / bd; dy = (best.y - h.y) / bd; }
+  S.sweeps.push({ kind: 'tackle', t: 0, T: C.T, x0: h.x, y0: h.y, dx: dx, dy: dy, hit: {}, stabbed: false });
+  s.events.push({ type: 'ult', id: 'tackle', x: h.x, y: h.y, dx: dx, dy: dy, dist: C.dist, T: C.T, r: C.stabR, slowMo: C.slowMo });
+}
+
+var ULT = { nazar: ultNazar, convoy: ultConvoy, horn: ultHorn, tackle: ultTackle };
 
 function tryUlt(s, S) {
   var h = s.hero, U = P.CFG.skills.ult, id;
@@ -200,6 +215,32 @@ function hornWave(s, w, rad) {
   });
 }
 
+// Kaan's charge: the head moves dist metres over T s; whatever it touches is shoved along the charge and stunned (bosses only shoved).
+function tackleHead(s, w) {
+  var C = P.CFG.ults.tackle, p = Math.min(1, w.t / w.T), hx = w.x0 + w.dx * C.dist * p, hy = w.y0 + w.dy * C.dist * p;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active' || w.hit[e.id]) return;
+    if (Math.hypot(e.x - hx, e.y - hy) > C.laneW / 2 + e.r) return;
+    w.hit[e.id] = true;
+    P.Combat.shove(e, w.dx, w.dy, C.push, true);
+    if (!e.boss) P.Status.apply(e, 'stun', C.stun, 1);
+  });
+  return { x: hx, y: hy };
+}
+
+// The stab where Kaan stops: damage and a push away from the landing point for every enemy within stabR.
+function tackleStab(s, w, at) {
+  var C = P.CFG.ults.tackle, n = 0;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active') return;
+    var dx = e.x - at.x, dy = e.y - at.y, d = Math.hypot(dx, dy) || 0.01;
+    if (d > C.stabR + e.r) return;
+    n++;
+    P.Combat.damageEnemy(s, e, C.stabDmg, dx / d, dy / d, C.stabPush, false, 'ult');
+  });
+  s.events.push({ type: 'tackleStab', x: at.x, y: at.y, r: C.stabR, n: n });
+}
+
 function stepSweeps(s, S, dt) {
   var C = P.CFG.ults, i, w, car;
   for (i = S.sweeps.length - 1; i >= 0; i--) {
@@ -208,6 +249,9 @@ function stepSweeps(s, S, dt) {
     if (w.kind === 'convoy') {
       car = w.y0 + Math.min(1, w.t / w.T) * 2 * w.hh;
       C.convoy.lanes.forEach(function (lane) { convoyLane(s, w, w.x0 + lane, car); });
+    } else if (w.kind === 'tackle') {
+      car = tackleHead(s, w);
+      if (w.t >= w.T && !w.stabbed) { w.stabbed = true; tackleStab(s, w, car); }
     } else {
       hornWave(s, w, C.horn.r * Math.min(1, w.t / w.T));
     }

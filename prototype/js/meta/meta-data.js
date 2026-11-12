@@ -205,10 +205,12 @@ P.Meta = P.Meta || {};
     var t = M.CFG.ultKills;
     return i < t.length ? t[i] : t[t.length - 1] + (i - t.length + 1) * 10000;
   };
+  // A bond ult (cfg.bond = meter value) unlocks by Kaan's bond; the others by lifetime kills. needBond is set for bond ults only.
   M.ults = function () {
     var s = load(), ids = M.ultIds();
     return ids.map(function (id, i) {
-      var need = M.ultUnlockKills(i);
+      var U = (P.CFG.ults && P.CFG.ults[id]) || {}, need = M.ultUnlockKills(i);
+      if (U.bond) return { id: id, index: i, need: 0, needBond: U.bond, unlocked: (s.bonds.kaan | 0) >= U.bond };
       return { id: id, index: i, need: need, unlocked: s.counters.kills >= need };
     });
   };
@@ -261,6 +263,14 @@ P.Meta = P.Meta || {};
     return r.refunded;
   };
 
+  // ---- Companion bonds (config-bond.js): Kaan only in the slice ----
+  M.bondState = function () {
+    var s = load(), v = s.bonds.kaan | 0;
+    return { kaan: { value: v, tier: P.Bond.tier(v), joined: P.Bond.joined(s.stars), max: P.CFG.tree.bondMax } };
+  };
+  // Kaan's passive aura (threshold 25): the loadout carries bondHpPct, the sim adds it to max HP.
+  function bondAura(s) { return P.Bond.joined(s.stars) && P.Bond.tier(s.bonds.kaan | 0) >= 1 ? P.CFG.bond.kaan.auraHpPct : 0; }
+
   // ---- Run options (daily modifiers etc.) ----
   // beginRun(opts) remembers opts for the next loadout(). openDaily() calls it. opts: {daily, modifiers, seed}.
   M.beginRun = function (opts) { activeRun = opts && typeof opts === 'object' ? opts : null; };
@@ -283,7 +293,7 @@ P.Meta = P.Meta || {};
     var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
     lo = { gear: gearSum(s), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
-      mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
+      mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), bonds: { kaan: P.Bond.joined(s.stars) ? s.bonds.kaan | 0 : 0 }, bondHpPct: bondAura(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
     if (o.daily) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; lo.daily = true; }
     return lo;
   };
@@ -314,13 +324,15 @@ P.Meta = P.Meta || {};
     return P.Modifiers.dailyFold(P.Meta.Daily.resolve(r.modifiers)).coinMult;
   }
   function apply(s, r, now) {
-    var i = M.clampLevel(r.levelIndex), won = !!r.won, prev = s.stars[i] || 0, before = M.snapshot();
+    var i = M.clampLevel(r.levelIndex), won = !!r.won, prev = s.stars[i] || 0, before = M.snapshot(), bond;
     var stars = won ? Math.max(1, Math.min(M.CFG.starsMax, Math.round(num(r.stars)))) : 0;
     var rw = M.rewardFor({ levelIndex: i, won: won, coins: r.coins, objective: !!(r.tally && r.tally.objDone) }, prev, stars), st0 = s.heroes.arda.stats;
     var st = P.Stats.applyLevel(st0, r.tally, won), day = P.Meta.Daily.dayKey(new Date(now)), ups, news, achieved, daily;
     var hoodWas = M.hoodCleared(M.level(i).hoodIndex);
     if (won) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
     if (!hoodWas && M.hoodCleared(M.level(i).hoodIndex)) s.counters.hoodsCleared += 1;   // AUDIT-7 CR-8: once per hood
+    bond = P.Bond.gain(s.bonds.kaan | 0, { levelIndex: i, won: won, stars: stars, prevStars: prev });
+    s.bonds.kaan = (s.bonds.kaan | 0) + bond.gain;
     rw.total = Math.round(coinBonus(s, rw.total) * dailyCoinMult(r));
     s.coins += rw.total;
     s.heroes.arda.stats = st.prog;
@@ -333,7 +345,8 @@ P.Meta = P.Meta || {};
     s.lastPlayed = now;
     return { levelIndex: i, won: won, stars: stars, reward: rw, newGear: newGear, before: before, after: M.snapshot(),
       kills: r.kills | 0, statGains: { hero: 'arda', gains: st.gains, before: st0, after: st.prog },
-      masteryUps: ups, collected: news, achieved: achieved, daily: daily };
+      masteryUps: ups, collected: news, achieved: achieved, daily: daily,
+      bond: { kaan: { gain: bond.gain, value: s.bonds.kaan | 0, crossed: bond.crossed, joined: i === P.CFG.bond.kaan.joinLevel && won && !prev } } };
   }
   // Called by the game after a level. r: {levelIndex, won, stars, coins, kills, timeS, tally, daily, reviveUsed}.
   M.onResults = function (r) {
