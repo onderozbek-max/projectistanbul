@@ -3,7 +3,7 @@
 > **Status:** v0.2 · 2026-11-12 · **Accepted** (D-059 in `product.md` §17; Q1 to Q6 answered, Q7 open) · Task: R1-T5
 > **Owner brief (D-054, item 4):** "cross-level skill tree and progression". Design doc first: what persists between levels, costs and currencies, ties to bond meters and the existing Survival Skills, caps, monetization guardrails. Owner approves, then implement and tune with the bot sim.
 > **Related:** [attributes.md](attributes.md) · [game-design.md](game-design.md) §7, §8 · [business-plan.md](business-plan.md) §5 · [narrative.md](narrative.md) (bond meters) · wireframe `design/lofi/11-skills.html`
-> **Built so far (steps 1 to 4 of §8):** `js/config-tree.js`, save v3, the Street Cred spend rule, `js/config-perks.js` and the 24 perk effects, the Yetenekler screen, and the Kaan bond (`js/config-bond.js`, the Bond page, Tackle & Stab), with their tests. Telemetry is not built.
+> **Built (all five steps of §8):** `js/config-tree.js`, save v3, the Street Cred spend rule, `js/config-perks.js` and the 24 perk effects, the Yetenekler screen, the Kaan bond (`js/config-bond.js`, the Bond page, Tackle & Stab), and the telemetry events, with their tests.
 
 ---
 
@@ -33,7 +33,7 @@ One save, `nsi.meta.v2` (`meta/meta-save.js`).
 | Hood rank | +1 per cleared hood, max 20 | Free | `config-power.js`, `meta-power.js` |
 | Achievements, daily, streak | Flags, counters | 27 achievements, 4,730 Jeton total | `meta-collect.js`, `meta-daily.js` |
 
-**Not built:** hero levels, Survival Skills, bonds, boosters, Bazaar, Road Pass, respec, Kaan in the sim, and the `meta_upgrade` / `currency_flow` telemetry events.
+**Not built:** hero levels, Survival Skills, boosters, Bazaar, Road Pass, Kaan in the sim, and `currency_flow` for coins (Jeton) and for gear, mastery and merge spends.
 
 ### 2.1 Docs and code disagree (owner to confirm which wins)
 
@@ -158,7 +158,7 @@ Because the narrative doc places Kaan's *branch* at L251-280 (Ch3), only the met
 | 2 | Perk effects in the sim, each behind its Def; fold into `P.Power.expectedLoadout` | `test-ceiling`, `test-enemy-behaviors`; bot sim L1-30 vs §7 bands |
 | 3 | Tree screen from the wireframe, in both languages | Screenshots at 390x844 in EN and TR; no hardcoded strings |
 | 4 | Bond meter for Kaan, from L20 | Dialogue tests pass; one combo ult screenshot (**done**, `test-bond.js`) |
-| 5 | Telemetry events | Event dump from a bot run |
+| 5 | Telemetry events | Event dump from a bot run (**done:** `node tools/bot.js --campaign=30`, sample in `reviews/telemetry-R1-T5-campaign.jsonl`; `test-tel.js`) |
 
 Each step ends with a packet section in `reviews/REVIEW-R1.md` and waits for feedback.
 

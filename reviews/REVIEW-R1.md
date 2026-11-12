@@ -703,3 +703,39 @@ Owner answers used: Kaan joins at **L20** (D-045); the bond fills **per level pl
 
 ## Proposed next steps
 Step 5: telemetry (`perk_learned`, `perk_respec`, `bond_threshold`, plus `currency_flow` for Street Cred), with an event dump from a bot run, and the final T5 packet. Owner decisions on this step (2026-11-12, "go with your recommendations"): the +3% aura stays, the proposed TR text stands, and conflict h (what L30 is once Kaan joins at L20) is parked until the T7 story-density review, since that table writes the Kaan beats for L1 to L30.
+
+---
+
+# R1-T5 step 5: telemetry (and the end of T5)
+
+## Done
+| Item | Change |
+|---|---|
+| Hook | `meta-data.js` reports through `P.Meta.onTel(event, fields)`. `main.js` points it at `P.Tel.log`, so the events go into the same in-memory log and JSONL export as the rest. No hook, no event, and the save is identical either way (tested) |
+| `perk_learned` | `perk_id`, `cost`, `attr_rank`, `sc_after`. Not logged when a learn is refused |
+| `perk_respec` | `refunded`, `perks_cleared`, `chapter`, `sc_after`. Not logged when refused |
+| `bond_threshold` | `companion`, `threshold`, `value`, `level_id`. Once per threshold crossed, not on repeat clears |
+| `currency_flow` (Street Cred) | `currency: street_cred`, `delta`, `source_or_sink` (`level_end`, `perk_learned`, `respec_refund`), `balance_after`. These are every Street Cred earn and spend, so the sum of the deltas equals the saved balance (the campaign checks it) |
+| `meta_upgrade` | `type: attribute`, `id`, `cost: 0`, `points`, `rank_after`, one per attribute raised with READY points. "attribute" is not in the game-design list of types; I added it and updated the table |
+| Event dump | New `node tools/bot.js --campaign=30 [--out=file.jsonl]`: the bot plays L1 to L30 **in order through the real meta layer** (the loadout comes from the save, so learned perks, bond and attributes are in play), results go through `onResults`, it spends READY points and learns the cheapest affordable perk between levels, and it respecs once at L12. L1 is scripted, so it is recorded as a win. Stars: 3 without a death, else 2. Output: `reviews/telemetry-R1-T5-campaign.jsonl` (127 events) |
+| Tests | New `tools/test-tel.js` (19 checks): fields, balance matches the save, refused actions log nothing, level-end earn and bond crossings, attribute spend, and the save is identical with and without the hook. Removing the two Street Cred flows makes it fail. `test-bond`, `test-tree`, `test-meta` and a plain `bot.js --level=2` still pass. In the real page, learn, learn, respec logged 6 events through `P.Tel` |
+
+## What the campaign showed (seed 1, one try per level, all 30 levels won)
+- **Events:** 55 `currency_flow`, 42 `meta_upgrade`, 27 `perk_learned`, 1 `perk_respec`, 2 `bond_threshold` (25 at L24, 50 at L29).
+- **Bond:** Kaan joins at L20; the meter is 58 at L30. With the bot's 3-star clears, Tackle & Stab unlocks one level before L30.
+- **Perks:** 18 perks learned by L30 (the tree has 24; the bot ends with 0 Street Cred).
+- **The 500-kills-per-level assumption is far too low for this bot.** L2 to L30: median **2,021 kills a level**, mean 2,266, range 642 to 6,779, **65,714 in total**, which is 40 Street Cred on the current curve (32 at 50,000 kills, 54 at 100,000). A real player kills less than a kiting bot, so this is an upper bound, not the answer. The Street Cred budget in `skill-tree.md` 4.4 still needs real play data (the telemetry above is what will measure it).
+
+## Deviations and known issues
+- **Coins (Jeton) and the other spends are not logged.** `currency_flow` covers Street Cred only. Coin earn at level end and the gear, mastery and merge spends (`meta_upgrade` types gear, mastery, merge) are not built. The tables in `game-design.md` and `skill-tree.md` say so.
+- The campaign's stars are an approximation, and its learn order is "cheapest first", not a real player's choice.
+- The campaign runs the real sim for 29 levels and takes about 10 minutes on this machine.
+- The dump is not sent anywhere; events stay in memory and go out through the pause-menu export, as before.
+
+## T5 wrap-up (cross-level skill tree and progression)
+All five steps are built and tested: the data and save (step 1), the 24 perk effects (2), the Yetenekler screen (3), the Kaan bond with Tackle & Stab (4) and telemetry (5). Owner decisions are recorded in D-059. Still open on T5:
+- **Q7:** seven doc conflicts (a to g) in `skill-tree.md` 2.1, plus item h (what L30 is once Kaan joins at L20, parked for the T7 review). Q7 is waiting for your yes or no.
+- **Real-play data** for the Street Cred budget (see above).
+- The bot bands for L1 to L30 were checked after step 2 and not rerun since; perks and the bond are not in the bot's expected loadout.
+- Phone checks: frame time and thumb reach of the Yetenekler screen.
+- Proposed text you have not read yet: nothing new in this step (the events have no player text).

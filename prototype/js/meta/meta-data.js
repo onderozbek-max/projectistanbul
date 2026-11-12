@@ -240,8 +240,16 @@ P.Meta = P.Meta || {};
     var s = load(), h = s.heroes[hero || 'arda'], next = P.Stats.allocate(h.stats, draft);
     if (!next) return false;
     h.stats = next; save();
+    Object.keys(draft || {}).forEach(function (k) {
+      if (draft[k] > 0) tel('meta_upgrade', { type: 'attribute', id: k, cost: 0, points: draft[k], rank_after: next.attr[k] });
+    });
     return true;
   };
+
+  // ---- Telemetry (game-design 10): the meta layer reports through M.onTel(event, fields), set by view/telemetry.js (P.Tel.log).
+  // Headless tools set their own. No hook, no event, and the save is identical either way. ----
+  function tel(event, fields) { if (typeof M.onTel === 'function') M.onTel(event, fields); }
+  function scFlow(delta, source, balance) { tel('currency_flow', { currency: 'street_cred', delta: delta, source_or_sink: source, balance_after: balance }); }
 
   // ---- Street Tree (D-059): learn and respec persist the hero's Street Cred and the tree together ----
   M.treeState = function () {
@@ -250,16 +258,20 @@ P.Meta = P.Meta || {};
       respecUsed: (s.tree.respecs[ch] | 0) >= P.CFG.tree.respecPerChapter, spent: P.Tree.spent(s.tree) };
   };
   M.treeLearn = function (id) {
-    var s = load(), r = P.Tree.learn(s.heroes.arda.stats, s.tree, id);
+    var s = load(), r = P.Tree.learn(s.heroes.arda.stats, s.tree, id), n = P.Tree.node(id);
     if (!r) return false;
     s.heroes.arda.stats = r.prog; s.tree = r.tree; save();
+    tel('perk_learned', { perk_id: id, cost: n.cost, attr_rank: r.prog.attr[n.attr], sc_after: r.prog.sc });
+    scFlow(-n.cost, 'perk_learned', r.prog.sc);
     return true;
   };
   // Returns the refunded Street Cred, or 0 when the chapter's free respec is used or nothing is learned.
   M.treeRespec = function () {
-    var s = load(), r = P.Tree.respec(s.heroes.arda.stats, s.tree);
+    var s = load(), cleared = Object.keys(s.tree.learned).length, r = P.Tree.respec(s.heroes.arda.stats, s.tree);
     if (!r) return 0;
     s.heroes.arda.stats = r.prog; s.tree = r.tree; save();
+    tel('perk_respec', { refunded: r.refunded, perks_cleared: cleared, chapter: P.CFG.tree.chapter, sc_after: r.prog.sc });
+    scFlow(r.refunded, 'respec_refund', r.prog.sc);
     return r.refunded;
   };
 
@@ -336,6 +348,8 @@ P.Meta = P.Meta || {};
     rw.total = Math.round(coinBonus(s, rw.total) * dailyCoinMult(r));
     s.coins += rw.total;
     s.heroes.arda.stats = st.prog;
+    if (st.gains.sc > 0) scFlow(st.gains.sc, 'level_end', st.prog.sc);
+    bond.crossed.forEach(function (at) { tel('bond_threshold', { companion: 'kaan', threshold: at, value: s.bonds.kaan | 0, level_id: i }); });
     ups = accumulateMastery(s, r.tally && r.tally.bySrc);
     daily = dailyResult(s, r, won, day);
     P.Meta.Collect.bump(s, Object.assign({}, r, { won: won, levelIndex: i, daily: !!daily }));

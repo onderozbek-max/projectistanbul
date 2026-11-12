@@ -3,6 +3,8 @@
 //   node prototype/tools/bot.js [--seeds=30] [--policy=kite|straight] [--verbose]    Level 1 (scripted)
 //   node prototype/tools/bot.js --level=N [--seeds=8] [--verbose]                    one generated level (2..100)
 //   node prototype/tools/bot.js --levels=2,3,5,8,12,20,25,50,75,100 [--seeds=8]      summary table
+//   node prototype/tools/bot.js --campaign=30 [--out=file.jsonl]   play levels 1..N in order through the meta layer (real saves,
+//        Street Tree learned and respecced, Kaan bond) and dump the meta telemetry events (R1-T5 step 5)
 // Generated levels run with the expected progression at that level (P.Power.expectedLoadout: hood rank, attributes,
 // gear, mastery; see config-power.js). --bare runs the naked hero (no meta) for comparison.
 // Policies: L1 follows a fixed route with kite repulsion; generated levels use a generic policy (corridor centre,
@@ -14,7 +16,15 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 // The modules come from index.html's script order (minus the view, story and flow files), so the bot runs the same
 // sim as the browser build. A new sim file only needs its script tag (AUDIT-6 F2: this list used to drift).
-const NOT_SIM = /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|arsenal|collect|daily|save)\.js$/;
+// --campaign needs the real meta layer (save, collect, daily), so those three are loaded then, with an in-memory localStorage.
+const CAMPAIGN = process.argv.some(a => a.startsWith('--campaign'));
+const NOT_SIM = CAMPAIGN
+  ? /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|tree|bond-ui|arsenal)\.js$/
+  : /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|tree|bond-ui|arsenal|collect|daily|save)\.js$/;
+if (CAMPAIGN) {
+  const store = {};
+  globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+}
 const FILES = [...fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAll(/<script src="([^"]+)"/g)]
   .map(m => m[1]).filter(f => !NOT_SIM.test(f));
 FILES.forEach(function (f) { vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }); });
@@ -235,11 +245,11 @@ function snapshot(s, last) {
   };
 }
 
-function runGen(index, seed) {
+function runGen(index, seed, loadout) {
   let s = null, st = null, result = 'timeout', err = null, revived = false, stuck = null;
   const segT = {}, deaths = [], dmgBy = {}, evBy = {};
   try {
-    s = P.createSim(seed, { levelIndex: index, loadout: loadoutFor(index) });
+    s = P.createSim(seed, { levelIndex: index, loadout: loadout || loadoutFor(index) });
     P.startPlay(s);
     st = { ang: 0, best: s.hero.y, bestT: 0, push: 0, side: 1, skip: new Set(), dropT: 0, dropId: null, threat: Infinity, last: null };
     while (s.runT < MAX_T) {
@@ -262,7 +272,7 @@ function runGen(index, seed) {
   } catch (e) { err = e.stack.split('\n').slice(0, 3).join(' | '); result = 'crash'; }
   if (result === 'timeout' && s && st) stuck = snapshot(s, st.last);
   const L = s || { runT: 0, kills: 0, levelUps: [], peakAlive: 0, hero: { hp: 0 }, tally: { hacks: 0, events: 0 }, geo: { exitY: 0, holdY: 0 }, dir: { hold: {} }, props: {} };
-  return { seed, index, id: P.Journey.level(index).id, result, err, t: L.runT, kills: L.kills, levelUps: L.levelUps.length, stuck,
+  return { seed, index, id: P.Journey.level(index).id, result, err, t: L.runT, kills: L.kills, tally: L.tally, levelUps: L.levelUps.length, stuck,
     peak: L.peakAlive, deaths, dmgBy, evBy, segT, hacks: L.tally.hacks, events: L.tally.events,
     objId: s && s.obj ? s.obj.id : null, objState: s && s.obj ? s.obj.state : null,
     bossKilled: !!(s && s.gen && s.gen.boss && s.gen.boss.dead), hp: Math.round(L.hero.hp), exitY: (L.geo || {}).exitY || 0, holdY: (L.geo || {}).holdY || 0,
@@ -321,8 +331,55 @@ function runLevels(indices, seeds) {
   if (args.verbose) rows.forEach(r => r.list.forEach(x => console.log(JSON.stringify(x))));
 }
 
+
+// ---------- campaign (R1-T5 step 5): levels 1..N in order through the real meta layer, then the telemetry dump ----------
+// The bot plays each level with the loadout the SAVE produces (learned perks, bond, attributes), results go through P.Meta.onResults,
+// and between levels it spends READY points and learns the cheapest perk it can afford. One respec at level 12 exercises that event.
+// Level 1 is scripted, so it is recorded as a win with an average tally instead of being simulated. Stars: 3 without a death, else 2.
+function runCampaign(to) {
+  const M = P.Meta, events = [], ids = P.CFG.stats.ids, max = P.CFG.stats.max;
+  let at = 0;
+  M.onTel = (event, fields) => events.push(Object.assign({ event, campaign_level: at }, fields));
+  M.reset(); events.length = 0;
+  const spend = () => {
+    const st = M.heroStats('arda'), draft = {};
+    ids.forEach(a => { const n = Math.min(st.ready[a] | 0, max - st.attr[a]); if (n > 0) draft[a] = n; });
+    if (Object.keys(draft).length) M.allocate(draft);
+  };
+  const learn = () => {
+    const order = P.Tree.ids().sort((a, b) => P.Tree.node(a).tier - P.Tree.node(b).tier || a.localeCompare(b));
+    let again = true;
+    while (again) { again = false; order.forEach(id => { if (M.treeLearn(id)) again = true; }); }
+  };
+  const rows = [];
+  for (at = 1; at <= to; at++) {
+    let r = null, tries = 0;
+    do {
+      r = at === 1 ? { result: 'win', kills: 300, deaths: [], tally: Object.assign(P.Tally.create(), { kills: 300 }) } : runGen(at, 1 + tries, M.loadout());
+      const win = r.result === 'win';
+      M.onResults({ levelIndex: at, won: win, stars: win ? (r.deaths.length ? 2 : 3) : 0, coins: 30, kills: r.kills, tally: r.tally });
+      tries++;
+    } while (r.result !== 'win' && tries < 2);
+    spend(); learn();
+    if (at === 12 && Object.keys(M.state().tree.learned).length) { M.treeRespec(); learn(); }
+    rows.push({ level: at, result: r.result, kills: r.kills, bond: M.state().bonds.kaan | 0, sc: M.heroStats('arda').sc, perks: Object.keys(M.state().tree.learned).length });
+  }
+  console.log('campaign L1..' + to + ' (seed 1, one retry on a loss)');
+  console.log('level result  kills  bond  sc  perks');
+  rows.forEach(x => console.log(String(x.level).padEnd(5) + ' ' + x.result.padEnd(7) + String(x.kills).padStart(6) + String(x.bond).padStart(6) + String(x.sc).padStart(4) + String(x.perks).padStart(6)));
+  const by = {};
+  events.forEach(e => { by[e.event] = (by[e.event] || 0) + 1; });
+  console.log('events: ' + JSON.stringify(by));
+  const net = events.filter(e => e.event === 'currency_flow').reduce((n, e) => n + e.delta, 0), sc = M.heroStats('arda').sc;
+  console.log('street_cred flows add up to ' + net + '; saved balance ' + sc + (net === sc ? ' (matches)' : ' (MISMATCH)'));
+  Object.keys(by).forEach(k => console.log('  e.g. ' + JSON.stringify(events.find(e => e.event === k))));
+  if (args.out) { fs.writeFileSync(args.out, events.map(e => JSON.stringify(e)).join('\n') + '\n'); console.log('wrote ' + events.length + ' events to ' + args.out); }
+}
+
 // ---------- entry ----------
-if (args.levels || args.level) {
+if (args.campaign) {
+  runCampaign(parseInt(args.campaign, 10) || 30);
+} else if (args.levels || args.level) {
   const indices = args.levels ? String(args.levels).split(',').map(x => parseInt(x, 10)) : [parseInt(args.level, 10)];
   const seeds = parseInt(args.seeds || '8', 10);
   runLevels(indices, seeds);

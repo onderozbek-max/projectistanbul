@@ -14,6 +14,9 @@
   var music = function (id) { if (P.Music) P.Music.play(id); };
   var DEATH_BEAT = 0.8, dyingT = 0, dyingNext = null, frameErrs = 0;   // AUDIT-6 F4: hit-stop before the down screen
 
+  // Meta telemetry (perk_learned, perk_respec, bond_threshold, meta_upgrade, currency_flow) goes through P.Tel.
+  if (P.Meta) P.Meta.onTel = function (event, fields) { P.Tel.log(event, fields); };
+
   // Fail-soft flow (AUDIT-6 F2): a failing step is logged, shows a toast and falls back to the title, so Start never
   // dies silently. Errors inside the frame loop are logged and the loop keeps running.
   function guard(where, fn) {

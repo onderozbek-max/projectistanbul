@@ -450,8 +450,11 @@ Written as JSONL locally (architecture.md §4.16). Every event has: `ts`, `insta
 | `level_end` | `result` (win/lose/quit), `t_s`, `stars`, `kills`, `rewards` |
 | `cinematic` | `id`, `action` (complete/skip), `t_s` |
 | `tutorial_step` | `step_id`, `t_s` |
-| `meta_upgrade` | `type` (hero/skill/mastery/gear/merge), `id`, `cost` |
-| `currency_flow` | `currency`, `delta`, `source_or_sink`, `balance_after` (every earn/spend) |
+| `meta_upgrade` | `type` (hero/skill/mastery/gear/merge/**attribute**), `id`, `cost` (attribute: also `points`, `rank_after`; built for attributes only so far) |
+| `currency_flow` | `currency`, `delta`, `source_or_sink`, `balance_after` (every earn/spend). **Built for `street_cred` only:** `level_end`, `perk_learned`, `respec_refund` |
+| `perk_learned` | `perk_id`, `cost`, `attr_rank`, `sc_after` (Street Tree, R1-T5) |
+| `perk_respec` | `refunded`, `perks_cleared`, `chapter`, `sc_after` |
+| `bond_threshold` | `companion`, `threshold`, `value`, `level_id` |
 | `store_view` / `offer_shown` / `offer_result` | `placement`, `offer_id`, `result` (SL) |
 | `purchase` | `sku`, `price_local`, `currency_code`, `result` (stub in the slice) |
 | `booster_used` / `pass_tier` | `booster_id` / `tier`, `track` (SL) |
