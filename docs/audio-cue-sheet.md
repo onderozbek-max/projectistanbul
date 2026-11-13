@@ -1,8 +1,8 @@
 # Audio cue sheet (prototype v0.5)
 
-Owner: workstream A (SOUND). Code: `prototype/js/view/sfx-bank.js` (DSP primitives, layer helpers, ambience beds), `sfx-bank2.js` (cue recipes), `sfx.js` (runtime mix), `music.js` (music player).
-Audition: open `prototype/tools/sfx-preview.html` (works over file://; click **Enable audio** first).
-Tools: `prototype/tools/render-sfx.js`, `prototype/tools/qa-sfx.js`, `prototype/tools/render-music.js`, `prototype/tools/prepare-music.js` (see Tools below).
+Owner: workstream A (SOUND). Code: `prototype/js/view/sfx-bank.js` (DSP primitives, layer helpers, ambience beds), `sfx-bank2.js` (cue recipes), `sfx.js` (runtime mix), `sfx-gen.js` (loader for the owner's generated files, D-063), `music.js` (music player).
+Audition: open `prototype/tools/sfx-preview.html` (works over file://; click **Enable audio** first). Over http it also has a Generated / Synth switch.
+Tools: `prototype/tools/render-sfx.js`, `prototype/tools/qa-sfx.js`, `prototype/tools/render-music.js`, `prototype/tools/prepare-music.js`, `prototype/tools/prepare-sfx.js` (see Tools below).
 
 **Status: nobody has listened to this yet.** Every check in this sheet is numerical (QA harness, loudness, seams). The owner and lead need a listening pass before any of it is called done.
 
@@ -17,8 +17,8 @@ Tools: `prototype/tools/render-sfx.js`, `prototype/tools/qa-sfx.js`, `prototype/
 
 ## Ground rules
 
-- **No samples, no downloads.** Every SFX is synthesized in code (`sfx-bank*.js`). The music is synthesized by `tools/render-music.js`. No third-party audio is used anywhere.
-- **D-029 ("code makes the SFX") holds for SFX.** For music, D-029 assigns the tracks to the owner's Suno workflow. The eight tracks here are procedural placeholders under the same IDs, so the owner's tracks can replace them without code changes. Recorded as D-062 (proposed 2026-11-13, owner approved the plan): the owner's files go in `prototype/audio/music-suno/`.
+- **No samples, no downloads.** Every synthesized SFX is made in code (`sfx-bank*.js`). The music is synthesized by `tools/render-music.js` as a placeholder. The one exception is the owner's AI-generated SFX files (D-063, see Generated SFX below), which replace the synthesized sound cue by cue. No other third-party audio is used anywhere.
+- **D-029 ("code makes the SFX") holds for the synthesized SFX.** D-063 (proposed 2026-11-13) amends it for the generated cues: the kill, blast and impact sounds come from an AI sound tool, made from the prompts in `prototype/audio/sfx-gen/BRIEF.md`. For music, D-029 assigns the tracks to the owner's Suno workflow. The eight tracks here are procedural placeholders under the same IDs, so the owner's tracks can replace them without code changes. Recorded as D-062 (proposed 2026-11-13, owner approved the plan): the owner's files go in `prototype/audio/music-suno/`.
 
 ## How the sounds are made
 
@@ -41,6 +41,24 @@ Tools: `prototype/tools/render-sfx.js`, `prototype/tools/qa-sfx.js`, `prototype/
 - **Ducking:** `bossIntro` (2.4 s), `bossDie` (2.2 s), `bruteRoar` (1.7 s) and `speech` (0.35 s, re-triggered by each syllable) call `duck(sec)`. During a duck, ambience drops to -6 dB (`DUCK_AMB` = 0.5), priority 0 to 2 SFX start at -3 dB (`DUCK_MID` = 0.708), and music drops to -9 dB (`P.Music.duckFor`, `DUCK` = 0.355 in `music.js`). The brief asked for about 3 dB on ambience and music; the implemented depths are deeper than that. Both are constants, so one line each if the owner wants 3 dB.
 - **Volume:** `P.Sfx.setVolume(bus, v)` with bus `sfx`, `ui`, `voice`, `ambience`, `music` or `master`. Settings is not touched; the Settings sliders need to call this.
 - Everything obeys the "Sound effects" toggle (`P.Settings.sound`). Music has its own switch (`P.Settings.music`).
+- **Generated files (`sfx-gen.js`, D-063):** when a cue has files in `prototype/audio/sfx-gen/ready/`, `P.Sfx` plays them in place of the synthesized recipe. Start-up fetches `manifest.json` and then the files, in idle time, short files first. Nothing plays or shows while this loads.
+- **Round robin and jitter:** a cue with several takes plays them in turn (1, 2, 3, 1, ...). Each play is pitched up or down by up to 4%, so repeats do not sound identical.
+- **Levels:** each file is set to its class level (impact, hit, voice, boss, ui; beds to -26 dBFS RMS) and then to the cue's design level from the table, so the balance tuned here holds. The peak ceiling, voice limits, ducking and priority are unchanged.
+- **Memory:** generated cues are capped at 15.5 MB of decoded audio (a 48 kHz mono float32 estimate). A file over the cap keeps its synthesized sound. One ambience bed (at most 20 s, about 3.8 MB) decodes when its theme starts, and only the last one is kept. The total stays under 20 MB.
+- **Fallback:** a missing, failed or unloadable file plays the synthesized recipe, with nothing logged or shown. The loader stays off on `file://` (the browser blocks the fetch) and with `?sfx=synth`, which forces the synthesized sounds for A/B.
+- **Decode and unlock:** decoding needs no user gesture, so it starts at boot, using an offline context until the game's live context exists. Playback still waits for the existing iOS unlock (`P.Sfx.unlock`). Not checked on an iPhone yet.
+
+## Generated SFX (D-063, proposed 2026-11-13)
+
+The owner found the synthesized kill, blast and impact sounds poor on the phone (only the XP `tink` was judged pleasant). The owner generates those cues with an AI sound tool and drops the files in `prototype/audio/sfx-gen/`. Full prompts: `prototype/audio/sfx-gen/BRIEF.md`. Owner steps: `prototype/audio/sfx-gen/README.md`.
+
+- **Scope:** the tool accepts 90 cue names (`--list` prints them, including the five hit kinds). Batches 1 to 4 in `BRIEF.md` cover 45 of them (12, 12, 12 and 9 cues), each with a take count and an exact prompt. The XP pickups `tink`, `coin`, `star` and `magnet` stay synthesized by decision. The other 41 get a brief in a later round. `speech` is not a file name and stays synthesized.
+- **Batch 1 (12):** `hit_body`, `splat`, `swish`, `nail`, `hammer`, `zombieDie`, `groan`, `hurt`, `blast`, `boom`, `rocketBoom`, `level`.
+- **Hit kinds:** only `hit_body` is played today, because the call site uses the default kind. The other four hit files stay dormant until weapon calls pass `kind` (see Open items).
+- **Beds (optional):** five ambience loops (`amb_street`, `amb_waterfront`, `amb_bazaar`, `amb_wind`, `amb_night`), 8 to 20 s. The tool blends the last 0.5 s into the start, so each bed is exported 0.5 s longer than its loop.
+- **Music** is unchanged and stays with Suno (D-062).
+- **Tools:** `prepare-sfx.js` (ffmpeg, mirrors `prepare-music.js`) writes `ready/*.mp3` and `ready/manifest.json`; partial uploads are fine. `sfx-provenance.js` adds rows to `art/PROVENANCE.csv` and refuses without `--tool`, `--plan` and `--commercial-ok`. `test-sfx-gen.js` checks the brief against the bank, runs the loader in a sandbox, and runs the tool on synthetic files in the OS temp folder.
+- **Status:** the loader, the tool and the tests are built. No owner file exists yet, so nothing generated has been heard in the game.
 
 ## Tools
 
@@ -52,7 +70,10 @@ Tools: `prototype/tools/render-sfx.js`, `prototype/tools/qa-sfx.js`, `prototype/
   - Masters peak between -16.4 and -2.8 dBFS.
 - `node prototype/tools/render-music.js [id]` renders the eight tracks to `prototype/audio/music/*.mp3` (libmp3lame, 128 kbps). Loudness is set by ebur128 iteration to each track's target, and the loop seam is checked on the decoded MP3. Requires ffmpeg. About 60 s for all eight.
 - `node prototype/tools/prepare-music.js [--dry-run] [--only=id,id] [--src=DIR] [--dst=DIR]` turns the owner's Suno files in `prototype/audio/music-suno/` into `prototype/audio/music/<id>.mp3` (see Music below). `node prototype/tools/test-music.js` checks the player's slot manifest and the files.
-- `prototype/tools/sfx-preview.html`: category filters, variant stepper, a combat-second playback, the level-up sequence, the boss intro with ducking, a hit-kind selector, the ambience beds, the music tracks, a two-second duck test, and volume sliders for each bus.
+- `node prototype/tools/prepare-sfx.js [--dry-run] [--list] [--only=name,name] [--src=DIR] [--dst=DIR]` turns the owner's files in `prototype/audio/sfx-gen/` into `ready/*.mp3` and `ready/manifest.json`. It trims silence, sets each file to its loudness class, caps the peak at -1.5 dBFS, and rejects silent, over-long or misnamed files (listed, the rest are written). Exit code 1 when anything is rejected. Requires ffmpeg.
+- `node prototype/tools/sfx-provenance.js --tool=... --plan=... --commercial-ok [--dry-run] [--csv=...] [--manifest=...]` adds one `art/PROVENANCE.csv` row per generated file that has none. It refuses without `--plan` and `--commercial-ok`, which confirm the tool's plan tier allows commercial use.
+- `node prototype/tools/test-sfx-gen.js [--quick]` checks the brief against the bank, the loader in a vm sandbox, and the prepare tool on synthetic ffmpeg files (`--quick` skips the ffmpeg part). A warm full run takes about 10 s here. The first run after a cold start took about 4.5 minutes, because each ffmpeg and ffprobe launch was slow.
+- `prototype/tools/sfx-preview.html`: category filters, variant stepper, a combat-second playback, the level-up sequence, the boss intro with ducking, a hit-kind selector, the ambience beds, the music tracks, a two-second duck test, volume sliders for each bus, and a Generated / Synth switch with a status line (files ready, loading, failed, over cap). The switch is live over http and shows "files off" over `file://`.
 
 ## Cue table
 
@@ -219,12 +240,16 @@ Eight tracks, one per ID that `music.js` plays. The owner's Suno exports go in `
 6. **Wiring:** pass `kind` on weapon `hit` calls; wire the hero walk cycle to `footstep`; give `cat` a call site.
 7. **Comic speech ducking:** already in place. `comic.js` plays the `speech` cue on each syllable, and `speech` ducks through `duck(0.35)`. No change needed.
 8. **Gem:** add back when a rare-gem event exists.
+9. **Generated SFX (D-063, proposed):** the owner generates batch 1 (12 cues) first, then batches 2 to 4, and listens on the phone with the `?sfx=synth` A/B. Confirm the route, and that the XP pickup family stays synthesized. The 41 cues without a brief need a later round.
+10. **Sound-tool licence:** write the plan tier down and run `sfx-provenance.js` with `--plan` and `--commercial-ok` before any generated file ships.
+11. **iOS decode:** buffers decoded by the offline context and played on the live context are not checked on a device. A playback that throws drops the file and plays the synthesized sound. A playback that is silent without an error is not caught, so it needs the device check.
 
 Runtime was exercised against a WebAudio stub: all 87 cues played without errors, and the per-cue rate caps held.
 
 ## Files
 
-- Code: `prototype/js/view/sfx-bank.js`, `sfx-bank2.js`, `sfx.js`, `music.js`
-- Tools: `prototype/tools/render-sfx.js`, `qa-sfx.js`, `render-music.js`, `prepare-music.js`, `test-music.js`, `lib-sfx.js`, `sfx-preview.html`
+- Code: `prototype/js/view/sfx-bank.js`, `sfx-bank2.js`, `sfx.js`, `sfx-gen.js`, `music.js`
+- Tools: `prototype/tools/render-sfx.js`, `qa-sfx.js`, `render-music.js`, `prepare-music.js`, `test-music.js`, `prepare-sfx.js`, `sfx-provenance.js`, `test-sfx-gen.js`, `lib-sfx.js`, `sfx-preview.html`
+- Generated SFX: `prototype/audio/sfx-gen/` (`BRIEF.md`, `README.md`, `.gitignore`; the owner's source takes are git-ignored, `ready/` is tracked), provenance rows in `art/PROVENANCE.csv`
 - Output: `prototype/audio/sfx/` (WAVs git-ignored, `manifest.json` tracked), `prototype/audio/music/` (MP3 and README)
 - QA report: `reports/sfx-qa.json` (git-ignored)

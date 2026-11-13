@@ -3,7 +3,7 @@
 // anything but the sim's public state. A type that has shown (or was tapped away) is stored and never shows again (per store).
 // The presenter (hints-view.js) draws the callout; detectors (hints-detect.js) say what is in view. Tokens: hints-config.js.
 P.Hints = (function () {
-  var H = {}, C = P.CFG.hints, ORDER = ['heal', 'currency', 'objective', 'chest', 'explosive', 'cover', 'link', 'tram', 'door', 'dash', 'call'];
+  var H = {}, C = P.CFG.hints, ORDER = ['heal', 'eczane', 'currency', 'objective', 'chest', 'explosive', 'cover', 'link', 'tram', 'door', 'dash', 'call'];
   var seen = {}, loaded = false, store = null, queue = [], active = null, nextAt = 0, now = 0, lastSim = null;
   H.ORDER = ORDER;
 
@@ -35,6 +35,24 @@ P.Hints = (function () {
     save();
   }
 
+  // T4 part 15: a callout that would cover the story layer (a comic pop with its portrait and starburst, or a call card; see
+  // hints-view.js overlapsLayer) waits until the layer has left. It is held in game time, at most PORTRAIT_WAIT_S from when it first
+  // could have started; then it shows anyway (its start and arrow stay on top, see the z-order there). Other callouts may start meanwhile.
+  var PORTRAIT_WAIT_S = 6;
+  H.PORTRAIT_WAIT_S = PORTRAIT_WAIT_S;
+  // Index of the first queued callout that may start now, or -1.
+  function startable(ctx) {
+    var i, it, covers;
+    for (i = 0; i < queue.length; i++) {
+      it = queue[i];
+      covers = !!(H.view && H.view.overlapsLayer && H.view.overlapsLayer(it, ctx));
+      if (!covers) return i;
+      if (it.heldAt == null) it.heldAt = now;
+      if (now - it.heldAt >= PORTRAIT_WAIT_S) return i;
+    }
+    return -1;
+  }
+
   // What the detectors and the presenter need from render.js: phone size, world-to-phone mapping, the hero's phone point.
   H.context = function (s) {
     var R = P.Render, W = (R && R.W) || 390, Hh = (R && R.H) || 844;
@@ -64,7 +82,10 @@ P.Hints = (function () {
       if (q) { q.x = f.x; q.y = f.y; q.hud = f.hud || null; }
       else queue.push({ type: type, x: f.x, y: f.y, hud: f.hud || null });
     }
-    if (!active && queue.length && now >= nextAt && !(s.dir && s.dir.tut && s.dir.tut.active)) start(queue.shift());
+    if (!active && queue.length && now >= nextAt && !(s.dir && s.dir.tut && s.dir.tut.active)) {
+      i = startable(ctx);
+      if (i >= 0) start(queue.splice(i, 1)[0]);
+    }
     if (H.view) H.view.render(active, ctx, s);
   };
 

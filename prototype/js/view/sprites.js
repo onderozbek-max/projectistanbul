@@ -210,21 +210,35 @@ P.Sprites = (function () {
     c.restore();
   };
   // Screen-wide flash budget (design-system 11, WCAG 2.3.1): every white or red flash that starts on screen takes a slot, and no
-  // more than FLASH_HZ starts fit in any 1 s window. A per-object gap alone let a crowd flash dozens of times a second together,
-  // so the hero hit, enemy and prop flashes, blast and burst discs, the edge pulse and the low-HP heartbeat share this budget.
-  // Under Reduce flashing nothing is granted and nothing is counted.
-  var FLASH_HZ = 3, flashLog = [];
-  function trimFlashLog(now) { while (flashLog.length && now - flashLog[0] >= 1) flashLog.shift(); }
-  S.flashOk = function (now) {
+  // more than FLASH_HZ (3) starts fit in any rolling 1 s window (a start is dropped from the window exactly 1 s after it). A
+  // per-object gap alone let a crowd flash dozens of times a second together. Two pools share the 3 (T4 part 15):
+  //  - 'hit' (the default): the hero hit, enemy, prop, blast and burst discs, the edge pulse and the low-HP heartbeat. At most
+  //    FLASH_HIT (2) starts in a window, so a crowd of hits always leaves one slot free.
+  //  - 'moment': the signature moments (moments.js, moments-screen.js). One start a second is reserved for them, and a moment
+  //    may also take any free slot.
+  // A hit may not take the last slot while a moment is in the window or pending (asked and refused in the last second). That slot
+  // is the moments' reserve, so a refused moment means a moment started within the last second, unless forced beats (flashForce,
+  // the heartbeat) fill the window. Under Reduce flashing
+  // nothing is granted and nothing is counted.
+  var FLASH_HZ = 3, FLASH_HIT = 2, flashLog = [], momentRefusedAt = -1e9;
+  function trimFlashLog(now) { while (flashLog.length && now - flashLog[0].t >= 1) flashLog.shift(); }
+  function countKind(kind) { var i, n = 0; for (i = 0; i < flashLog.length; i++) if (flashLog[i].kind === kind) n++; return n; }
+  S.flashOk = function (now, kind) {
+    var moment = kind === 'moment';
     if (P.Settings && P.Settings.reduceFlash) return false;
     trimFlashLog(now);
-    if (flashLog.length >= FLASH_HZ) return false;
-    flashLog.push(now);
+    if (flashLog.length >= FLASH_HZ) { if (moment) momentRefusedAt = now; return false; }
+    if (!moment) {
+      if (countKind('hit') >= FLASH_HIT) return false;
+      if ((countKind('moment') > 0 || now - momentRefusedAt < 1) && flashLog.length >= FLASH_HZ - 1) return false;   // the moments' reserve
+    }
+    flashLog.push({ t: now, kind: moment ? 'moment' : 'hit' });
     return true;
   };
-  // A flash that cannot wait (the low-HP heartbeat): always shown, but it counts against the budget.
-  S.flashForce = function (now) { trimFlashLog(now); flashLog.push(now); };
-  S.flashStarts = function (now) { trimFlashLog(now); return flashLog.length; };
+  // A flash that cannot wait (the low-HP heartbeat): always shown, but it counts against the budget as a hit.
+  S.flashForce = function (now) { trimFlashLog(now); flashLog.push({ t: now, kind: 'hit' }); };
+  // Starts in the current window: all of them, or only one kind ('hit' or 'moment').
+  S.flashStarts = function (now, kind) { trimFlashLog(now); return kind ? countKind(kind) : flashLog.length; };
   // Guardrail (no flashes faster than 3 per second): one white hit flash per enemy per feel.enemyFlashGap. A hit that
   // lands during an allowed flash keeps it; a suppressed flash stays suppressed until it ends. Squash plays on every hit.
   var flashSt = {}, flashCalls = 0, propFlash = typeof WeakMap === 'function' ? new WeakMap() : null;

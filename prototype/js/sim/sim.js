@@ -138,6 +138,7 @@ P.stepSim = function (s, dt, input) {
   P.Combat.updateBurnAndZones(s, dt);
   P.Combat.removeDead(s);
   P.Combat.updateDrops(s, dt);
+  if (s.eczane) P.Eczane.step(s, dt);   // R1-T4 part 14: eczane stations (generated levels only)
   s.props.carts.forEach(function (c) { c.flash = Math.max(0, c.flash - dt); });
   s.props.canisters.forEach(function (c) { c.flash = Math.max(0, c.flash - dt); });
 };

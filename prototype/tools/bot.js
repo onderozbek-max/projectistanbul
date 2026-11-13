@@ -9,7 +9,7 @@
 // gear, mastery; see config-power.js). --bare runs the naked hero (no meta) for comparison.
 // Policies: L1 follows a fixed route with kite repulsion; generated levels use a generic policy (corridor centre,
 // kite, dodge lanes/puddles/rings/stomps, pick up drops, link hack terminals when no enemy is close, circle the hold
-// and the boss, push through stalls). Both link hacks (INT) and count events. One revive (as in L1). Exceptions are
+// and the boss, push through stalls, walk to a near eczane station when hurt: R1-T4 part 14). Both link hacks (INT) and count events. One revive (as in L1). Exceptions are
 // caught and reported as result 'crash'.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -47,6 +47,8 @@ if (args.base) { P.CFG.levels.hoodExtras = {}; P.CFG.ev.mix = []; P.CFG.ev.flavo
 if (args.nonew) { P.CFG.levels.schedule = []; P.CFG.affix.schedule = []; }
 // --nocap: lift the per-run drop-heal budget (drops.healCap), to compare with the uncapped build.
 if (args.nocap) P.CFG.drops.healCap = Infinity;
+// --noeczane: the bot never detours to an eczane station (R1-T4 part 14). The stations stay in the levels: a route touch still heals.
+// --set=env.eczane.perLevel=0 removes the stations altogether (the pre-part-14 build, for a before/after check).
 const SEEDS = parseInt(args.seeds || '30', 10), POLICY = args.policy || 'kite';
 const PATH = [[-5, -1.5], [-5, 2], [0, 60], [-4, 140], [-4, 165], [-1, 192], [1.5, 206]];
 const MAX_T = 600, DT = 1 / 60, DROP_KINDS = ['xp', 'chest', 'simit', 'jeton'];
@@ -218,6 +220,23 @@ function inBlock(s, p) {
   return s.geo.blocks.some(b => p.x > b.rc.xMin - r && p.x < b.rc.xMax + r && p.y > b.rc.yMin - r && p.y < b.rc.yMax + r);
 }
 
+// Eczane (R1-T4 part 14): a hurt bot walks to an unused station near the route and stands at its lane side until the sim's dwell
+// uses it. Only below env.eczane.bot.hp of max HP, within reach ahead and back, and with no enemy inside threat (the drop gate).
+// Returns the point to walk to, or null.
+function eczaneTarget(s, st, h) {
+  const B = P.CFG.env.eczane.bot;
+  if (args.noeczane || !s.eczane || st.threat <= B.threat || h.hp >= B.hp * h.maxHp) return null;
+  let best = null, bd = Infinity;
+  for (const k of s.eczane.list) {
+    if (k.used) continue;
+    const b = k.b, dy = b.y - h.y;
+    if (dy > B.reach || dy < -B.back) continue;
+    const d = P.Eczane.touchDist(h, b);
+    if (d < bd) { bd = d; best = b; }
+  }
+  return best ? [best.x - Math.sign(best.x) * (best.w / 2 + B.gap), best.y] : null;
+}
+
 // Nearest drop worth a detour (none while the gate is open, the boss is near, or enemies are close).
 function dropTarget(s, st, h, bossAlive) {
   if (s.props.shutterOpen || st.threat <= 2.2 || (bossAlive && st.threat <= 4)) return null;
@@ -248,7 +267,8 @@ function genInput(s, st) {
   if (drop && st.dropT > 240) { st.skip.add(drop); drop = null; st.dropId = null; st.dropT = 0; }   // unreachable (inside a block): give up
   // Link a hack terminal in reach (linking needs the hero in the zone; the noise wave is fought after).
   const hk = !drop && st.threat > 3 && !s.props.shutterOpen ? s.hacks.filter(t => t.state !== 'done' && Math.hypot(t.x - h.x, t.y - h.y) < HACK_REACH)[0] : null;
-  const [tx, ty] = drop ? [drop.x, drop.y] : hk ? [hk.x, hk.y] : targetOf(s, st);
+  const eT = drop ? null : eczaneTarget(s, st, h);   // a hurt bot's detour to a station (before a hack link, after a drop)
+  const [tx, ty] = drop ? [drop.x, drop.y] : eT ? eT : hk ? [hk.x, hk.y] : targetOf(s, st);
   const u = unit(tx - h.x, ty - h.y);
   if (st.push > 0) { st.push -= DT; return { x: u.x + st.side * 0.9, y: u.y }; }
   const r = repulsion(s, h);
@@ -268,7 +288,7 @@ function snapshot(s, last) {
 
 function runGen(index, seed, loadout) {
   let s = null, st = null, result = 'timeout', err = null, revived = false, stuck = null;
-  const segT = {}, deaths = [], dmgBy = {}, evBy = {}, arenaDmg = {};
+  const segT = {}, deaths = [], dmgBy = {}, evBy = {}, arenaDmg = {}, eczUses = [];   // eczUses: HP restored by each eczane use (observer)
   let minFrac = 1;   // lowest hero HP fraction over the run (0 while dead); observed only, never read by the sim
   // Boss observers (boss-arena pass): arenaT = the boss intro (the approach is over), bossDieT = the boss's death, minArena =
   // lowest HP fraction from the intro on, arenaDmg = hero damage from the intro on, by cause. Never read by the sim.
@@ -299,6 +319,7 @@ function runGen(index, seed, loadout) {
             arenaByT[k] = arenaByT[k] || [0, 0]; arenaByT[k][src === 'adds' ? 1 : 0] += ev.dmg;
           }
         }
+        if (ev.type === 'pickup' && ev.kind === 'eczane') eczUses.push(ev.healed);
         if (ev.type === 'bossIntro' && arenaT === null) { arenaT = s.runT; arenaHp = Math.max(0, s.hero.hp) / s.hero.maxHp; }
         if (ev.type === 'bossDie' && bossDieT === null) bossDieT = s.runT;
         if (TRACE === seed && /^(boss|brute|summon|heroHit|death|win)/.test(ev.type)) trace(s, ev);
@@ -318,7 +339,7 @@ function runGen(index, seed, loadout) {
   return { seed, index, id: P.Journey.level(index).id, result, err, t: L.runT, kills: L.kills, tally: L.tally, levelUps: L.levelUps.length, stuck,
     lvTimes: L.levelUps.slice(), minFrac, dropHeal: L.dropHealed || 0,
     peak: L.peakAlive, deaths, dmgBy, evBy, segT, hacks: L.tally.hacks, events: L.tally.events,
-    arenaT, bossDieT, minArena, arenaDmg, arenaHp, arenaSrc, arenaByT,
+    arenaT, bossDieT, minArena, arenaDmg, arenaHp, arenaSrc, arenaByT, eczane: eczUses,
     objId: s && s.obj ? s.obj.id : null, objState: s && s.obj ? s.obj.state : null,
     bossKilled: !!(s && s.gen && s.gen.boss && s.gen.boss.dead), hp: Math.round(L.hero.hp), exitY: (L.geo || {}).exitY || 0, holdY: (L.geo || {}).holdY || 0,
     stage: P.Journey.level(index).stage, at: { x: s ? +s.hero.x.toFixed(2) : 0, y: s ? +s.hero.y.toFixed(2) : 0, hold: !!(s && s.dir.hold.active), gate: !!(s && s.props.shutterOpen) } };
@@ -426,6 +447,13 @@ function runLevels(indices, seeds) {
       `${(Math.round(100 * c.minHp) + '%').padStart(9)}  ${(Math.round(100 * c.under30) + '%').padStart(9)}  ` +
       `${(c.firstLv ? c.firstLv.toFixed(1) : '-').padStart(11)}  ${String(c.lvls).padStart(4)} (${c.lvMin}-${c.lvMax})`.padEnd(42) +
       `${c.dmgMin.toFixed(1).padStart(7)}  ${String(Math.round(c.dropHeal)).padStart(8)}`);
+  });
+  // Eczane (R1-T4 part 14): uses per run (mean) and the HP they restored (mean per run, outside the drop-heal cap).
+  console.log('eczane  uses/run  HP/run  (--noeczane: no bot detour)' + (args.noeczane ? '  [no detour]' : ''));
+  rows.forEach(r => {
+    const l = r.list, n = l.length || 1;
+    const uses = l.reduce((a, x) => a + (x.eczane || []).length, 0) / n, hp = l.reduce((a, x) => a + (x.eczane || []).reduce((b, v) => b + v, 0), 0) / n;
+    console.log(`${String(r.idx).padEnd(6)} ${uses.toFixed(2).padStart(9)}  ${hp.toFixed(1).padStart(6)}`);
   });
   // Boss table (boss-arena pass): seconds are run time (approach = to the intro, fight = intro to boss death, walk = boss death to the win).
   // Deaths and hero damage are per run (means); damage in the arena is the boss's (by source below) and the adds' (everything else).

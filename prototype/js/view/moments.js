@@ -12,8 +12,9 @@ P.Moments = (function () {
   function rf() { return !!(P.Settings && P.Settings.reduceFlash); }
   function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
   function ease(v) { v = clamp01(v); return 1 - (1 - v) * (1 - v); }
-  // A bright start asks the screen budget (sprites.js flashOk through P.Fx.flashGo). With no budget module it is granted.
-  function go() { return !P.Fx || !P.Fx.flashGo || P.Fx.flashGo(); }
+  // A bright start asks the screen budget (sprites.js flashOk through P.Fx.flashGo) from the moments pool, which has a slot reserved
+  // each second (T4 part 15). With no budget module it is granted.
+  function go() { return !P.Fx || !P.Fx.flashGo || P.Fx.flashGo('moment'); }
   function screen() { return P.MomentsScreen; }
   function pool(n) { var a = [], i; for (i = 0; i < n; i++) a.push({ on: false, age: 0, T: 1 }); return a; }
   // The first free slot, else the oldest (largest age). Slots are reused, so nothing is allocated per event.

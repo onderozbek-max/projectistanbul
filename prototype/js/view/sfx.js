@@ -7,6 +7,8 @@
 // dropped, rapid repeats rise slightly in pitch), a ducking pass when a boss or comic-speech cue plays (ambience
 // -6 dB, music via P.Music.duckFor, mid-priority SFX -3 dB), and a master limiter (DynamicsCompressor, ratio 12).
 // Respects P.Settings.sound (the "Sound effects" toggle): when off, nothing plays. Music has its own switch.
+// Generated files (D-063, proposed): sfx-gen.js decodes the owner's files from audio/sfx-gen/ready/. A cue with a ready
+// file plays it (round robin, pitch jitter +-4%, design-level gain); any other cue plays the synthesized recipe.
 P.Sfx = (function () {
   var R = P.SfxRecipes, DSP = P.SfxDsp;
   var CATS = { sfx: 0.85, ui: 0.8, voice: 0.95, ambience: 0.5 };   // bus base gains, linear
@@ -56,6 +58,7 @@ P.Sfx = (function () {
     var AC = window.AudioContext || window.webkitAudioContext, c;
     if (!AC || !R || !DSP) return null;
     try { c = new AC(); buildGraph(c); ctx = c; } catch (e) { ctx = null; }
+    if (ctx && P.SfxGen && P.SfxGen.attach) P.SfxGen.attach(ctx);   // generated files: decode on the live context if still pending
     return ctx;
   }
   function cueBuffer(name, v, who) {
@@ -107,11 +110,12 @@ P.Sfx = (function () {
     return list.length;
   }
   // Starts one voice: buffer -> gain (opts.vol, duck) -> optional panner (opts.pan) -> category bus, plus reverb send.
-  function start(name, m, b, o, rate, ducked) {
+  // gen (optional) is the generated-file entry: its jitter (+-4%) and its design-level gain replace the synth defaults.
+  function start(name, m, b, o, rate, ducked, gen) {
     var c = ctx, t = c.currentTime + 0.005, src = c.createBufferSource(), g = c.createGain(), out = g, pan = null, send = null;
     src.buffer = b;
-    src.playbackRate.value = rate * (name === 'speech' ? 1 : 1 + (Math.random() * 2 - 1) * 0.015);
-    g.gain.value = (typeof o.vol === 'number' ? clamp(o.vol, 0, 1) : 1) * (ducked ? DUCK_MID : 1);
+    src.playbackRate.value = rate * (name === 'speech' ? 1 : 1 + (Math.random() * 2 - 1) * (gen ? gen.jitter : 0.015));
+    g.gain.value = (typeof o.vol === 'number' ? clamp(o.vol, 0, 1) : 1) * (ducked ? DUCK_MID : 1) * (gen ? gen.gain : 1);
     src.connect(g);
     if (typeof o.pan === 'number' && c.createStereoPanner) {
       pan = c.createStereoPanner(); pan.pan.value = clamp(o.pan, -1, 1); g.connect(pan); out = pan;
@@ -141,7 +145,7 @@ P.Sfx = (function () {
   }
   function play(name, minGap, opts) {
     if (!R || !R.has(name) || !soundOn()) return;
-    var c = ensure(), o = opts || {}, m, now, gap, rate, v, b, who, nRate, ducked;
+    var c = ensure(), o = opts || {}, m, now, gap, rate, v, b, who, nRate, ducked, gen;
     if (!c) return;
     if (c.state === 'suspended') { c.resume(); return; }
     m = R.meta[name];
@@ -161,13 +165,19 @@ P.Sfx = (function () {
     if (name === 'tink') rate *= tinkRate(now);
     if (PITCH_UP[name]) rate *= 1 + 0.025 * Math.min(nRate, 4);
     who = o.voice || o.kind;
-    v = typeof o.variant === 'number' ? o.variant : pickVariant(name, m.v);
-    b = cueBuffer(name, v, who);
+    gen = P.SfxGen ? P.SfxGen.pick(name, who) : null;   // a ready generated file for this cue, else null (synth recipe)
+    if (gen) b = gen.buf;
+    else {
+      v = typeof o.variant === 'number' ? o.variant : pickVariant(name, m.v);
+      b = cueBuffer(name, v, who);
+    }
     if (!b) return;
     last[name] = now;
     ducked = duckOn && m.p <= DUCK_MID_PRIO;
     if (has(DUCK, name)) duck(DUCK[name]);
-    start(name, m, b, o, rate, ducked);
+    if (!gen) { start(name, m, b, o, rate, ducked, null); return; }
+    try { start(name, m, b, o, rate, ducked, gen); }
+    catch (e) { P.SfxGen.drop(name, who); }   // a buffer the context refuses: this cue is synthesized from now on
   }
   // ---- Ambience beds: one seamless loop per group, crossfaded on theme change ----
   function ambBuffer(group) {
@@ -175,9 +185,17 @@ P.Sfx = (function () {
     if (!cache[key]) cache[key] = bufferOf(ctx, DSP.bed(group, AMB_SEC, ctx.sampleRate, DSP.rng(DSP.seed(key))));
     return cache[key];
   }
+  // A generated bed (sfx-gen) starts when it has decoded; until then the previous bed has faded and nothing plays.
+  // A missing or failed bed starts the synthesized one at once.
   function startBed(group) {
+    var gb = P.SfxGen ? P.SfxGen.bed(group, function (buf) {
+      if (ambWant === group && !amb && ctx && soundOn()) startBedWith(group, buf);
+    }) : null;
+    if (gb !== undefined) startBedWith(group, gb);
+  }
+  function startBedWith(group, gb) {
     var c = ctx, t = c.currentTime, src = c.createBufferSource(), gn = c.createGain();
-    src.buffer = ambBuffer(group); src.loop = true;
+    src.buffer = gb || ambBuffer(group); src.loop = true;
     gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(1, t + FADE);
     src.connect(gn); gn.connect(bus.ambience); src.start(t);
     amb = { src: src, g: gn };
@@ -208,7 +226,8 @@ P.Sfx = (function () {
   // Renders variant 0 of every cue (both hit kinds and the speech presets are rendered on first use) and the beds
   // in small steps, so first plays do not stall.
   function warm() {
-    var jobs = R.names.map(function (n) { return function () { cueBuffer(n, 0, null); }; });
+    var jobs = R.names.filter(function (n) { return !(P.SfxGen && P.SfxGen.has(n)); })   // covered by generated files: no synth render
+      .map(function (n) { return function () { cueBuffer(n, 0, null); }; });
     AMB_GROUPS.forEach(function (g) { jobs.push(function () { ambBuffer(g); }); });
     (function next() {
       var job = jobs.shift();

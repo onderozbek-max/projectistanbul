@@ -490,7 +490,8 @@
   });
 
   // ---- eczane (pharmacy), T4 part 10: the heal-station look. A cream booth under a green cross sign. o.state: 'usable' (the sign
-  // glows, pulsing unless Reduce motion), 'empty' (grey cross and an EMPTY label) or 'idle'. Art only; the sim has no pharmacy heal yet.
+  // glows, pulsing unless Reduce motion), 'empty' (grey cross and an EMPTY label) or 'idle'. The state is read from the sim by
+  // render-world.js (P.Consumables.stationState, from P.Eczane.state); the heal itself is sim/eczane.js (R1-T4 part 14).
   reg('eczane', function (c, X, Y, s, o) {
     var w = ((o && o.w) || 1.4) * s, d = ((o && o.h) || 1.0) * s, hg = 0.9 * s, top = Y - hg;
     shadow(c, X, Y, w * 0.6, d * 0.5);

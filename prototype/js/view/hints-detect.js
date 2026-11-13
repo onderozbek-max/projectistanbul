@@ -24,6 +24,7 @@ P.HintsDetect = (function () {
       else if (d.kind === 'jeton') see('currency', d.x, d.y);
       else if (d.kind === 'chest') see('chest', d.x, d.y);
     });
+    if (s.eczane) s.eczane.list.forEach(function (st) { if (!st.used) see('eczane', st.b.x, st.b.y); });   // R1-T4 part 14: unused stations
     objs = P.Objectives && P.Objectives.items ? P.Objectives.items(s) : [];
     objs.forEach(function (it) { if (it.kind === 'crate' && !it.done) see('objective', it.x, it.y); });
     if (s.props && s.props.canisters) s.props.canisters.forEach(function (c) { if (c.alive) see('explosive', c.x, c.y); });

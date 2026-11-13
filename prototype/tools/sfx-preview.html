@@ -42,6 +42,11 @@ Listen with headphones or a phone speaker at game volume.</p>
 <div class="bar">
   <button id="enable">Enable audio</button>
   <label><input type="checkbox" id="soundOn" checked> Sound effects on</label>
+  <span style="display:flex;align-items:center;gap:10px" title="Generated = the owner's files from audio/sfx-gen/ready/ (synth where a cue has no file). Synth = the synthesized recipes only.">
+    <label><input type="radio" name="sfxSrc" value="gen" checked> Generated</label>
+    <label><input type="radio" name="sfxSrc" value="synth"> Synth</label>
+  </span>
+  <span id="genStatus" class="small"></span>
   <div class="stepper">Variant <button id="varDown" class="ghost" title="previous">&lt;</button><span id="varLabel" style="min-width:52px;text-align:center">cycle</span><button id="varUp" class="ghost" title="next">&gt;</button></div>
   <button id="sequence" title="About one second of combat: swish, hits, splats, tinks, a hurt and a chain">Play combat second</button>
   <button id="levelSeq" class="alt">Play level-up sequence</button>
@@ -88,6 +93,7 @@ Listen with headphones or a phone speaker at game volume.</p>
 <script src="../js/view/sfx-bank.js"></script>
 <script src="../js/view/sfx-bank2.js"></script>
 <script src="../js/view/sfx.js"></script>
+<script src="../js/view/sfx-gen.js"></script>
 <script src="../js/view/music.js"></script>
 <script>
 (function () {
@@ -231,6 +237,37 @@ Listen with headphones or a phone speaker at game volume.</p>
     document.getElementById('varUp').onclick = function () { variantIdx = Math.min(4, variantIdx + 1); show(); };
     document.getElementById('varDown').onclick = function () { variantIdx = Math.max(-1, variantIdx - 1); show(); };
   }
+  // Generated / Synth A/B. The loader reads its state on every play, so switching takes effect on the next cue.
+  function wantGen() { var r = document.querySelector('input[name=sfxSrc]:checked'); return !r || r.value === 'gen'; }
+  function genReason() {
+    var l = location;
+    if (l.protocol === 'file:') return 'file:// (serve over http)';
+    if (/[?&]sfx=synth(&|$)/.test(l.search || '')) return '?sfx=synth is in the URL';
+    if (typeof fetch !== 'function') return 'this browser has no fetch';
+    return 'no manifest yet';
+  }
+  function genStatus() {
+    var el = document.getElementById('genStatus');
+    if (!P.SfxGen) { el.textContent = 'loader missing (sfx-gen.js not loaded)'; return; }
+    var s = P.SfxGen.stats();
+    if (!wantGen()) { el.textContent = 'files off: synth only'; return; }
+    if (!s.on) { el.textContent = 'files off: ' + genReason(); return; }
+    var mb = (s.decodedBytes / 1048576).toFixed(1);
+    if (!s.loaded && !s.pending) { el.textContent = 'files: none ready (add files to audio/sfx-gen/ready/)'; return; }
+    el.textContent = 'files: ' + s.loaded + ' ready, ' + s.pending + ' loading, ' + s.failed + ' failed, ' + s.skipped + ' over cap · ' + mb + ' MB';
+  }
+  function wireGenerated() {
+    Array.prototype.forEach.call(document.querySelectorAll('input[name=sfxSrc]'), function (r) {
+      r.onchange = function () {
+        if (P.SfxGen) P.SfxGen.setEnabled(wantGen());
+        status(wantGen() ? 'generated files on' : 'synth only');
+        genStatus();
+      };
+    });
+    // The loader turns itself on 600 ms after load; re-apply the radio state so a click in that window is not undone.
+    setInterval(function () { if (P.SfxGen) P.SfxGen.setEnabled(wantGen()); genStatus(); }, 500);
+    genStatus();
+  }
   document.getElementById('enable').onclick = function () {
     P.Sfx.unlock(); P.Music.unlock(); status('audio enabled');
   };
@@ -240,7 +277,7 @@ Listen with headphones or a phone speaker at game volume.</p>
   document.getElementById('levelSeq').onclick = function () { runSeq(LEVEL_SEQ, 'level-up'); };
   document.getElementById('bossSeq').onclick = function () { runSeq(BOSS_SEQ, 'boss intro (ducks)'); };
   P.Settings.sound = true;   // in memory only: this page never writes the game's save
-  buildCues(); buildVoices(); buildAmbience(); buildMusic(); wireVolumes(); wireVariant(); showGroup('all');
+  buildCues(); buildVoices(); buildAmbience(); buildMusic(); wireVolumes(); wireVariant(); wireGenerated(); showGroup('all');
 })();
 </script>
 </body>

@@ -36,33 +36,40 @@ const S = sc.P.Sprites, Pset = sc.P.Settings;
 ok(S && typeof S.flashOk === 'function' && typeof S.flashForce === 'function', 'sprites.js exposes flashOk and flashForce');
 clock = 10;
 const first5 = [0, 0, 0, 0, 0].map(() => S.flashOk(clock)).filter(Boolean).length;
-ok(first5 === 3, 'budget: five starts at one instant grant exactly 3 (got ' + first5 + ')');
-ok(S.flashOk(10.5) === false, 'budget: a fourth start inside the same 1 s window is refused');
-ok(S.flashOk(11.01) === true, 'budget: a new 1 s window grants again');
+ok(first5 === 2, 'budget: five hit starts at one instant grant exactly 2, the hit pool (got ' + first5 + ')');
+ok(S.flashOk(10.5) === false, 'budget: a third hit inside the same 1 s window is refused');
+ok(S.flashOk(10.5, 'moment') === true, 'budget: the moments keep the third slot of the window (reserved, T4 part 15)');
+ok(S.flashOk(10.6, 'moment') === false && S.flashOk(10.6) === false, 'budget: a fourth start in the window is refused, moment or hit');
+clock = 11.01;
+ok(S.flashOk(11.01) === true, 'budget: one hit may still start while a moment is in the window (two of three slots)');
+ok(S.flashOk(11.02) === false, 'budget: the next hit may not take the moments slot while a moment is in the window');
+ok(S.flashOk(11.03, 'moment') === true && S.flashStarts(11.03) === 3, 'budget: the moment takes the reserved slot');
+clock = 12.5; ok(S.flashOk(12.5) === true, 'budget: a new 1 s window grants a hit again');
 
-// Sliding windows: 400 requests, one every 25 ms over 10 s, never more than 3 grants in any 1 s window.
+// Sliding windows: 400 requests, one every 25 ms over 10 s. Hits alone get 2 a second; never more than 2 hits in any 1 s window.
 const sl = sandbox({ ArtRig: { TAU: Math.PI * 2, INK: '#14151F' }, ArtChars: {}, ArtEnemies: { def: () => ({}) } });
 sl.P.CFG = { feel: { enemyFlashGap: 0.34, hitFlash: 0.06 }, view: {} };
 load(sl, 'js/view/sprites.js');
 const grantTimes = [];
 for (let i = 0; i < 400; i++) { const t = 100 + i * 0.025; if (sl.P.Sprites.flashOk(t)) grantTimes.push(t); }
-ok(countIn1s(grantTimes) <= 3, 'budget: no 1 s window holds more than 3 grants (worst ' + countIn1s(grantTimes) + ')');
-ok(grantTimes.length >= 25, 'budget: a steady stream still gets its 3 a second (granted ' + grantTimes.length + ' in 10 s)');
+ok(countIn1s(grantTimes) <= 2, 'budget: no 1 s window holds more than 2 hit grants (worst ' + countIn1s(grantTimes) + ')');
+ok(grantTimes.length >= 18, 'budget: a steady stream of hits still gets its 2 a second (granted ' + grantTimes.length + ' in 10 s)');
 
-// Reduce flashing: nothing granted, nothing counted.
+// Reduce flashing: nothing granted, nothing counted (for either pool).
 clock = 20; Pset.reduceFlash = true;
-ok(S.flashOk(20) === false && S.flashStarts(20) === 0, 'Reduce flashing: flashOk refuses and counts nothing');
+ok(S.flashOk(20) === false && S.flashOk(20, 'moment') === false && S.flashStarts(20) === 0, 'Reduce flashing: flashOk refuses both pools and counts nothing');
 Pset.reduceFlash = false;
 
-// Forced starts (the heartbeat) take budget slots.
+// Forced starts (the heartbeat) count as hits, so two of them use up the hit pool; a moment still gets a slot.
 clock = 30; S.flashForce(30); S.flashForce(30.1);
-ok(S.flashOk(30.2) === true && S.flashOk(30.3) === false, 'forced heartbeat starts use up slots (one left after two forced)');
+ok(S.flashOk(30.2) === false, 'forced heartbeat starts count as hits: two use up the hit pool');
+ok(S.flashOk(30.2, 'moment') === true && S.flashOk(30.3, 'moment') === false, 'forced heartbeat: a moment takes the last slot, and a fourth start is refused');
 
-// A crowd: 25 enemies hit at one instant get 3 white flashes, not 25.
+// A crowd: 25 enemies hit at one instant get 2 white flashes, not 25.
 clock = 40;
 let crowd = 0;
 for (let i = 0; i < 25; i++) if (S.enemyFlashOk({ id: 'z' + i, flash: 0.06 }, 40)) crowd++;
-ok(crowd === 3, 'crowd: 25 enemies hit at one instant get 3 white flashes (got ' + crowd + ')');
+ok(crowd === 2, 'crowd: 25 enemies hit at one instant get 2 white flashes (got ' + crowd + ')');
 clock = 41.2;
 ok(S.propFlashOk({ flash: 0.06 }) === true, 'prop flash: a free window grants a cart flash');
 Pset.reduceFlash = true;
@@ -101,8 +108,8 @@ function momentsMix(rf) {
   clock = 200;
   ['js/config-feel.js', 'js/view/sprites.js', 'js/view/fx.js', 'js/view/moments.js'].forEach((f) => load(mc, f));
   const MP = mc.P, MS = MP.Sprites, grantT = [];
-  const goReal = MP.Fx.flashGo;
-  MP.Fx.flashGo = () => { const g = goReal(); if (g) grantT.push(clock); return g; };
+  const okReal = MS.flashOk;                              // every grant is counted at the budget, with its pool kind
+  MS.flashOk = (now, kind) => { const g = okReal(now, kind); if (g) grantT.push(clock); return g; };
   const forceReal = MS.flashForce;
   MS.flashForce = (now) => { forceReal(now); grantT.push(clock); };
   const sim = { t: 0, mode: 'play', levelIndex: 6, levelInfo: { hood: { name: 'X' } }, hero: { x: 0, y: 40, hp: 20, maxHp: 100 }, enemies: [] };
@@ -124,6 +131,52 @@ function momentsMix(rf) {
   ok(used < mix.attempts, 'moments budget: the budget refuses some attempts (' + used + ' bright starts of ' + mix.attempts + ' tries)');
   const quiet = momentsMix(true);
   ok(quiet.starts.crit + quiet.starts.impact + quiet.starts.ripple + quiet.starts.low === 0, 'moments budget: Reduce flashing starts nothing bright');
+}
+
+// Flash reserve (T4 part 15): a crowd flood of hit starts (six enemies, a prop, a hero hit and a blast every 1/120 s, each a new object)
+// against moment asks (crit kills, heavy hits and near misses, each on its own gap). Every ask is recorded with its pool. The window never
+// holds more than 3 starts or more than 2 hits. With no forced beats in the mix, a moment is refused only when a moment started in the second before, so each refused ask
+// has a moment start within the previous second. Under Reduce flashing nothing starts at all.
+function floodMix(rf) {
+  const fx = sandbox({ ArtRig: { TAU: Math.PI * 2, INK: '#14151F' }, ArtChars: {}, ArtEnemies: { def: () => ({}) } });
+  fx.P.Settings.reduceFlash = rf;
+  fx.P.CFG = { feel: { enemyFlashGap: 0.34, hitFlash: 0.06, lowHpFrac: 0.3 }, view: {}, skills: { frenzy: { window: 1.5 } } };
+  clock = 300;
+  ['js/config-feel.js', 'js/view/sprites.js', 'js/view/fx.js', 'js/view/moments.js'].forEach((f) => load(fx, f));
+  const FP = fx.P, FS = FP.Sprites, hitG = [], momG = [], momAsk = [], momRef = [], hitRef = [];
+  const okReal = FS.flashOk;
+  FS.flashOk = (now, kind) => {
+    const g = okReal(now, kind);
+    if (kind === 'moment') { momAsk.push(clock); (g ? momG : momRef).push(clock); }
+    else (g ? hitG : hitRef).push(clock);
+    return g;
+  };
+  const sim = { t: 0, mode: 'play', levelIndex: 6, levelInfo: { hood: { name: 'X' } }, hero: { x: 0, y: 40, hp: 100, maxHp: 100 }, enemies: [] };
+  const t0 = clock;
+  for (let i = 0; i < 4 * 120; i++) {                                // 4 s at 1/120 s steps
+    clock += 1 / 120; sim.t = clock - t0;
+    FP.Moments.update(1 / 120, sim);
+    if (i % 12 === 0) FP.Moments.onEvent({ type: 'kill', crit: true, x: 0, y: 40 }, sim);
+    if (i % 12 === 6) FP.Moments.onEvent({ type: 'hit', boss: true, id: i, x: 0, y: 40, src: 'x' }, sim);
+    if (i % 30 === 15) FP.Moments.onEvent({ type: 'nearMiss', x: 0, y: 40 }, sim);
+    for (let k = 0; k < 6; k++) FS.enemyFlashOk({ id: 'f' + i + '_' + k, flash: 0.06 }, clock);   // the crowd flood
+    FS.propFlashOk({ flash: 0.06 });
+    FP.Fx.flashGo();                                                  // a hero hit or a blast
+  }
+  const all = hitG.concat(momG);
+  let unanswered = 0;
+  momRef.forEach((t) => { if (!momG.some((g) => g <= t + 1e-9 && g > t - 1 - 1e-9)) unanswered++; });
+  return { all, hitG, momG, momAsk: momAsk.length, momRef: momRef.length, hitRef: hitRef.length, unanswered };
+}
+{
+  const f = floodMix(false);
+  ok(countIn1s(f.all) <= 3, 'flash reserve: no 1 s window holds more than 3 starts under the flood (worst ' + countIn1s(f.all) + ')');
+  ok(countIn1s(f.hitG) <= 2, 'flash reserve: no 1 s window holds more than 2 hit starts under the flood (worst ' + countIn1s(f.hitG) + ')');
+  ok(f.momG.length >= 4, 'flash reserve: the moments still start at least once a second under the flood (' + f.momG.length + ' starts in 4 s)');
+  ok(f.momRef === 0 || f.unanswered === 0, 'flash reserve: every refused moment ask has a moment start in the second before it (' + f.unanswered + ' without one)');
+  ok(f.hitRef > 0 && f.momRef > 0, 'flash reserve: the flood is saturated (refused: ' + f.hitRef + ' hits, ' + f.momRef + ' moment asks)');
+  const q = floodMix(true);
+  ok(q.all.length === 0 && q.momG.length === 0, 'flash reserve: Reduce flashing grants nothing under the flood (moment asks refused: ' + q.momRef + ')');
 }
 
 // ---------- (2) static heuristics over js/view ----------
@@ -273,6 +326,10 @@ const wiring = [
   ['hood ribbon is static under Reduce motion', has('js/view/moments-screen.js', /sc = rm\(\) \? 1 :/)],
   ['moments read both Reduce flags', has('js/view/moments.js', /reduceMotion/) && has('js/view/moments.js', /reduceFlash/) && has('js/view/moments-screen.js', /reduceMotion/) && has('js/view/moments-screen.js', /reduceFlash/)],
   ['moments take the budget only through P.Fx.flashGo (no direct sprites flashOk)', !has('js/view/moments.js', /P\.Sprites\.flashOk/) && !has('js/view/moments-screen.js', /P\.Sprites\.flashOk/)],
+  // T4 part 15: two pools in one budget. Moments ask the moment pool; hits (the default kind) are capped at 2 and keep the reserve.
+  ['moments ask the moment pool (flashGo with kind moment), in both moments files', has('js/view/moments.js', /P\.Fx\.flashGo\('moment'\)/) && has('js/view/moments-screen.js', /P\.Fx\.flashGo\('moment'\)/)],
+  ['flashGo and flashOk take a kind that defaults to the hit pool', has('js/view/fx.js', /function flashGo\(kind\)/) && has('js/view/sprites.js', /S\.flashOk = function \(now, kind\)/) && has('js/view/sprites.js', /var moment = kind === 'moment';/)],
+  ['hits are capped at 2 a window and may not take the moments reserve', has('js/view/sprites.js', /FLASH_HIT = 2/) && has('js/view/sprites.js', /countKind\('moment'\) > 0 \|\| now - momentRefusedAt < 1/)],
 ];
 wiring.forEach(([why, pass]) => { if (!pass) { fails++; console.log('FAIL wiring: ' + why); } });
 

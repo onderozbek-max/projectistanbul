@@ -23,6 +23,7 @@
   // Kind of each hint: the icon name (consumables-icons.js) and the colour of the callout's icon.
   C.hintKinds = {
     heal:      { icon: 'cross',   fill: '#2EBD6B' },
+    eczane:    { icon: 'cross',   fill: '#2EBD6B' },
     currency:  { icon: 'coin',    fill: '#E9A23B' },
     objective: { icon: 'pin',     fill: '#3D8BFF' },
     chest:     { icon: 'star',    fill: '#FFD166' },

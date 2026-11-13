@@ -359,11 +359,16 @@ P.Combat.updateDrops = function (s, dt) {
     }
     if (dist > xc.collectDist) continue;
     s.drops.splice(i, 1);
+    var healed = null;
     if (d.kind === 'xp') { s.xpPicked++; P.Progression.addXp(s, d.value); }
     else if (d.kind === 'jeton') s.jeton += d.value;
     else if (d.kind === 'chest') s.pendingChests++;
-    else P.Combat.dropHeal(s, d.value + (d.kind === 'simit' ? P.Combat.simitBonus(s) : 0), d.uncapped);
-    s.events.push({ type: 'pickup', kind: d.kind, value: d.value });
+    else healed = P.Combat.dropHeal(s, d.value + (d.kind === 'simit' ? P.Combat.simitBonus(s) : 0), d.uncapped);
+    var ev = { type: 'pickup', kind: d.kind, value: d.value };
+    // Heal pickups (R1-T4 part 14): healed is the HP actually restored (grit bonus included); capped means the run's drop-heal
+    // budget stopped it; uncapped marks the boss-arena pickup. The view reads these, not value, for the floating amount.
+    if (healed !== null) { ev.healed = healed; ev.uncapped = !!d.uncapped; ev.capped = healed <= 0 && !d.uncapped && h.hp < h.maxHp; }
+    s.events.push(ev);
   }
 };
 

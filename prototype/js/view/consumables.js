@@ -1,5 +1,5 @@
 // Consumables and pickups (T4 part 10, view only): one visual grammar for everything the hero picks up or uses.
-//   heal      green + white cross   simit drop (+25 HP); the eczane station uses the same cross
+//   heal      green + white cross   simit drop (+25 HP); the eczane station (one use, sim/eczane.js) uses the same cross
 //   power     gold + star           mini chest (Kutu): an upgrade
 //   currency  amber + coin          jeton
 //   objective blue + map pin        collect items of an objective (the crate)
@@ -15,7 +15,7 @@ P.Consumables = (function () {
     currency: { cue: 'coin', rgb: '233,162,59', fill: '#E9A23B', icon: 'coin' },
     objective: { cue: 'pick', rgb: '61,139,255', fill: '#3D8BFF', icon: 'pin' }
   };
-  var KIND = { simit: 'heal', chest: 'power', jeton: 'currency' };   // sim drop kinds (combat.js updateDrops)
+  var KIND = { simit: 'heal', chest: 'power', jeton: 'currency', eczane: 'heal' };   // sim pickup kinds (combat.js updateDrops; sim/eczane.js)
   var OBJ = { crate: 'objective' };                                    // sim objective item kinds (objectives-kinds.js)
   var bursts = [], floats = [], lastSim = null;
 
@@ -32,13 +32,17 @@ P.Consumables = (function () {
   function burst(s, cls, x, y) { bursts.push({ cls: cls, x: x, y: y, t0: s.runT || 0, T: C.burstT }); }
   function float(s, cls, text, x, y) { floats.push({ cls: cls, text: text, x: x, y: y, t0: s.runT || 0, T: C.floatT }); }
 
-  // The amount on a heal pickup: FULL at full HP, CAP when the run's drop-heal budget (drops.healCap) is spent, else +N HP.
-  function healText(s, amount) {
-    var h = s.hero, D = P.CFG.drops, capped = s.levelIndex >= P.CFG.levels.rampFrom && (s.dropHealed || 0) >= D.healCap;
-    if (h.hp >= h.maxHp) return P.t('consume.full');
-    if (capped) return P.t('consume.cap');
-    return P.t('consume.heal', { n: amount });
+  // The amount on a heal pickup, from the sim's event (R1-T4 part 14): +N HP for the HP actually restored (grit bonus included),
+  // CAP only when the run's drop-heal budget stopped it (never for an uncapped pickup), else FULL at full HP.
+  function healText(ev) {
+    if (ev.healed > 0) return P.t('consume.heal', { n: Math.round(ev.healed) });
+    if (ev.capped && !ev.uncapped) return P.t('consume.cap');
+    return P.t('consume.full');
   }
+
+  // The look of an eczane station, read from the sim (P.Eczane.state): 'usable', 'empty', or null for any other block.
+  // Called from render-world.js when it draws a block; the view never writes to the sim.
+  M.stationState = function (s, b) { return P.Eczane && P.Eczane.state ? P.Eczane.state(s, b) : null; };
 
   // Sim events in (main.js handleEvents). Pickups are magnetised to the hero, so the burst and text start at him.
   M.onEvent = function (ev, s) {
@@ -49,7 +53,7 @@ P.Consumables = (function () {
       cls = CLASS[KIND[ev.kind]];
       play(cls.cue);
       burst(s, cls, h.x, h.y);
-      float(s, cls, ev.kind === 'simit' ? healText(s, ev.value) : ev.kind === 'chest' ? P.t('consume.chest') : '+' + ev.value, h.x, h.y + 0.9);
+      float(s, cls, cls === CLASS.heal ? healText(ev) : ev.kind === 'chest' ? P.t('consume.chest') : '+' + ev.value, h.x, h.y + 0.9);
     } else if (ev.type === 'objPickup') {
       cls = CLASS.objective;
       play(cls.cue);

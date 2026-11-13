@@ -59,5 +59,28 @@
     portal: { telegraph: 0.6, gap: 0.2, nMin: 2, nMax: 4, ahead: 9, past: 2, behind: 12, maxActive: 2, chance: 0.6, tries: 3,
       offset: 0.6, runnerShare: 0.3, windowEvery: 2, windowDy: 9, yStart: 8, yEnd: 10,
       doorX: 4.9, windowX: 4.7 },   // inside the 5 m half-width view (AUDIT-6 A5): the telegraph must be seen
+
+    // ---- R1-T4 part 14 · eczane (pharmacy) heal station (sim/eczane.js). One use per station, outside drops.healCap. Placed on the
+    // street side of a route stage 1 to 4 (never the boss stage, never L1 or L2, never a waterside or bazaar hood). Touch it and
+    // stand for dwell s (no button): it heals `heal` HP once, then it is empty. Times in s, distances in m.
+    eczane: {
+      heal: 30,                                       // HP per use (never above max HP)
+      w: 1.4, h: 1.0,                                 // footprint (m); the view's eczane art is drawn to these
+      touchR: 0.9,                                    // hero centre this close to the footprint counts as touching (m)
+      dwell: 0.4,                                     // seconds of touch before the station is used
+      from: 3,                                        // first journey level with a station (L1 and L2: tutorial and ramp)
+      stages: [1, 2, 3, 4],                           // route stages only (stage 5 is the boss arena)
+      perLevel: 1,                                    // at most this many per level (0 turns placement off)
+      span: [0.2, 0.7],                               // placement band: share of the way up to the hold zone (holdY)
+      sideMin: 2.2, sideJit: 0.8,                     // side lane: distance from the centre line and its jitter (m), as levels.block
+      clear: 0.6, edge: 0.5,                          // clearance to other blocks and to the corridor wall (m)
+      tries: 12,                                      // candidate spots per level
+      noVehicles: ['boat', 'ferry'],                  // waterside hoods have no street pharmacy (journey.js vehicles)
+      notThemes: ['bazaar'],                          // the covered bazaar has none either (journey.js theme)
+      seedSalt: 0x7C2E1A01, seedStep: 40503,          // placement RNG stream: seed ^ salt + level index x step
+      // tools/bot.js policy: below `hp` (fraction of max) the bot walks to an unused station up to `reach` m ahead and `back` m
+      // behind, stands `gap` m off its side, and only when no enemy is within `threat` m (the drop rule's gate).
+      bot: { hp: 0.5, reach: 8, back: 6, gap: 0.3, threat: 1.0 },
+    },
   };
 })(P.CFG);

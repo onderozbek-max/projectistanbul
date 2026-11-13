@@ -46,6 +46,7 @@ function fakeEl(id) {
   el.appendChild = (c) => { el.children.push(c); };
   el.querySelector = () => fakeEl();
   el.getBoundingClientRect = () => ({ left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 });
+  el.querySelectorAll = () => [];
   return el;
 }
 function fakeDocument() {
@@ -272,11 +273,19 @@ function P_rate_ok() {
   // Floaters: one sim object per check (a new object starts a new effect list).
   const floatText = (ev, state) => { const c = fakeCtx(); R.ctx = c; P.Consumables.onEvent(ev, state); P.Consumables.drawOver(R, state); return c.rec.texts; };
   const hurt = sim({ runT: 1, hero: { x: 0, y: 0, hp: 50, maxHp: 100 } });
-  ok(floatText({ type: 'pickup', kind: 'simit', value: 25 }, hurt).indexOf('+25 CAN') >= 0, 'floater: a heal pickup shows the amount');
+  // R1-T4 part 14: the amount comes from the sim's event (healed = HP restored, capped, uncapped), not from the sim state.
+  ok(floatText({ type: 'pickup', kind: 'simit', value: 25, healed: 25 }, hurt).indexOf('+25 CAN') >= 0, 'floater: a heal pickup shows the amount');
   const full = sim({ runT: 2, hero: { x: 0, y: 0, hp: 100, maxHp: 100 } });
-  ok(floatText({ type: 'pickup', kind: 'simit', value: 25 }, full).indexOf('DOLU') >= 0, 'floater: a heal at full HP says FULL (DOLU)');
+  ok(floatText({ type: 'pickup', kind: 'simit', value: 25, healed: 0 }, full).indexOf('DOLU') >= 0, 'floater: a heal at full HP says FULL (DOLU)');
   const capped = sim({ runT: 3, dropHealed: 70, levelIndex: 6, hero: { x: 0, y: 0, hp: 50, maxHp: 100 } });
-  ok(floatText({ type: 'pickup', kind: 'simit', value: 25 }, capped).indexOf('LİMİT') >= 0, 'floater: a heal past the run budget says CAP (LİMİT)');
+  ok(floatText({ type: 'pickup', kind: 'simit', value: 25, healed: 0, capped: true }, capped).indexOf('LİMİT') >= 0, 'floater: a heal past the run budget says CAP (LİMİT)');
+  const boss = sim({ runT: 4, dropHealed: 70, levelIndex: 6, hero: { x: 0, y: 0, hp: 50, maxHp: 100 } });
+  const bt = floatText({ type: 'pickup', kind: 'simit', value: 25, healed: 25, uncapped: true, capped: false }, boss);
+  ok(bt.indexOf('+25 CAN') >= 0 && bt.indexOf('LİMİT') < 0, 'floater: an uncapped (boss-arena) heal reads +N, never CAP, with the budget spent');
+  const grit = sim({ runT: 5, hero: { x: 0, y: 0, hp: 50, maxHp: 100 } });
+  ok(floatText({ type: 'pickup', kind: 'simit', value: 25, healed: 27 }, grit).indexOf('+27 CAN') >= 0, 'floater: the grit bonus is in the number (+27, not the base +25)');
+  const ecz = sim({ runT: 6, hero: { x: 0, y: 0, hp: 50, maxHp: 100 } });
+  ok(floatText({ type: 'pickup', kind: 'eczane', value: 30, healed: 30, uncapped: true, capped: false }, ecz).indexOf('+30 CAN') >= 0, 'floater: an eczane station reads +30 CAN');
 }
 
 // ---------- 11. hack zone phases and the edge arrow ----------
@@ -299,6 +308,62 @@ function P_rate_ok() {
   const sign = (state) => { const c = fakeCtx(); P.Consumables.stationSign(c, 0, 0, 30, state, 1, true); return c.rec; };
   ok(sign('empty').texts.indexOf('BOŞ') >= 0, 'station: the empty state writes its short label (TR)');
   ok(sign('usable').stops.length >= 1 && sign('idle').stops.length === 0 && sign('idle').texts.length === 0, 'station: only the usable state glows, and idle has no label');
+}
+
+// ---------- 13. story layer (T4 part 15): stacking above the comic pop and call card; a callout that would cover the pop waits ----------
+{
+  const P = load({ store: memStore() });
+  const V = P.HintsView;
+  const zOf = (src, sel) => { const m = new RegExp(sel + '[^}]*?z-index: ?(\\d+)').exec(src); return m ? parseInt(m[1], 10) : NaN; };
+  const comic = read('css/comic.css'), proto = read('css/proto.css');
+  const popZ = zOf(comic, '\\.cm-pop \\{'), callZ = zOf(comic, '\\.cm-call \\{'), pageZ = zOf(comic, '\\.cm-page \\{'), overlayZ = zOf(proto, '\\.screen\\.overlay \\{');
+  ok([popZ, callZ, pageZ, overlayZ].every(Number.isFinite), 'z-order: the comic and overlay z-index values parse from css/comic.css and css/proto.css');
+  ok(V.zIndex > popZ && V.zIndex > callZ && V.zIndex < overlayZ && V.zIndex < pageZ,
+    'z-order: hints (' + V.zIndex + ') draw above the comic pop (' + popZ + ') and call card (' + callZ + '), below the overlays (' + overlayZ + ') and the comic page (' + pageZ + ')');
+  ok(new RegExp('#hint-callout\\{[^}]*z-index:' + V.zIndex + ';').test(V.css()) && new RegExp('#hint-arrow\\{[^}]*z-index:' + V.zIndex + ';').test(V.css()),
+    'z-order: the callout and its arrow both carry the z-index (the arrow had none, so the pop covered it)');
+
+  // Pure check: the callout box, or its arrow, against the pop box (phone px).
+  const pop = [{ l: 0, t: 150, r: 390, b: 450 }];
+  const lay = (left, top, ax, ay) => ({ left: left, top: top, ax: ax, ay: ay, rot: 0 });
+  const arrow = { w: 20, h: 12 }, box = { w: 150, h: 30 };
+  ok(V.clash({ lay: lay(100, 200, 195, 190), box: box, arrow: arrow, boxes: pop }) === true, 'clash: a callout inside the pop box clashes');
+  ok(V.clash({ lay: lay(100, 480, 195, 470), box: box, arrow: arrow, boxes: pop }) === false, 'clash: a callout below the pop box does not');
+  ok(V.clash({ lay: lay(100, 100, 195, 145), box: box, arrow: arrow, boxes: pop }) === true, 'clash: the arrow alone can touch the pop box');
+  ok(V.clash({ lay: lay(100, 100, 195, 120), box: box, arrow: arrow, boxes: pop }) === false, 'clash: a callout and arrow clear of the pop box do not clash');
+
+  // Layer check: a callout over a visible pop clashes while a story beat is up; a hidden pop, or no beat, is ignored.
+  const popEl = (w, h) => Object.assign(fakeEl('pop'), { getBoundingClientRect: () => ({ left: 0, top: 150, right: w, bottom: 150 + h, width: w, height: h }) });
+  const phoneWith = (els) => Object.assign(fakeEl('phone'), { querySelectorAll: () => els,
+    getBoundingClientRect: () => ({ left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 }) });
+  const docWith = (els) => ({ getElementById: (id) => (id === 'phone' ? phoneWith(els) : null), createElement: () => fakeEl(), head: { appendChild: () => {} } });
+  const Q = load({ store: memStore(), document: docWith([popEl(390, 300)]) });
+  const ctx = { W: 390, H: 844, hudBottom: 170, toScreen: (x, y) => ({ x: 195 + x * 32.5, y: 422 - y * 32.5 }), heroScreen: { x: 195, y: 422 } };
+  Q.Comic = { active: () => true };
+  ok(Q.HintsView.overlapsLayer({ type: 'heal', x: 0, y: 0, hud: null }, ctx) === true, 'layer: a callout over the visible pop (a story beat up) would clash');
+  ok(Q.HintsView.overlapsLayer({ type: 'heal', x: 0, y: -8, hud: null }, ctx) === false, 'layer: a callout well below the pop does not clash');
+  Q.Comic = { active: () => false };
+  ok(Q.HintsView.overlapsLayer({ type: 'heal', x: 0, y: 0, hud: null }, ctx) === false, 'layer: with no story beat up the pop box is ignored (it stays in the DOM, empty)');
+  const R2 = load({ store: memStore(), document: docWith([popEl(390, 0)]) });
+  R2.Comic = { active: () => true };
+  ok(R2.HintsView.overlapsLayer({ type: 'heal', x: 0, y: 0, hud: null }, ctx) === false, 'layer: a hidden pop (no box) does not block');
+
+  // Deferral: a callout that would cover the layer waits, at most PORTRAIT_WAIT_S of game time, then shows anyway.
+  ok(P.Hints.PORTRAIT_WAIT_S === 6, 'deferral: the wait is at most 6 s');
+  const D = load({ store: memStore() });
+  let blocked = true;
+  D.HintsView.overlapsLayer = (it) => blocked && it.type === 'heal';
+  const held = run(D, sim({ drops: [simit(1, 1)] }), 9);
+  ok(held.length === 1 && held[0].t >= 5.9 && held[0].t <= 6.3, 'deferral: a callout held by the layer shows at 6 s, not before (got ' + JSON.stringify(held) + ')');
+  const E = load({ store: memStore() });
+  let clear = false;
+  E.HintsView.overlapsLayer = () => !clear;
+  const waited = run(E, sim({ drops: [simit(1, 1)] }), 9, (t) => { if (t >= 3) clear = true; });
+  ok(waited.length === 1 && waited[0].t >= 2.9 && waited[0].t <= 3.3, 'deferral: the callout shows as soon as the layer leaves (got ' + JSON.stringify(waited) + ')');
+  const F = load({ store: memStore() });
+  F.HintsView.overlapsLayer = (it) => it.type === 'heal';
+  const passed = run(F, sim({ drops: [simit(1, 1), jeton(-1, 1)] }), 3);
+  ok(passed.length >= 1 && passed[0].type === 'currency', 'deferral: a free callout may start while a held one waits (got ' + JSON.stringify(passed) + ')');
 }
 
 console.log('test-hints: ' + passes + ' checks passed, ' + fails + ' failed');

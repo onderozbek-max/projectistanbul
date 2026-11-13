@@ -155,6 +155,7 @@ function nearestBlock(s, H, r) {
   if (!s.geo) return null;
   var best = null, bd = r;
   s.geo.blocks.forEach(function (b) {
+    if (b.station) return;   // an eczane station is not cover for the signal box's shortcut (R1-T4 part 14)
     var d = Math.hypot(b.x - H.x, b.y - H.y);
     if (d < bd) { bd = d; best = b; }
   });

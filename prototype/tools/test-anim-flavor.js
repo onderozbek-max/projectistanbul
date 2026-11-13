@@ -93,13 +93,19 @@ function momentsWorld(opt) {
     CFG: { skills: { frenzy: { window: FRENZY_WINDOW } }, feel: { hitFlash: 0.06, enemyFlashGap: 0.34, lowHpFrac: LOW_FRAC }, view: {} } };
   vm.createContext(ctx);
   ['js/config-feel.js', 'js/view/sprites.js', 'js/view/fx.js', 'js/view/moments.js', 'js/view/moments-screen.js'].forEach((f) => vm.runInContext(read(f), ctx, { filename: f }));
-  const P = ctx.P, S = P.Sprites, M = P.Moments, SC = P.MomentsScreen, grants = [], streaks = [];
-  const goReal = P.Fx.flashGo;                       // every granted bright start (moments take it through P.Fx.flashGo)
-  P.Fx.flashGo = function () { const g = goReal(); if (g) grants.push(clock); return g; };
-  const forceReal = S.flashForce;                    // the last-stand pulse is a forced start
-  S.flashForce = function (now) { forceReal(now); grants.push(clock); };
+  const P = ctx.P, S = P.Sprites, M = P.Moments, SC = P.MomentsScreen, grants = [], streaks = [], hitG = [], momG = [], momAsk = [], momRef = [];
+  // Every granted bright start, counted at the budget with its pool (T4 part 15): moments ask the 'moment' pool, everything else is a hit.
+  const okReal = S.flashOk;
+  S.flashOk = function (now, kind) {
+    const g = okReal(now, kind);
+    if (kind === 'moment') { momAsk.push(clock); if (g) momG.push(clock); else momRef.push(clock); }
+    if (g) { grants.push(clock); if (kind !== 'moment') hitG.push(clock); }
+    return g;
+  };
+  const forceReal = S.flashForce;                    // the last-stand pulse is a forced start (a hit, in the hit pool)
+  S.flashForce = function (now) { forceReal(now); grants.push(clock); hitG.push(clock); };
   const scStreak = SC.streak;
-  const W = { P, S, M, SC, grants, streaks, kills: 0, sim: { t: 0, mode: 'play', levelIndex: 6, levelInfo: { hood: { name: 'GALATA' } }, hero: { x: 0, y: 40, hp: 100, maxHp: 100 }, enemies: [] } };
+  const W = { P, S, M, SC, grants, streaks, hitG, momG, momAsk, momRef, kills: 0, sim: { t: 0, mode: 'play', levelIndex: 6, levelInfo: { hood: { name: 'GALATA' } }, hero: { x: 0, y: 40, hp: 100, maxHp: 100 }, enemies: [] } };
   SC.streak = function (n) { streaks.push({ n: n, kill: W.kills }); scStreak(n); };
   W.tick = function (dt) { clock += dt; W.sim.t = clock - 100; M.update(dt, W.sim); };
   W.wait = function (sec) { const n = Math.round(sec / DT); for (let i = 0; i < n; i++) W.tick(DT); };
@@ -221,6 +227,43 @@ const bossHit = (i) => ({ type: 'hit', boss: true, id: i, x: 0, y: 40, dx: 1, dy
   const cap = Math.ceil(0.9 / C.shock.gap) + 1;
   ok(W.M.starts.shock >= 2 && W.M.starts.shock <= cap, 'ground shock: a chain of six blasts starts at most one ring per gap (' + W.M.starts.shock + ', cap ' + cap + ')');
   ok(W.M.active().shocks <= C.shock.max, 'ground shock: at most ' + C.shock.max + ' rings live at once');
+}
+
+{ // T4 part 15, flash reserve: a crowd flood of hit starts (six enemies, a prop, a hero hit and a blast every 1/120 s) does not starve the
+  // moments. Crit kills, heavy hits, near misses and dashes (the screen tear) ask the moment pool. Every refused moment ask has a moment
+  // start in the second before it (there is no forced heartbeat in this sandbox), no window holds more than 3 starts or 2 hits, and
+  // Reduce flashing grants nothing (checked below).
+  const W = momentsWorld({});
+  const S = W.S;
+  for (let i = 0; i < 4 * 120; i++) {                                // 4 s at 1/120 s steps
+    if (i % 12 === 0) W.kill(true);
+    if (i % 12 === 6) W.ev(bossHit(900 + i));
+    if (i % 30 === 15) W.ev({ type: 'nearMiss', x: 0, y: 40 });
+    if (i % 60 === 45) W.ev(dashEv);
+    for (let k = 0; k < 6; k++) S.enemyFlashOk({ id: 'g' + i + '_' + k, flash: 0.06 }, clock);   // the crowd flood
+    S.propFlashOk({ flash: 0.06 });
+    W.P.Fx.flashGo();                                                  // a hero hit or a blast
+    W.tick(DT);
+  }
+  let unanswered = 0;
+  W.momRef.forEach((t) => { if (!W.momG.some((g) => g <= t + 1e-9 && g > t - 1 - 1e-9)) unanswered++; });
+  ok(countIn1s(W.grants) <= 3, 'flash reserve: no 1 s window holds more than 3 starts under the flood (worst ' + countIn1s(W.grants) + ')');
+  ok(countIn1s(W.hitG) <= 2, 'flash reserve: no 1 s window holds more than 2 hit starts under the flood (worst ' + countIn1s(W.hitG) + ')');
+  ok(W.momG.length >= 4, 'flash reserve: the moments still start at least once a second under the flood (' + W.momG.length + ' in 4 s)');
+  ok(unanswered === 0, 'flash reserve: every refused moment ask has a moment start in the second before it (' + unanswered + ' without one)');
+  ok(W.M.starts.crit >= 1 && W.M.starts.impact >= 1 && W.M.starts.ripple >= 1, 'flash reserve: crit, starburst and ripple all start under the flood (' + JSON.stringify(W.M.starts) + ')');
+  ok(W.momRef.length > 0, 'flash reserve: the flood is saturated, so the reserve is what keeps the moments going (' + W.momRef.length + ' moment asks refused)');
+  const Q = momentsWorld({ rf: true });                              // Reduce flashing: the same flood starts nothing
+  for (let i = 0; i < 4 * 120; i++) {
+    if (i % 12 === 0) Q.kill(true);
+    if (i % 30 === 15) Q.ev({ type: 'nearMiss', x: 0, y: 40 });
+    if (i % 60 === 45) Q.ev(dashEv);
+    for (let k = 0; k < 6; k++) Q.S.enemyFlashOk({ id: 'q' + i + '_' + k, flash: 0.06 }, clock);
+    Q.P.Fx.flashGo();
+    Q.tick(DT);
+  }
+  ok(Q.grants.length === 0 && Q.M.starts.crit === 0 && Q.M.starts.ripple === 0 && Q.SC.active().tear === false,
+    'flash reserve: Reduce flashing grants nothing under the flood (' + Q.grants.length + ' starts)');
 }
 
 // ---- T4 part 13: the moments files are view only (no assignment to the sim, no push or splice on sim arrays) ----

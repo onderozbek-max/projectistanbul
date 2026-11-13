@@ -5,6 +5,9 @@
 P.HintsView = (function () {
   var V = {}, C = P.CFG.hints, TAU = Math.PI * 2, INK = '#14151F', root = null, arrow = null, icons = {}, shown = null;
   var fadeMs = Math.round(C.fadeS * 1000), ar = C.arrowPx, AW = 2 * ar, AH = Math.round(1.2 * ar);
+  // Stacking (T4 part 15): the callout and its arrow draw above the story layer, the comic pop (z 50) and the call card (z 55), and
+  // below the screen overlays (58), the comic page (60) and the card pick (70). Was 40, under both, so an Arda pop hid the start and arrow.
+  var Z = 56, MAXW = 200;   // MAXW: the callout's max-width (px), also the box size used for the layer check
 
   // Pure placement, no DOM. p: { anchor: {x, y}, hudRect: {top, bottom} (HUD anchors only), hud, box: {w, h}, hero: {x, y},
   // W, H, margin, gap, hudBottom, heroBox: {w, h}, arrow }. Returns { mode, left, top, ax, ay, rot }: the box's top-left and
@@ -66,14 +69,14 @@ P.HintsView = (function () {
   };
 
   function css() {
-    return '#hint-callout{position:absolute;left:0;top:0;z-index:40;display:flex;align-items:center;gap:6px;box-sizing:border-box;' +
-      'max-width:200px;padding:5px 12px 5px 6px;border:2px solid ' + INK + ';border-radius:16px;background:#FFF4DF;color:' + INK + ';' +
+    return '#hint-callout{position:absolute;left:0;top:0;z-index:' + Z + ';display:flex;align-items:center;gap:6px;box-sizing:border-box;' +
+      'max-width:' + MAXW + 'px;padding:5px 12px 5px 6px;border:2px solid ' + INK + ';border-radius:16px;background:#FFF4DF;color:' + INK + ';' +
       'font:800 calc(14px * var(--ui-text,1))/1.15 "Avenir Next Condensed","Arial Narrow",system-ui;opacity:0;pointer-events:none;' +
       'transition:opacity ' + fadeMs + 'ms linear}' +
       '#hint-callout .hint-ico{flex:0 0 auto;width:' + C.iconPx + 'px;height:' + C.iconPx + 'px}' +
       '#hint-callout .hint-ico svg{display:block;width:100%;height:100%}' +
       '#hint-callout.on{opacity:1;pointer-events:auto}' +
-      '#hint-arrow{position:absolute;left:0;top:0;width:0;height:0;border-left:' + ar + 'px solid transparent;' +
+      '#hint-arrow{position:absolute;left:0;top:0;z-index:' + Z + ';width:0;height:0;border-left:' + ar + 'px solid transparent;' +
       'border-right:' + ar + 'px solid transparent;border-bottom:' + AH + 'px solid ' + INK + ';transform-origin:50% 50%;' +
       'opacity:0;pointer-events:none;transition:opacity ' + fadeMs + 'ms linear}' +
       '#hint-arrow.on{opacity:1}';
@@ -106,9 +109,59 @@ P.HintsView = (function () {
     return { x: (er.left + er.width / 2 - pr.left) / sc, y: (er.top + er.height / 2 - pr.top) / sc, top: (er.top - pr.top) / sc, bottom: (er.bottom - pr.top) / sc };
   }
 
+  // Where the callout and its arrow go for an item (active or queued): { lay, rect } or null when its anchor is not on screen.
+  // box: the callout's size in phone px. render() and the layer check both use this, so they see the same placement.
+  function place(item, ctx, phone, box) {
+    var rect = null, anchor;
+    if (item.hud) { rect = elementRect(item.hud, phone, ctx.W); anchor = rect ? { x: rect.x, y: rect.y } : null; }
+    else anchor = ctx.toScreen(item.x, item.y);
+    if (!anchor) return null;
+    return { rect: rect, lay: V.layout({ anchor: anchor, hud: !!item.hud, hudRect: rect, box: box, hero: ctx.heroScreen,
+      W: ctx.W, H: ctx.H, margin: C.marginPx, gap: C.gapPx, hudBottom: ctx.hudBottom, heroBox: C.heroBoxPx, arrow: ar }) };
+  }
+
+  // The story layer's boxes in phone px (T4 part 15): the comic pop (a portrait with a starburst, and its balloon) and the call card.
+  // Only while a story beat is up (P.Comic.active): a pop element stays in the DOM after its beat, empty. Hidden elements have no box.
+  function layerBoxes(phone, W) {
+    var out = [], els, i, r, pr, sc;
+    if (!(P.Comic && P.Comic.active && P.Comic.active()) || !phone || !phone.querySelectorAll) return out;
+    els = phone.querySelectorAll('.cm-pop, .cm-call');
+    pr = phone.getBoundingClientRect(); sc = (pr.width / W) || 1;
+    for (i = 0; i < els.length; i++) {
+      r = els[i].getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) out.push({ l: (r.left - pr.left) / sc, t: (r.top - pr.top) / sc, r: (r.right - pr.left) / sc, b: (r.bottom - pr.top) / sc });
+    }
+    return out;
+  }
+
+  // Pure (T4 part 15): does the callout box, or its arrow (grown by the bob amplitude), touch any of the boxes? p: { lay (a layout result),
+  // box: {w, h}, arrow: {w, h}, boxes: [{l, t, r, b}] }. Edges that only touch do not count.
+  V.clash = function (p) {
+    var l = p.lay, pad = C.bobPx, rects = [
+      { l: l.left, t: l.top, r: l.left + p.box.w, b: l.top + p.box.h },
+      { l: l.ax - p.arrow.w / 2 - pad, t: l.ay - p.arrow.h / 2 - pad, r: l.ax + p.arrow.w / 2 + pad, b: l.ay + p.arrow.h / 2 + pad }], i, j, a, b;
+    for (i = 0; i < rects.length; i++) for (j = 0; j < p.boxes.length; j++) {
+      a = rects[i]; b = p.boxes[j];
+      if (a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t) return true;
+    }
+    return false;
+  };
+
+  // Would this queued callout cover the story layer if it started now? Placed as render() would place it (at its widest, C.maxWidthPx,
+  // since the text is not measured yet), then tested against the layer's boxes. False when no story beat is up or the anchor is off screen.
+  V.overlapsLayer = function (item, ctx) {
+    var el = ensureDom(), phone = typeof document !== 'undefined' ? document.getElementById('phone') : null, boxes, pl, box;
+    if (!el || !phone || !ctx) return false;
+    boxes = layerBoxes(phone, ctx.W);
+    if (!boxes.length) return false;
+    box = { w: MAXW, h: el.offsetHeight || 30 };
+    pl = place(item, ctx, phone, box);
+    return !!pl && V.clash({ lay: pl.lay, box: box, arrow: { w: AW, h: AH }, boxes: boxes });
+  };
+
   // Called from hints.js every frame. active: { type, x, y, hud } or null. ctx: { W, H, toScreen(x, y), heroScreen, hudBottom }.
   V.render = function (active, ctx, s) {
-    var el = ensureDom(), phone, anchor, rect = null, lay, bob = 0, dirx, diry;
+    var el = ensureDom(), phone, pl, lay, bob = 0, dirx, diry;
     if (!el) return;
     if (!active || !ctx) { el.classList.remove('on'); arrow.classList.remove('on'); shown = null; return; }
     phone = document.getElementById('phone');
@@ -117,11 +170,9 @@ P.HintsView = (function () {
       el.querySelector('.hint-txt').textContent = P.t('hint.' + active.type);
       shown = active.type;
     }
-    if (active.hud) { rect = elementRect(active.hud, phone, ctx.W); anchor = rect ? { x: rect.x, y: rect.y } : null; }
-    else anchor = ctx.toScreen(active.x, active.y);
-    if (!anchor) { el.classList.remove('on'); arrow.classList.remove('on'); return; }
-    lay = V.layout({ anchor: anchor, hud: !!active.hud, hudRect: rect, box: { w: el.offsetWidth, h: el.offsetHeight }, hero: ctx.heroScreen,
-      W: ctx.W, H: ctx.H, margin: C.marginPx, gap: C.gapPx, hudBottom: ctx.hudBottom, heroBox: C.heroBoxPx, arrow: ar });
+    pl = place(active, ctx, phone, { w: el.offsetWidth, h: el.offsetHeight });
+    if (!pl) { el.classList.remove('on'); arrow.classList.remove('on'); return; }
+    lay = pl.lay;
     el.style.left = lay.left + 'px'; el.style.top = lay.top + 'px'; el.classList.add('on');
     // The arrow's apex direction is (sin rot, -cos rot); it bobs along that line, and not at all under Reduce motion.
     dirx = Math.sin(lay.rot * Math.PI / 180); diry = -Math.cos(lay.rot * Math.PI / 180);
@@ -132,6 +183,7 @@ P.HintsView = (function () {
   };
 
   V.root = function () { return root; };
+  V.zIndex = Z; V.css = css;   // read by tools/test-hints.js (the stacking is checked against css/comic.css and css/proto.css)
   if (P.Hints) P.Hints.view = V;
   return V;
 })();

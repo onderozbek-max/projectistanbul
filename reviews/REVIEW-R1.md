@@ -1473,6 +1473,112 @@ Evidence: `reviews/media/R1/T0/` (390x844, EN and TR).
 
 ---
 
+# T4 part 15: flash reserve and hint z-order
+
+Two owner fixes, view only. No sim, balance or strings changed. Not committed or pushed. The flash rules and the owner decisions are in `reviews/A11Y-CHECKLIST-R1.md` (budget section, moment rows, owner decisions i to k).
+
+**1. Flash reserve: two pools, still 3 starts in any 1 s window.** Hits (hero hit, edge pulse, enemy and prop flashes, blast and burst discs, the low-HP heartbeat) take at most 2 starts a window. The signature moments take one start a second as a reserve and may also take any free slot. A hit may not take the last slot while a moment is in the window or was asked and refused in the last second. So, apart from the forced heartbeat (below), a refused moment always has a moment start in the second before it, and a crowd cannot starve the moments for more than about a second. The window stays exact (a start leaves it 1 s after it). Reduce flashing still starts nothing in either pool.
+- `js/view/sprites.js`: `S.flashOk(now, kind)` and `S.flashStarts(now, kind)`; `kind` is `'hit'` (default) or `'moment'`.
+- `js/view/fx.js`: `flashGo(kind)`, default `'hit'`, so every existing caller is unchanged.
+- `js/view/moments.js` and `js/view/moments-screen.js`: `go()` asks the `'moment'` pool. No other call sites changed.
+- Known residual: `flashForce` (the heartbeat, called from `render.js`, not in this pass) is forced and counts as a hit. When two beats, a hit and a moment fall in one window, it reaches 4 starts. Fix proposed in the checklist (owner j).
+
+**2. Hint callout z-order, and the story layer.** On L2 the Arda pop (z 50) and call card (z 55) drew over the hint (z 40), hiding its start and arrow for about 2 s. The arrow had no z-index at all.
+- Callout and arrow are now z 56: above the pop and call card, below the screen overlays (58), the comic page (60) and the card pick (70). `js/view/hints-view.js`.
+- A callout that would cover the pop or the call card (its box or its arrow, bob included) waits in game time, at most 6 s (`PORTRAIT_WAIT_S`, `js/view/hints.js`), then shows anyway. Other callouts may start meanwhile. The layer is read only while `P.Comic.active()`, because a pop element stays in the DOM, empty, after its beat.
+- Owner decision (k): after the wait the callout can cover part of the balloon text.
+
+**Headless check (L2).** Headless Chrome over CDP (a script in `/tmp/flash-reserve-diag`, outside the repo; the Playwright MCP browser would not launch). Local server on `prototype/`, `P.debug.playLevel(2)`, a simit drop placed in the pop band, and a long pop line. At 2 s and 4.5 s the simit callout is queued and not shown. At 7.2 s it shows at the 6 s limit: z 56 over the pop at 50, the start and arrow visible. Read: `/tmp/flash-reserve-diag/l2-hint-over-pop-after-wait.png`.
+
+**Tests.**
+- `tools/test-a11y-canvas.js`: budget basics now expect 2 hit starts, a moment taking the third slot, and a hit refused while a moment is in the window. Hits alone get 2 a window. Heartbeat forced starts count as hits. Crowd of 25 gets 2. New crowd-flood block (4 s; six enemies, a prop, a hero hit and a blast every 1/120 s, against crit kills, heavy hits and near misses): no window above 3 starts or above 2 hits, every refused moment answered within the second before, the flood saturated (3838 hit refusals, 62 moment refusals), Reduce flashing grants nothing. 42 wiring checks (3 new).
+- `tools/test-anim-flavor.js`: the moments sandbox counted moment grants as hits (its `flashGo` wrapper dropped the kind), now fixed at the budget. New flood block with the dash tear as a moment ask: same totals, moments at least 4 starts in 4 s, all refused asks answered, crit, starburst and ripple all start, Reduce flashing grants nothing.
+- `tools/test-hints.js`: 15 new checks (section 13). Stacking is parsed from `css/comic.css` and `css/proto.css`, and the arrow carries the z-index. Pure clash check (box, arrow, pop). Layer check (visible pop blocks, hidden pop and no beat do not). Deferral (held to 6 s, released at once when the layer leaves, a free callout may pass a held one).
+- Required loop: check-ids, test-feel, test-a11y-canvas, test-anim-flavor, test-hints (137 checks), test-ui-motion (536), test-quality (84) and test-ceiling all pass.
+
+**Owner decisions.** (i) The moment reserve has a cost on the hit side. In the flood tests the hit pool got 1 to 2 starts in 4 s, because moments may take free hit slots and the moment rate was about 2.5 a second. Keep as written, cap moments at 2 a window, or let a moment take a free hit slot only when no hit was refused in the last second. (j) Heartbeat forced (above). (k) Hint held up to 6 s, then shown over the story layer.
+
+**Not verified.** Device frame time and the real flash rate at 60 fps (headless only). The hint on a phone. Moment and hit balance in real play; the numbers above come from synthetic floods.
+
+---
+
+# T4 part 14: eczane heal station
+
+The owner-approved pharmacy heal: one use per station, sim-side and config-driven, outside `drops.healCap`. Not committed or pushed. Design rules: `docs/game-design.md` §5.8. Content row `int_eczane`: `docs/content-catalog.md` §9. The §7 band note points here.
+
+**What it does.** A station is a street-side block on a route level. Stand within 0.9 m of its footprint, below full HP, for 0.4 s and it heals 30 HP once, then it is empty. There is no button. The heal is outside the run's simit budget. At full HP a touch does not count, so walking past at full HP does not spend it. The pickup event carries the HP actually restored, and the view reads +N from it.
+
+**Placement rule.** At most one station per level (`perLevel: 1`), on a generated route level that meets all of these:
+- level index 3 or higher, and route stage 1 to 4 (never L1 or L2, never the boss stage);
+- a street-like hood: the theme is not `bazaar`, and the hood has no `boat` or `ferry` in its vehicles.
+
+Position: side lane, 0.2 to 0.7 of the way to the hold zone, 0.6 m clearance from other blocks and the corridor wall, and the route must stay open (`P.Env.pathOpen`). The station uses its own seeded stream (`seed ^ salt + index × step`), so other levels do not move.
+
+Placed on L3, L4, L6 to L9, L26 to L29, and the same stage pattern in later street hoods (L36 to L39, L46 to L49, L66 to L69, L71 to L74, L76 to L79, L81 to L84, L86 to L89). About 40 of 42 eligible levels got one on an 8-seed check. Not placed on: L1 and L2 (below `from`), the boss levels L5, L10 and L30, or L11 to L25. The hoods there are Karaköy, Galata Köprüsü, Eminönü, Kumkapı, Haliç, Samatya, Yenikapı and Ataköy Marina (boat or ferry), and Kapalıçarşı (bazaar). This is the largest judgement call; see the owner decisions.
+
+**Bot balance** (`tools/bot.js`, kite-generic, 16 seeds per level, expected loadout). Before is the pre-change snapshot. "No detour" is `--noeczane`: the station is placed but the bot does not walk to it. Each cell reads clear · deaths per run · median min HP · runs under 30% HP. Uses are per run, with HP restored per run in brackets.
+
+| Level | Before | With detour | No detour |
+|---|---|---|---|
+| L3 | 100% · 0.31 · 31% · 50% | 100% · 0.06 · 39% · 44% · 0.44 (12.9 HP) | 100% · 0.13 · 39% · 38% · 0.13 (3.5) |
+| L4 | 100% · 0.13 · 46% · 50% | 100% · 0.13 · 45% · 44% · 0.50 (12.3) | 100% · 0.13 · 40% · 50% · 0.38 (8.5) |
+| L6 | 94% · 0.50 · 6% · 63% | 94% · 0.50 · 27% · 56% · 0.56 (15.6) | 94% · 0.50 · 27% · 63% · 0.25 (6.3) |
+| L7 | 100% · 0.13 · 34% · 38% | 100% · 0.13 · 43% · 25% · 0.38 (10.1) | 100% · 0.13 · 39% · 25% · 0.25 (6.3) |
+| L8 | 94% · 0.63 · 0% · 75% | 100% · 0.38 · 13% · 81% · 0.31 (9.4) | 100% · 0.63 · 0% · 81% · 0.13 (3.7) |
+| L9 | 100% · 0.31 · 40% · 38% | 100% · 0.38 · 38% · 44% · 0.31 (7.8) | 100% · 0.38 · 37% · 50% · 0.19 (3.2) |
+| L26 | 100% · 0.88 · 0% · 100% | 100% · 0.75 · 0% · 88% · 0.50 (14.3) | 100% · 0.75 · 0% · 88% · 0.50 (14.3) |
+| L27 | 63% · 0.88 · 28% · 63% | 88% · 0.63 · 19% · 63% · 0.50 (14.3) | 75% · 0.88 · 0% · 75% · 0.25 (6.8) |
+| L28 | 50% · 1.13 · 0% · 100% | 75% · 0.88 · 0% · 100% · 0.38 (9.2) | 75% · 0.88 · 0% · 100% · 0.38 (9.2) |
+| L29 | 75% · 0.88 · 0% · 75% | 75% · 0.63 · 7% · 88% · 0.25 (7.5) | 75% · 0.50 · 7% · 88% · 0.13 (3.8) |
+
+Unchanged by rule, and the rows match the before run: L1 (6 seeds), L5, L10 and L30 (boss levels, no station), and L11 to L25 (no station). The bot detour fires below 50% HP, to an unused station up to 8 m ahead and 6 m behind, 0.3 m off its side, and only when no enemy is within 1.0 m.
+
+What the table says, with the noise in mind:
+- Uses: 0.25 to 0.56 per run with the detour on the ten levels that have a station, and 0.13 to 0.50 without it. HP restored: 7.5 to 15.6 per run with the detour.
+- Deaths per run fall with the detour on L3 (0.31 to 0.06), L8 (0.63 to 0.38), L26 (0.88 to 0.75), L27 (0.88 to 0.63), L28 (1.13 to 0.88) and L29 (0.88 to 0.63). Without it they fall on L3 (to 0.13), L26, L28 (to 0.88) and L29 (to 0.50). L9 rises by about one death in 16 runs (0.31 to 0.38). L4, L6 and L7 are flat.
+- Clear rate: L27 63% to 88% with the detour, L28 50% to 75%. Each seed is 6.25 points at 16 seeds, so these are 2 to 4 runs.
+- Median min HP: L6 +21 points (6% to 27%) and L3 +8 (31% to 39%). L3 stays under the 45 to 65% band, as before. L4 is flat (46% to 45%). L5 stays at 11% (boss, no station). The other moves are within the roughly ±12 point per-level noise. L8 under 30% HP rose from 75% to 81% while its deaths fell, so the effect is not uniform.
+- Median run time (`medT`, all runs including deaths, as printed): L3 196 to 197 s, L4 244 to 249, L6 132 to 136, L7 179 to 188, L8 197 to 191, L9 341 to 354, L26 176 to 179, L29 455 to 417. L27 206 to 250 s and L28 278 to 337 s are +21%, outside the §7 ±15% band. This is a survival effect: more runs reach the end, so the median run gets longer. The tool does not print a clear-only median, so this is not yet separated.
+
+**Bugs fixed (floaters).**
+1. Boss-arena simit read CAP. The view derived CAP from the run's drop-heal budget, so an uncapped boss-arena simit showed CAP once the budget was spent. The pickup event now carries `uncapped`, and CAP shows only when `capped && !uncapped`.
+2. Grit bonus floater. The float showed the nominal simit value (+25) rather than the HP restored (+27 with grit). The float now reads `ev.healed`, the HP actually restored, and the grit bonus is included.
+
+**Code.**
+- `js/sim/eczane.js` (new, IIFE): `place`, `touchDist`, `streetLike`, `step`, `state`.
+- `js/config-env.js`: `C.env.eczane` (heal 30, dwell 0.4 s, touch 0.9 m, from 3, stages 1 to 4, perLevel 1, placement band and clearances, vehicle and theme exclusions, seed salt and step, and the bot policy block).
+- `js/sim/levels.js`: `P.Eczane.place` after `layBlocks`, before `P.Layouts.slots`, guarded like `P.Env`.
+- `js/sim/sim.js`: `P.Eczane.step` after `updateDrops`.
+- `js/sim/combat.js`: heal pickups carry `healed`, `uncapped` and `capped`.
+- `js/sim/hack.js`: the signal-box shortcut keeps a station block.
+- `js/view/consumables.js`: `eczane` is a heal pickup. `healText(ev)` reads the event. `M.stationState` wraps `P.Eczane.state`.
+- `js/view/render-world.js`: block draw gets the station state. `js/view/istanbul-props2.js`: comment only.
+- `js/view/hints-detect.js`, `js/view/hints.js` (order), `js/view/hints-config.js`, `js/strings-hints.js` (`hint.eczane`).
+- `index.html`: loads `js/sim/eczane.js` after `env-portal.js`.
+- `tools/bot.js`: `eczaneTarget`, the `--noeczane` flag, and the eczane table in the level run.
+- `tools/test-eczane.js` (new). `tools/test-hints.js`: floater cases for uncapped boss, grit and eczane.
+
+**Tests.**
+- `tools/test-eczane.js`: 47 checks, all pass.
+- `tools/test-hints.js`: 137 checks, all pass.
+- Owner list, exit 0 each: test-a11y-canvas, test-anim-flavor, test-ceiling, test-dialogue, test-eczane, test-enemy-behaviors, test-env (117 checks), test-feel, test-hints (137), test-horde, test-meta (122), test-progress-ui, test-quality (84), test-tree (165), test-ui-motion (536).
+- `test-arsenal --quick`: PASS.
+
+**Owner decisions.**
+(a) Placement scope. Stations exist only in street hoods, so L11 to L25 and the boat, ferry and bazaar hoods get none. Keep this, or allow a kiosk in the boat hoods?
+(b) Full HP. A touch at full HP does not spend the station. Keep, or let a full-HP touch use it?
+(c) L27 and L28 median run time, +21%, outside the ±15% band. Accept it as a survival effect, or tune the station there?
+(d) L6 and L8 median min HP moved beyond the noise at 16 seeds. Re-run at 32 seeds before any tuning.
+(e) The TR hint string `Eczane: dokununca can verir` is marked `// TR owner check` in `js/strings-hints.js`. It needs a native review.
+
+**Not verified.**
+- Real-play balance. These are bot numbers only (kite-generic, 16 seeds), not human rates.
+- Art, floater and touch feel on a phone, and the audio cue.
+- The 0.4 s dwell and 30 HP are the owner's numbers. There is no playtest behind them.
+- The mid game (L11 to L25) is unchanged by design, so the eczane has no effect there.
+
+---
+
 # R1-T5 step 1: tree data, save v3 and the Street Cred rule
 
 Owner accepted the recommendations (D-059 now ACCEPTED): Q1 perks only, Q2 one free respec per chapter and never sold, Q3 six branches of four, Q5 Survival Skills stay retired, Q6 Kaan only. Q4 (perk list and TR names) and Q7 (doc conflicts) are still open. Step 1 of `docs/skill-tree.md` section 8.

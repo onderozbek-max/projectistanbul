@@ -385,7 +385,7 @@ P.RenderWorld = (function () {
     // Blocks are depth items keyed by their base edge; the frame sorts them against the actors (see render.js).
     (g.blocks || []).filter(function (b) { return Math.abs(b.y - cy) < half + 3; }).forEach(function (b) {
       var car = b.kind === 'car' || b.kind === 'taxi' || b.kind === 'dolmus';
-      R.depth(b.y - b.h / 2, function () { P.Props.draw(b.kind, R, b.x, b.y, { w: b.w, h: b.h, k: 0, theme: th.id, v: b.v != null ? b.v : hash(b.y * 1.9 + b.x * 5.3), alarm: car && hash(b.y * 3.7 + b.x) < 0.4 }); });
+      R.depth(b.y - b.h / 2, function () { P.Props.draw(b.kind, R, b.x, b.y, { w: b.w, h: b.h, k: 0, theme: th.id, v: b.v != null ? b.v : hash(b.y * 1.9 + b.x * 5.3), alarm: car && hash(b.y * 3.7 + b.x) < 0.4, state: P.Consumables ? P.Consumables.stationState(s, b) : null }); });
     });
     if (typeof g.exitY === 'number' && Math.abs(g.exitY - cy) < half + 6) P.Props.draw('exitGate', R, 0, g.exitY, { style: th.exit, open: !!(s.props.shutterOpen || g.exitOpen) });
   }

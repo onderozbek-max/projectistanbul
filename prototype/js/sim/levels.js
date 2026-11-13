@@ -43,6 +43,7 @@ P.Levels.build = function (s, index) {
     marks: [], mi: 0, seg: 'A', acc: 0, next: null, arena: false, bossSpawned: false, boss: null, won: false, midDone: false, t: 0 };
   s.layout = P.Layouts.plan(s, info, rng, geo);   // zone and centre landmarks first: street blocks keep clear of them
   layBlocks(geo, rng);
+  if (P.Eczane && P.Eczane.place) P.Eczane.place(s, index, info);   // R1-T4 part 14: at most one pharmacy station (own RNG stream), before the slots
   P.Layouts.slots(s);
   P.Layouts.spawns(s);                               // door and window spawn points (Lane A portals)
   s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY), P.Layouts.marks(s.layout))

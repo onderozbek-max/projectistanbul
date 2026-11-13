@@ -204,6 +204,20 @@ Rules:
 | **Mini Chest (Kutu)** | Elites (100%) | 1 random upgrade (same weights as §5.3) |
 | **Boss Chest** | Mini-bosses and bosses | Evolution if eligible; otherwise 1–3 upgrades (1: 60%, 2: 30%, 3: 10%; luck shifts toward 3) |
 
+### 5.8 Consumables and heal stations
+Everything the hero picks up or uses that heals. Numbers: `config.js` (`drops`), `config-levels.js` (`levels.bossHeal`), `config-env.js` (`env.eczane`).
+
+| Item | Heal | Budget | Where it comes from | How it is used |
+|---|---|---|---|---|
+| **Simit** (drop) | 25 HP (+ the grit.3 bonus) | Shares `drops.healCap` (70 HP per run, from L2). Past the cap it is collected and restores nothing | Kills, simit carts, cover breaks, events | Walk over it |
+| **Boss-arena simit** | 25 HP, once per arena | Outside the cap (`levels.bossHeal.uncapped`); never counts toward it | One pickup 3 m ahead of the hero at the arena intro | Walk over it |
+| **Eczane** (pharmacy station) | 30 HP (`env.eczane.heal`), once per station | Outside the cap; never counts toward it | One per level on L3–L100, route stages 1–4, on the street side of a street-like hood (see below). Never L1–L2, never a boss stage | Touch it and stand for 0.4 s (no button). Then it is empty |
+
+Rules for the eczane (R1-T4 part 14, `js/sim/eczane.js`):
+- **Placement.** At most one per level, on the side lane below the hold zone, clear of other blocks and layout zones, and the route stays open. A hood is street-like when it has no boat or ferry and is not the covered bazaar (Kapalıçarşı). Eleven hoods qualify, so 42 levels are eligible; 40 get a station on all eight seeds tested. The same seed gives the same spot.
+- **Heal.** It heals up to max HP. It is used only when the hero is below max HP, so a full-HP hero keeps it for later.
+- **Feedback.** The floater reads `+N HP` for the HP actually restored (grit bonus included). `CAP` appears only when the drop budget stops a drop heal, never for an uncapped pickup. `FULL` at full HP. The station shows a green glow while usable and a grey cross with EMPTY when spent.
+
 ---
 
 ## 6. Level Types and District Structure
@@ -267,6 +281,8 @@ The owner's 85% floor is below §7 (≥ 95% on L1–4, ≈ 90% on L5). After the
 (L5 at 96 seeds: 89%) and misses it on L2 by one point. Boss levels L10–L100 (16 seeds each): mean clear 72.5% → 80.7%, nine of 19
 at 85–100% (was four), median min HP still 0% on 11 of 19 levels, and a boss stage of about 2:00–3:00 for the bot against the
 journey §3.1 target of 5:00–6:00. Tables and every changed key: `reviews/REVIEW-R1.md`, T4 part 4, "Boss-arena pass".
+
+**Eczane heal station (R1-T4 part 14).** One pharmacy on each street-side route level from L3 (stages 1 to 4; never a boss stage, never a waterside or bazaar hood). Touch it below full HP for 0.4 s and it heals 30 HP once, outside the simit cap. On the kiting bot's detour it is used 0.25 to 0.56 times a run on the ten levels that have one. Deaths per run fall on L3, L8 and L26 to L29. Other moves sit inside the ±12-point noise, except L6 (median min HP +21 points). L5 and L10 are unchanged, and L11 to L25 get no station by rule. Numbers, placement rule and owner decisions: `reviews/REVIEW-R1.md`, T4 part 14.
 
 Failing should teach: Results screen shows the **cause of death** (enemy type) and one tip.
 A failed level can be replayed immediately with the meta upgrades the player just earned.

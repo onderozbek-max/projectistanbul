@@ -254,6 +254,7 @@ Template: game-design.md §6. Durations are targets for an average player.
 | `int_gas_canister` | Gas canister (tüp) | 10 | Explosion r 2.5 m: 60 dmg to enemies, **15 to the player** | Risk/reward |
 | `int_tea_tray` | Café table with a tea tray | 15 | 6 tea glasses burst outward, 10 dmg each | Comic SFX "ŞANGIR!" |
 | `int_cafe_chairs` | Café chairs | — | Knocked aside (cosmetic, physics-lite) | Pure juice |
+| `int_eczane` | Eczane (pharmacy) heal station | Heal 30 HP once, then empty (touch 0.4 s). Outside the drop-heal cap | One per level on L3+ route stages 1–4 in street-like hoods (game-design §5.8) | Solid street block; not on L1–L2 or a boss stage |
 | `int_shutter` | Shop shutter | — | Objective door (opens on script) | Route-level exits |
 | `int_manhole` | Manhole | — | **Retired as a spawn point (D-058).** Not placed in levels; the Manhole Cover weapon is unaffected | — |
 

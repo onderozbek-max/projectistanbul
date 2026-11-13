@@ -62,8 +62,9 @@ P.Fx = (function () {
     if (!F.edge || (P.Settings && P.Settings.reduceFlash)) return 0;
     return P.CFG.feel.edgePulseAlpha * Math.max(0, F.edge.t / F.edge.T);
   };
-  // A flash may start only when the screen budget grants a slot (sprites.js). No sprites module, no budget to apply.
-  function flashGo() { var now = performance.now() / 1000; return !P.Sprites || !P.Sprites.flashOk || P.Sprites.flashOk(now); }
+  // A flash may start only when the screen budget grants a slot (sprites.js). kind: 'hit' (the default, so existing callers are
+  // unchanged) or 'moment' (the signature moments, which have a reserved slot a second; T4 part 15). No sprites module, no budget.
+  function flashGo(kind) { var now = performance.now() / 1000; return !P.Sprites || !P.Sprites.flashOk || P.Sprites.flashOk(now, kind); }
   F.flashGo = flashGo;
   function heroHit(ev, s) {
     var fe = P.CFG.feel, maxHp = s.hero.maxHp;
