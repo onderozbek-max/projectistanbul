@@ -81,8 +81,8 @@ P.EventsFx = (function () {
 
   // Burning car: a blinking marker whose rate rises as the fuse runs down.
   function drawFuse(R, ev, t) {
-    var c = R.ctx, X = R.X(ev.x), Y = R.Y(ev.y), left = clamp01((ev.T - ev.t) / ev.T), f = 2 + 6 * (1 - left);
-    c.fillStyle = DANGER + (0.4 + 0.5 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 * f))) + ')';
+    var c = R.ctx, X = R.X(ev.x), Y = R.Y(ev.y), left = clamp01((ev.T - ev.t) / ev.T), f = Math.min(3, 2 + 6 * (1 - left)), reduce = !!(P.Settings && P.Settings.reduceFlash);   // blink capped at 3 Hz
+    c.fillStyle = DANGER + (reduce ? 0.7 : 0.4 + 0.5 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 * f))) + ')';   // steady under Reduce flashing
     c.beginPath(); c.arc(X, Y, 0.9 * R.ppm, 0, Math.PI * 2); c.fill();
   }
 
@@ -175,7 +175,7 @@ P.EventsFx = (function () {
     var g = glitchState(s), k = P.CFG.feel2.glitch, c = R.ctx, cv = c.canvas, kk, step, i, y, h, dx, rm = !!(P.Settings && P.Settings.reduceMotion);
     if (!g.on) return;
     c.fillStyle = 'rgba(5,6,12,' + ((rm ? k.steadyDim : k.baseDim + k.dipDim * g.dip) * g.a).toFixed(3) + ')'; c.fillRect(0, 0, R.W, R.H);
-    if (!g.burst) return;
+    if (!g.burst || (P.Settings && P.Settings.reduceFlash)) return;   // Reduce flashing: the picture holds still (the dim and lamp dip stay, once per period)
     kk = cv.width / R.W; step = Math.floor(g.t * k.rate);
     for (i = 0; i < k.bands; i++) {                       // the picture tears into shifted bands, with a red and a cyan fringe
       y = hash1(step * 3.1 + i * 7.7) * R.H; h = 8 + hash1(step * 5.3 + i) * 34; dx = (hash1(step * 2.9 + i * 1.3) - 0.5) * 2 * (10 + 16 * g.dip);

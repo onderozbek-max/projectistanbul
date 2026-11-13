@@ -1,20 +1,20 @@
 // Lead integration strings (v0.4): journey labels, skill HUD, results flow, boss names (E2 nameKeys).
 Object.assign(P.STR.tr, {
   'ui.title.proto': 'Prototip v0.8 · Eve yürüyüş: İstiklal → Ataköy',
-  'ui.pause.level': '{hood} {n}-{s} · {t}', 'ui.down.survived': '{hood} {n}-{s} · {t} dayandın',
-  'ui.pause.quit': 'Haritaya dön', 'ui.res.title': 'Haritaya dön', 'ui.res.next': 'Sonraki seviye',
-  'ui.res.labelHood': 'BÖLGE {n} · SEVİYE {s} · {hood}', 'ui.res.progress': '{km} / 17 km yürüdün',
+  'ui.pause.level': '{hood} · {s}/{of} · {t}', 'ui.down.survived': '{hood} · {s}/{of} · {t} dayandın',
+  'ui.pause.quit': 'Haritaya dön', 'ui.res.title': 'Haritaya dön', 'ui.res.next': 'Sonraki bölüm',
+  'ui.res.progress': '{km} / {total} km yürüdün',
   'ui.hud.ult': 'Nazar patlaması', 'ui.hud.dash': 'DEPAR', 'ui.hud.dashHint': 'Hızlı kaydır: depar at',
-  'ui.hud.level': '{n}-{s}',
+  'ui.hud.stage': '{s}/{of}', 'ui.hud.lv': 'Lv {n}',
   'boss.intro': 'PATRON', 'boss.rage': 'ÖFKE!',
 });
 Object.assign(P.STR.en, {
   'ui.title.proto': 'Prototype v0.8 · The walk home: İstiklal → Ataköy',
-  'ui.pause.level': '{hood} {n}-{s} · {t}', 'ui.down.survived': '{hood} {n}-{s} · survived {t}',
+  'ui.pause.level': '{hood} · {s}/{of} · {t}', 'ui.down.survived': '{hood} · {s}/{of} · survived {t}',
   'ui.pause.quit': 'Back to map', 'ui.res.title': 'Back to map', 'ui.res.next': 'Next level',
-  'ui.res.labelHood': 'DISTRICT {n} · LEVEL {s} · {hood}', 'ui.res.progress': '{km} / 17 km walked',
+  'ui.res.progress': '{km} / {total} km walked',
   'ui.hud.ult': 'Evil-eye burst', 'ui.hud.dash': 'DASH', 'ui.hud.dashHint': 'Quick flick: dash',
-  'ui.hud.level': '{n}-{s}',
+  'ui.hud.stage': '{s}/{of}', 'ui.hud.lv': 'Lv {n}',
   'boss.intro': 'BOSS', 'boss.rage': 'RAGE!',
 });
 

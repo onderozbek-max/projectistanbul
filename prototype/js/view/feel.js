@@ -8,8 +8,9 @@
 // The simulation never reads anything here. Numbers: P.CFG.feel2 (config-feel.js).
 P.Feel = (function () {
   var F = {}, HEAVY = { sledge: 1, canister: 1, cluster: 1, cleaver: 1, finale: 1, chainsaw: 1 }, TAU = Math.PI * 2;
-  var hurtMap = {}, hurtN = 0, parts = [], hsLast = -9, ringAt = -9, wispLeft = 0, hero = { x: 0, y: 0, dist: 0, step: 0, v: 0, moving: false, was: false, at: -9, kind: 0, a: 0 };
-  var fxLeft = 0, HS = { x: 1, y: 1, ox: 0, r: 0 }, HERO = { x: 1, y: 1, lean: 0.03 }, knifeLast = { a: 0, t: -9 };
+  var hurtMap = {}, hurtN = 0, parts = [], hsLast = -9, ringAt = -9, wispLeft = 0, hero = { x: 0, y: 0, dist: 0, step: 0, v: 0, moving: false, was: false, at: -9, kind: 0, a: 0, mul: 1 };
+  var fxLeft = 0, HS = { x: 1, y: 1, ox: 0, r: 0 }, HERO = { x: 1, y: 1, lean: 0.03, r: 0 }, knifeLast = { a: 0, t: -9 };
+  var fidgetAt = -9, fidgetNext = -1, fidgetSide = 1;
 
   function C() { return P.CFG.feel2; }
   function rnd(a, b) { return a + Math.random() * (b - a); }
@@ -17,7 +18,7 @@ P.Feel = (function () {
   function rm() { return !!(P.Settings && P.Settings.reduceMotion); }
   function ease(t) { return t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t); }
 
-  F.reset = function () { hurtMap = {}; hurtN = 0; parts.length = 0; hsLast = -9; hero.dist = 0; hero.step = 0; hero.was = false; hero.at = -9; knifeLast.t = -9; };
+  F.reset = function () { hurtMap = {}; hurtN = 0; parts.length = 0; hsLast = -9; hero.dist = 0; hero.step = 0; hero.was = false; hero.at = -9; knifeLast.t = -9; fidgetNext = -1; fidgetAt = -9; };
 
   // ---------- hit spring ----------
   function startHurt(ev) {
@@ -140,7 +141,11 @@ P.Feel = (function () {
         F.kick(-Math.cos(ev.ang || 0), -Math.sin(ev.ang || 0), px);
         if (px >= k.fire.squashAt) heroSpring(2);
         break;
-      case 'heroHit': heroSpring(2, 0); F.kick(rnd(-1, 1), rnd(-1, 1), k.kick.hero); break;
+      case 'heroHit':   // light hits squash the hero; a heavy one (10% of max HP or more, as the edge pulse) squashes harder and kicks harder
+        heavy = ev.dmg >= P.CFG.feel.edgePulseFrac * s.hero.maxHp;
+        heroSpring(2, heavy ? k.hero.heavyMul : 1);
+        F.kick(rnd(-1, 1), rnd(-1, 1), k.kick.hero * (heavy ? 1.5 : 1));
+        break;
       case 'dash':
         F.kick(-(ev.ax || 0), -(ev.ay || 0), k.kick.dash); heroSpring(1, 0);
         dust(s.hero.x, s.hero.y - 0.25, 6, 0.22, 0.25);
@@ -152,20 +157,33 @@ P.Feel = (function () {
 
   // ---------- hero body language ----------
   // kind: 1 stretch (start / dash), 2 squash (hit / stop).
-  function heroSpring(kind) { hero.kind = kind; hero.at = now(); }
+  // mul scales a squash (a heavy hit squashes hero.heavyMul times as far as a light one). Stretch (kind 1) ignores it.
+  function heroSpring(kind, mul) { hero.kind = kind; hero.at = now(); hero.mul = mul || 1; }
   function heroBand(v) {
     var k = C().hero;
     return v >= k.runSpeed ? k.leanRun : v >= k.walkSpeed ? k.leanWalk : k.leanIdle;
   }
-  // Called once per frame before drawing the hero. Returns { x, y, lean }: sprite squash and lean (reused object).
+  // Idle fidget: while the hero stands still, a stretch and a neck roll every fidget.every s (random in the range). Off under
+  // Reduce motion. Only the sprite changes (squash and roll); the sim does not know about it.
+  function fidget(t, fd) {
+    if (rm() || hero.v > C().idle.speedEps) return;
+    if (fidgetNext < 0) fidgetNext = t + rnd(fd.every[0], fd.every[1]);
+    if (t >= fidgetNext) { fidgetAt = t; fidgetSide = Math.random() < 0.5 ? -1 : 1; fidgetNext = t + rnd(fd.every[0], fd.every[1]); }
+    var age = t - fidgetAt, env;
+    if (age >= fd.t) return;
+    env = Math.sin(Math.PI * age / fd.t);
+    HERO.y *= 1 + fd.amp * env; HERO.x *= 1 - fd.amp * 0.5 * env; HERO.r = fidgetSide * fd.rot * env;
+  }
+  // Called once per frame before drawing the hero. Returns { x, y, lean, r }: sprite squash, lean and roll (reused object).
   F.hero = function () {
-    var k = C().hero, age = now() - hero.at, amp = 0, osc;
-    HERO.lean = heroBand(hero.v); HERO.x = 1; HERO.y = 1;
+    var k = C().hero, t = now(), age = t - hero.at, amp = 0, osc;
+    HERO.lean = heroBand(hero.v); HERO.x = 1; HERO.y = 1; HERO.r = 0;
     if (age < k.springLife) {
       osc = Math.exp(-age / k.springTau) * Math.cos(k.springOmega * age);
-      amp = hero.kind === 1 ? k.startStretch : -k.stopSquash;
+      amp = hero.kind === 1 ? k.startStretch : -k.stopSquash * hero.mul;
       HERO.y = 1 + amp * osc; HERO.x = 1 - amp * 0.7 * osc;
     }
+    fidget(t, k.fidget);
     return HERO;
   };
 

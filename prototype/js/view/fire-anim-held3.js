@@ -52,7 +52,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
 
   // ---------- Stormshield (Şimşek Kalkanı): cable reel in the main hand, off arm raised, an arc orbits the ring ----------
   H.stormshield = { T: 0.5, held: function (F, G, k) {
-    var t = k.t, sw = M.eo(M.clamp01(t / 0.2)), c = F.c, i, a, r = 0.3, p, q, j, b, step = Math.floor(t * 10);
+    var t = k.t, sw = M.eo(M.clamp01(t / 0.2)), c = F.c, i, a, r = 0.3, p, q, j, b, step = Math.floor(t * 3);
     arms(F, G, G.pt(0, 0, 0.3, 0.02, 0), G.pt(1, 2, 0.26 * sw, 0.1 + 0.2 * sw, -0.2 * sw));
     p = { x: HK.ox, y: HK.oy };
     M.begin(F, p.x, p.y, 0); c.beginPath(); c.arc(0, 0, r, 0, TAU);
@@ -60,7 +60,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
     for (i = 0; i < 3; i++) {
       a = t * 9 + i * TAU / 3; q = { x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r };
       b = { x: p.x + Math.cos(a + 0.5) * r * 0.82, y: p.y + Math.sin(a + 0.5) * r * 0.82 };
-      j = (step * 7 + i * 3) % 5 - 2;   // the zig stays put for 0.1 s at a time, so it reads as a crackle, not a strobe
+      j = (step * 7 + i * 3) % 5 - 2;   // the zig stays put for a third of a second at a time (3 steps a second at most), so it reads as a crackle, not a strobe
       M.limb(F, q.x, q.y, (q.x + b.x) / 2 + j * 0.03 * Math.cos(a), (q.y + b.y) / 2 + j * 0.03 * Math.sin(a), C.arc, 0.03);
       M.limb(F, (q.x + b.x) / 2, (q.y + b.y) / 2, b.x, b.y, C.arc, 0.03);
     }
@@ -184,7 +184,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
 
   // ---------- Canister bomb (Patlayan Araba Turu): the canister with a lit fuse, lobbed underhand ----------
   H.carbomb = { T: 0.5, held: function (F, G, k) {
-    var t = k.t, lob = t < 0.2 ? M.eo(t / 0.2) : 1, hf, hu, hm, ho, c = F.c, pulse = 0.5 + 0.5 * Math.sin(t * 22);
+    var t = k.t, lob = t < 0.2 ? M.eo(t / 0.2) : 1, hf, hu, hm, ho, c = F.c, pulse = 0.5 + 0.5 * Math.sin(Math.floor(t * 3) / 3 * 22);
     hf = M.lerp(-0.1, 0.32, lob); hu = M.lerp(-0.22, -0.02, lob);
     hm = G.pt(0, 0, hf, hu, 0); ho = G.pt(1, 2, hf - 0.1, hu + 0.04, -0.06);
     arms(F, G, hm, ho);

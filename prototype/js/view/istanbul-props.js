@@ -55,7 +55,7 @@ P.Props = (function () {
 
   // Generic vehicle. v: { w, len, hgt, top, side, glass, stripe, cracks, hazard } in metres. o.alarm blinks at 2.5 Hz.
   function vehicle(c, X, Y, s, o, v) {
-    var w = (o.w || v.w) * s, d = (o.h || v.len) * s, hg = v.hgt * s, blink = Math.floor(performance.now() / 200) % 2;
+    var w = (o.w || v.w) * s, d = (o.h || v.len) * s, hg = v.hgt * s, blink = P.Settings && P.Settings.reduceFlash ? 1 : Math.floor(performance.now() / 200) % 2;   // alarm lamp: 2.5 Hz blink, steady on under Reduce flashing
     shadow(c, X, Y, w * 0.62, d * 0.5);
     [-1, 1].forEach(function (sx) { [-0.3, 0.3].forEach(function (sy) { ell(c, X + sx * w * 0.44, Y + sy * d, 0.07 * s, 0.14 * s, '#1E1F25', 1.2); }); });
     box(c, X, Y, w, d, hg, v.top, v.side);

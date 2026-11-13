@@ -86,6 +86,8 @@ P.ArtRig = (function () {
     var L = side === 'L', k = L ? -1 : 1, ph = p.walk || 0, th = ph + (L ? Math.PI : 0), br = p.breath || 0;
     switch (p.arms) {
       case 'swing': { var w = k * 0.1 + 0.45 * Math.sin(th); return { u: w, f: w + 0.25 }; }
+      // Zombie walk: arms still reach forward (about 57 degrees) but swing in opposite phase, +/-0.45 rad (was a static reach).
+      case 'zswing': { var zs = 1.0 + 0.45 * Math.sin(th); return { u: zs, f: zs + 0.2 }; }
       case 'run': case 'pump': { var r = k * 0.2 + 0.95 * Math.sin(th); return { u: r, f: r + 1.45 }; }
       case 'reach': { var q = (L ? 1.12 : 1.3) + 0.07 * Math.sin(ph + (L ? 0 : 1.7)); return { u: q, f: q + 0.2 }; }
       case 'panic': { var z = (L ? -2.5 : 2.5) + 0.25 * Math.sin(th); return { u: z, f: z + (L ? -0.35 : 0.35) }; }

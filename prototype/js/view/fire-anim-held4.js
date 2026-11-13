@@ -39,7 +39,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   function forgeState(t) {
     var pull = M.eo(M.clamp01(t / 0.12));
     return { tilt: t < 0.12 ? FORGE_TILT * pull : FORGE_TILT * (1 - M.seg(t, 0.5, 0.6)), hf: M.lerp(0.2, 0.16, pull),
-      hu: M.lerp(-0.02, 0.02, pull), L: 0.62 * (0.94 + 0.06 * Math.sin(t * 60)) * M.seg(t, 0.12, 0.26) * (1 - M.seg(t, 0.5, 0.6)),
+      hu: M.lerp(-0.02, 0.02, pull), L: 0.62 * (0.94 + 0.06 * Math.sin(Math.floor(t * 3) / 3 * 60)) * M.seg(t, 0.12, 0.26) * (1 - M.seg(t, 0.5, 0.6)),
       ign: M.seg(t, 0.12, 0.17) };
   }
   H.forge = { T: 0.6, state: forgeState, held: function (F, G, k) {
@@ -80,7 +80,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
     return { brace: brace, th: th, mf: 0.12 + 0.1 * th, mu: -0.12 * brace, of: 0.24 + 0.1 * th, ou: -0.22 * brace };
   }
   H.grinder = { T: 0.7, state: grinderState, held: function (F, G, k) {
-    var t = k.t, s = grinderState(t), vib = t > 0.3 && t < 0.5 ? 0.008 * Math.sin(t * 90) : 0, c = F.c, spin = t * 40, i, a;
+    var t = k.t, s = grinderState(t), vib = t > 0.3 && t < 0.5 && !(P.Settings && P.Settings.reduceMotion) ? 0.008 * Math.sin(t * 90) : 0, c = F.c, spin = t * 40, i, a;   // the grinder's shake is off under Reduce motion
     arms(F, G, G.pt(0, 0, s.mf + vib, s.mu, 0), G.pt(1, 2, s.of + vib, s.ou, -0.05));
     M.begin(F, HK.mx, HK.my, G.ang);
     M.rr(c, -0.26, -0.1, 0.3, 0.2, 0.05); M.ink(F, '#5A606C', 1.8);            // heavy housing

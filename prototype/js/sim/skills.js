@@ -325,7 +325,7 @@ P.Skills.powerMul = function (s) { return sk(s).ultT > 0 ? P.CFG.skills.ult.powe
 // Cooldown multiplier for weapons (frenzy attack speed, ultimate haste). Applied in Weapons.cdMult.
 P.Skills.cdScale = function (s) {
   var S = sk(s), k = 1;
-  if (S.frenzyT > 0) k /= 1 + P.CFG.skills.frenzy.attackSpeed;
+  if (S.frenzyT > 0) k /= 1 + (s.levelIndex >= P.CFG.levels.rampFrom ? P.CFG.skills.frenzy.attackSpeed : P.CFG.skills.frenzy.attackSpeedL1);
   if (S.ultT > 0) k *= P.CFG.skills.ult.cdMul;
   return k;
 };

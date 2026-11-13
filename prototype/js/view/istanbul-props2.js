@@ -124,7 +124,9 @@
     rc(c, X + 4.5 * s, Y - 3.4 * s, 0.2 * s, 0.2 * s, INK, 0);
   });
   reg('lamp', function (c, X, Y, s, o) {
-    var t = performance.now() / 1000, on = o.flick ? (Math.sin(t * 23) * Math.sin(t * 5.3) > 0.2 ? 0.25 : 1) : 1;
+    // Flickering lamp: its state steps 3 times a second at most (design-system 11; it used to change up to ~7 times a second over a
+    // 2.6 m glow). Steady on under Reduce flashing.
+    var t = Math.floor(performance.now() / 1000 * 3) / 3, on = o.flick && !(P.Settings && P.Settings.reduceFlash) ? (Math.sin(t * 23) * Math.sin(t * 5.3) > 0.2 ? 0.25 : 1) : 1;
     shadow(c, X, Y, 0.2 * s, 0.1 * s);
     ln(c, X, Y, X, Y - 2.2 * s, INK, 3);
     glow(c, X, Y - 2.2 * s, 2.6 * s, 0.4 * on);
@@ -175,7 +177,7 @@
       var px = X + Math.sin(i * 2.7 + kv) * 0.6 * s, py = Y + Math.cos(i * 1.9 + kv) * 0.5 * s;
       c.save(); c.translate(px, py); c.rotate((i * 0.9 + kv) % 3);
       rc(c, 0, 0, 0.14 * s, 0.26 * s, INK, 1);
-      rc(c, 0, 0, 0.1 * s, 0.2 * s, (i === 0 && Math.floor(t * 2) % 2) ? '#7FC8F8' : '#2A3550', 0);
+      rc(c, 0, 0, 0.1 * s, 0.2 * s, (i === 0 && !(P.Settings && P.Settings.reduceFlash) && Math.floor(t * 2) % 2) ? '#7FC8F8' : '#2A3550', 0);
       c.restore();
     }
   });

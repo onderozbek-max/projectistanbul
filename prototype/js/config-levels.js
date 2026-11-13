@@ -57,28 +57,30 @@
   C.bosses = {
     brute: {                                                             // CC 6 style: charges, stomps, summons
       hp: 1400, speed: 0.8, contact: 14, radius: 0.9, xp: 80, kbResist: 0.95,
-      windup: 0.9, laneLen: 12, laneW: 2.4, chargeSpeed: 9, chargeDmg: 18, chargeKb: 2.0,
-      stomp: { r: 3.4, dmg: 16, windup: 1.0 }, summon: { n: 4, windup: 0.8, r: 3 },
-      gap: 0.8, rageGap: 0.5, pause: 1.2, rageAt: 0.5, rageSpeed: 1.3, rageWindup: 0.6,
+      windup: 0.9, laneLen: 12, laneW: 2.4, chargeSpeed: 9, chargeDmg: 12, chargeKb: 2.0,   // boss-arena pass: chargeDmg 18 -> 12
+      stomp: { r: 3.4, dmg: 12, windup: 1.0 }, summon: { n: 4, windup: 0.8, r: 3 },           // stomp dmg 16 -> 12
+      gap: 0.8, rageGap: 0.8, pause: 1.2, rageAt: 0.5, rageSpeed: 1.3, rageWindup: 0.6,       // rageGap 0.5 -> 0.8 (enrage cadence)
     },
     bloater: {                                                           // toxic pools, mini bloaters, belly slam
       hp: 1300, speed: 0.55, contact: 18, radius: 0.9, xp: 80, kbResist: 0.9,
-      pools: { n: 3, r: 2.0, windup: 1.0, t: 6, dps: 3, span: 6 }, minis: { n: 3, windup: 0.9, r: 2.2 },   // pool dps 3 (was 4)
+      pools: { n: 3, r: 2.0, windup: 1.0, t: 6, dps: 2, span: 6 }, minis: { n: 3, windup: 0.9, r: 2.2 },   // pool dps 2 (boss-arena pass; was 3, was 4)
       slam: { r: 3.5, windup: 1.1, dmg: 20, shove: 2.5 }, burst: { r: 4.0, enemyDmg: 60, heroDmg: 22, cloudT: 4 },
       gap: 0.8, rageGap: 0.5, pause: 1.0, rageAt: 0.5,
     },
     spitter: {                                                           // fan spray of 5, acid rain
       hp: 1100, speed: 0.7, contact: 14, radius: 0.8, xp: 80, kbResist: 0.9,
       keep: 6, band: 1.0, gap: 0.8, rageGap: 0.5, pause: 0.8, rageAt: 0.5,
-      fan: { n: 5, spread: 60, rangeMin: 4, rangeMax: 8, windup: 0.8, flight: 0.9, dmg: 6, puddleT: 3, puddleDps: 3, r: 1.1 },
-      rain: { n: 8, span: 9, windup: 1.0, r: 1.2, t: 4, dps: 3 },
+      fan: { n: 5, spread: 60, rangeMin: 4, rangeMax: 8, windup: 0.8, flight: 0.9, dmg: 6, puddleT: 3, puddleDps: 2, r: 1.1 },   // puddleDps 3 -> 2 (boss-arena pass)
+      rain: { n: 8, span: 9, windup: 1.0, r: 1.2, t: 4, dps: 2 },                                                              // dps 3 -> 2 (boss-arena pass)
     },
   };
 
   // ---- level generator (journey levels 2..100) ----
   C.levels = {
+    rampFrom: 2,                       // R1-T4 part 4: first journey level with the drop-heal cap and the frenzy speed; L1 is unchanged
     // Difficulty per global index k = index-1 (gentle early, steeper late). hp = 1 + lin*k + quad*k^2.
-    diff: { hpLin: 0.03, hpQuad: 0.0002, dmgLin: 0.006, spawnLin: 0.005, spawnCap: 2.0, xpLin: 0.04, bossHoodMul: 0.03, bossShare: 0.3 },
+    // R1-T4 part 4: xpLin 0.04 -> 0.05 (XP per kill grows faster with the level index; keeps late boss levels clearable, see the review).
+    diff: { hpLin: 0.03, hpQuad: 0.0002, dmgLin: 0.006, spawnLin: 0.005, spawnCap: 2.0, xpLin: 0.05, bossHoodMul: 0.03, bossShare: 0.3 },
     // Stages 1..5 (stage 5 = boss arena). len = exit gate distance (m); holdT escalates (s).
     stages: [
       { id: 1, len: 170, rate: 1.2, holdT: 40, behind: 0.00, newShare: 0.25, elites: [], ambush: false, intro: true },
@@ -94,6 +96,9 @@
     holdStopBefore: 6,                 // no spawns in the last 6 s of a hold
     bossAddRate: 1.08,                 // boss-fight adds: share of stage rate (AUDIT-6 B4: x1.8 from 0.6 for arena density)
     bossAddStart: 6,                   // adds around the boss on intro
+    // Boss-arena pass: one simit pickup `ahead` m in front of the hero at the arena intro (sim/bosses.js arenaHeal). value 0 = none.
+    // uncapped: outside drops.healCap, because the route spends the run-wide cap before the boss (the trace showed 26 HP and no heal).
+    bossHeal: { value: 25, ahead: 3, pop: 0.25, uncapped: true },
     cap: 140,                          // max alive (perf and readability): the soft gate for route spawns
     // D-056: one hard ceiling of live enemies for every spawn path (Combat.spawnEnemy refuses past it). A boss always spawns; its scripted
     // adds (intro ring, summons) may go to `boss`. 140 (here) and 200 (config-horde.js ctl.cap) stay as the soft spawn gates, so this

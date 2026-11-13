@@ -106,14 +106,19 @@ incoming_to_player = max(1, raw - armor) * (1 - player_damage_reduction)
 
 ### 4.5 XP curve (in-run)
 ```
-xp_to_next(level) = round(5 + 5 * level^1.6)   # exponent 1.6 matches config.js xp.exp (audit D-1)
+xp_to_next(level) = round(5 + 5 * level^1.6)    # L1, hand-built (config.js xp.l1; exponent 1.6 matches xp.exp, audit D-1)
+xp_to_next(level) = round(30 + 5 * level^1.6)   # L2+ generated levels (config.js xp: base 30, mult 5; R1-T4 part 4)
 ```
 | Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| XP to next | 10 | 20 | 34 | 51 | 71 | 93 | 117 | 144 | 173 | 204 | 386 | 608 | 867 | 1159 |
+| XP to next, L1 | 10 | 20 | 34 | 51 | 71 | 93 | 117 | 144 | 173 | 204 | 386 | 608 | 867 | 1159 |
+| XP to next, L2+ | 35 | 45 | 59 | 76 | 96 | 118 | 142 | 169 | 198 | 229 | 411 | 633 | 892 | 1184 |
 
 **Pacing targets:** first level-up at **~15 s**; a level-up every **20–30 s** in early levels;
 **6–8 level-ups in L1**, **20–25 in an 8-minute run** at L20+.
+**Measured on L2–5 (headless bot, 32 seeds):** first level-up 8–12 s (median 10.8 s on L2, below the 15 s target: a deliberate
+trade for the L5 boss, see §7 and `reviews/REVIEW-R1.md` T4 part 4); 7 level-ups on L5, 12 on L3–4 (above the 6–8 target).
+Late boss levels (L50, L75, L100) take 15–18 median level-ups and at most 26 in one run.
 
 ### 4.6 Enemy scaling
 ```
@@ -244,6 +249,24 @@ Rules:
 | 20 (boss) | ≈ 65% |
 | 21–29 | 70–85% |
 | 30 (Kaan) | ≈ 60% |
+
+**In-run bands (R1-T4 part 4).** Kiting-bot proxies for the table above, measured with `node tools/bot.js --levels=2,3,4,5 --seeds=32`
+on the shipped config (not human rates; L1 is hand-built and unchanged):
+
+| Measure | Band | L2 | L3 | L4 | L5 (boss) | Status |
+|---|---|---|---|---|---|---|
+| Clear rate | owner floor ≥ 85% on L2–5; §7 gives ≥ 95% on L1–4 and ≈ 90% on L5 | 94% (30/32) | 100% | 100% | 94% (30/32); 89% at 96 seeds | L2 1 pt under §7; L5 meets the owner floor and §7 (boss-arena pass, was 84%) |
+| Deaths per run | 0.15–0.4 (L3–5) | 0.22 | 0.16 | 0.16 | 0.53 (0.60 at 96 seeds) | L5 out of this band, in the boss band 0.3–0.7 (was 0.78) |
+| Median min HP | 45–65% (L3–5) | 35% | 45% | 37% | 4% | L4–5 out; the boss-arena band 25–50% is not reached (see REVIEW-R1) |
+| Runs under 30% HP | 20–35% (L3–5) | 47% | 34% | 47% | 72% (was 91%) | L4–5 out |
+| First level-up | ~15 s | 10.8 s | 8.0 s | 12.4 s | 10.6 s | early (see §4.5) |
+| Level-ups per level | 6–8 (about 25 at most on the longest) | 8 | 12 | 12 | 6 | L3–4 high |
+| Median clear time vs before | ±15% | 164 s (vs 165) | 198 s (vs 201) | 237 s (vs 229) | 148 s (vs 124) | L5 +19% (boss-arena pass, was +16%) |
+
+The owner's 85% floor is below §7 (≥ 95% on L1–4, ≈ 90% on L5). After the boss-arena pass the shipped config meets §7 on L3–5
+(L5 at 96 seeds: 89%) and misses it on L2 by one point. Boss levels L10–L100 (16 seeds each): mean clear 72.5% → 80.7%, nine of 19
+at 85–100% (was four), median min HP still 0% on 11 of 19 levels, and a boss stage of about 2:00–3:00 for the bot against the
+journey §3.1 target of 5:00–6:00. Tables and every changed key: `reviews/REVIEW-R1.md`, T4 part 4, "Boss-arena pass".
 
 Failing should teach: Results screen shows the **cause of death** (enemy type) and one tip.
 A failed level can be replayed immediately with the meta upgrades the player just earned.

@@ -278,7 +278,7 @@ P.WFx = (function () {
     s.projs.forEach(function (p) {
       var f = p.t / p.T, x = p.x0 + (p.x1 - p.x0) * f, y = p.y0 + (p.y1 - p.y0) * f, z = 4 * 1.6 * f * (1 - f), tt = performance.now() / 1000;
       c.fillStyle = 'rgba(0,0,0,' + (0.15 + 0.2 * f) + ')'; c.beginPath(); c.ellipse(R.X(x), R.Y(y), 0.2 * u, 0.08 * u, 0, 0, Math.PI * 2); c.fill();
-      var pulse = 0.5 + 0.5 * Math.sin(tt * 30);
+      var pulse = (P.Settings && P.Settings.reduceFlash) ? 0.5 : 0.5 + 0.5 * Math.sin(Math.floor(tt * 3) / 3 * 30);   // colour pulse held to 3 steps a second
       c.setLineDash([6, 5]); c.lineDashOffset = -tt * 30;
       c.strokeStyle = 'rgba(255,' + Math.round(120 + 80 * pulse) + ',60,' + (0.4 + 0.5 * f) + ')'; c.lineWidth = 2.5;
       c.beginPath(); c.arc(R.X(p.x1), R.Y(p.y1), p.lv.blast * u * (1.15 - 0.15 * f), 0, Math.PI * 2); c.stroke(); c.setLineDash([]);

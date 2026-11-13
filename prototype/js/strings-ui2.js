@@ -3,8 +3,14 @@
 // when the lang attribute is tr, so the source already carries the capitals.
 Object.assign(P.STR.tr, {
   'ui.boot.fail': 'Yüklenemedi, tekrar dene',
-  'ui.set.music': 'Müzik', 'ui.set.haptics': 'Titreşim', 'ui.set.joy': 'Joystick yönü',
+  // TR owner check: Settings audio label for the Music slider (T4 part 8). "Ses efektleri" is in strings.js.
+  'ui.set.music': 'Müzik',
+  // TR owner check: Settings audio label for the Voice slider (the voice bus: comic speech and groans).
+  'ui.set.voice': 'Ses (konuşma)',
+  'ui.set.haptics': 'Titreşim', 'ui.set.joy': 'Joystick yönü',
   'ui.set.joyL': 'Sol', 'ui.set.joyR': 'Sağ', 'ui.set.shake': 'Ekran sarsıntısı',
+  // TR owner check: short label written natively; the owner should confirm the wording.
+  'ui.set.textSize': 'Yazı boyutu',
   'ui.set.reduceFlash': 'Yanıp sönme azalt', 'ui.set.note': 'Bu ayarlar yalnızca görüntüyü ve dokunmayı etkiler; oyunu değiştirmez.',
   'ui.down.tipGeneric': 'İpucu: Durma. Hareket et, sonra vur.',
   'tip.bloater': 'İpucu: Dombili patlayınca zehirli bulut bırakır. Uzak dur.',
@@ -22,8 +28,11 @@ Object.assign(P.STR.tr, {
 });
 Object.assign(P.STR.en, {
   'ui.boot.fail': 'Could not load. Try again.',
-  'ui.set.music': 'Music', 'ui.set.haptics': 'Haptics', 'ui.set.joy': 'Joystick side',
+  'ui.set.music': 'Music',
+  'ui.set.voice': 'Voice',
+  'ui.set.haptics': 'Haptics', 'ui.set.joy': 'Joystick side',
   'ui.set.joyL': 'Left', 'ui.set.joyR': 'Right', 'ui.set.shake': 'Screen shake',
+  'ui.set.textSize': 'Text size',
   'ui.set.reduceFlash': 'Reduce flashing', 'ui.set.note': 'These settings change the view and touch only; they never change the game.',
   'ui.down.tipGeneric': 'Tip: keep moving, then strike.',
   'tip.bloater': 'Tip: a bloater bursts into a toxic cloud. Keep your distance.',

@@ -36,8 +36,18 @@ P.Bosses.spawn = function (s, type, x, y, o) {
   e.armour = B.armour || 1; e.exposed = false; e.phase = 1;
   e.ai = makeAI(e);
   s.events.push({ type: 'bossIntro', nameKey: o.nameKey, boss: arch, x: x, y: y, hood: o.hoodId || null });
+  arenaHeal(s);
   return e;
 };
+
+// Boss-arena pass: one simit pickup just ahead of the hero at the intro (levels.bossHeal), so the fight starts after the approach's
+// damage has been partly undone. Generated arenas only (s.gen.arena). With uncapped (config) it is outside drops.healCap (combat.js).
+function arenaHeal(s) {
+  var H = P.CFG.levels.bossHeal, h = s.hero, V = P.CFG.view;
+  if (!H || !(H.value > 0) || !s.gen || !s.gen.arena) return;
+  var x = Math.max(-V.heroClampX, Math.min(V.heroClampX, h.x));
+  s.drops.push({ kind: 'simit', value: H.value, x: x, y: h.y + H.ahead, mag: false, pop: H.pop, uncapped: !!H.uncapped });
+}
 
 function makeAI(e) {
   var B = P.CFG.bosses[e.type];

@@ -146,7 +146,7 @@
             tapMs: 280, tapPx: 40, nearMissR: 0.2, nearSlowMo: 0.25 },
     ult: { perKill: 0.004, perElite: 0.03, damage: 60, push: 2.5, time: 2.0, powerMul: 1.5, cdMul: 0.6,
            padM: 1.0, slowMo: 0.25 },
-    frenzy: { threshold: 60, window: 1.5, time: 6, attackSpeed: 0.4 },
+    frenzy: { threshold: 60, window: 1.5, time: 6, attackSpeed: 0.25, attackSpeedL1: 0.4 },   // R1-T4 part 4: attackSpeed 0.4 -> 0.25 from L2 (cooldown / 1.25); L1 keeps 0.4 (attackSpeedL1)
   };
   C.evoCutsceneT = 1.6;
 })(P.CFG);

@@ -7,7 +7,7 @@
 //  - fade: design-system 6 rule 5, overhangs fade to 30% alpha when the player or a telegraph is under them, eased over ~0.15 s.
 // o.v (0..1) picks the variant. View only; the sim never reads this.
 P.ArenaOverhead = (function () {
-  var A = {}, IMG = {}, RASTER = {}, GLOW = {}, FADE = {}, pending = 0, FLOOR = 0.3;
+  var A = {}, IMG = {}, RASTER = {}, GLOW = {}, FADE = {}, pending = 0, FLOOR = 0.3, FADE_HOLD = 0.34;   // a fade target may flip at most every 0.34 s (3 a second, design-system 11)
 
   function load() {
     var data = P.ArenaOverheadData || {};
@@ -56,8 +56,9 @@ P.ArenaOverhead = (function () {
     return hit ? FLOOR : 1;
   }
   function fade(key, target) {
-    var now = performance.now() / 1000, st = FADE[key] || (FADE[key] = { a: 1, t: now }), dt = Math.min(0.1, Math.max(0, now - st.t));
-    st.t = now; st.a += (target - st.a) * (1 - Math.exp(-dt / 0.15));
+    var now = performance.now() / 1000, st = FADE[key] || (FADE[key] = { a: 1, t: now, tgt: target, flipAt: -1e9 }), dt = Math.min(0.1, Math.max(0, now - st.t));
+    if (target !== st.tgt && now - st.flipAt >= FADE_HOLD) { st.tgt = target; st.flipAt = now; }   // a hero jittering on the edge cannot flip the rig faster than 3 a second
+    st.t = now; st.a += (st.tgt - st.a) * (1 - Math.exp(-dt / 0.15));
     return st.a;
   }
 
@@ -86,7 +87,7 @@ P.ArenaOverhead = (function () {
     c.save(); c.globalAlpha = d.alpha * a;
     c.drawImage(raster(key, d, k), x0, y0, d.w * u, d.h * u);
     if (d.glows.length) {
-      calm = !!(P.Settings && (P.Settings.reduceMotion || P.Settings.reduceFlash)); now = performance.now() / 1000;   // steady glows under either setting (D-060 Zindanlar torches)
+      calm = !!(P.Settings && ((P.Settings && P.Settings.reduceMotion) || (P.Settings && P.Settings.reduceFlash))); now = performance.now() / 1000;   // steady glows under either setting (D-060 Zindanlar torches)
       c.globalCompositeOperation = 'lighter';
       for (i = 0; i < d.glows.length; i++) {
         g = d.glows[i]; tw = calm ? 1 : 0.75 + 0.25 * Math.sin(now * 3 + i * 1.7 + y);

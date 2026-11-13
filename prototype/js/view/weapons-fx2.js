@@ -83,7 +83,8 @@ P.WFx2 = (function () {
 
   function burst(ev, pn) {
     var big = !!ev.big, rgb = RGB[(ev.col || 0) % RGB.length];
-    flashes.push({ x: ev.x, y: ev.y, r: ev.r * (big ? 2.4 : 1.6), rgb: rgb, t: big ? 0.3 : 0.18, T: big ? 0.3 : 0.18 });
+    // The bright disc is a flash: it takes a slot from the screen flash budget (sprites.js flashOk); the sparks and ring still play.
+    if (P.Fx.flashGo()) flashes.push({ x: ev.x, y: ev.y, r: ev.r * (big ? 2.4 : 1.6), rgb: rgb, t: big ? 0.3 : 0.18, T: big ? 0.3 : 0.18 });
     if (flashes.length > MAX_FLASH) flashes.shift();
     burstSparks(ev.x, ev.y, big ? 28 : 14, big ? 6 : 4, rgb, big ? 0.9 : 0.6, big ? 2 : 1);
     P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r * 1.1, t: 0.3, T: 0.3, col: rgb });
@@ -227,7 +228,7 @@ P.WFx2 = (function () {
   }
 
   function drawFlask(c, R, f, u, t) {
-    var pos = flaskPos(f), X = R.X(pos.x), Y = R.Y(pos.y), fl = 0.5 + 0.5 * Math.sin(t * 40);
+    var pos = flaskPos(f), X = R.X(pos.x), Y = R.Y(pos.y), fl = 0.5 + 0.5 * Math.sin(Math.floor(t * 3) / 3 * 40);   // flame flicker held to 3 steps a second
     c.fillStyle = 'rgba(0,0,0,' + (0.15 + 0.2 * pos.q).toFixed(3) + ')';
     c.beginPath(); c.ellipse(X, Y, 0.2 * u, 0.08 * u, 0, 0, Math.PI * 2); c.fill();
     var by = R.Y(pos.y + pos.z);

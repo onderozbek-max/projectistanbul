@@ -24,7 +24,7 @@
     base: 'kasap', hp: 1500, speed: 0.7, contact: 16, radius: 1.0, xp: 90, kbResist: 1.0,
     armour: 0.6, exposedArmour: 1.0, exposeT: 1.6,                        // apron cut open after the combo: full damage
     gap: 0.9, pause: 1.0,
-    swing: { r: 1.9, reach: 1.6, windup: [0.8, 0.8, 0.8], dmg: 16, kb: 0.8, recover: 0.3 },   // combo of three (each >= 0.8 s)
+    swing: { r: 1.9, reach: 1.6, windup: [0.8, 0.8, 0.8], dmg: 12, kb: 0.8, recover: 0.3 },   // combo of three (each >= 0.8 s); dmg 16 -> 12 (boss-arena pass)
     throw: { r: 1.2, windup: 1.0, dmg: 14 },                              // thrown cleaver: ring on the hero, blade flies in
     frenzy: { n: 4, span: 3, windup: 0.8, r: 1.1, dmg: 12 },
     summon: { n: 3, windup: 0.9, r: 3 },

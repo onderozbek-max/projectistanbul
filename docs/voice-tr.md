@@ -160,7 +160,7 @@ Mektupları "**Baban.**" diye imzalar (kısaltma yok), başka bir şey yazmaz.
 1. "Dükkân kapandı, git." → Usta kimseyi kapıdan çevirmez.
 2. "Müşteri velinimettir." → afişteki ezber slogan; Usta atasözünü bozar, afişi okumaz.
 
-### Hasan Karadeniz ("Dede") · 74 · emekli balıkçı, Sarıyer *(2. bölümden itibaren; ses şimdiden hazır)*
+### Hasan Karadeniz ("Dede") · 74 · emekli balıkçı, Sarıyer *(2. kısımdan itibaren; ses şimdiden hazır)*
 **Kayıt.** Önce söylenir, sonra güzel şeyi **kısık sesle** söyler. Annenin babası; torununa "**Ben demiştim**" der, arabasına "**Gelin**" der.
 **Alışkanlıklar.** Her şeyden şikâyet eder ve herkese yemek yapar. Pazar günü sedanı yıkar.
 **Asla.** Sevgisini düz söylemek; küfür (en çok "ulan", "hay aksi").

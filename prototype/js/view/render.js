@@ -22,6 +22,16 @@ P.Render = (function () {
     if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw || 2; c.stroke(); }
   }
 
+  // 4-point sparkle centred at (x, y), outer radius r, turned by a (rad). Alpha is multiplied in through globalAlpha (no string per call).
+  function glint(c, x, y, r, a, alpha) {
+    var j, rr, aa, prev = c.globalAlpha;
+    c.globalAlpha = prev * alpha; c.fillStyle = '#FFFFFF';
+    c.beginPath();
+    for (j = 0; j < 8; j++) { rr = j % 2 ? r * 0.28 : r; aa = a + j * Math.PI / 4; c.lineTo(x + Math.cos(aa) * rr, y + Math.sin(aa) * rr); }
+    c.closePath(); c.fill();
+    c.globalAlpha = prev;
+  }
+
   function knifeAngle(face) {
     var w = P.Fx.swings.filter(function (q) { return !q.back; }).pop();
     if (P.Feel) return P.Feel.knifeAngle(w, face);   // v0.9: anticipation, overshoot and a settle back to rest
@@ -32,7 +42,7 @@ P.Render = (function () {
 
   // Invulnerability blink (G5): a 1.5 Hz alpha pulse between 0.6 and 1.0, never a fast toggle. Off under "reduce flashes".
   function blinkAlpha(h, t) {
-    if (!(h.invuln > 0) || P.Settings.reduceFlash) return 1;
+    if (!(h.invuln > 0) || (P.Settings && P.Settings.reduceFlash)) return 1;
     var V = P.CFG.view, mid = (1 + V.blinkMinAlpha) / 2, amp = (1 - V.blinkMinAlpha) / 2;
     return mid + amp * Math.sin(t / 1000 * Math.PI * 2 * V.blinkHz);
   }
@@ -56,7 +66,7 @@ P.Render = (function () {
     var so = { u: u * V.spriteScale.hero, back: h.moving && h.fy > 0.4, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
       arms: (s.levelIndex > 1 ? !!(h.weapons.knife || h.weapons.cleaver) : P.ColdOpen.hasKnife()) ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving,
       flash: P.Fx.heroFlash ? P.Fx.heroFlash() : 0 };   // the white hit flash is gated to 3 per second in fx.js (G3)
-    if (P.Feel) { var fh = P.Feel.hero(); so.lean = fh.lean; so.spring = { x: fh.x, y: fh.y, r: 0, ox: 0 }; }
+    if (P.Feel) { var fh = P.Feel.hero(); so.lean = fh.lean; so.spring = { x: fh.x, y: fh.y, r: fh.r, ox: 0 }; }
     if (P.FireAnim) P.FireAnim.heroOpts(s, so);   // a shot's pose (or the chainsaw rev) draws the arms itself
     P.Sprites.hero(c, X, Y, so);
     c.globalAlpha = 1;
@@ -66,12 +76,12 @@ P.Render = (function () {
   function drawDrops(s) {
     var c = R.ctx, t = performance.now() / 1000, u = R.ppm, pk = P.CFG.feel2.pickup, hero = s.hero;
     s.drops.forEach(function (d, i) {
-      var X = R.X(d.x), Y = R.Y(d.y) - Math.sin(t * 4 + i) * 0.06 * u, lift = 0, hd, tx, ty;
-      if (d.pop > 0 && d.pop <= pk.popT && !P.Settings.reduceMotion) {   // pops out on a small arc (the sim holds it for `pop` s)
+      var X = R.X(d.x), Y = R.Y(d.y) - Math.sin(t * 3 + i) * pk.bob * u, lift = 0, hd, tx, ty, gl, g;
+      if (d.pop > 0 && d.pop <= pk.popT && !(P.Settings && P.Settings.reduceMotion)) {   // pops out on a small arc (the sim holds it for `pop` s)
         lift = Math.sin(Math.PI * (1 - d.pop / pk.popT)) * pk.lift;
         c.fillStyle = 'rgba(0,0,0,0.2)'; c.beginPath(); c.ellipse(X, Y, 0.14 * u, 0.06 * u, 0, 0, Math.PI * 2); c.fill();
         Y -= lift * u;
-      } else if (d.mag && d.kind !== 'chest' && !P.Settings.reduceMotion) {   // flying to the hero: a streak behind it
+      } else if (d.mag && d.kind !== 'chest' && !(P.Settings && P.Settings.reduceMotion)) {   // flying to the hero: a streak behind it
         hd = Math.hypot(hero.x - d.x, hero.y - d.y) || 1;
         tx = R.X(d.x - (hero.x - d.x) / hd * pk.trail); ty = R.Y(d.y - (hero.y - d.y) / hd * pk.trail);
         c.strokeStyle = 'rgba(' + (pk.col[d.kind] || pk.col.simit) + ',0.45)'; c.lineWidth = 0.1 * u; c.lineCap = 'round';
@@ -82,6 +92,9 @@ P.Render = (function () {
         c.fillStyle = '#7CF08E'; c.strokeStyle = '#14151F'; c.lineWidth = 1.5;
         c.beginPath(); c.moveTo(X, Y - 0.17 * u); c.lineTo(X + 0.1 * u, Y); c.lineTo(X, Y + 0.12 * u); c.lineTo(X - 0.1 * u, Y); c.closePath(); c.fill(); c.stroke();
         c.fillStyle = 'rgba(255,255,255,0.7)'; c.beginPath(); c.moveTo(X, Y - 0.13 * u); c.lineTo(X + 0.04 * u, Y - 0.02 * u); c.lineTo(X, Y); c.fill();
+        // Glint: a tiny 4-point sparkle that turns slowly and swells on a smooth beat (pk.glint). Alpha moves continuously, never on/off.
+        gl = pk.glint; g = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 * gl.pulse + i);
+        glint(c, X + 0.13 * u, Y - 0.16 * u, gl.size * u * (0.6 + 0.4 * g), t * gl.spin + i, 0.3 + 0.5 * g);
       } else if (d.kind === 'jeton') {
         var sx = Math.abs(Math.cos(t * 5 + i));
         c.fillStyle = '#E9A23B'; c.strokeStyle = '#14151F'; c.lineWidth = 1.5;
@@ -157,11 +170,11 @@ P.Render = (function () {
       c.globalCompositeOperation = 'lighter';
       for (var k = 0; k < 3; k++) {
         var rin = r * (0.45 + k * 0.12);
-        c.fillStyle = 'rgba(' + (k === 2 ? '255,255,255' : '190,230,255') + ',' + (alpha * (0.16 + k * 0.14)).toFixed(3) + ')';
+        c.fillStyle = 'rgba(' + (k === 2 ? '255,255,255' : '190,230,255') + ',' + (alpha * (0.24 + k * 0.2)).toFixed(3) + ')';
         c.beginPath(); c.arc(X, Y, r * (1 - k * 0.04), lo, hi); c.arc(X, Y, rin, hi, lo, true); c.closePath(); c.fill();
       }
       c.restore();
-      c.strokeStyle = 'rgba(255,255,255,' + alpha + ')'; c.lineWidth = 4; c.lineCap = 'round';
+      c.strokeStyle = 'rgba(255,255,255,' + alpha + ')'; c.lineWidth = 5; c.lineCap = 'round';
       c.beginPath(); c.arc(X, Y, r, w.dir > 0 ? lo : lead, w.dir > 0 ? lead : hi); c.stroke();
       c.strokeStyle = 'rgba(20,21,31,' + (0.5 * alpha) + ')'; c.lineWidth = 1.5;
       c.beginPath(); c.arc(X, Y, r + 3, lo, hi); c.stroke();
@@ -255,6 +268,7 @@ P.Render = (function () {
   };
 
   R.circle = circle;
+  R.drawDrops = drawDrops;   // exported for the animation harness (filmstrips and the draw-cost check)
   return R;
 })();
 
@@ -308,7 +322,8 @@ P.RenderOverlay = (function () {
     var c = R.ctx;
     drawLegacy(R);
     P.Fx.nums.forEach(function (n) {
-      var f = 1 - n.t / n.T, size = n.crit ? 24 : 14, sc = f < 0.15 ? 1.2 - f / 0.15 * 0.2 : 1;
+      // Pop: the number starts at dmgPop times its size and settles to 1 over dmgPopT seconds of its life (view only).
+      var f = 1 - n.t / n.T, size = n.crit ? 24 : 14, el = n.T - n.t, pT = P.CFG.feel.dmgPopT, sc = el < pT ? 1 + (P.CFG.feel.dmgPop - 1) * (1 - el / pT) : 1;
       c.font = 'italic 900 ' + Math.round(size * sc) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
       c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = '#14151F';
       c.globalAlpha = n.t < 0.2 ? n.t / 0.2 : 1;
@@ -351,6 +366,12 @@ P.RenderOverlay = (function () {
     return LIGHT[LIGHT.length - 1].c;
   }
 
+  // The low-HP heartbeat is one flash per beat; it is counted against the screen flash budget (sprites.js flashForce).
+  var heartN = -1;
+  function countHeartbeat(now) {
+    var n = Math.floor(now / P.Fx.heartPeriod);
+    if (n !== heartN && P.Sprites && P.Sprites.flashForce) { heartN = n; P.Sprites.flashForce(now); }
+  }
   O.screen = function (R, s) {
     var c = R.ctx, W = R.W, H = R.H;
     var l = (s.levelIndex > 1 && P.RenderWorld.screenLight) ? P.RenderWorld.screenLight(s) : light(s.hero.y);
@@ -364,7 +385,8 @@ P.RenderOverlay = (function () {
     c.fillStyle = g; c.fillRect(0, 0, W, H);
     if (s.hero.hp / s.hero.maxHp < P.CFG.feel.lowHpFrac && s.mode === 'play') {
       // Last stand: a dark red vignette that beats like a heart (two beats per cycle, never a flash).
-      var beat = P.Settings.reduceFlash ? 0.5 : (P.Fx.heart ? P.Fx.heart(performance.now() / 1000) : 0.5);
+      var beat = (P.Settings && P.Settings.reduceFlash) ? 0.5 : (P.Fx.heart ? P.Fx.heart(performance.now() / 1000) : 0.5);
+      if (!(P.Settings && P.Settings.reduceFlash) && P.Fx.heartPeriod) countHeartbeat(performance.now() / 1000);
       var p = 0.12 + 0.3 * beat;
       var g2 = c.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.7);
       g2.addColorStop(0, 'rgba(215,38,61,0)'); g2.addColorStop(1, 'rgba(215,38,61,' + p.toFixed(3) + ')');

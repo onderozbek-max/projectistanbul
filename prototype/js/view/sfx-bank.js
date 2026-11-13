@@ -1,7 +1,9 @@
-// Sound design DSP (workstream A, v0.4). Pure sample-domain generators, no WebAudio, so they run in Node for QA.
-// Mono Float32Array out. Times in seconds; frequencies in Hz or fn(t) -> Hz. Loaded before sfx-bank2.js
-// (cue recipes) and sfx.js (runtime). Globals: P.SfxDsp (primitives, darbuka, voices, ambience beds) and
-// P.SfxFx (layer helpers that compose primitives into hits; used by the recipes, defined at the end of this file).
+// Sound design DSP (workstream A, v0.5). Pure sample-domain generators: no WebAudio, no DOM, so the same code runs in
+// the browser and in Node (tools/render-sfx.js, tools/qa-sfx.js). Mono Float32Array out. Times in seconds. Frequencies
+// in Hz or fn(t) -> Hz. Loaded before sfx-bank2.js (cue recipes) and sfx.js (runtime).
+// Globals: P.SfxDsp (primitives, voice engine, world sounds, darbuka, ambience beds via .bed) and P.SfxFx (layers).
+// v0.5: glass rings with beating pairs, a real-looking voice engine (glottal pulses, jitter, shimmer, breath,
+// throat drive, parallel formants), band-limited saws for brass and horns, transient "snap" clicks, a layered boom.
 P.SfxDsp = (function () {
   var TAU = Math.PI * 2;
   function len(sec, sr) { return Math.max(1, Math.round(sec * sr)); }
@@ -37,6 +39,13 @@ P.SfxDsp = (function () {
     }
     return y;
   }
+  // Brown (red) noise, normalised to peak 1.
+  function brown(n, r) {
+    var y = new Float32Array(n), v = 0, pk = 0, i;
+    for (i = 0; i < n; i++) { v = v * 0.997 + (r() * 2 - 1) * 0.08; y[i] = v; if (Math.abs(v) > pk) pk = Math.abs(v); }
+    if (pk > 1e-9) for (i = 0; i < n; i++) y[i] /= pk;
+    return y;
+  }
   // RBJ biquad, direct form II transposed. type 'lp' | 'hp' | 'bp' (0 dB peak). f: Hz or fn(t). Refreshed every 32 samples.
   function filt(x, sr, type, f, q) {
     var n = x.length, y = new Float32Array(n), fq = fn(f), z1 = 0, z2 = 0;
@@ -53,16 +62,48 @@ P.SfxDsp = (function () {
     }
     return y;
   }
+  // One-pole low-pass (smooth tails, air).
+  function lp1(x, sr, fc) {
+    var a = 1 - Math.exp(-TAU * fc / sr), y = new Float32Array(x.length), v = 0, i;
+    for (i = 0; i < x.length; i++) { v += a * (x[i] - v); y[i] = v; }
+    return y;
+  }
   function wave(k, ph, d) {
     if (k === 'saw') return 2 * ph - 1;
     if (k === 'tri') return 4 * Math.abs(ph - 0.5) - 1;
     if (k === 'pulse') return ph < (d || 0.5) ? 1 : -1;
     return Math.sin(TAU * ph);
   }
-  // Phase-accumulating oscillator. kind: 'sine' | 'tri' | 'saw' | 'pulse'. f: Hz or fn(t).
+  // Phase-accumulating oscillator (naive waveforms; use bsaw for saws that must not alias). f: Hz or fn(t).
   function osc(n, sr, kind, f, duty) {
     var y = new Float32Array(n), fq = fn(f), ph = 0, i;
     for (i = 0; i < n; i++) { ph += fq(i / sr) / sr; ph -= Math.floor(ph); y[i] = wave(kind, ph, duty); }
+    return y;
+  }
+  // Band-limited saw by wavetable: nh harmonics (1/k), linear interpolation. f: Hz or fn(t). Choose nh so nh*fmax < 0.45 sr.
+  // Tables are cached per nh (they do not depend on the sample rate).
+  var SAW = {};
+  function sawTable(nh) {
+    var N = 4096, T, j, k, x;
+    if (SAW[nh]) return SAW[nh];
+    T = new Float32Array(N + 1);
+    for (j = 0; j <= N; j++) { x = 0; for (k = 1; k <= nh; k++) x += Math.sin(TAU * k * j / N) / k; T[j] = x * (2 / Math.PI); }
+    SAW[nh] = T;
+    return T;
+  }
+  function bsaw(n, sr, f, nh) {
+    var hz = new Float32Array(n), fq = fn(f), i;
+    for (i = 0; i < n; i++) hz[i] = fq(i / sr);
+    return bsawArr(n, sr, hz, nh);
+  }
+  // Band-limited saw with a per-sample frequency array hz (Hz). Same table as bsaw; no closures in the loop.
+  function bsawArr(n, sr, hz, nh) {
+    var N = 4096, T = sawTable(nh), y = new Float32Array(n), ph = 0, i, p, m, x;
+    for (i = 0; i < n; i++) {
+      ph += hz[i] / sr; ph -= Math.floor(ph);
+      p = ph * N; m = Math.floor(p); x = p - m;
+      y[i] = T[m] + (T[m + 1] - T[m]) * x;
+    }
     return y;
   }
   // FM sine: carrier fc (Hz|fn), modulator mh (Hz|fn), index ix (number|fn).
@@ -162,6 +203,12 @@ P.SfxDsp = (function () {
     for (i = 0; i < n; i++) x[i] *= g;
     return x;
   }
+  // Soft saturation (tanh), in place. Adds odd harmonics; the caller normalises the level afterwards.
+  function sat(x, drive) {
+    var d = Math.tanh(drive), i;
+    for (i = 0; i < x.length; i++) x[i] = Math.tanh(drive * x[i]) / d;
+    return x;
+  }
   // Feedback echo, in place (tail truncated to the buffer).
   function echo(x, sr, dSec, fb) {
     var d = Math.round(dSec * sr), i;
@@ -180,12 +227,29 @@ P.SfxDsp = (function () {
     }
     return y;
   }
+  // Transient click: band-passed noise with an immediate decay (tau s). Used for strikes, latches and ticks.
+  function snap(n, sr, r, fc, q, tau) { return mul(filt(white(n, r), sr, 'bp', fc, q), env(n, sr, 0, tau)); }
+  // Glass or small-bell ring: inharmonic partials plus a beating twin (+0.35%), so the ring shimmers.
+  // tau = fundamental decay (s). amp = gain.
+  var GLASS = [[1, 1, 0.05], [2.32, 0.5, 0.03], [4.25, 0.25, 0.02], [6.63, 0.12, 0.012]];
+  function glass(n, sr, f, r, amp, tau) {
+    var k = (tau || 0.05) / 0.05, modes = GLASS.map(function (m) { return [m[0], m[1] * amp * 0.5, m[2] * k]; });
+    var a = modal(n, sr, f, modes, r, 0.002), b = modal(n, sr, f * 1.0035, modes, r, 0.002), i;
+    for (i = 0; i < n; i++) a[i] += b[i];
+    return a;
+  }
   // Karplus-Strong plucked string. damp ~0.9975 = ~0.5 s ring at 660 Hz; ~0.9985 = ~1 s.
   function pluck(n, sr, hz, damp, r) {
     var L = Math.max(2, Math.round(sr / hz)), d = new Float32Array(L), y = new Float32Array(n), p = 0, i, k;
     for (i = 0; i < L; i++) d[i] = r() * 2 - 1;
     for (i = 0; i < L; i++) d[i] = 0.5 * (d[i] + d[(i + 1) % L]);
     for (i = 0; i < n; i++) { k = (p + 1) % L; y[i] = d[p]; d[p] = damp * 0.5 * (d[p] + d[k]); p = k; }
+    return dcBlock(y);
+  }
+  // DC blocker (about 15 Hz), in place: removes the offset that random excitations and averaging filters leave behind.
+  function dcBlock(y) {
+    var x1 = 0, y1 = 0, i, x0;
+    for (i = 0; i < y.length; i++) { x0 = y[i]; y1 = x0 - x1 + 0.9994 * y1; x1 = x0; y[i] = y1; }
     return y;
   }
   // Pitch-dropping sine body (kick, thud): frequency falls f0 -> f1 (time constant tau); amplitude decays with ampTau.
@@ -202,48 +266,71 @@ P.SfxDsp = (function () {
     for (i = 0; i < n; i++) if (r() < p) y[i] = (r() * 2 - 1) * amp;
     return filt(y, sr, 'hp', 1400, 0.7);
   }
-  // Formant voice: saw source (pitch wander, growl AM) through parallel band-passes.
-  // o: f0 (Hz|fn), F [3] (Hz|fn), Q [3], A [3] gains, growl (Hz), depth 0..1, jit 0..1, vib (Hz), vibD (fraction).
+  // Bronze bell (church-ish, long): inharmonic partials, ring length sec, lvl 0..1.
+  var BELL = [[0.5, 0.5, 2.6], [1, 1, 2.2], [1.19, 0.6, 1.6], [1.5, 0.45, 1.2], [2.0, 0.35, 0.9], [2.74, 0.3, 0.6], [3.0, 0.2, 0.4], [4.07, 0.15, 0.25]];
+  function bell(sr, f0, sec, r, lvl) {
+    var k = sec / 2.2, modes = BELL.map(function (m) { return [m[0], m[1] * lvl, m[2] * k]; });
+    return fade(modal(len(sec, sr), sr, f0, modes, r, 0.002), sr, 1, 150);
+  }
+  // ---- Voice engine (v0.5) ----
+  // Glottal source: Rosenberg pulses (open quotient oq) with period jitter, shimmer, optional creak and growl AM,
+  // then a radiation pre-emphasis. Optional throat drive (tanh) adds rasp. Breath is band-passed noise mixed in.
+  // Formants are parallel band-passes (Q = centre / bandwidth); A sets each formant's level.
+  // o: f0 (Hz|fn), F [Hz|fn], Q [], A [], growl (Hz), depth 0..1, jit 0..1, shim 0..1, creak 0..1, breath 0..1,
+  // drive (>= 0), oq (0.4..0.8), vib (Hz), vibD (fraction).
   function voice(n, sr, o, r) {
-    var f0 = fn(o.f0), src = new Float32Array(n), ph = 0, wob = 0, i, t, hz, g, k, b;
-    var growl = o.growl || 30, depth = o.depth || 0, jit = o.jit === undefined ? 0.4 : o.jit;
-    var vib = o.vib === undefined ? 5 : o.vib, vibD = o.vibD === undefined ? 0.008 : o.vibD;
+    var f0 = fn(o.f0), jit = o.jit === undefined ? 0.4 : o.jit, shim = o.shim === undefined ? 0.04 : o.shim;
+    var growl = o.growl || 30, depth = o.depth || 0, vib = o.vib === undefined ? 5 : o.vib, vibD = o.vibD === undefined ? 0.008 : o.vibD;
+    var creak = o.creak || 0, oq = o.oq || 0.6, drive = o.drive || 0, breath = o.breath === undefined ? 0.04 : o.breath;
+    var tilt = o.tilt === undefined ? 0.6 : o.tilt;
+    var tp = oq * 0.4, tn = oq * 0.16, src = new Float32Array(n), out = new Float32Array(n), wob = 0, ph = 0, per = 1, amp = 1, dl = 0;
+    var i, t, hz, g, v, k, b, d, F, Q, A, rs = (r() * 4294967296) >>> 0, u;
     for (i = 0; i < n; i++) {
       t = i / sr;
-      wob = wob * 0.9995 + (r() * 2 - 1) * 0.0004 * jit;
-      hz = f0(t) * (1 + wob + vibD * Math.sin(TAU * vib * t));
-      ph += hz / sr; ph -= Math.floor(ph);
+      rs = (Math.imul(rs, 1664525) + 1013904223) >>> 0; u = rs / 2147483648 - 1;
+      wob = wob * 0.9995 + u * 0.0004 * (0.5 + jit);
+      hz = f0(t) * (1 + wob + vibD * Math.sin(TAU * vib * t)) * per;
+      ph += hz / sr;
+      if (ph >= 1) {
+        ph -= Math.floor(ph);
+        per = 1 + (r() * 2 - 1) * 0.02 * jit;
+        amp = (1 + (r() * 2 - 1) * shim) * (r() < creak ? 0.25 + 0.5 * r() : 1);
+      }
+      if (ph < tp) v = 0.5 * (1 - Math.cos(Math.PI * ph / tp));
+      else if (ph < tp + tn) v = Math.cos(0.5 * Math.PI * (ph - tp) / tn);
+      else v = 0;
+      v *= amp;
       g = 1 - depth * 0.5 * (1 + Math.sin(TAU * growl * t));
-      src[i] = (2 * ph - 1) * g;
+      src[i] = (v - tilt * dl) * g; dl = v;
     }
-    var F = o.F || [700, 1200, 2600], Q = o.Q || [6, 7, 8], A = o.A || [1, 0.5, 0.25], out = new Float32Array(n);
+    if (drive > 0) sat(src, drive);
+    F = o.F || [700, 1200, 2600]; Q = o.Q || []; A = o.A || [1, 0.5, 0.25];
     for (k = 0; k < F.length; k++) {
-      b = filt(src, sr, 'bp', F[k], Q[k]);
-      for (i = 0; i < n; i++) out[i] += A[k] * b[i];
+      b = filt(src, sr, 'bp', F[k], Q[k] || 5);
+      d = A[k] === undefined ? 1 : A[k];
+      for (i = 0; i < n; i++) out[i] += d * b[i];
+    }
+    if (breath > 0) {   // aspiration: band-passed noise, then low-passed so it rolls off above about 2.6 kHz
+      b = filt(filt(white(n, r), sr, 'bp', o.breathFc || 1500, 0.7), sr, 'lp', 2600, 0.7);
+      for (i = 0; i < n; i++) out[i] += breath * 1.5 * b[i];
     }
     return out;
   }
   // Voice presets (speech, grunts, zombies). f0 is the base pitch; recipes scale it.
   var WHO = {
-    arda: { f0: 165, F: [700, 1250, 2550], Q: [6, 7, 8] },
-    anne: { f0: 230, F: [520, 1500, 2700], Q: [6, 7, 8] },
-    usta: { f0: 112, F: [600, 950, 2400], Q: [5, 6, 7], growl: 22, depth: 0.5 },
-    friend: { f0: 205, F: [800, 1800, 2900], Q: [7, 8, 9] },
-    other: { f0: 180, F: [560, 1150, 2400], Q: [6, 7, 8] }
+    arda: { f0: 165, F: [700, 1250, 2550], Q: [5, 6, 7], breath: 0.05, shim: 0.05 },
+    anne: { f0: 230, F: [520, 1500, 2700], Q: [5, 6, 7], breath: 0.06 },
+    usta: { f0: 112, F: [600, 950, 2400], Q: [4, 5, 6], growl: 22, depth: 0.5, drive: 2.2, breath: 0.1 },
+    friend: { f0: 205, F: [800, 1800, 2900], Q: [6, 7, 8] },
+    other: { f0: 180, F: [560, 1150, 2400], Q: [5, 6, 7], breath: 0.06 }
   };
   function preset(name) { return WHO[name] || WHO.other; }
   // voice() options from a preset. k scales the base f0; `over` overrides keys (give absolute Hz there).
   function who(name, k, over) {
     var w = preset(name), o = { f0: w.f0 * k, F: w.F, Q: w.Q, A: [1, 0.55, 0.25], growl: w.growl || 0, depth: w.depth || 0,
-      jit: 0.6, vib: 5.5, vibD: 0.008 }, key;
+      jit: 0.6, shim: w.shim || 0.05, vib: 5.5, vibD: 0.008, breath: w.breath === undefined ? 0.04 : w.breath, drive: w.drive || 0 }, key;
     if (over) for (key in over) if (Object.prototype.hasOwnProperty.call(over, key)) o[key] = over[key];
     return o;
-  }
-  // Bronze bell (tram bell, gong-ish): inharmonic partials, ring length sec, lvl 0..1.
-  var BELL = [[0.5, 0.5, 2.6], [1, 1, 2.2], [1.19, 0.6, 1.6], [1.5, 0.45, 1.2], [2.0, 0.35, 0.9], [2.74, 0.3, 0.6], [3.0, 0.2, 0.4], [4.07, 0.15, 0.25]];
-  function bell(sr, f0, sec, r, lvl) {
-    var k = sec / 2.2, modes = BELL.map(function (m) { return [m[0], m[1] * lvl, m[2] * k]; });
-    return fade(modal(len(sec, sr), sr, f0, modes, r, 0.002), sr, 1, 150);
   }
   // Darbuka: doum = low membrane with a pitch drop, tek = sharp rim. Full-length hits.
   function doum(sr, r, k) {
@@ -270,7 +357,7 @@ P.SfxDsp = (function () {
   function bark(sr, r, k) {
     var kk = k || 1, n = len(0.3, sr);
     var v = voice(n, sr, { f0: pw([[0, 520 * kk], [0.05, 470 * kk], [0.3, 330 * kk]]), F: [900, 1700, 2600], Q: [4, 5, 6],
-      A: [1, 0.6, 0.3], depth: 0, jit: 0.5, vib: 0, vibD: 0 }, r);
+      A: [1, 0.6, 0.3], depth: 0, jit: 0.5, vib: 0, vibD: 0, breath: 0.12 }, r);
     return fade(mul(v, env(n, sr, 0.004, 0.07)), sr, 1, 30);
   }
   // Single metal tick (hallway / bazaar clink). k = pitch scale.
@@ -350,20 +437,20 @@ P.SfxDsp = (function () {
     return Object.prototype.hasOwnProperty.call(BEDS, group) ? bedLoop(sec, sr, r, BEDS[group]) : null;
   }
   return {
-    len: len, buf: buf, seed: seed, rng: rng, gen: gen, white: white, pink: pink, filt: filt, osc: osc, fm: fm,
-    env: env, adsr: adsr, gate: gate, mul: mul, am: am, pw: pw, mix: mix, addAt: addAt, fade: fade, norm: norm,
-    loud: loud, echo: echo, modal: modal, pluck: pluck, thump: thump, crackle: crackle, voice: voice, preset: preset,
-    who: who, bell: bell, doum: doum, tek: tek, gull: gull, bark: bark, clink: clink, bubbles: bubbles, ir: ir,
-    bed: bed, clamp: clamp
+    len: len, buf: buf, seed: seed, rng: rng, gen: gen, white: white, pink: pink, brown: brown, filt: filt, lp1: lp1,
+    osc: osc, bsaw: bsaw, bsawArr: bsawArr, fm: fm, env: env, adsr: adsr, gate: gate, mul: mul, am: am, pw: pw, mix: mix, addAt: addAt,
+    fade: fade, norm: norm, loud: loud, sat: sat, echo: echo, modal: modal, snap: snap, glass: glass, pluck: pluck,
+    thump: thump, crackle: crackle, bell: bell, voice: voice, dcBlock: dcBlock, preset: preset, who: who, doum: doum, tek: tek,
+    gull: gull, bark: bark, clink: clink, bubbles: bubbles, ir: ir, bed: bed, clamp: clamp
   };
 })();
 
 // Layer helpers (P.SfxFx): composed building blocks shared by the cue recipes in sfx-bank2.js.
-// clanks/clankAt return [atSec, samples, gain] mix parts; the others return sample buffers.
+// clanks/clankAt/scatter return [atSec, samples, gain] mix parts; the others return sample buffers.
 P.SfxFx = (function () {
   var D = P.SfxDsp, TAU = Math.PI * 2;
   var len = D.len, mix = D.mix, mul = D.mul, env = D.env, adsr = D.adsr, white = D.white, filt = D.filt;
-  var modal = D.modal, thump = D.thump, pw = D.pw;
+  var modal = D.modal, thump = D.thump, pw = D.pw, snap = D.snap;
   // Band-passed noise sweep f0 -> f1 (Hz), rising to peak at pk (fraction of sec), then decaying.
   function whoosh(r, sr, sec, f0, f1, q, pk, amp) {
     var n = len(sec, sr), e = D.gen(n, sr, function (t) {
@@ -383,55 +470,69 @@ P.SfxFx = (function () {
       return clankAt(r, sr, t, f0 * (1 + (r() * 2 - 1) * span), amp * (0.6 + 0.4 * r()), tau);
     });
   }
+  // Pneumatic nail shot: air puff, the clack of the nose, and a short thunk into the wood.
   function nailShot(r, sr, k) {
-    var n = len(0.09, sr);
-    return mix(sr, 0.09, [
-      [0, filt(mul(white(n, r), env(n, sr, 0.001, 0.018)), sr, 'hp', 3800 * k, 0.8), 0.45],
-      [0.012, modal(n, sr, 2300 * k, [[1, 1, 0.012], [1.5, 0.5, 0.008], [2.7, 0.35, 0.006]], r, 0.02), 0.5],
+    var n = len(0.1, sr);
+    return mix(sr, 0.1, [
+      [0, snap(n, sr, r, 5200 * k, 0.7, 0.004), 0.5],
+      [0, filt(mul(white(n, r), env(n, sr, 0.001, 0.02)), sr, 'hp', 3800 * k, 0.8), 0.4],
+      [0.01, modal(n, sr, 2300 * k, [[1, 1, 0.012], [1.5, 0.5, 0.008], [2.7, 0.35, 0.006]], r, 0.02), 0.5],
       [0, thump(n, sr, 260 * k, 90, 0.02, 0.035), 0.9]
     ]);
   }
-  // Footstep on stone: heel tick plus a short tuned knock. g = gain.
+  // Footstep on stone: heel tick, grit and a short tuned knock. g = gain.
   function step(r, sr, k, g) {
     var n = len(0.12, sr);
-    var heel = filt(mul(white(n, r), env(n, sr, 0.0005, 0.012)), sr, 'bp', 2000 * k, 1.6);
-    var st = modal(n, sr, 540 * k, [[1, 0.5, 0.02], [1.9, 0.25, 0.012], [3.1, 0.12, 0.008]], r, 0.02);
-    return mix(sr, 0.12, [[0, heel, 0.8 * g], [0, st, 0.35 * g]]);
+    return mix(sr, 0.12, [
+      [0, snap(n, sr, r, 2000 * k, 1.6, 0.012), 0.8 * g],
+      [0, filt(mul(white(n, r), env(n, sr, 0.0005, 0.006)), sr, 'hp', 3000, 0.7), 0.25 * g],
+      [0, modal(n, sr, 540 * k, [[1, 0.5, 0.02], [1.9, 0.25, 0.012], [3.1, 0.12, 0.008]], r, 0.02), 0.35 * g],
+      [0, thump(n, sr, 110 * k, 58, 0.02, 0.03), 0.3 * g]
+    ]);
   }
-  // Soft wooden tap at pitch f (UI).
+  // Soft wooden tap at pitch f (UI): modal wood body, a 3.8 kHz tick and a short low thump.
   function tap(r, sr, f) {
     var n = len(0.06, sr);
     return mix(sr, 0.06, [
-      [0, modal(n, sr, f, [[1, 1, 0.02], [2.3, 0.3, 0.01]], r, 0.01), 0.7],
-      [0, filt(mul(white(n, r), env(n, sr, 0, 0.003)), sr, 'bp', 3800, 1.5), 0.5]
+      [0, modal(n, sr, f, [[1, 1, 0.02], [2.32, 0.3, 0.01]], r, 0.01), 0.7],
+      [0, snap(n, sr, r, 3800, 1.5, 0.003), 0.5],
+      [0, thump(n, sr, 240, 150, 0.01, 0.012), 0.25]
     ]);
+  }
+  // Melee strike layers: click (transient), body (pitch-dropping thump), crack, wet squelch (AM noise) and ring.
+  // o keys (all optional, amplitudes): click, clickFc, body, f0, f1, tau, ampTau, crack, crackFc, wet, wetFc, wetTau, ring, ringF.
+  function strike(r, sr, sec, k, o) {
+    var n = len(sec, sr), parts = [];
+    if (o.click) parts.push([0, snap(n, sr, r, o.clickFc || 4200, 0.9, 0.0025), o.click]);
+    if (o.body) parts.push([0, thump(n, sr, (o.f0 || 170) * k, o.f1 || 60, o.tau || 0.03, o.ampTau || 0.08), o.body]);
+    if (o.crack) parts.push([0, snap(n, sr, r, (o.crackFc || 2400) * k, 0.8, 0.006), o.crack]);
+    if (o.wet) parts.push([0.003, mul(D.am(filt(white(n, r), sr, 'bp', (o.wetFc || 500) * k, 2), sr, 30, 0.5), env(n, sr, 0.003, o.wetTau || 0.07)), o.wet]);
+    if (o.ring) parts.push([0, modal(n, sr, (o.ringF || 1800) * k, [[1, 1, o.ringTau || 0.05], [2.76, 0.4, 0.03], [5.4, 0.2, 0.015]], r, 0.01), o.ring]);
+    return mix(sr, sec, parts);
   }
   // Flesh impact: dull body thud plus wet squelch. amp = gain.
   function flesh(r, sr, sec, k, amp) {
-    var n = len(sec, sr);
-    return mix(sr, sec, [
-      [0, thump(n, sr, 170 * k, 55, 0.03, 0.09), 0.9 * amp],
-      [0, filt(mul(white(n, r), env(n, sr, 0.004, 0.06)), sr, 'bp', 520 * k, 2), 0.7 * amp]
-    ]);
+    return strike(r, sr, sec, k, { body: 0.9 * amp, f0: 170, f1: 55, tau: 0.03, ampTau: 0.09, wet: 0.7 * amp, wetFc: 520, wetTau: 0.06 });
   }
-  // Explosion: sub boom with pitch drop, crackle, debris clanks and a long filtered tail. drop = boom decay (s).
+  // Explosion: sub boom with a pitch drop, a bang, a brown-noise air blast, grit and debris clanks. drop = boom decay (s).
   function boom(r, sr, k, sec, drop) {
     var n = len(sec, sr);
     return mix(sr, sec, [
-      [0, thump(n, sr, 95 * k, 32, 0.12, drop), 1],
-      [0, mul(D.crackle(n, sr, 260, 0.9, r), env(n, sr, 0, 0.5)), 0.5],
-      [0.02, mul(filt(white(n, r), sr, 'lp', 900, 0.6), env(n, sr, 0.01, sec * 0.45)), 0.6]
-    ].concat(clanks(r, sr, [0.05, 0.12, 0.2, 0.31, 0.44], 620 * k, 0.5, 0.03, 0.4)));
+      [0, thump(n, sr, 110 * k, 28, 0.1, drop), 1],
+      [0, snap(n, sr, r, 2200 * k, 0.7, 0.012), 0.55],
+      [0.004, mul(filt(D.brown(n, r), sr, 'lp', 380, 0.6), env(n, sr, 0.004, sec * 0.3)), 0.7],
+      [0, mul(D.crackle(n, sr, 180, 0.9, r), env(n, sr, 0, sec * 0.35)), 0.35],
+      [0.02, mul(filt(white(n, r), sr, 'lp', 800, 0.6), env(n, sr, 0.01, sec * 0.45)), 0.25]
+    ].concat(clanks(r, sr, [0.05, 0.12, 0.2, 0.31, 0.44], 620 * k, 0.5, 0.03, 0.3)));
   }
-  // Glass: high inharmonic cluster, a noise crunch and random tinkling shards over sec.
+  // Glass break: a crunch, a main ring and a scatter of shard tinks thinning out over sec.
   function glassBreak(r, sr, k, sec) {
     var n = len(sec, sr), parts = [], i, t;
-    parts.push([0, modal(len(0.5, sr), sr, 3300 * k, [[1, 0.6, 0.05], [1.52, 0.5, 0.04], [2.1, 0.4, 0.03],
-      [2.74, 0.35, 0.025], [3.6, 0.25, 0.02], [4.6, 0.2, 0.015]], r, 0.01), 0.7]);
-    parts.push([0, mul(filt(white(n, r), sr, 'bp', 3500 * k, 0.9), env(n, sr, 0.001, 0.03)), 0.5]);
-    for (i = 0; i < 20; i++) {
+    parts.push([0, mul(filt(white(len(0.25, sr), r), sr, 'bp', 3500 * k, 0.9), env(len(0.25, sr), sr, 0.0008, 0.02)), 0.6]);
+    parts.push([0, D.glass(len(0.5, sr), sr, 3300 * k, r, 0.5, 0.09), 0.6]);
+    for (i = 0; i < 22; i++) {
       t = Math.pow(r(), 1.5) * sec * 0.9;
-      parts.push([t, modal(len(0.1, sr), sr, (2800 + r() * 4500) * k, [[1, 1, 0.012 + r() * 0.03]], r, 0), 0.3 * (1 - t / sec) + 0.05]);
+      parts.push([t, D.glass(len(0.12, sr), sr, (2600 + r() * 4200) * k, r, 0.35 * (1 - t / sec) + 0.06, 0.03 + r() * 0.03), 1]);
     }
     return mix(sr, sec, parts);
   }
@@ -448,7 +549,7 @@ P.SfxFx = (function () {
     var n = len(sec, sr);
     return mul(mul(D.osc(n, sr, 'tri', f), adsr(n, sr, 0.004, 0.02, 0.9, 0.02)), a);
   }
-  // Ney-like breathy note with vibrato (level-up, levelClear, levelFail). f in Hz.
+  // Ney-like breathy note with vibrato (story stings). f in Hz.
   function ney(r, sr, f, sec) {
     var n = len(sec, sr), vb = function (t) { return 1 + 0.012 * Math.sin(TAU * 5 * t); }, i;
     var s = D.osc(n, sr, 'sine', function (t) { return f * vb(t); });
@@ -457,10 +558,30 @@ P.SfxFx = (function () {
     for (i = 0; i < n; i++) s[i] += 0.3 * h[i] + 0.05 * br[i];
     return mul(s, adsr(n, sr, 0.12, 0.1, 0.9, 0.3));
   }
-  // Formant vocal from a preset. over = voice() overrides (absolute Hz); envFn(n) -> envelope array.
-  function vocal(r, sr, sec, who, k, over, envFn) {
-    var n = len(sec, sr);
-    return mul(D.voice(n, sr, D.who(who, k, over), r), envFn(n));
+  // Synthetic brass note: two detuned band-limited saws through a low-pass that opens on the attack, with a
+  // slow vibrato that fades in. o: c0, c1 (cutoff Hz), open (s), att, rel, sec is the length.
+  function brass(r, sr, f, sec, o) {
+    var n = len(sec, sr), nh = Math.max(4, Math.min(20, Math.floor(0.42 * sr / (f * 1.01)))), i, s = new Float32Array(n);
+    var hA = new Float32Array(n), hB = new Float32Array(n), t, vb;
+    for (i = 0; i < n; i++) {
+      t = i / sr; vb = 1 + 0.005 * Math.min(1, t / 0.4) * Math.sin(TAU * 5.2 * t);
+      hA[i] = f * vb; hB[i] = f * 1.006 * vb;
+    }
+    var a = D.bsawArr(n, sr, hA, nh), b = D.bsawArr(n, sr, hB, nh);
+    for (i = 0; i < n; i++) s[i] = 0.5 * (a[i] + b[i]);
+    var c0 = o.c0 || 500, c1 = o.c1 || 2400, op = o.open || 0.06;
+    var lp = filt(s, sr, 'lp', function (t) { return c0 + (c1 - c0) * (1 - Math.exp(-t / op)); }, 0.8);
+    return mul(lp, adsr(n, sr, o.att || 0.03, 0.15, 0.85, o.rel || 0.15));
+  }
+  // Ferry horn: a low detuned pair of band-limited saws with a nasal formant, slow onset and a soft release.
+  function horn(r, sr, f, sec) {
+    var n = len(sec, sr), nh = 12, i, s = new Float32Array(n), a, b;
+    a = D.bsaw(n, sr, f, nh); b = D.bsaw(n, sr, f * 1.005, nh);
+    for (i = 0; i < n; i++) s[i] = 0.5 * (a[i] + b[i]);
+    var body = filt(s, sr, 'lp', 900, 0.7), nasal = filt(s, sr, 'bp', 380, 1.2);
+    var breathN = mul(filt(white(n, r), sr, 'bp', 300, 1.2), env(n, sr, 0.1, sec * 0.5));
+    for (i = 0; i < n; i++) body[i] = 0.7 * body[i] + 0.5 * nasal[i] + 0.04 * breathN[i];
+    return mul(body, adsr(n, sr, 0.14, 0.1, 0.95, 0.5));
   }
   // Clanks/knocks that are scattered at random times (rattle, debris).
   function scatter(r, sr, sec, count, f0, span, tau, amp) {
@@ -475,5 +596,14 @@ P.SfxFx = (function () {
     if (doumAt !== undefined) parts.push([doumAt, D.doum(sr, r, k), 0.9]);
     return parts;
   }
-  return { whoosh, clankAt, clanks, nailShot, step, tap, flesh, boom, glassBreak, fire, tone, ney, vocal, scatter, roll };
+  // Formant vocal from a preset. over = voice() overrides (absolute Hz); envFn(n) -> envelope array.
+  function vocal(r, sr, sec, who, k, over, envFn) {
+    var n = len(sec, sr);
+    return mul(D.voice(n, sr, D.who(who, k, over), r), envFn(n));
+  }
+  return {
+    whoosh: whoosh, clankAt: clankAt, clanks: clanks, nailShot: nailShot, step: step, tap: tap, strike: strike,
+    flesh: flesh, boom: boom, glassBreak: glassBreak, fire: fire, tone: tone, ney: ney, brass: brass, horn: horn,
+    vocal: vocal, scatter: scatter, roll: roll
+  };
 })();

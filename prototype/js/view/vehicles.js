@@ -42,7 +42,7 @@ P.Vehicles = (function () {
     rr(c, X0 + 0.12 * u, mid - H - 0.28 * u, W - 0.24 * u, 0.56 * u, 0.05 * u); inked(c, '#2B2B2B', 1.5);          // bellows joint
     c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 1;
     for (n = 1; n < 6; n++) { c.beginPath(); c.moveTo(X0 + 0.12 * u, mid - H - 0.28 * u + n * 0.093 * u); c.lineTo(X0 + W - 0.12 * u, mid - H - 0.28 * u + n * 0.093 * u); c.stroke(); }
-    px = X0 + W / 2 + Math.sin(t * (o.speed ? 38 : 1.3)) * (o.speed ? 1.6 : 0.8); py = Yf - H + L * 0.4;               // pantograph, rocking on its springs
+    px = X0 + W / 2 + (rm() ? 0 : Math.sin(t * (o.speed ? 38 : 1.3)) * (o.speed ? 1.6 : 0.8)); py = Yf - H + L * 0.4;               // pantograph, rocking on its springs (no rock under Reduce motion)
     c.strokeStyle = INK; c.lineWidth = 2.4; c.beginPath(); c.moveTo(px - 0.35 * u, py + 0.3 * u); c.lineTo(px, py - 0.05 * u); c.lineTo(px + 0.35 * u, py + 0.3 * u); c.stroke();
     c.strokeStyle = '#7D848F'; c.lineWidth = 1.2; c.stroke();
     c.strokeStyle = INK; c.lineWidth = 3.2; c.beginPath(); c.moveTo(px - 0.5 * u, py - 0.05 * u); c.lineTo(px + 0.5 * u, py - 0.05 * u); c.stroke();

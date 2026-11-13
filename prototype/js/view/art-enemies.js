@@ -29,14 +29,14 @@ P.ArtEnemies = (function () {
 
   // Per-type rig and motion. scale multiplies the caller's unit; crouch/hunch/lean are base pose values.
   E.DEFS = {
-    walker: { body: 'human', gait: 'shamble', arms: 'reach', scale: 1.12, limp: true, strideK: 0.8, liftK: 0.6, lean: 0.03, hunch: 0.05, sway: 0.03, eyes: '#DDF5D0', brow: 'neutral', torn: true, wounds: 1 },
+    walker: { body: 'human', gait: 'shamble', arms: 'zswing', scale: 1.12, limp: true, strideK: 0.8, liftK: 0.6, lean: 0.03, hunch: 0.05, sway: 0.03, eyes: '#DDF5D0', brow: 'neutral', torn: true, wounds: 1 },
     runner: { body: 'slim', gait: 'run', arms: 'pump', scale: 1.08, strideK: 1.5, liftK: 1.4, lean: 0.1, hunch: 0.06, sway: 0.02, eyes: '#FF5A3D', brow: 'angry', torn: true, wounds: 1 },
     diner: { body: 'human', gait: 'shamble', arms: 'swing', scale: 1.12, strideK: 0.9, liftK: 0.8, lean: 0.02, eyes: '#DDF5D0', brow: 'worried', bib: true, wounds: 1 },
     spitter: { body: 'spit', gait: 'shamble', arms: 'hold', scale: 1.12, strideK: 0.7, liftK: 0.6, lean: 0.08, hunch: 0.12, sway: 0.02, eyes: '#B8FF5A', brow: 'angry', throat: true, torn: true },
     brute: { body: 'brute', gait: 'stomp', arms: 'drag', scale: 1.6, strideK: 0.5, liftK: 0.35, lean: 0.06, hunch: 0.08, sway: 0.02, eyes: '#FF3B2E', brow: 'angry', torn: true, wounds: 2 },
-    bloater: { body: 'bloat', gait: 'waddle', arms: 'reach', scale: 1.2, strideK: 0.45, liftK: 0.4, sway: 0.06, eyes: '#B8FF5A', brow: 'worried', pust: true, wounds: 1 },
+    bloater: { body: 'bloat', gait: 'waddle', arms: 'zswing', scale: 1.2, strideK: 0.45, liftK: 0.4, sway: 0.06, eyes: '#B8FF5A', brow: 'worried', pust: true, wounds: 1 },
     screamer: { body: 'scream', gait: 'run', arms: 'panic', scale: 1.1, strideK: 1.4, liftK: 1.2, lean: 0.14, hunch: 0.02, sway: 0.03, eyes: '#FF3B2E', brow: 'worried', torn: true, wounds: 1, mouthScream: true },
-    hardhat: { body: 'bulky', gait: 'stomp', arms: 'reach', scale: 1.22, strideK: 0.6, liftK: 0.45, lean: 0.03, hunch: 0.04, sway: 0.02, eyes: '#FFD27A', brow: 'angry', torn: true, wounds: 1, helmet: true, vest: true },
+    hardhat: { body: 'bulky', gait: 'stomp', arms: 'zswing', scale: 1.22, strideK: 0.6, liftK: 0.45, lean: 0.03, hunch: 0.04, sway: 0.02, eyes: '#FFD27A', brow: 'angry', torn: true, wounds: 1, helmet: true, vest: true },
     crawler: { custom: true, scale: 1.0, eyes: '#E8FF6B' },
     // D-060 boss bodies (config-bosses.js). Own body names keep their bakes apart from the crowd; bossProp picks the hand
     // props (art-bosses.js: umbrella and tour flag, brass lamp on a chain).
@@ -163,14 +163,15 @@ P.ArtEnemies = (function () {
     c.beginPath(); c.arc(x + 0.04, y + 0.12 + 0.03 * w, 0.011, 0, TAU); c.fill();
   }
 
-  // Crawler: legless, torso slumped on the ground, arms pulling. ph = walk phase.
+  // Crawler: legless, torso slumped on the ground, arms pulling. ph = walk phase. The legs kick and the arms pull in
+  // opposite phase, and the torso heaves a little (amplitudes in units; were 0.03 and 0.05).
   E.crawlerDraw = function (c, rc, ph) {
-    var L = rc.look, s = Math.sin(ph);
-    R.paint(c, R.capsule(-0.3, -0.1, 0.07, -0.5, -0.06 + 0.03 * s, 0.05), L.pants, L.pantsS, LW);
-    R.paint(c, R.capsule(-0.28, -0.13, 0.07, -0.46, -0.14 - 0.03 * s, 0.05), L.pants, L.pantsS, LW);
-    R.paint(c, R.smooth([[-0.28, -0.2], [-0.05, -0.27], [0.18, -0.24], [0.22, -0.13], [0.1, -0.02], [-0.1, -0.04], [-0.28, -0.1]]), L.shirt, L.shirtS, LW);
-    R.paint(c, R.capsule(-0.06, -0.18, 0.045, -0.12 + 0.05 * s, -0.04, 0.04), L.skin, L.skinS, LW);
-    R.paint(c, R.union([R.capsule(0.12, -0.18, 0.045, 0.3, -0.1 + 0.03 * s, 0.04), R.capsule(0.3, -0.1 + 0.03 * s, 0.04, 0.42, -0.08 + 0.03 * s, 0.035)]), L.skin, L.skinS, LW);
+    var L = rc.look, s = Math.sin(ph), h = Math.sin(ph + Math.PI / 2);
+    R.paint(c, R.capsule(-0.3, -0.1, 0.07, -0.5, -0.06 + 0.1 * s, 0.05), L.pants, L.pantsS, LW);
+    R.paint(c, R.capsule(-0.28, -0.13, 0.07, -0.46, -0.14 - 0.1 * s, 0.05), L.pants, L.pantsS, LW);
+    R.paint(c, R.smooth([[-0.28, -0.2 - 0.02 * h], [-0.05, -0.27], [0.18, -0.24 - 0.02 * h], [0.22, -0.13], [0.1, -0.02], [-0.1, -0.04], [-0.28, -0.1]]), L.shirt, L.shirtS, LW);
+    R.paint(c, R.capsule(-0.06, -0.18, 0.045, -0.12 + 0.12 * s, -0.04, 0.04), L.skin, L.skinS, LW);
+    R.paint(c, R.union([R.capsule(0.12, -0.18, 0.045, 0.3, -0.1 + 0.07 * s, 0.04), R.capsule(0.3, -0.1 + 0.07 * s, 0.04, 0.42, -0.08 + 0.07 * s, 0.035)]), L.skin, L.skinS, LW);
     R.paint(c, R.ell(0.3, -0.12, 0.12, 0.11), L.skin, L.skinS, LW);
     R.paint(c, R.ell(0.26, -0.18, 0.1, 0.07, 0.2), L.hair, L.hairS, 0.012);
     c.shadowColor = rc.eyes; c.shadowBlur = 0.05 * (rc.U || 40);

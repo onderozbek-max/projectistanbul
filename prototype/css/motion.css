@@ -1,0 +1,47 @@
+/* UI motion tokens and the reduce-motion rules (docs/design-system.md 7, 11, 13). Every transition and animation duration in
+   css/ reads one of the --m-* values below, and js/view/ui-motion.js reads the same names (P.UIMotion.ms), so CSS and JS
+   timings cannot drift. tools/test-ui-motion.js checks both. Loaded first (index.html). */
+:root {
+  --m-press: 100ms;       /* press states: buttons, cards, toggles, icon buttons (DS 13: 80-120 ms) */
+  --m-fill: 150ms;        /* meter and bar fills: HP, XP, boss, streak, ultimate, the map's level and bond bars */
+  --m-enter: 220ms;       /* something appears: screens, sheets, panels, banners, toasts, cards (DS: 180-250 ms, ease-out) */
+  --m-exit: 180ms;        /* something leaves: a screen (ease-in); DS: 180-250 ms */
+  --m-select: 250ms;      /* card select beat (DS 13: 0.25 s) */
+  --m-pop: 250ms;         /* currency and Street Cred pops, stamped titles */
+  --m-beat: 400ms;        /* sequenced reveals: stars, chest, hood card, shakes, slam impacts */
+  --m-slow: 600ms;        /* map travel and reveals: token hop, hood reveal, level pop */
+  --m-trail: 400ms;       /* HP damage trail (DS 5 and 13: 0.4 s) */
+  --m-count: 700ms;       /* results count-up (never over 0.8 s; a tap finishes it) */
+  --m-banner: 1200ms;     /* the level-up banner in play: shown this long, never blocks a tap (T4 part 5) */
+  --m-stagger: 40ms;      /* delay step between the cards of one row (never over 40 ms) */
+  --m-rm: 100ms;          /* Reduce motion: the longest opacity-only fade left (never over 100 ms) */
+  --m-loop: 2000ms;       /* one cycle of any looping animation: 0.5 Hz at most, so no flash can come near 3 per second */
+  --m-ease-in: ease-in;   /* exits */
+  --m-ease-out: ease-out; /* enters */
+  --m-ease-pop: cubic-bezier(.3, 1.6, .5, 1); /* overshoot for stamps and pops (emphasis; not used for plain enters) */
+  --ui-text: 1;          /* UI text scale, 1 / 1.25 / 1.5 (settings textSize 100 / 125 / 150). Set on #phone by P.applySettings; every UI
+                            font size is calc(Npx * var(--ui-text, 1)). Canvas art and canvas lettering do not read it (DS 4) */
+}
+
+/* Reduce motion (DS 7, 11). Two switches feed it: the OS query, and the in-game switch (settings.js puts the class
+   reduce-motion on #phone). Under either one there is no movement (no transform animation, no press scale), no loop and
+   no count-up. The only motion left is an opacity fade of --m-rm or less on the things that fade in. Flashing stays at
+   or under 3 per second, because no loop runs faster than --m-loop. */
+@keyframes ui-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  :is(.screen:not(.hidden), .card, .card-info, .toast, .lvl-banner, .meta-attr, .meta-tree, .meta-arsenal, .meta-hub,
+      .meta-gear, .meta-lvl, .meta-welcome) { animation: ui-fade var(--m-rm) var(--m-ease-out) !important; }
+  *:active { transform: none !important; }
+}
+#phone.reduce-motion *, #phone.reduce-motion *::before, #phone.reduce-motion *::after { animation: none !important; transition: none !important; }
+#phone.reduce-motion :is(.screen:not(.hidden), .card, .card-info, .toast, .lvl-banner, .meta-attr, .meta-tree, .meta-arsenal,
+    .meta-hub, .meta-gear, .meta-lvl, .meta-welcome) { animation: ui-fade var(--m-rm) var(--m-ease-out) !important; }
+#phone.reduce-motion *:active { transform: none !important; }
+/* The death beat zoom (proto.css, #phone.dying) stays still under either switch; the in-game switch already leaves it out of the class selector. */
+@media (prefers-reduced-motion: reduce) { #phone.dying #game { transform: none !important; } }
+
+/* Exits (T4 part 4): a toast or a meta panel that is leaving fades and rises over --m-exit (ui-motion.js U.leave) and takes no
+   taps at once. A component that has its own transform (the HUD toast centres with one) sets its own is-out rule. */
+.is-out { pointer-events: none !important; opacity: 0; transform: translateY(-8px);
+          transition: opacity var(--m-exit) var(--m-ease-in), transform var(--m-exit) var(--m-ease-in); }

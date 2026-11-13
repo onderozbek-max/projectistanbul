@@ -144,7 +144,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
       c.fillStyle = '#2E8B57'; c.fillRect(-0.034, 0.0, 0.068, 0.09);
       c.fillStyle = '#EDE2C8'; c.fillRect(-0.034, 0.02, 0.068, 0.035);
       M.rr(c, -0.015, -0.13, 0.03, 0.04, 0.01); M.ink(F, '#EDE2C8', 1.2);
-      fl = 0.85 + 0.3 * Math.sin(t * 52);
+      fl = 0.85 + 0.3 * Math.sin(Math.floor(t * 3) / 3 * 52);   // flame flicker held to 3 steps a second (design-system 11)
       c.fillStyle = 'rgba(255,140,40,0.9)'; c.beginPath(); c.arc(0, -0.15, 0.04 * fl, 0, Math.PI * 2); c.fill();
       c.fillStyle = 'rgba(255,230,140,0.95)'; c.beginPath(); c.arc(0, -0.16, 0.02 * fl, 0, Math.PI * 2); c.fill();
       M.end(F);
@@ -162,7 +162,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
     c.fillStyle = 'rgba(255,255,255,0.45)'; c.fillRect(0.1, -0.03, 0.05, 0.02);
     c.beginPath(); c.ellipse(0.32, 0, 0.012, 0.04, 0, 0, Math.PI * 2); c.fillStyle = '#2B2B2B'; c.fill();
     c.beginPath(); c.rect(-0.13, -0.012, 0.04, 0.024); M.ink(F, '#C9A13B', 1.2);
-    if (t < 0.12) lstar(c, -0.15, 0, 0.03 + 0.012 * Math.sin(t * 90), 'rgba(255,220,120,0.95)');
+    if (t < 0.12) lstar(c, -0.15, 0, 0.03 + 0.012 * Math.sin(Math.floor(t * 3) / 3 * 90), 'rgba(255,220,120,0.95)');
     M.end(F);
     hands(F);
   } };

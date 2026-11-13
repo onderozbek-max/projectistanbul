@@ -11,14 +11,14 @@
 .cm-grid { position: absolute; inset: 0; }
 .cm-panel { position: absolute; overflow: hidden; background: var(--paper); border: 4px solid var(--ink);
             box-shadow: 5px 5px 0 #000; opacity: 0; transform: rotate(var(--tilt, 0deg)) translateY(10px);
-            transition: opacity .22s ease-out, transform .28s cubic-bezier(.2, .9, .3, 1.2); }
+            transition: opacity var(--m-enter) var(--m-ease-out), transform var(--m-pop) var(--m-ease-pop); }
 .cm-panel.in { opacity: 1; transform: rotate(var(--tilt, 0deg)); }
 .cm-art { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
 .cm-dark { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
-.cm-tag { position: absolute; left: 14px; right: 60px; top: 16px; font: 400 14px var(--cm-title);
+.cm-tag { position: absolute; left: 14px; right: 60px; top: 16px; font: 400 calc(14px * var(--ui-text, 1)) var(--cm-title);
           letter-spacing: .08em; color: var(--heal); text-transform: uppercase; pointer-events: none; }
-.cm-hint { position: absolute; left: 0; right: 0; bottom: 22px; text-align: center; font: 700 12px var(--cm-speech);
-           color: rgba(255, 248, 236, .72); letter-spacing: .04em; pointer-events: none; animation: cm-blink 1.6s steps(2) infinite; }
+.cm-hint { position: absolute; left: 0; right: 0; bottom: 22px; text-align: center; font: 700 calc(12px * var(--ui-text, 1)) var(--cm-speech);
+           color: rgba(255, 248, 236, .72); letter-spacing: .04em; pointer-events: none; animation: cm-blink var(--m-loop) steps(2) infinite; }
 .cm-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .cm-skip { position: absolute; top: 8px; right: 8px; width: 48px; height: 48px; padding: 0; border: 0; border-radius: 50%;
            background: rgba(20, 21, 31, .6); cursor: pointer; }
@@ -35,13 +35,19 @@
 .cm-call { position: absolute; left: 12px; top: 150px; width: 366px; z-index: 55; background: var(--ink);
            box-shadow: 0 0 0 3px var(--paper), 5px 5px 0 #000; color: #fff; pointer-events: none; }
 .cm-call.cm-block { pointer-events: auto; }
-.cm-call.cm-ringing { animation: cm-shake .25s steps(2) infinite; }
+.cm-call.cm-ringing { animation: cm-shake var(--m-loop) steps(2) infinite; }
+/* Entrance and exit (T4 part 4; comic.js callCard and leaveCall): the card rises in from 16 px above and fades in, and leaves the
+   same way. translate is its own property, so the ring shake (transform) and these never fight. Under Reduce motion the
+   classes are never set and css/motion.css stops the transitions. */
+.cm-call { transition: translate var(--m-enter) var(--m-ease-out), opacity var(--m-enter) var(--m-ease-out); }
+.cm-call.is-enter-from { translate: 0 -16px; opacity: 0; }
+.cm-call.is-leaving { translate: 0 -16px; opacity: 0; transition: translate var(--m-exit) var(--m-ease-in), opacity var(--m-exit) var(--m-ease-in); }
 .cm-call-head { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--ink-2); }
 .cm-contact { flex: none; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 2px solid var(--paper); }
 .cm-contact canvas { display: block; width: 56px; height: 56px; }
 .cm-call-info { flex: 1; min-width: 0; }
-.cm-call-name { font: 400 20px var(--cm-title); letter-spacing: .02em; }
-.cm-call-timer { font: 700 12px var(--cm-speech); opacity: .7; font-variant-numeric: tabular-nums; }
+.cm-call-name { font: 400 calc(20px * var(--ui-text, 1)) var(--cm-title); letter-spacing: .02em; }
+.cm-call-timer { font: 700 calc(12px * var(--ui-text, 1)) var(--cm-speech); opacity: .7; font-variant-numeric: tabular-nums; }
 .cm-bars { display: flex; align-items: flex-end; gap: 3px; height: 22px; }
 .cm-bars i { display: block; width: 5px; background: rgba(255, 248, 236, .25); }
 .cm-bars i:nth-child(1) { height: 6px; }
@@ -56,15 +62,15 @@
 #phone.overlay-up .cm-pop, #phone.overlay-up .cm-call { visibility: hidden; }
 /* Subtitles: the whole line always shows (no line clamp, no ellipsis). AUDIT-6 F10: words never break mid-word
    (overflow-wrap normal; a long word overflows the strip instead of splitting). */
-.cm-call-sub { min-height: 44px; padding: 9px 12px; font: 700 14px/1.3 var(--cm-speech);
+.cm-call-sub { min-height: 44px; padding: 9px 12px; font: 700 calc(14px * var(--ui-text, 1))/1.3 var(--cm-speech);
                text-transform: uppercase; overflow-wrap: normal; word-break: normal; background: rgba(0, 0, 0, .55); }
 .cm-call-sub b { color: var(--heal); margin-right: 6px; }
-.cm-nosig { padding: 14px 12px; text-align: center; font: 400 24px var(--cm-title); color: #FF7A5C;
+.cm-nosig { padding: 14px 12px; text-align: center; font: 400 calc(24px * var(--ui-text, 1)) var(--cm-title); color: #FF7A5C;
             letter-spacing: .04em; text-transform: uppercase; background: rgba(0, 0, 0, .55); }
 
 @keyframes cm-blink { 0% { opacity: 1; } 50% { opacity: .35; } }
 @keyframes cm-shake { 0% { transform: translateX(-1px); } 50% { transform: translateX(1px); } }
 
-/* Reduced motion: no slides, no blinking, no shaking. The JS also skips Ken Burns drift and zoom. */
-.cm-reduce .cm-panel { transition: none; }
+/* Reduced motion: no slides, no blinking, no shaking (css/motion.css and the cm-reduce class). The JS also skips Ken Burns drift and zoom. */
+.cm-reduce .cm-panel { transition: opacity var(--m-rm) var(--m-ease-out); }   /* fade only, no slide (motion.css) */
 .cm-reduce .cm-hint, .cm-call.cm-reduce { animation: none; }

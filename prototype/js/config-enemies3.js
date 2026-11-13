@@ -37,8 +37,10 @@
     },
     // View feel: hit flinch, wind-up lean, idle twitch, shamble, scale-in. Amounts in radians or unit fractions.
     feel: {
-      flinchLean: 0.16, flinchT: 0.14, windupLean: 0.08, windupSquash: 0.08,
-      twitchEvery: 3.1, twitchT: 0.16, twitchAmp: 0.07, shamble: 0.025, scaleIn: 0.15,
+      // windupLean (rad, back away from the hero), windupSquash (height fraction), windupBack and windupHop (m, a small back-hop); the
+      // windup duration itself is the sim's and does not change here. scaleIn: ordinary spawns grow from half size over this many s.
+      flinchLean: 0.16, flinchT: 0.14, windupLean: 0.2, windupSquash: 0.2, windupBack: 0.12, windupHop: 0.05,
+      twitchEvery: 3.1, twitchT: 0.16, twitchAmp: 0.07, shamble: 0.025, scaleIn: 0.3,
       crawlerScale: 1.0,
     },
   };

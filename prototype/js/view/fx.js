@@ -6,6 +6,7 @@
 P.Fx = (function () {
   var F = { cam: null, nums: [], parts: [], swings: [], rings: [], bursts: [], letters: [] };
   var CHAIN_WIN = 0.35, CHAIN_R = 6, FINISH_T = 1.2;
+  var SWING_T = 0.2;   // weapon swing arc and trail, seconds (was 0.16): a bit longer, drawn brighter in render.js
 
   F.reset = function (s) {
     var w = P.CFG.view.widthM;
@@ -43,31 +44,36 @@ P.Fx = (function () {
   // Boss death beat: visuals (camera, particles, rings) run at k = 0.3 for 1.2 s. The sim keeps its rate;
   // main.js may also use F.timeScale() to slow the simulation. Off under Reduce motion.
   F.timeScale = function () { return F.beat && F.beat.t > 0 ? F.beat.k : 1; };
-  // Last-stand heartbeat: 72 beats a minute, a strong beat and a weaker one; 0..1, never a flash.
+  // Last-stand heartbeat: 72 beats a minute, one soft pulse per beat (1.2 a second); 0..1, never a hard flash. The old
+  // lub-dub had two peaks 0.15 s apart and reached four peaks in one second, over the 3 a second limit.
+  F.heartPeriod = 60 / 72;
   F.heart = function (t) {
-    var period = 60 / 72, p = (t % period) / period;
-    function bump(c) { var d = Math.abs(p - c) / 0.1; return d >= 1 ? 0 : (1 - d) * (1 - d); }
-    return Math.min(1, bump(0) + 0.6 * bump(0.18));
+    var p = (t % F.heartPeriod) / F.heartPeriod, q = (1 + Math.cos(2 * Math.PI * p)) / 2;
+    return q * q;
   };
 
-  // Hero hit feedback (G3). The white flash is the view's own 60 ms and is gated to 3 per second; the edge pulse is a
-  // red wash at the screen edge that decays in 0.25 s and comes at most once every 0.5 s. Both are off under F5's
-  // "reduce flashes" (P.Settings.reduceFlash, read only here).
-  F.heroFlash = function () { return P.Settings.reduceFlash ? 0 : (F.heroFlashT || 0); };
+  // Hero hit feedback (G3). The white flash is the view's own 60 ms; the edge pulse is a red wash at the screen edge that
+  // decays in 0.25 s and comes at most once every 0.55 s. Both take a slot from the screen-wide flash budget (sprites.js
+  // flashOk, at most 3 starts a second), so a crowd of hits cannot stack flashes. Both are off under F5's "reduce flashes"
+  // ((P.Settings && P.Settings.reduceFlash), read only here).
+  F.heroFlash = function () { return (P.Settings && P.Settings.reduceFlash) ? 0 : (F.heroFlashT || 0); };
   F.edgeAlpha = function () {
-    if (!F.edge || P.Settings.reduceFlash) return 0;
+    if (!F.edge || (P.Settings && P.Settings.reduceFlash)) return 0;
     return P.CFG.feel.edgePulseAlpha * Math.max(0, F.edge.t / F.edge.T);
   };
+  // A flash may start only when the screen budget grants a slot (sprites.js). No sprites module, no budget to apply.
+  function flashGo() { var now = performance.now() / 1000; return !P.Sprites || !P.Sprites.flashOk || P.Sprites.flashOk(now); }
+  F.flashGo = flashGo;
   function heroHit(ev, s) {
     var fe = P.CFG.feel, maxHp = s.hero.maxHp;
-    if (F.clock - F.heroFlashAt >= fe.heroFlashGap) { F.heroFlashT = fe.hitFlash; F.heroFlashAt = F.clock; }
-    if (ev.dmg >= fe.edgePulseFrac * maxHp && F.clock - F.edgeAt >= fe.edgePulseGap) {
+    if (F.clock - F.heroFlashAt >= fe.heroFlashGap && flashGo()) { F.heroFlashT = fe.hitFlash; F.heroFlashAt = F.clock; }
+    if (ev.dmg >= fe.edgePulseFrac * maxHp && F.clock - F.edgeAt >= fe.edgePulseGap && flashGo()) {
       F.edge = { t: fe.edgePulseLife, T: fe.edgePulseLife }; F.edgeAt = F.clock;
     }
   }
 
   F.update = function (s, dt) {
-    var c = F.cam, v = P.CFG.view, fe = P.CFG.feel, rm = P.Settings.reduceMotion, rdt = dt;
+    var c = F.cam, v = P.CFG.view, fe = P.CFG.feel, rm = (P.Settings && P.Settings.reduceMotion), rdt = dt;
     F.clock += rdt;
     F.chainCd = Math.max(0, (F.chainCd || 0) - rdt);
     F.heroFlashT = Math.max(0, (F.heroFlashT || 0) - rdt);
@@ -93,10 +99,10 @@ P.Fx = (function () {
     c.ox = fe.maxShakePx * sh * (Math.random() * 2 - 1);
     c.oy = fe.maxShakePx * sh * (Math.random() * 2 - 1);
     c.rot = fe.maxShakeDeg * Math.PI / 180 * sh * (Math.random() * 2 - 1);
-    if (P.Feel) { P.Feel.decayKick(rdt); c.ox += c.kx || 0; c.oy += c.ky || 0; }   // v0.9: kick leans the view into the player's big actions
+    if (P.Feel) { P.Feel.decayKick(rdt); c.ox += (c.kx || 0) * shk; c.oy += (c.ky || 0) * shk; }   // v0.9: kick leans the view into the player's big actions; the shake setting scales it too (0 = no lean)
     if (c.punchT > 0) c.punchT = Math.max(0, c.punchT - dt);
     var pp = c.punchT > 0 ? Math.sin((1 - c.punchT / (fe.punchTime * 2)) * Math.PI) : 0;
-    c.zoom = 1 + (rm ? 0 : fe.punchZoom * pp);
+    c.zoom = 1 + (rm ? 0 : fe.punchZoom * pp * shk);   // the punch follows the shake setting (0 = none); Reduce motion zeroes it
     P.WFx.update(dt, s);
     if (P.Feel) P.Feel.update(dt, s);
     ageList(F.nums, dt); ageList(F.swings, dt); ageList(F.rings, dt); ageList(F.bursts, dt); ageList(F.letters, dt);
@@ -148,7 +154,7 @@ P.Fx = (function () {
   function finisher(ev) {
     F.addTrauma(0.6);
     F.letter(ev.x, ev.y + 1.8, P.t('fx.finisher'));
-    if (P.Settings.reduceMotion) return;
+    if ((P.Settings && P.Settings.reduceMotion)) return;
     F.beat = { t: FINISH_T, T: FINISH_T, k: 0.3 };
     F.focus = { x: ev.x, y: ev.y, t: FINISH_T, T: FINISH_T };
   }
@@ -189,11 +195,11 @@ P.Fx = (function () {
           F.parts.push({ kind: 'gib', x: ev.x, y: ev.y, vx: Math.cos(ga) * gs, vy: Math.sin(ga) * gs, t: 0.35 + Math.random() * 0.2, T: 0.5 });
         }
         break;
-      case 'swing': F.swings.push({ x: ev.x, y: ev.y, ax: ev.ax, ay: ev.ay, range: ev.range, arc: ev.arcDeg, dir: ev.dir || 1, t: 0.16, T: 0.16 }); break;
+      case 'swing': F.swings.push({ x: ev.x, y: ev.y, ax: ev.ax, ay: ev.ay, range: ev.range, arc: ev.arcDeg, dir: ev.dir || 1, t: SWING_T, T: SWING_T }); break;
       case 'nailFire': F.parts.push({ kind: 'muzzle', x: ev.x + Math.cos(ev.a) * 0.5, y: ev.y + Math.sin(ev.a) * 0.5, t: 0.06, T: 0.06 }); break;
       case 'blast':
         F.rings.push({ x: ev.x, y: ev.y, r: ev.r, t: 0.35, T: 0.35, color: '#FFC93C' });
-        F.parts.push({ kind: 'flash', x: ev.x, y: ev.y, r: ev.r, t: 0.12, T: 0.12 });
+        if (flashGo()) F.parts.push({ kind: 'flash', x: ev.x, y: ev.y, r: ev.r, t: 0.12, T: 0.12 });   // the bright disc takes a flash slot
         F.parts.push({ kind: 'scorch', x: ev.x, y: ev.y, r: ev.r * 0.7, t: 6, T: 6 });
         for (var b = 0; b < 10; b++) {
           var ba = Math.random() * Math.PI * 2, bs = 2 + Math.random() * 4;

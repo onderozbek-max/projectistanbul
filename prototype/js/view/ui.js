@@ -8,7 +8,7 @@
 // the objective (F7; AUDIT-7 U1 two-row header, class #hud.boss-on). The dash
 // chip shows its cooldown in seconds and a ring when ready (F9).
 P.UI = (function () {
-  var U = {}, el = {}, toastT = 0, lastHp = -1, lastSub = null, tierT = 0, tierKey = null, lastN = 0;
+  var U = {}, el = {}, toastT = 0, toastOut = 0, lastHp = -1, lastSub = null, tierT = 0, tierKey = null, lastN = 0, lastLv = 0;
   var hudOn = false, overlayUp = false;
   var TIERS = [25, 50, 100, 200];
   var IDS = ['hud', 'hp-fill', 'hp-trail', 'hp-text', 'timer', 'call', 'call-label', 'call-time', 'bars', 'xp-fill', 'lv',
@@ -37,6 +37,7 @@ P.UI = (function () {
   U.init = function () {
     IDS.forEach(function (id) { el[id] = bind(id); });
     if (U.missing.length) U.bootError('ui.init', 'missing ids: ' + U.missing.join(','));
+    if (P.UIProgress) P.UIProgress.init();   // Street Cred meter, XP ticks, level-up banner (ui-progress.js)
     if (P.Speech) { P.Speech.provider(offerOverlays); }
   };
 
@@ -51,7 +52,11 @@ P.UI = (function () {
   // HUD visibility = wanted by the flow (showHud) and no overlay up (setOverlay, called by Screens.show).
   U.showHud = function (on) {
     hudOn = !!on; applyVis();
-    if (!on) { el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); el.streak.classList.add('hidden'); lastSub = null; lastN = 0; }
+    if (!on) {
+      el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); el.streak.classList.add('hidden');
+      lastSub = null; lastN = 0; lastLv = 0;
+      if (P.UIProgress) P.UIProgress.reset();
+    }
   };
   // The overlay flag also goes on #phone (css: story pops and the call card hide, and comic.js freezes their timers).
   U.setOverlay = function (on) {
@@ -76,8 +81,9 @@ P.UI = (function () {
     el.timer.textContent = hold.active && !s.props.shutterOpen
       ? U.fmt(Math.ceil((hold.T || P.CFG.level.holdTime) - hold.t)) + ' ' + P.t('ui.hud.hold') : U.fmt(s.runT);
     var L = s.levelInfo;
-    el['lvl-chip'].textContent = L ? P.upper(L.hood.name) + ' ' + P.t('ui.hud.level', { n: L.hoodIndex + 1, s: L.stage }) : '';
+    el['lvl-chip'].textContent = L ? P.upper(L.hood.name) + ' ' + P.t('ui.hud.stage', { s: L.stage, of: P.Journey.levelsPerHood }) : '';
     updateSkills(s);
+    if (P.UIProgress) P.UIProgress.hud(s);
     updateStreak(s);
     updateBoss(s);
     var call = s.dir.call;
@@ -89,7 +95,9 @@ P.UI = (function () {
       for (var i = 0; i < bars.length; i++) bars[i].classList.toggle('on', i < call.bars);
     }
     el['xp-fill'].style.width = Math.min(100, s.xp / P.xpNeed(s.level) * 100) + '%';
-    el.lv.textContent = 'Lv ' + s.level;
+    el.lv.textContent = P.t('ui.hud.lv', { n: s.level });
+    if (lastLv && s.level > lastLv && P.UIProgress) P.UIProgress.levelUp();   // one pop on the XP bar per level-up
+    lastLv = s.level;
     updateSubs(s);
   };
 
@@ -198,6 +206,8 @@ P.UI = (function () {
   }
 
   U.toast = function (text, sub, dur) {
+    clearTimeout(toastOut); toastOut = 0;   // a new toast cancels a slide-out still running
+    el.toast.classList.remove('is-out');
     el.toast.innerHTML = '';
     el.toast.appendChild(document.createTextNode(text));
     if (sub) { var sm = document.createElement('small'); sm.textContent = sub; el.toast.appendChild(sm); }
@@ -205,9 +215,15 @@ P.UI = (function () {
     toastT = dur || 2.5;
   };
 
+  // Time's up: the toast slides out over --m-exit, then hides (ui-motion.js U.leave; at once under Reduce motion).
+  function leaveToast() {
+    toastOut = P.UIMotion.leave(el.toast, 'is-out', function () { toastOut = 0; el.toast.classList.add('hidden'); });
+  }
+
   U.tick = function (dt) {
-    if (toastT > 0) { toastT -= dt; if (toastT <= 0) el.toast.classList.add('hidden'); }
+    if (toastT > 0) { toastT -= dt; if (toastT <= 0) leaveToast(); }
     if (tierT > 0) { tierT -= dt; if (tierT <= 0) tierT = 0; }
+    if (P.UIProgress) P.UIProgress.tick(dt);   // the level-up banner's timer (ui-progress.js)
   };
 
   return U;

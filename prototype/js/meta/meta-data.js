@@ -97,13 +97,18 @@ P.Meta = P.Meta || {};
     for (var i = 1; i <= LEVELS; i++) if (!M.isCleared(i)) return i;
     return LEVELS;
   };
-  // Map view state: done = fully cleared hoods, cur = hood the token stands on, km = walked distance.
+  // Map view state: done = fully cleared hoods, cur = hood the token stands on. km = the saved walk (the km of the last
+  // cleared hood, unchanged). kmShown = km plus the share of the next hood walked (levels cleared / levelsPerHood), a
+  // display value only: nothing saved or tested reads it as distance.
   M.snapshot = function () {
-    var s = load(), n = J.hoods.length, done = 0, curDone = 0, k;
+    var s = load(), n = J.hoods.length, done = 0, curDone = 0, k, km, next, frac;
     while (done < n && M.hoodCleared(done)) done++;
     if (done < n) for (k = 1; k <= J.levelsPerHood; k++) if (M.isCleared(M.levelAt(done, k))) curDone++;
+    km = done > 0 ? J.hoods[done - 1].km : 0;
+    next = done < n ? J.hoods[done].km : km;
+    frac = done >= n ? 1 : curDone / J.levelsPerHood;
     return { done: done, cur: Math.min(done, n - 1), curDone: done >= n ? J.levelsPerHood : curDone,
-      km: done > 0 ? J.hoods[done - 1].km : 0, unlocked: s.unlocked, coins: s.coins };
+      km: km, kmShown: km + (next - km) * frac, unlocked: s.unlocked, coins: s.coins };
   };
 
   // ---- Rewards ----
@@ -290,11 +295,13 @@ P.Meta = P.Meta || {};
 
   // ---- Loadout for createSim (contract: gear, startWeapon, stats, mastery, ult, hero, modifiers) ----
   // Equipped gear (capped per stat) plus the hood-rank power (config-power.js). Shared maths: meta-power.js.
-  function gearSum(s) {
-    var items = [];
+  // Equipped items as [{id, lvl}]: the input of P.Power.gearWithHood (the loadout) and P.Power.gearTotal (the power readout).
+  M.gearItems = function () {
+    var s = load(), items = [];
     M.SLOTS.forEach(function (slot) { var id = s.equipped[slot.id]; if (id) items.push({ id: id, lvl: s.gear[id].lvl }); });
-    return P.Power.gearWithHood(items, M.snapshot().done);
-  }
+    return items;
+  };
+  function gearSum() { return P.Power.gearWithHood(M.gearItems(), M.snapshot().done); }
   function masteryRanks(s) {
     var out = {};
     Object.keys(s.mastery).forEach(function (w) { out[w] = M.masteryRank(w, s.mastery[w]); });
@@ -304,15 +311,15 @@ P.Meta = P.Meta || {};
     var s = load(), hero = s.heroes.arda, o = opts || activeRun || {}, ults = M.ults(), ult = hero.ult, lo;
     var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
-    lo = { gear: gearSum(s), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
+    lo = { gear: gearSum(), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
       mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), bonds: { kaan: P.Bond.joined(s.stars) ? s.bonds.kaan | 0 : 0 }, bondHpPct: bondAura(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
     if (o.daily) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; lo.daily = true; }
     return lo;
   };
   M.progress = function () {
-    var s = load(), stars = {};
+    var s = load(), stars = {}, snap = M.snapshot();
     Object.keys(s.stars).forEach(function (k) { stars[k] = s.stars[k]; });
-    return { unlocked: s.unlocked, stars: stars, coins: s.coins, kmWalked: M.snapshot().km };
+    return { unlocked: s.unlocked, stars: stars, coins: s.coins, kmWalked: snap.km, kmShown: snap.kmShown };
   };
 
   // ---- Results: one finished level updates every system, then the next open plays the sequence ----

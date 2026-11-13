@@ -5,7 +5,7 @@ P.Meta.Anim = {
   dur: function (ms) { return P.Settings && P.Settings.reduceMotion ? Math.round(ms * 0.4) : ms; },
   // onFrame(t) with t 0..1 (linear). Returns cancel().
   tween: function (ms, onFrame, onDone) {
-    var t0 = -1, id = 0, off = false, total = P.Meta.Anim.dur(ms);
+    var t0 = -1, id = 0, off = false, total = P.Settings && P.Settings.reduceMotion ? 0 : ms;   // Reduce motion: the move jumps to its end
     function step(now) {
       if (off) return;
       if (t0 < 0) t0 = now;
@@ -18,6 +18,7 @@ P.Meta.Anim = {
   },
   play: function (node, frames, ms, done, easing) {
     var fin = function () { if (node.parentNode) node.parentNode.removeChild(node); if (done) done(); };
+    if (P.Settings && P.Settings.reduceMotion) { fin(); return; }   // Reduce motion: the flight lands at once
     if (!node.animate) { setTimeout(fin, P.Meta.Anim.dur(ms)); return; }
     var a = node.animate(frames, { duration: P.Meta.Anim.dur(ms), easing: easing || 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' });
     a.onfinish = fin;
@@ -355,7 +356,7 @@ P.Meta.Map = (function () {
     if (world) world.style.transform = 'translate3d(' + cam.x.toFixed(1) + 'px,' + cam.y.toFixed(1) + 'px,0)';
   }
   function focusTo(tx, ty, ms) {
-    focusAnim = { x0: cam.x, y0: cam.y, x1: clampX(tx), y1: clampY(ty), t0: performance.now(), ms: A.dur(ms) };
+    focusAnim = { x0: cam.x, y0: cam.y, x1: clampX(tx), y1: clampY(ty), t0: performance.now(), ms: P.Settings && P.Settings.reduceMotion ? 0 : ms };
     vel = { x: 0, y: 0 };
   }
   function stepFocus(now) {
@@ -379,7 +380,7 @@ P.Meta.Map = (function () {
   function focusHood(h, yFrac, instant) {
     var p = xy(h), tx = VW / 2 - p.x, ty = VH * (yFrac || 0.42) - p.y;
     if (instant) { focusAnim = null; cam.x = clampX(tx); cam.y = clampY(ty); vel = { x: 0, y: 0 }; apply(); }
-    else focusTo(tx, ty, 520);
+    else focusTo(tx, ty, P.UIMotion.ms('--m-slow'));
   }
   function releaseVelocity() {
     var now = performance.now(), a = trail[0], b = trail[trail.length - 1];
@@ -442,7 +443,7 @@ P.Meta.Map = (function () {
   function drawGulls(c, t, ox, oy) {
     G.gulls.forEach(function (g, i) {
       var x = g[0] * W + Math.sin(t * 0.3 + i) * 46 + ox, y = g[1] * H + Math.cos(t * 0.23 + i * 2) * 22 + oy;
-      var w = Math.sin(t * 9 + i * 2) * 0.5;
+      var w = Math.sin(t * Math.PI + i * 2) * 0.5;   // wing beat at 0.5 Hz (no loop runs faster)
       if (!onScreen(x, y)) return;
       c.beginPath(); c.moveTo(x - 8, y - w * 6); c.quadraticCurveTo(x - 4, y - 3, x, y); c.quadraticCurveTo(x + 4, y - 3, x + 8, y - w * 6);
       c.strokeStyle = COL.ink; c.lineWidth = 2.6; c.stroke();
@@ -450,7 +451,7 @@ P.Meta.Map = (function () {
     });
   }
   function drawFx(now) {
-    var c = fx, t = now / 1000;
+    var c = fx, t = P.Settings && P.Settings.reduceMotion ? 0 : now / 1000;   // Reduce motion: ferries and gulls hold still
     c.setTransform(fxRatio, 0, 0, fxRatio, 0, 0);
     c.clearRect(0, 0, VW, VH);
     drawFerries(c, t, cam.x, cam.y);
@@ -492,22 +493,22 @@ P.Meta.Map = (function () {
     var p = xy(h), ring = el('div', 'meta-ring', world), k, a, s;
     ring.style.left = p.x + 'px'; ring.style.top = p.y + 'px';
     A.play(ring, [{ transform: 'translate(-50%,-50%) scale(.2)', opacity: 1 },
-      { transform: 'translate(-50%,-50%) scale(2.6)', opacity: 0 }], 650);
+      { transform: 'translate(-50%,-50%) scale(2.6)', opacity: 0 }], P.UIMotion.ms('--m-slow'));
     for (k = 0; k < 10; k++) {
       a = k / 10 * 360 + (k % 2) * 12;
       s = el('div', 'meta-spark', world);
       s.style.left = p.x + 'px'; s.style.top = p.y + 'px';
       A.play(s, [{ transform: 'translate(-50%,-50%) rotate(' + a + 'deg) translateY(-14px)', opacity: 1 },
-        { transform: 'translate(-50%,-50%) rotate(' + a + 'deg) translateY(-62px)', opacity: 0 }], 560);
+        { transform: 'translate(-50%,-50%) rotate(' + a + 'deg) translateY(-62px)', opacity: 0 }], P.UIMotion.ms('--m-slow'));
     }
   }
 
   return {
     build: build, show: show, hide: hide, refresh: refresh, walk: walk, burst: burst,
     focusHood: focusHood,
-    hop: function () { A.kick(tokenEl, 'is-hop', 600); },
-    shake: function () { A.kick(tokenEl, 'is-shake', 500); },
-    reveal: function (h) { A.kick(markers[h], 'is-reveal', 800); },
+    hop: function () { A.kick(tokenEl, 'is-hop', P.UIMotion.ms('--m-slow')); },
+    shake: function () { A.kick(tokenEl, 'is-shake', P.UIMotion.ms('--m-beat')); },
+    reveal: function (h) { A.kick(markers[h], 'is-reveal', P.UIMotion.ms('--m-slow')); },
     tokenRect: function () { return rel(tokenEl); },
     markerRect: function (h) { return rel(markers[h]); },
     rel: function (node) { return rel(node); }

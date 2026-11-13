@@ -5,6 +5,7 @@
 // cooldownPct}, startWeapon } }. levelIndex 1 is the scripted Istiklal level (unchanged behaviour).
 P.createSim = function (seed, opts) {
   var C = P.CFG, L = C.level, o = opts || {}, idx = Math.max(1, Math.min(P.Journey.count(), o.levelIndex || 1));
+  P.xpHand = idx === 1;   // R1-T4 part 4: L1 keeps its own XP curve (config xp.l1); the run's curve is read by P.xpNeed
   var s = {
     seed: seed, rng: P.makeStreams(seed), t: 0, runT: 0, mode: 'cutscene',
     hero: {

@@ -6,7 +6,7 @@ P.Screens = (function () {
   // Overlays take the HUD, the dash and nazar buttons and the subtitle layer off screen while they are up (AUDIT-6 F1).
   var OVERLAYS = ['scr-cards', 'scr-chest', 'scr-pause', 'scr-settings', 'scr-down'];
   S.show = function (id) {
-    ALL.forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
+    ALL.forEach(function (x) { P.UIMotion.screen($(x), x === id); });   // fade in and out (css/motion.css, ui-motion.js)
     if (P.UI && P.UI.setOverlay) P.UI.setOverlay(OVERLAYS.indexOf(id) >= 0);
   };
   S.hideAll = function () { S.show(null); };
@@ -109,7 +109,7 @@ P.Screens = (function () {
       var live = liveCard(c);
       delete box.dataset.locked; box.classList.remove('has-pick'); setRerollLock(false);
       if (live) onPick(live);
-    }, P.Settings.reduceMotion ? 0 : 320);
+    }, P.UIMotion.wait('--m-select'));
   }
   // Fork options (AUDIT-7 U2): the mods as two 44 pt buttons in the card's chip line. A tap on one picks it and the card.
   // Their descriptions are in the long-press sheet. onSub(i) runs on a sub-button click.
@@ -255,7 +255,7 @@ P.Screens = (function () {
   function buildCard(s, c, i, scripted, box, onPick) {
     var kind = c.id[0], b = document.createElement('button'), face = mk('div', 'card-face'), body = mk('div', 'card-body'), l1 = mk('div', 'card-l1');
     b.className = 'card kind-' + kind + (scripted && i === 0 ? ' highlight' : '') + (c.fork ? ' fork' : '') + (c.evo ? ' evo' : '');
-    b.style.animationDelay = (P.Settings.reduceMotion ? 0 : i * 70) + 'ms';
+    b.style.animationDelay = P.UIMotion.stagger(i) + 'ms';
     face.appendChild(iconBox(c.item, 'icon'));
     var badge = cardBadge(c, kind); if (badge) face.appendChild(badge);
     l1.appendChild(mk('span', 'name', P.t('item.' + c.item)));
@@ -314,6 +314,7 @@ P.Screens = (function () {
 
   S.showCards = function (s, offer, onPick, onReroll) {
     gen++; curOffer = offer; hideInfo();   // a new offer on screen: picks from the previous one are dropped (CR-3)
+    $('cards-title').textContent = P.t('lvb.title', { n: s.level });
     $('cards-sub').textContent = P.t('ui.cards.sub', { n: s.level }) + ' · ' + P.t('ui.cards.hold');
     $('cards-tut').classList.toggle('hidden', !offer.scripted);
     var box = $('cards'); box.innerHTML = ''; delete box.dataset.locked; box.classList.remove('has-pick');
@@ -337,7 +338,7 @@ P.Screens = (function () {
 
   // {hood, n (district number), s (stage)} for journey-aware labels.
   S.levelVars = function (s, extra) {
-    var L = s.levelInfo || P.Journey.level(1), o = { hood: L.hood.name, n: L.hoodIndex + 1, s: L.stage };
+    var L = s.levelInfo || P.Journey.level(1), o = { hood: L.hood.name, n: L.hoodIndex + 1, s: L.stage, of: P.Journey.levelsPerHood };
     for (var k in extra) o[k] = extra[k];
     return o;
   };
@@ -369,15 +370,30 @@ P.Screens = (function () {
       b.onclick = function () { var i = values.indexOf(P.Settings[key]); P.Settings[key] = values[(i + 1) % values.length]; commit(); };
       return b;
     }
+    // Volume slider, 0-100 in 10% steps (T4 part 8). Dragging is live (P.applySettings); the value is saved when the finger lifts.
+    function volume(key, label) {
+      var wrap = mk('div', 'vol'), inp = document.createElement('input'), out = mk('span', 'vol-val', P.Settings[key] + '%');
+      inp.type = 'range'; inp.min = '0'; inp.max = '100'; inp.step = '10'; inp.value = String(P.Settings[key]);
+      inp.setAttribute('aria-label', label); inp.setAttribute('aria-valuetext', P.Settings[key] + '%');
+      inp.oninput = function () {
+        P.Settings[key] = +inp.value; out.textContent = inp.value + '%'; inp.setAttribute('aria-valuetext', inp.value + '%');
+        if (P.applySettings) P.applySettings();
+      };
+      inp.onchange = function () { P.saveSettings(); };
+      wrap.appendChild(inp); wrap.appendChild(out);
+      return wrap;
+    }
     var lang = document.createElement('button'); lang.className = 'toggle on'; lang.textContent = P.lang === 'tr' ? 'TR' : 'EN';
     lang.onclick = function () { P.lang = P.Settings.lang = P.lang === 'tr' ? 'en' : 'tr'; commit(); };
     row(P.t('ui.set.lang'), lang);
-    row(P.t('ui.set.sound'), toggle('sound'));
-    row(P.t('ui.set.music'), step('musicVol', P.SettingSteps.music, function (v) { return '%' + v; }));
+    row(P.t('ui.set.music'), volume('musicVol', P.t('ui.set.music')));
+    row(P.t('ui.set.sound'), volume('sfxVol', P.t('ui.set.sound')));
+    row(P.t('ui.set.voice'), volume('voiceVol', P.t('ui.set.voice')));
     row(P.t('ui.set.subs'), toggle('subs'));
     row(P.t('ui.set.reduceMotion'), toggle('reduceMotion'));
     row(P.t('ui.set.reduceFlash'), toggle('reduceFlash'));
     row(P.t('ui.set.shake'), step('shake', P.SettingSteps.shake, function (v) { return '%' + v; }));
+    row(P.t('ui.set.textSize'), step('textSize', P.SettingSteps.text, function (v) { return '%' + v; }));
     row(P.t('ui.set.dmgNumbers'), toggle('dmgNumbers'));
     row(P.t('ui.set.blood'), toggle('blood'));
     row(P.t('ui.set.haptics'), toggle('haptics'));
@@ -436,12 +452,11 @@ P.Screens = (function () {
 
   S.showResults = function (r) {
     $('res-title').textContent = P.t(r.win ? 'ui.res.clear' : 'ui.res.fail');
-    $('res-label').textContent = P.t('ui.res.labelHood', { n: r.hoodN, s: r.stage, hood: P.upper(r.hood) });
     $('btn-next').classList.toggle('hidden', !r.win || !r.hasNext);
     var st = $('res-stars'); st.innerHTML = '';
     [48, 56, 48].forEach(function (sz, i) {
       var sv = star(sz, r.stars[i]); st.appendChild(sv);
-      setTimeout(function () { sv.classList.add('in'); }, P.Settings.reduceMotion ? 0 : 250 + i * 300);
+      setTimeout(function () { sv.classList.add('in'); }, P.UIMotion.wait('--m-enter') + i * P.UIMotion.wait('--m-beat'));
     });
     var crit = $('res-criteria'); crit.innerHTML = '';
     // Star goals come from P.Objectives.goals (lane P) when the run passes them; the old three-goal list is the fallback.
@@ -454,15 +469,12 @@ P.Screens = (function () {
       if (i < goals.length - 1) crit.appendChild(document.createTextNode(' · '));
     });
     var rw = $('res-rewards'); rw.innerHTML = '';
-    function kv(parent, k, v) { var d = document.createElement('div'); d.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b = document.createElement('span'); b.textContent = v; d.appendChild(a); d.appendChild(b); parent.appendChild(d); }
-    kv(rw, P.t('ui.res.jeton'), '+' + r.jeton + ' ' + (r.firstClear ? P.t('ui.res.firstClear') : r.win ? '' : P.t('ui.res.partial')));
-    if (r.win) kv(rw, P.t('ui.res.hurda'), '+' + r.hurda);
-    kv(rw, P.t('ui.res.kills'), String(r.kills));
+    function kv(parent, k, v) { var d = document.createElement('div'); d.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b = document.createElement('span'); b.textContent = v; d.appendChild(a); d.appendChild(b); parent.appendChild(d); return b; }
+    var jetonTail = r.firstClear ? P.t('ui.res.firstClear') : r.win ? '' : P.t('ui.res.partial');
+    P.UIMotion.countUp(kv(rw, P.t('ui.res.jeton'), ''), r.jeton, function (v) { return '+' + v + ' ' + jetonTail; });   // count-up, tap to finish
+    if (r.win) P.UIMotion.countUp(kv(rw, P.t('ui.res.hurda'), ''), r.hurda, function (v) { return '+' + v; });
     if (r.firstClear) kv(rw, P.t('ui.res.gear'), P.t('ui.res.commonGear'));
-    var rn = $('res-run'); rn.innerHTML = '';
-    kv(rn, P.t('ui.res.time'), P.UI.fmt(r.time));
-    kv(rn, P.t('ui.res.runLevel'), String(r.level));
-    kv(rn, 'İstanbul', P.t('ui.res.progress', { km: r.km }));
+    if (P.UIProgress) P.UIProgress.results(r);   // level headline, power strip, run recap and the walk (ui-progress.js)
     var db = $('btn-double'); db.innerHTML = ''; db.appendChild(document.createTextNode(P.t('ui.res.double')));
     var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = P.t('ui.cards.ad') + ' · ' + P.t('ui.res.notInProto'); db.appendChild(tg);
     db.classList.toggle('hidden', !r.win);
@@ -498,7 +510,7 @@ P.Screens = (function () {
     $('chest-level').textContent = card.next ? P.t('chest.level', { n: card.next }) : '';
     chestTags(s, card, info);
     fillStats($('chest-stats'), P.Progression.statLines(card));
-    var rm = P.Settings.reduceMotion, OPEN = rm ? 0.1 : 1.5;
+    var rm = (P.Settings && P.Settings.reduceMotion), OPEN = rm ? 0.1 : 1.5;
     S.show('scr-chest'); P.Sfx.play('chestDrop');
     function frame(now) {
       if (done) return;
@@ -509,7 +521,7 @@ P.Screens = (function () {
       if (t > 0.45 && t < OPEN) { var k = Math.floor((t - 0.45) / 0.33); if (k !== sh) { sh = k; P.Sfx.play('chestShake'); } shake = Math.sin(t * 60) * (4 + k * 3); }
       var open = t >= OPEN ? Math.min(1, (t - OPEN) / 0.25) : 0;
       if (open > 0) {
-        if (!S._opened) { S._opened = true; P.Sfx.play('chestOpen'); setTimeout(function () { info.classList.add('in'); }, rm ? 0 : 250); }
+        if (!S._opened) { S._opened = true; P.Sfx.play('chestOpen'); setTimeout(function () { info.classList.add('in'); }, P.UIMotion.wait('--m-enter')); }
         c.save(); c.translate(cx, cy - 60); c.rotate(t * 0.6); c.globalCompositeOperation = 'lighter';
         for (var i = 0; i < 14; i++) {
           c.rotate(Math.PI * 2 / 14); var g = c.createLinearGradient(0, 0, 0, -330);
@@ -525,8 +537,11 @@ P.Screens = (function () {
     }
     S._opened = false;
     requestAnimationFrame(frame);
+    // A tap during the beat jumps to the reveal and the next tap continues, so the beat never holds input for long.
     scr.onclick = function () {
-      if ((performance.now() - t0) / 1000 < OPEN + 0.5 || done) return;
+      if (done) return;
+      var ready = OPEN + P.UIMotion.ms('--m-beat') / 1000;
+      if ((performance.now() - t0) / 1000 < ready) { t0 = performance.now() - ready * 1000; return; }
       done = true; scr.onclick = null; P.Sfx.play('pick'); onDone(card);
     };
   };

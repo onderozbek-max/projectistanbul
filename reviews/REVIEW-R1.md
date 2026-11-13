@@ -661,6 +661,549 @@ Scope check first: the v0.9 animation pass (feel.js, vehicles.js, fire animation
 
 ---
 
+# T4 part 2: UI motion
+
+Scope: screens, HUD, cards, results, currency, toasts, button presses, the meta screens, the comic CSS and the call card, and the Settings text size. The T4 part 4 items (toast and panel exits, call card entrance and exit, comic page turns, the death beat zoom) are in this section too. The canvas effect files, `sprites.js`, `feel.js`, arena art and the sim are untouched; `main.js` only calls the zoom-origin helper before the dying class.
+
+## Audit gaps (before)
+| Gap | Where |
+|---|---|
+| Screens cut out at once (no exit) | `screens.js` `S.show` |
+| Card deal-in step was 70 ms | `screens.js` `buildCard` |
+| 17 looping animations at 0.25 to 1.8 s (card glow 1.2 s, ultimate and dash pulses, comic ringing 0.25 s) | `proto.css`, `meta.css`, `comic.css`, `objectives-hud.js` |
+| Press states moved (translate), no 0.96 scale | `proto.css`, `meta.css` |
+| HP damage trail 0.3 s with a 0.35 s delay (DS 0.4 s) | `proto.css` |
+| No results count-up | `screens.js` rewards |
+| Map travel and reveal tweens still ran under Reduce motion | `meta-map.js` |
+| Gull wing beat about 1.4 Hz | `meta-map.js` |
+| Chest taps ignored for about 2 s | `screens.js` chest |
+| Two `@keyframes meta-pop` (level-up one set opacity 0 on the coin chip and gear slot) | `meta.css` |
+
+## Built
+- **Tokens, one set:** `css/motion.css` (new, loaded first). CSS reads them as `var(--m-*)`; JS reads the same names through `P.UIMotion.ms()` in `js/view/ui-motion.js` (new), so no duration lives in two places.
+
+| Token | Value | Used for |
+|---|---|---|
+| `--m-press` | 100 ms | buttons, cards, toggles, icon buttons (scale 0.96) |
+| `--m-fill` | 150 ms | meter and bar fills |
+| `--m-enter` | 220 ms, ease-out | screens, sheets, panels, toasts, cards |
+| `--m-exit` | 180 ms, ease-in | screen exit |
+| `--m-select` | 250 ms | card select beat (pick applies after it) |
+| `--m-pop` | 250 ms, overshoot | currency and Street Cred pops |
+| `--m-beat` | 400 ms | stars, chest, shakes |
+| `--m-slow` | 600 ms | map travel, hood reveal |
+| `--m-trail` | 400 ms | HP damage trail |
+| `--m-count` | 700 ms | results count-up (a tap finishes it) |
+| `--m-stagger` | 40 ms | card deal-in step |
+| `--m-rm` | 100 ms | Reduce motion fade, opacity only |
+| `--m-loop` | 2000 ms | every loop (0.5 Hz at most) |
+
+- **Reduce motion:** `css/motion.css` holds the rules for both switches (the OS query and `#phone.reduce-motion`). Under either, nothing moves or loops, and the only motion left is an opacity fade of 100 ms or less. The per-file reduce blocks were removed.
+- **Screens:** `P.UIMotion.screen()` fades a screen out for `--m-exit` with pointer events off, so taps reach what is under it at once. Reduce hides it at once.
+- **Cards and results:** deal-in stagger in 40 ms steps; `P.UIMotion.countUp()` runs the results count-up, and any tap finishes it. The pick waits for the select beat.
+- **Meta:** kick timers read the tokens; map tweens are instant under Reduce; the Street Cred pop runs on change.
+- **Exits (T4 part 4):** the HUD toast and the meta toast fade out over `--m-exit` (`css/motion.css` `.is-out`, `P.UIMotion.leave`) and take no taps while leaving. Meta panels (tree, Karakter, arsenal, gear, hub) use `P.UIMotion.panelShow` / `panelHide` / `panelOpen`: a panel fades and rises out for 180 ms before it hides, and a show during that exit cancels it. Under Reduce motion they hide at once.
+- **Call card (T4 part 4):** the card drops 16 px into place while it fades in over `--m-enter` (`comic.js` `callCard`), and leaves upward and fades over `--m-exit` as its 0.6 s hold closes (`leaveCall`). It moves with CSS `translate`, so the ring shake keeps `transform`. No entrance or exit class under Reduce motion.
+- **Comic page turns (T4 part 4):** the next page slides in from the right over `--m-enter` while the old one slides out to the left (`comic.js` `turnGrid`, `turnUpdate`). Two slides a second at most (`TURN_GAP` 0.5 s); a change inside that gap, or under Reduce motion, is instant.
+- **Death beat zoom (T4 part 4):** on top of the existing desaturate, the world eases in 5% on the hero over `--m-beat` (0.4 s), around the hero's screen point. `js/view/death-beat.js` writes the origin only; it never touches time or the sim, and `main.js` calls it before the dying class. Under either Reduce switch there is no zoom.
+- **Text size (DS 4):** a Settings row offers 100, 125 and 150%, saved with the other settings. `P.applySettings` sets `--ui-text` on `#phone`, and every UI font size in `css/` and in the two injected CSS strings is `calc(Npx * var(--ui-text, 1))`. Canvas art and canvas lettering (comic bubbles and pops) do not scale. Overlays scroll and centre with auto margins, the Settings list no longer shrinks, and the meta tab row scrolls sideways.
+- **Tap targets (48 dp, DS 5 and 11):** the cold-open skip, mod options, hub tabs, meta tabs, meta icon and stat buttons, reroll buttons and toggles are now 48 px tall (they were 36 to 46 px).
+- **Files changed:** `css/motion.css` (new), `css/proto.css`, `css/meta.css`, `css/comic.css`, `css/hood.css`, `js/view/ui-motion.js` (new), `js/view/death-beat.js` (new), `js/view/ui.js`, `js/view/settings.js`, `js/view/screens.js`, `js/view/comic.js`, `js/view/objectives-hud.js` (injected CSS), `js/view/finale-credits.js` (injected CSS), `js/meta/meta-map.js`, `meta-ui.js`, `meta-gear.js`, `meta-tree.js`, `meta-hub.js`, `meta-stats.js`, `meta-arsenal.js`, `js/strings-ui2.js`, `js/main.js` (one call), `index.html` (script and CSS order), `tools/test-ui-motion.js`.
+
+## Decisions for the owner
+- The card pick now applies after the 250 ms select beat.
+- Chest: a tap during the opening beat jumps to the reveal; the next tap continues as before.
+- Comic ringing shake is now a 2 s sway (was 0.25 s).
+- Gull wing beat is 0.5 Hz (was about 1.4 Hz).
+- Pops keep an overshoot curve; plain enters do not.
+- **Text size label.** The TR label "Yazı boyutu" is written natively and marked `// TR owner check` in `strings-ui2.js`. Confirm the wording.
+- **Text size scope.** Canvas lettering and comic pops stay at their size; the setting covers the UI. Confirm that is the intent.
+- **Death freeze.** The 0.8 s freeze is unchanged (it was there before this pass). The zoom runs inside it. Say if you want the freeze at 0.4 s.
+- **Meta tab labels** are 10 px (pre-existing). DS 4 sets a 12 pt caption minimum, so they are below it. Not changed here.
+
+## Not built
+- Exits for the meta root (`meta-ui.js`) and the level-up sheet (`meta-stats.js`): both still hide at once. The brief covered the meta panels, not these two. The test pins them as the only direct hides, so a new one fails.
+- Canvas lettering and comic pops do not scale with the text size (canvas, out of scope for DS 4 as briefed).
+- Street Tree node names break mid-word at 150% ("SHOCKWAVE"). Cosmetic; not fixed.
+- At 150% the Settings heading scrolls away with the list; the rows scroll, the header does not stay pinned.
+- Death beat freeze length and slow-motion: untouched (T4 part 1 and the sim own them).
+
+## Checks
+- `tools/test-ui-motion.js` (470 checks, passes): every CSS duration is a token or a listed literal; every keyframe is covered by the reduce override (`ui-fade` is the only one allowed); every loop is 2 s or slower; no loop runs on the screen, phone, game or page nodes; token names used in JS exist. The reduce-motion check now flags only a media query or a `#phone.reduce-motion` selector (the death zoom's `:not(.reduce-motion)` gate is an ordinary rule, not an override). New in this pass: the exits, the call card entrance and exit, page turns (TURN_GAP 0.5 s, instant under Reduce motion), the death beat (view only, wired before the dying class), the 48 px tap targets, every UI font size reading `--ui-text`, the Settings row, the saved text size, the TR and EN keys with the owner comment, and the exit helpers run in a vm sandbox with a fake clock. The checks from the earlier pass were mutation-checked on a scratch copy outside the repo; the new ones were not.
+- Existing: `test-a11y-canvas.js` (72 view files), `test-feel.js`, `test-meta.js` (122), `test-dialogue.js`, `check-ids.js` pass. `node --check` is clean on the changed JS, and no changed file is over 600 lines (the largest is `screens.js` at 576).
+- Headless (served over local http, level 1 and the meta screens): no page exceptions. Console shows only 404s for `favicon.ico` and the `audio/music/*.mp3` files (pre-existing; `audio/music` holds only a README). Checked: screen exit, card stagger (0, 40, 80 ms), results count-up (natural finish, tap finish, instant under Reduce), the Reduce switch, the five meta tabs, chest tap-skip, HP trail (0.4 s) and toast-in (0.22 s), all read from computed style.
+- Live at 150% text size (headless browser, served over local http; the phone at 390 by 844): title, HUD, Settings (the list scrolls), meta map tabs (scroll sideways), character, tree, arsenal, hub (tabs 48 px), tasks, down (its top is no longer cut), results, the level-up cards (text wraps, reroll buttons 48 px), pause (buttons 52 px, no clipping), and the attribute panel (+ and − buttons 48 by 48 px). Fixes made on the way: card descriptions were clipped (now wrap), reroll buttons and toggles were 46 and 44 px (now 48), the Settings list shrank and cut rows (now scrolls), the meta tab row clipped "MEMORIES" (now scrolls), the down screen's top was cut (overlays scroll), and the stat buttons were 40 px (now 48).
+
+## Could not verify
+- Timing and smoothness on a device, frame time, and the real flash rate on screen.
+- Touch `:active` states on iOS and Android.
+- Count, fade, zoom and page-turn timings were read from computed style and sampled, not watched. The full 0.4 s death zoom and a dropped call's exit were not sampled to the end.
+- 150% was checked in the headless browser only, not on a phone. 125% was not checked live (the same rules apply).
+- The cold-open skip and the mod options (48 px) are checked in CSS only; they were not clicked live.
+
+---
+
+# T4 part 3: accessibility checklist
+
+Canvas accessibility pass against DS §11 (flashing, text size, touch targets) and DS §7 (reduce motion). The full effect table, the allowlist rationale and the phone checklist are in `reviews/A11Y-CHECKLIST-R1.md`.
+
+## Changes (no sim or gameplay change)
+- **Flash budget:** at most 3 flash starts a second, screen-wide. Hero, enemy, prop, blast, burst and edge flashes and the low-HP heartbeat share it (`js/view/sprites.js`, `js/view/fx.js`). Crowd hits beyond 3/s get the squash and damage number only.
+- **Heartbeat:** one smooth pulse per beat (1.2/s). It was more than 3 peaks a second.
+- **Rates cut:** bolts from 30 and 12/s to 3/s; comic static from 20/s to 3/s; stormshield from 10/s to 3/s; blackout tear from 14/s to 3/s; overhang fade at most one flip per 0.34 s; fuse marker capped at 3 Hz.
+- **Quantised:** sine flicker terms in the held-weapon, torch, flame, star and lamp code step at 3 a second, so they flash at most 1.5 times a second.
+- **Reduce flashing:** steady fallbacks for the alarm, neon, weapon ring, flame jet, bolts, comic static, fuse marker, blackout tear and overhang.
+- **Reduce motion:** camera kick is zeroed under the setting and otherwise scaled by the shake setting; grinder vibration, weather drift, bin and crate sway, comic zoom and boss spin are calmed.
+
+## Checks
+- New `tools/test-a11y-canvas.js`: 71 view files, 14 candidates, 4 allowlisted entries with rationale (`tools/a11y-canvas-allowlist.json`), 19 wiring checks. Passes.
+- `test-feel.js`, `test-ceiling.js`, `test-enemy-behaviors.js`, `check-ids.js` pass. `node --check` clean on changed files.
+
+## Open for the owner
+- The area heuristic (about 150 by 150 px on a phone) is a team rule, not a WCAG number. The pickup ring (about 11/s) and muzzle and impact sparks depend on it.
+- DS §7 says every hit flashes white. That conflicts with §11 above 3 hits a second; the budget now gives squash only beyond 3/s.
+- Tap target: DS §5 and §11 say 48 dp; the brief said 44 pt. This pass uses 48 dp.
+- Text size is built (T4 part 2: Settings, 100, 125 and 150%). The owner should confirm the TR label and that canvas lettering stays at its size.
+- `js/view/screens.js` shakes about 9.5 times a second on the chest reveal. It is Reduce motion guarded and belongs to the UI pass.
+
+## Could not verify
+- The real flash rate on screen; that needs a 60 fps capture on a device.
+- Colour-blind check by shape. Text size on a phone (150% was checked in the headless browser only; see T4 part 2).
+
+---
+
+# T4 part 6: animation flavor
+
+Owner playtest: "in-game animations still feel flat, no flavor, no animation." The audit found the motion was there but too small for a phone (screen 39 px/m; hero about 48 px tall, walker about 50 px). This slice turns the amplitudes up and adds a few shapes. View only: the sim reads none of the keys changed here (checked: `feel.hitFlash`, `feel.scaffoldTrauma`, `view.heroClampX`, `view.widthM`, `view.holdWidthM`, `view.offscreenMargin` are untouched). No timing the sim owns changed; the windup duration is the sim's and stays identical.
+
+## Before and after (every amplitude changed)
+
+| Item | Key or code | Before | After |
+|---|---|---|---|
+| Walk body bob | `view.anim.bobWalk` (config.js) | 0.05 units (about 2.5 px on a walker) | 0.09 units (about 4.5 px) |
+| Walk squash | `view.anim.squashWalk` | 0.04 | 0.08 |
+| Walk step width | `view.anim.stepWidth` | 0.02 | 0.05 |
+| Idle breath bob | `view.anim.bobIdle` | 0.012 | 0.035 |
+| Idle breath squash | `view.anim.squashIdle` (new; was hard-coded 0.008 in sprites.js) | 0.008 | 0.03 |
+| Walker arms | `art-rig.js` new arm mode `zswing`; walker, bloater, hardhat | static reach, 1.12 to 1.3 rad, +/-0.07 | forward reach, 1.0 rad +/-0.45 (opposite phase per arm) |
+| Walker lean toward hero | `feel2.walk.lean` (new), `art-enemies4.js` | none | 0.07 rad at full lean, only while walking (not cars or scooters) |
+| Walk phase per enemy | `feel2.walk.phaseStep` (new), `sprites.js` | all walkers in step | + 2.4 rad per enemy id |
+| Crawler legs | `art-enemies.js` `crawlerDraw` | +/-0.03 units | +/-0.10 |
+| Crawler arms | same | +/-0.05 (hand +/-0.03) | +/-0.12 (hand +/-0.07) |
+| Crawler torso | same | none | +/-0.02 heave |
+| Windup lean | `enemies3.feel.windupLean` (config-enemies3.js) | 0.08 rad | 0.20 rad |
+| Windup squash | `enemies3.feel.windupSquash` | 8% height | 20% height, 10% wider |
+| Windup back-hop | `enemies3.feel.windupBack`, `windupHop` (new) | none | 0.12 m back, 0.05 m up, at full windup |
+| Ordinary spawn scale-in | `enemies3.feel.scaleIn` | 0.15 s | 0.30 s, plus 5 dust puffs rising from the ground (new `feel2.walk.spawnPuff*`) |
+| Death | `art-enemies5.js` `collapseOf`, `applyPose` | one lying pose, fallen from age 0 | 0.45 s collapse: hit-back squash (0.08 s), knees buckle and fall (ease-in, to 0.30 s), settle with landing squash and bounce; contact shadow shrinks 1.0 to 0.7; weapon pose extras kept on top |
+| Hero start stretch | `feel2.hero.startStretch` | 0.07 | 0.12 |
+| Hero stop and hit squash | `feel2.hero.stopSquash` | 0.08 | 0.14 |
+| Hero heavy hit | `feel2.hero.heavyMul` (new), `feel.js` | light and heavy hits the same | heavy (10% max HP or more) squashes 1.8 times as far and kicks 1.5 times as far |
+| Hero idle fidget | `feel2.hero.fidget` (new), `feel.js` | none | every 6 to 10 s, 0.6 s: stretch 5% tall and a neck roll of 0.04 rad; only when still; off under Reduce motion |
+| XP gem hover | `feel2.pickup.bob` (new), `render.js` | 0.06 m at 4 rad/s | 0.08 m at 3 rad/s |
+| XP gem glint | `feel2.pickup.glint` (new), `render.js` `glint()` | none | 4-point sparkle, 0.13 m, turns 0.9 rad/s, swells on a 0.5 Hz smooth beat (alpha 0.3 to 0.8; never on/off) |
+| Damage number pop | `render.js`, `view.feel.dmgPop` and `dmgPopT` (new) | 1.2 to 1.0 over the first 15% of life (about 0.1 s) | 1.5 to 1.0 over the first 0.15 s |
+| Camera punch | `feel.punchZoom` (config.js) | 3% | 6%, now scaled by the shake setting (0 gives none); Reduce motion still zero |
+| Hit shake (player hit trauma) | `feel.traumaPlayerHit` | 0.2 (about 0.5 px at the 0.2 trauma-squared setting) | 0.45 (up to about 2.4 px) |
+| Weapon swing arc | `fx.js` `SWING_T`, `render.js` `drawFx` | 0.16 s; fills 0.16, 0.30, 0.44; stroke 4 px | 0.20 s; fills 0.24, 0.44, 0.64; stroke 5 px |
+
+Flash budget: nothing new flashes. The glint, the pop and the swing fades are smooth. The walk, breath and fidget are geometry only. `tools/test-a11y-canvas.js` passes unchanged.
+
+Hero walk and breath use the same `view.anim` keys as walkers, so the hero's walk bob and squash grow with the crowd's. That is intended by the request; check it on the phone.
+
+## Visual checks (headless, 4x zoom, `reviews/media/R1/animation/`)
+
+Filmstrips were rendered in headless Chrome from the real view scripts, with `performance.now` frozen. They show shape and timing, not motion at speed, so judge the feel on a phone.
+
+- `t4-walk-before.png` and `t4-walk-after.png`: 8 phases of one walk cycle. The after frames show the arm swing and the lean.
+- `t4-crowd-after.png`: 8 walkers at the same walk distance with different ids. Each lands on a different phase.
+- `t4-windup-before.png` and `t4-windup-after.png`: 0 to 100% windup. The after frames lean back, squash and step back.
+- `t4-death-before.png` and `t4-death-after.png`: the 8 collapse phases, then the settled pose for blunt, fire, electric, blade and explosion. The variants read as before.
+- `t4-idle-before.png` and `t4-idle-after.png`: one breath cycle of the hero.
+- `t4-fidget-after.png`: the 0.6 s fidget beat. Subtle by design (5% and 0.04 rad at phone size).
+- `t4-gem-after.png`: the glint turning and swelling over 2 s.
+- `t4-pop-after.png`: the damage number from 0 to 300 ms.
+
+## Cost
+
+`/tmp/filmstrip/cost.js` runs the real sprite code under Node with a counting stub canvas (200 enemies, steady state, 60 frames). Before: 6.9 ms per frame, 4890 canvas calls per frame. After: 6.7 ms per frame, 4890 calls per frame. No new per-frame allocation in the hot loops; the glint, the puff and the collapse shadow are per gem, per spawn or per corpse. Bake keys: walkers add one arm mode (`zswing`) to the recipe key; pose keys stay at 8 walk and 4 breath frames.
+
+## Tests
+
+- `tools/test-anim-flavor.js` (new): the collapse timeline (upright at 0, at rest at 0.45 s, shadow only shrinks), the fidget and the hit squash off under Reduce motion and on otherwise, the heavy-hit multiplier, the zswing arms move through the cycle, the glint pulse at most 1 Hz.
+- The required list passes: check-ids, test-feel, test-a11y-canvas, test-ceiling, test-enemy-behaviors, test-env, test-horde, test-ui-motion.
+- Old numbers pinned by tests: none of the changed keys were pinned by an existing test, so nothing was updated.
+
+## Not done, and open for the owner
+
+- Ambient street life (steam from vents and kebab spits, drifting paper, pigeons that flutter off near the hero or a zombie) was not built. It did not fit the one-hour slot next to the rest of this pass. It is the next slice if you want it.
+- The walker arm swing is forward-biased (1.0 rad centre, +/-0.45) rather than the hanging `swing` mode. I kept the zombie reach and added the swing. Say if you want the hanging version.
+- The hero's hit squash has no direction (the sim's `heroHit` event carries none), so there is no hit-side tilt.
+- The damage pop was already at birth in the old code (it was 1.2 to 1.0 over the first 15% of life, not an end-of-life swell as I first read it). Only its size and duration changed.
+- `render.js` now exports `drawDrops` (as `R.drawDrops`) so the harness can draw the gem; nothing in the game calls it.
+- Not checked on a device. Frame time on a phone is still owed (see T4 part 1).
+
+---
+
+# T4 part 5: progression feedback
+
+The playtest line was "I never felt level progression; it feels very flat and static." This part adds the readouts the audit asked for. View and UI only: no sim, balance or config number changed (another agent is retuning XP and difficulty). Sources: `docs/retention.md` sections 3 and 4, `docs/design-system.md` sections 4, 5, 7, 11, 13.
+
+## What shows now
+- **Your power** (`P.UIProgress.powerHtml`, `hoodNode`, `results`): damage +x% and HP +y% from hood rank, gear, attributes and the Kaan bond aura, plus the Street Tree perk count. On the level sheet, the hood card and the results. The numbers come from `P.Progress.power()`, which reads `P.Meta.loadout()`, the object the sim is created with. `tools/test-progress-ui.js` checks the sim's `baseMight` and `maxHp` against it.
+- **Street Cred**: a HUD chip "SK n" with a bar to the next milestone (the aria label says kills to the next). The results recap has a row "+n · sonraki için k öldürme" that counts up with `P.UIMotion.countUp`.
+- **Partial walk**: the km bar, the map card and the results walk show `kmShown` (the saved km plus the share of the next district walked, levels cleared / 5). The saved `km` is unchanged; it is still the km of the last cleared district.
+- **Terms**: HUD "Lv N"; level-up banner "LEVEL UP · Lv N" (TR "SEVİYE ATLA · Lv N"); results headline "LEVEL 12 · İSTİKLAL" (TR "BÖLÜM 12 · İSTİKLAL"); the recap says "Reached Lv N" for the in-run level; a hood is a district ("BÖLGE"), never a chapter; the stage chip reads "2/5".
+- **Feel**: a 1.2 s level-up banner with the new Lv and a one-line recap of the picked card. It is queued at the pick and shown in play once no overlay is up; it takes no taps. The XP bar has ticks at 25, 50 and 75% and one pop per level-up (a single pulse over `--m-pop`; none under Reduce motion). The results recap shows Lv reached, kills, best streak, Street Cred earned, power gained and the next unlock. The next unlock also shows on the map card, the level sheet and the hood card.
+
+## Files
+- New: `js/meta/meta-progress.js` (pure readouts), `js/strings-progress-ui.js` (TR and EN; every TR line carries `// TR owner check`), `js/view/ui-progress.js` (the views), `css/progress.css`, `tools/test-progress-ui.js`.
+- Edited: `js/meta/meta-data.js` (`gearItems`, `kmShown`; saved km unchanged), `js/view/ui.js`, `js/view/screens.js`, `js/meta/meta-ui.js`, `js/meta/strings-meta.js`, `index.html`, `css/motion.css` (`--m-banner`, reduce-motion lists), `js/strings.js`, `js/strings-journey.js`, `js/strings-progress.js`, `js/strings-weapons2.js`, `js/strings-weapons3.js` (term fixes), `tools/test-ui-motion.js`.
+- Outside the owned list, one hook each: `js/view/hood-card.js` (`bigCard` appends the power and unlock rows) and `js/main.js` (`endRun` passes `kmShown`, `streak` and the meta record; `pickCard` queues the banner).
+
+## Tests
+- `node tools/test-progress-ui.js`: 583 checks. Line limits, term collisions, owner-check tags, the ids the views read, script order and hooks; vm checks against the real sim (`P.createSim`), TR and EN strings, next unlock, Street Cred and partial km; no doubled plus sign in the strip.
+- `node tools/test-ui-motion.js`: 501 checks, including the banner and pop tokens, the one-pulse rule and the banner in both reduce-motion lists.
+- Full loop passes: check-ids, test-meta, test-dialogue, test-feel, test-ui-motion, test-a11y-canvas, test-tree, test-progress-ui.
+- Headless: local server on `prototype/`, phone at 390x844 in the browser panel (the phone is scaled to fit it, so layout is checked in CSS pixels). Screenshots at 100% and 150% text of the results, the HUD with the SK meter and XP ticks, the level-up banner, the hood card, the level sheet and the map card. No console errors on load (one existing warning: the deprecated `apple-mobile-web-app-capable` meta tag in `index.html`).
+
+## Found and fixed while checking
+- The power strip printed "++8%" (a plus added twice). Fixed; the test checks it.
+- The results recap was too tall. At 100% the results screen scrolled 164 px past the 844 px phone; at 150% it scrolled 625 px. The four result actions were below the fold. Now they pin to the bottom of the scrolling screen (`.res-actions`), so "Sonraki Bölüm" stays on screen. Street Cred is a full-width row.
+- "Haritaya Dön" was invisible on the dark results screen (ghost style, dark text). It now uses the light ghost style. At 150% its label wraps to two lines; both row buttons keep one height.
+
+## Not done, and open for the owner
+- **Results still scroll.** The content is about 1,000 px at 100% and 1,470 px at 150% on an 844 px phone. Fitting it without scrolling means cutting a row. Options: drop the rewards "Öldürme" row (the recap already has kills), or move "Süre" and "Yürüyüş" into the recap. Owner decision.
+- **HUD at 150% with a streak chip showing**: the XP bar narrows to about 70 px (about 180 px without the streak). It works but is tight. Option: a shorter SK label, or the streak on the second HUD row.
+- **Finale wording** in `js/story/strings-finale.js` still says "BÖLÜM 1 TAMAM" and "Bölüm 2" for chapter wording (six TR uses). That file is not owned here. Owner decision: keep it as story text, or retitle it to match "Bölüm" as the journey level and "Bölge" as the district.
+- **Turkish owner check**: the new TR lines (banner, strip, recap, unlock, SK chip) are tagged `// TR owner check` in `js/strings-progress-ui.js`.
+- **Not verified**: the level-up cards overlay (its title now reads "LEVEL UP · Lv N") was not screenshotted. Not on a device: frame time and the 1.2 s and pop timings are token values, not observed.
+- **Impact is unproven.** This is readability and feel only. Whether it moves onboarding completion, D30 retention or the 5+ activities group needs playtests and telemetry.
+
+## Follow-ups (owner UI pass: audio sliders, results fit, HUD at 150%, Kısım)
+- **Results still scroll.** Dropping the kills row (it cost 39 px) is not enough. At 100% the content is 1,001 px on an 844 px phone (157 px over). At 150% it is 1,362 px (518 px over). NEXT LEVEL stays visible and pinned at 150% (y 580 to 624 of a 717 px phone, at scroll top and at scroll bottom). The sticky actions block covers the bottom of the run recap until the screen is scrolled, at both sizes. Owner decision on the next cut: move "Süre" and "Yürüyüş" into the recap, shrink the actions block, or fold the recap.
+- **HUD at 150%.** The SK meter moves to HUD row 2 at 150% (`js/view/settings.js`, `textSize >= 150`). The XP bar is 129 px with the streak chip showing. At 100% the SK meter stays in the XP line and the objective title is full. The cost: at 150% the objective title is squeezed to a stub of about 18 px. Owner decision; `js/view/objectives-hud.js` is not owned here. 125% was not measured with the meter in the XP line.
+- **Streak chip.** The label cap is 112 px, so "COMBO 12/60" (109 px) is not clipped at 150%. The TR "DURDURULAMAZ!" (124 px) ellipsizes during the 1.3 s chip. Check the copy.
+- **Settings sliders.** Music, Sound effects and Voice, 0 to 100 in 10% steps, saved and applied at boot. The old Sound switch migrates to Sound effects and Voice at 0 when it was off. TR labels "Müzik", "Ses efektleri" and "Ses (konuşma)" are tagged `// TR owner check`; "Ses (konuşma)" is new.
+- **Finale wording.** Chapter is "Kısım" in TR: `js/story/strings-finale.js` ("KISIM 1 TAMAM", "Kısım 2 ·"), `docs/voice-tr.md` line 163. The `ui.title.proto` line in `js/strings.js` now says "Kısım 1" but is dead (`js/strings-journey.js` overrides it). Journey-level "Bölüm N" and "Bölge" are unchanged. Not owned: the comments in `js/story/finale.js` (line 2) and `js/view/finale-credits.js` (line 1) still say "Bölüm 1 tamam".
+- **Tests.** The 8-test loop passes. Current counts: test-progress-ui 585 checks, test-ui-motion 530 checks (the counts in the Tests section above predate this pass).
+- **Not device-tested.** Headless only, at 100% and 150%.
+
+---
+
+# T4 part 7: sound
+
+Owner's report: "game sound effects are terrible Godot alerts; we need actual sound effects." Approved route: rebuild the synth. Original synthesized audio only, no samples, no downloads. D-029 holds for SFX (the code makes them). Cue list, tools and caveats: `docs/audio-cue-sheet.md` (v0.5).
+
+## What changed
+- 87 cue recipes rebuilt (`js/view/sfx-bank.js`, `sfx-bank2.js`). The tonal beeps and noise-only hiss are replaced with layered modal, glass, plucked and impact sounds. The most-heard cues come first: XP tink, coin, heal, magnet, star, UI, fanfares, chests, melee, booms, glass, shutter, bell, horn, footsteps.
+- `hit` added with five kinds (body, blade, blunt, pierce, chain). Today it is only called with the default body kind. `gem` removed (no producer).
+- Voices on a glottal engine: groan, snarl, zombieDie, bruteRoar, bossDie, elite, hurt, crowdScream, cat.
+- Runtime (`js/view/sfx.js`): voice and rate limits, impact cap, pitch rise on rapid repeats, master limiter, ducking under boss and comic speech, and `P.Sfx.setVolume(bus, v)`.
+- Music: eight procedural placeholder tracks under the IDs `music.js` expects (`audio/music/`). `js/view/music.js` gained `duckFor`.
+- Tools: `tools/render-sfx.js`, `tools/qa-sfx.js`, `tools/render-music.js`, `tools/lib-sfx.js`, `tools/sfx-preview.html` (rewritten). `audio/sfx/.gitignore` keeps the WAVs out of git. `art/PROVENANCE.csv` lists the synthesized audio.
+
+## Tests
+- `node tools/qa-sfx.js` on the DSP render: 348 variants, 87 cues, 0 fails, 6 warnings (similar variants). `--masters` gives the same result.
+- `node tools/test-feel.js`, `check-ids.js` and `test-ceiling.js` pass.
+- Runtime run against a WebAudio stub: all 87 cues, no errors, rate caps hold.
+- Music seams: after a 10 ms fade-out and 2 ms fade-in at each loop end (`loopEdges`), the WAV step within 4 samples of each loop point is 0.008 or less. Before the fix, the boss track stepped 0.18 at its loop point.
+
+## Found while checking
+- My own bug: the first loop fade-out was inverted (full gain at the last sample). The WAV seam check caught it; fixed.
+- The old cue sheet labelled many cues "planned" that game code already calls. A call-site scan found every cue except `cat` in use. The sheet now follows the call sites.
+- The renderer's "edge 2 s" stat measured 50 ms. Corrected to 2 s.
+
+## Not done, and open for the owner
+- **Nobody has listened to it.** Every check is numerical. Start with `level`, `levelClear`, `bell`, `ferryHorn`, `bossIntro` and `bossDie` in `tools/sfx-preview.html`.
+- Settings sliders are not added (`settings.js` was off limits). Call `P.Sfx.setVolume(bus, v)`.
+- Ducking depth: ambience -6 dB and music -9 dB. The brief asked for about 3 dB. Each is one constant (`DUCK_AMB` in `sfx.js`, `DUCK` in `music.js`).
+- The boss music's head is 4.7 dB quieter than its tail at the loop point. Compose the end to match, or accept it.
+- The music is a placeholder. D-029 assigns music to the owner's Suno workflow; the lead records the decision.
+- `cat` has no call site. The hero walk cycle is not wired (`footstep` only plays for the parkour wind-up).
+- Ambience layer descriptions were only partly re-checked against code (the street bed only).
+
+---
+
+# T4 part 4: challenge ramp and XP pacing
+
+**Status: shipped in part.** Shipped: the L2+ XP curve, the drop-heal cap, the frenzy speed, and the XP-per-kill slope. Held back for the owner: the horde, difficulty, elite and affix levers, and simit 0.002. The owner's bot bands (L2-5) and the 15 s first level-up cannot all be met at once with the boss on L5; the measurements below show why. Method: `cd prototype && node tools/bot.js --levels=1,...,10 --seeds=8` for the table, and 32 seeds for the L2-5 validation (kiting bot, `--nododge` as a stress run). The 8-seed medians are bimodal and noisy (L3 min HP read 0% at 8 seeds and 45% at 32), so the 32-seed rows are the reference.
+
+## What shipped (every changed key)
+
+| File | Key | Before | After | Scope |
+|---|---|---|---|---|
+| js/config.js | `xp.base` | 5 | 30 | L2+ generated levels (`xp.mult` 5 and `xp.exp` 1.6 unchanged) |
+| js/config.js | `xp.l1` | (none) | `{ base: 5, mult: 5, exp: 1.6 }` | L1 hand-built curve, unchanged |
+| js/config.js | `P.xpNeed` | reads `P.CFG.xp` | reads `P.CFG.xp.l1` when `P.xpHand` | HUD follows the run's curve |
+| js/config.js | `drops.healCap` | (none) | 70 | HP per run from drops, L2+ (`levels.rampFrom`) |
+| js/config.js | `drops.simitChance` | 0.005 | 0.005 | unchanged (see held back) |
+| js/config-weapons.js | `frenzy.attackSpeed` | 0.4 | 0.25 | L2+ (cooldown / 1.25, was / 1.4) |
+| js/config-weapons.js | `frenzy.attackSpeedL1` | (none) | 0.4 | L1 keeps the old frenzy |
+| js/config-levels.js | `levels.rampFrom` | (none) | 2 | first journey level with the cap and the frenzy speed |
+| js/config-levels.js | `levels.diff.xpLin` | 0.04 | 0.05 | XP per kill slope, all generated levels |
+| js/sim/combat.js | `P.Combat.dropHeal` (new); `updateDrops` | pickups healed directly | every drop heal goes through the cap (L2+) | simit pickups |
+| js/sim/skills.js | `P.Skills.cdScale` | frenzy divisor from `attackSpeed` | `attackSpeed` from L2, `attackSpeedL1` on L1 | frenzy |
+| js/sim/sim.js | `P.xpHand` | (none) | `idx === 1`, set per run | L1 XP curve |
+| tools/bot.js | flags, metrics | — | adds `--nododge`, `--nocap`, the ramp table | observer only; clear, time and deaths identical to HEAD |
+
+Owner levers the brief named, held back at their HEAD values: `horde.on.base` 28, `horde.on.perLevel` 0.6, `horde.hold.perLevel` 0.8, `levels.diff` `hpLin` 0.03, `dmgLin` 0.006, `spawnLin` 0.005, `levels.stages[].elites` (one window on stages 2, 3 and 4, as at HEAD), `levels.hoodExtras` (no istiklal entry), `affix.schedule` (no H01 entry), `drops.simitChance` 0.005. `ctl.cap` 200 unchanged (D-056).
+
+No test file was changed. No test pinned an old number.
+
+## Why the owner's levers were held back (32 seeds)
+
+Reference for the single-lever rows: XP 40/5, simit 0.002, cap 70, frenzy 0.25, HEAD danger (runs H2 and H3): L5 clear 63% and 69%, about 66%. Clear is per level; the danger columns are the median min HP and the share of runs under 30% HP.
+
+| Change on the reference | Level | Clear | Deaths/run | Min HP med | Under 30% | Verdict |
+|---|---|---|---|---|---|---|
+| Horde on 30 + 1.5/lvl, hold 1.5 | L2 / L3 / L5 | 91 / 100 / 44% | 0.78 / 0.53 / 1.41 | 0% / 0% / 0% | 84 / 72 / 91% | L5 cut about 22 points; L3 min HP to 0 |
+| Difficulty hp 0.05, dmg 0.02, spawn 0.02 | L2 / L3 / L4 / L5 | 100 / 100 / 97 / 31% | 0.56 / 0.41 / 0.25 / 1.66 | 0 / 15 / 24 / 0% | 78 / 66 / 56 / 97% | L5 cut about 35 points |
+| Elites 2 per stage at 0.25 / 0.65 | L2 / L3 / L4 / L5 | 100 / 97 / 97 / 53% | 0.44 / 0.31 / 0.38 / 1.31 | 12 / 33 / 15 / 0% | 75 / 47 / 53 / 94% | L5 cut about 13 points |
+| Arena adds 14 or 0 (L5 only) | L5 | 63% / 69% | 1.09 / 1.03 | 0% | 91 / 88% | No effect: the L5 deaths are not the adds |
+
+Other reference points (same bot, 32 seeds):
+
+| Setting | L5 clear | Notes |
+|---|---|---|
+| XP 30/5, simit 0.005, HEAD danger (X30-32, shipped curve) | 81% | L2-4 clear 97-100% |
+| XP 35/5, simit 0.005, HEAD danger (X35-32) | 72% | |
+| XP 40/5, simit 0.005, HEAD danger (A32) | 59% | L2 94%, L3 100%, L4 94% |
+| XP 30/5, simit 0.002, HEAD danger (Q2) | 72% | simit 0.002 costs about 9 points of L5 clear |
+| XP 35/5, simit 0.002, horde owner-low (Q1) | 47% | the simit change is part of this gap |
+| Full owner package at the shipped XP 30/5 (horde, difficulty, elites, H01 hardhat, simit 0.002, cap 70, frenzy 0.25; no H01 affix, see below) | 69% | L2 97%, L3 100%, L4 100%; deaths 0.38 / 0.38 / 0.53 / 1.13; median min HP 21 / 25 / 0 / 0%; under 30% 66 / 63 / 72 / 91% |
+
+The full owner package at the shipped XP fails the L3-5 bands on min HP, under-30 share, and L4 deaths, and it cuts L5 clear to 69%. The L5 boss is the constraint: clear rate on L5 falls with XP pacing (base 30: 81%; 35: 72%; 40: 59%; HEAD base 5: 100%), and every danger lever cuts it further. Removing the adds does not help. Boss-arena tuning is the likely next lever, and it is outside this config-only pass. The H01 affix part of the owner package was not measured: the affix schedule's H01-only gate (`upto`) was reverted with the other danger edits.
+
+## Before and after (bot, shipped config)
+
+**Table 1. L1-10, 8 seeds each.** Before = HEAD config with the cap disabled (`before-nocap`); after = shipped config, `node tools/bot.js --levels=L --seeds=8`.
+
+| Level | Clear | Deaths/run | Min HP med | Min HP <30% | First lv-up s | Lv-ups med (min-max) | Dmg/min | Simit heal/run |
+|---|---|---|---|---|---|---|---|---|
+| L1 | 100 → 100 | 0.25 → 0.25 | 57 → 57 | 38 → 38 | 12.4 → 12.4 | 8 (6-8) → 8 (6-8) | 33.5 → 33.5 | 50 → 50 |
+| L2 | 100 → 88 | 0.00 → 0.25 | 81 → 40 | 0 → 38 | 5.0 → 10.8 | 11 (9-13) → 9 (2-11) | 14.5 → 33.5 | 28 → 65 |
+| L3 | 100 → 100 | 0.13 → 0.63 | 70 → 0 | 13 → 88 | 5.2 → 8.3 | 13 (11-14) → 12 (10-13) | 15.6 → 51.1 | 46 → 55 |
+| L4 | 100 → 100 | 0.00 → 0.13 | 85 → 26 | 0 → 63 | 5.4 → 12.6 | 13 (12-14) → 12 (11-13) | 9.3 → 21.2 | 33 → 70 |
+| L5 (boss) | 100 → 75 | 0.25 → 0.75 | 49 → 4 | 25 → 88 | 5.2 → 10.5 | 9 (8-9) → 7 (4-8) | 31.1 → 84.2 | 43 → 39 |
+| L6 | 100 → 100 | 0.00 → 0.38 | 60 → 29 | 0 → 63 | 5.3 → 11.2 | 10 (8-11) → 8 (6-10) | 29.5 → 56.3 | 50 → 70 |
+| L7 | 100 → 100 | 0.00 → 0.13 | 62 → 34 | 25 → 38 | 5.1 → 9.0 | 12 (10-14) → 11 (8-12) | 23.7 → 29.7 | 62 → 70 |
+| L8 | 100 → 100 | 0.00 → 0.38 | 66 → 30 | 0 → 63 | 4.7 → 10.2 | 12 (10-13) → 10 (7-11) | 21.4 → 51.9 | 54 → 70 |
+| L9 | 100 → 100 | 0.13 → 0.50 | 75 → 37 | 13 → 50 | 5.1 → 7.7 | 19 (16-21) → 19 (16-22) | 17.7 → 24.6 | 75 → 70 |
+| L10 (boss) | 88 → 88 | 0.50 → 0.63 | 57 → 15 | 38 → 75 | 4.6 → 10.8 | 10 (8-11) → 8 (6-10) | 45.0 → 56.4 | 41 → 49 |
+
+**Table 2. L2-5, 32 seeds.** Before = HEAD config (`BASE-32`); after = shipped config (`final3-32`).
+
+| Level | Clear | Deaths/run | Min HP med | Under 30% | First lv-up s | Lv-ups med (min-max) | Median clear s | Simit heal/run |
+|---|---|---|---|---|---|---|---|---|
+| L2 | 100 → 94 | 0.03 → 0.22 | 75 → 35 | 6 → 47 | 5.1 → 10.8 | 10 (9-13) → 8 (2-11) | 165 → 164 | 33 → 70 |
+| L3 | 100 → 100 | 0.03 → 0.16 | 76 → 45 | 3 → 34 | 5.1 → 8.0 | 14 (11-15) → 12 (9-15) | 201 → 198 | 33 → 64 |
+| L4 | 100 → 100 | 0.00 → 0.16 | 77 → 37 | 6 → 47 | 5.0 → 12.4 | 13 (12-16) → 12 (8-14) | 229 → 237 | 37 → 70 |
+| L5 (boss) | 100 → 84 | 0.16 → 0.78 | 57 → 0 | 22 → 91 | 5.2 → 10.6 | 8 (6-9) → 7 (2-9) | 124 → 144 | 42 → 38 |
+
+**Table 3. Late boss levels.** Before = HEAD config, 8 seeds; after = shipped config, 16 seeds.
+
+| Level | Clear | Deaths/run | Lv-ups med (min-max) | First lv-up s |
+|---|---|---|---|---|
+| L25 | 75 → 69% | 0.75 → 1.06 | 12 (6-13) → 10 (5-12) | 4.3 → 6.0 |
+| L50 | 75 → 69% | 0.50 → 0.81 | 16 (12-19) → 15 (10-26) | 3.9 → 5.6 |
+| L75 | 100 → 63% | 0.25 → 1.19 | 16 (15-24) → 16 (11-21) | 3.6 → 5.3 |
+| L100 | 100 → 69% | 0.50 → 1.06 | 19 (14-24) → 18 (13-21) | 3.6 → 4.7 |
+
+With `xpLin` at 0.04 (before the change to 0.05), L75 was 25% and L100 was 50%. Turning off the 70 HP cap alone restored L75 to 63%, so the cap and the XP slope together caused the late drop. The late levels end at 15-18 median level-ups and at most 26 in one run (L50), so the 25 level-up ceiling is roughly met. Late median in-run level is about Lv 19 at L100, against Lv 20 at HEAD, so "Lv 20+ is rare" is not fully met at L100 (it was not at HEAD either).
+
+## Owner bands vs shipped (L2-5, 32 seeds)
+
+| Measure | Target | L2 | L3 | L4 | L5 | Status |
+|---|---|---|---|---|---|---|
+| Clear | ≥ 85% (owner); ≥ 95% L1-4, ≈ 90% L5 (§7) | 94% | 100% | 100% | 84% | L2 one point under §7; L5 under §7 |
+| Deaths/run | 0.15-0.4 (L3-5) | 0.22 | 0.16 | 0.16 | 0.78 | L5 out |
+| Median min HP | 45-65% (L3-5) | 35% | 45% | 37% | 0% | L4-5 out |
+| Under 30% HP | 20-35% (L3-5) | 47% | 34% | 47% | 91% | L4-5 out |
+| First lv-up | ~15 s | 10.8 | 8.0 | 12.4 | 10.6 | early |
+| Lv-ups per level | 6-8 (≤ ~25 longest) | 8 | 12 | 12 | 7 | L3-4 high |
+| Clear time vs before | ±15% | -1% | -1% | +4% | +16% | L5 just out |
+
+Stress run, `--nododge` (bot does not react to shots, telegraphs, stomps or zones), 32 seeds on the final config: clear 94 / 100 / 100 / 78% on L2-5; deaths 0.25 / 0.16 / 0.19 / 0.97; median min HP 38 / 47 / 30 / 0%. With dodging (Table 2): clear 94 / 100 / 100 / 84%; deaths 0.22 / 0.16 / 0.16 / 0.78. Dodging matters most on L5 (about 6 points of clear, about 0.2 deaths per run).
+
+## Deviations from the brief
+
+- XP first level-up: 30/5 gives about 11 s on L2 (the target is about 15 s). 40/5 gives 15 s, but L5 clears 63-69% (not shipped).
+- Lv-ups on L3-4 are 12 (target 6-8). Not fixed by the curve alone, because the level is longer and has more kills.
+- Simit: 0.005 kept. 0.002 cost L5 9 points of clear, and the 70 HP cap does the healing limit instead.
+- Horde, difficulty, elites, H01 hardhat, H01 affixes: held back (see table above). Journey §5.0 therefore still says no new types, elites or affixes in H01-H04, and `docs/journey.md` is unchanged.
+- Frenzy 0.25 is from L2 only. L1 keeps 0.4 through `frenzy.attackSpeedL1`.
+- Drop cap 70 is from L2 only, through `levels.rampFrom`.
+- XP slope `levels.diff.xpLin` 0.04 → 0.05 was not on the owner list; it fixed the late boss levels (L75 25% → 63%). It also changes L2-5 slightly.
+
+## Tests
+
+- Owner's list (14 tools): all pass. Extra tools (check-entrances, test-bond, test-perks-combat, test-perks-move, test-perks-world, test-tel, test-arsenal-w): all pass.
+- `test-arsenal` (full run takes over two minutes) and `--quick` fail in the working tree with `Cannot read properties of undefined (reading 'reduceFlash')`. The cause is unguarded `P.Settings.reduceFlash` reads in the uncommitted js/view edits from another workstream (comic.js, fx.js, weapons-fx4.js and others). The same `--quick` run passes on a clean HEAD copy (`git archive HEAD prototype`). This change does not touch those files.
+- L1 is identical to HEAD on the 8-seed table (clear, deaths, min HP, first lv-up, level-ups, damage, simit heal all unchanged).
+- Before the xpLin change, the repo config's 32-seed L2-5 run matched the override candidate `X30-32` exactly, which confirmed the repo config and the overrides were equivalent. Table 2 is the re-run after xpLin 0.04 → 0.05.
+
+## Human playtest checks
+
+1. First in-run level-up on L2 is about 11 s (target 15 s, and the owner's playtest saw 8.6 s). Check that it reads as "too early" or fine.
+2. L3-4 give 12 level-ups each, against the 6-8 target. Check whether these runs feel card-heavy.
+3. Simit pickup when the 70 HP cap is hit: the pickup still plays and heals nothing. Check that the feedback reads as intended.
+4. Frenzy is 0.4 on L1 and 0.25 from L2. Check that the step is not jarring.
+5. L5 boss: bot clear 84%, deaths 0.78. Check arena fairness with a human.
+6. Late boss levels (L25-100) clear 63-69% for the bot. Check that these feel hard but fair.
+7. L9 (H02) gives 19 level-ups over about six minutes. Check the card rhythm.
+
+## Decisions for the owner
+
+A. Held-back levers (horde, difficulty, elites, H01 hardhat and affixes, simit 0.002): approve or reject. Costs are in the table above.
+B. First level-up, 30/5 (about 11 s, L5 81%) or 40/5 (about 15 s, L5 63-69%).
+C. Owner floor of 85% versus §7 (≥ 95% on L1-4, ≈ 90% on L5). The shipped config is at or near §7 on L1, L3, L4, and under it on L2 (94%) and L5 (84%).
+D. Journey §5.0 reversal (elites, affixes and types in H01-H04): not shipped, so `docs/journey.md` is unchanged.
+E. Late Lv 20+ at L100 (median Lv 19, max Lv 22): acceptable, or lower `levels.diff.xpLin` again.
+
+## Boss-arena pass
+
+Brief: the kiting bot's boss fight bleeds. Shipped L5 clears 84% (32 seeds), 0.78 deaths per run, median min HP 0%, and 91% of runs dip under 30% HP. Goal for L5 and every boss level L10-L100: clear 85-90%, deaths 0.3-0.7 per run, median min HP 25-50%, and a boss stage near the design length (journey §3.1: 5:00-6:00 with the approach). L1 is unchanged. Boss-side numbers only, in config.
+
+**Result.** Clear rate and deaths moved into band on about half the boss levels. Median min HP and stage length did not reach the band (see "Not met"). L5 now clears 94% (32 seeds) and 89% (96 seeds), with 0.53 and 0.60 deaths per run.
+
+### Where the fight bleeds
+
+- L5 arena damage per run, before (96 seeds): charge 33.9, adds 30.5, stomp 16.6, contact 9.7. The brute's charge hits and stomps were the largest boss-side source, so they were the first numbers changed.
+- Kasap (L30, L95): the three-swing combo took 107-133 per run at dmg 16 (sweep before the change), 85-96 per run at dmg 12.
+- Spitter (L65, before the change): acid rain and fan puddles (zone ticks 52 per run) plus glob impacts (34). Bloater (L45, before): pool ticks (zone 43 per run) and belly slam (21).
+- Arena adds: 18-141 per run across boss levels before the pass, largest at L40-L100. Late adds are mostly roster enemies: copci crate pushes hit for 17.8 at L95. The roster is in `config-enemies4.js` (not owned here), so it was not changed.
+- The hero reaches the arena at a median 49% HP on L5. The approach crowd (route horde, stage 5 approach) takes that HP, not the boss. This is why boss-side numbers cannot lift median min HP on their own.
+
+### What changed (every changed key)
+
+| File | Key | Before | After | Reason |
+|---|---|---|---|---|
+| `js/config-levels.js` | `C.bosses.brute.chargeDmg` | 18 | 12 | largest L5 arena source (charges) |
+| `js/config-levels.js` | `C.bosses.brute.stomp.dmg` | 16 | 12 | stomp was 14-17 per run on L5 |
+| `js/config-levels.js` | `C.bosses.brute.rageGap` | 0.5 | 0.8 | enrage cadence; brute only (taksici has its own block, no rageGap) |
+| `js/config-bosses.js` | `C.bosses.kasapBoss.swing.dmg` | 16 | 12 | swing volume on L30 and L95 (107-133 per run before, 85-96 after) |
+| `js/config-levels.js` | `C.bosses.spitter.rain.dps` | 3 | 2 | acid rain zone ticks (L65) |
+| `js/config-levels.js` | `C.bosses.spitter.fan.puddleDps` | 3 | 2 | fan puddle ticks (L65) |
+| `js/config-levels.js` | `C.bosses.bloater.pools.dps` | 3 | 2 | toxic pool ticks (L45, L20, L80, L90) |
+| `js/config-horde.js` | `C.horde.arena.base` | 24 | 12 | ambient arena adds (only in boss arenas; `sim/horde.js` gates on `g.arena`) |
+| `js/config-horde.js` | `C.horde.arena.perLevel` | 0.35 | 0.15 | same |
+| `js/config-horde.js` | `C.horde.arena.cap` | 60 | 30 | same |
+| `js/config-levels.js` | `C.levels.bossHeal` (new) | absent | `{ value: 25, ahead: 3, pop: 0.25, uncapped: true }` | one simit pickup at the arena intro |
+
+Code, not config:
+
+- `js/sim/bosses.js`: `P.Bosses.spawn` calls the new `arenaHeal(s)` after the intro event. It drops one simit pickup `ahead` m in front of the hero (x clamped to the view). It returns early unless `s.gen.arena`, so L1 never gets it, and `value` 0 turns it off.
+- `js/sim/combat.js`: `updateDrops` sends drop heals through `P.Combat.dropHeal(s, amount, uncapped)`. This pass added the `uncapped` argument. The capped path is unchanged. The uncapped path is needed because the route spends the run-wide `drops.healCap` before the boss: the trace showed 26 HP at the intro and no heal.
+- `tools/bot.js` (tooling only): `--set=key.path=value;...` overrides config for experiments, `--trace=SEED`, the boss table, arena damage by source and per 10 s, and the boss `minHP` columns.
+
+No changes to `js/sim/levels.js`, `js/sim/horde.js`, `js/config-enemies*.js`, `js/config-weapons.js`, journey, or the strings, screens, css and audio files.
+
+### Before and after (bot, 16 seeds per boss level, same code)
+
+"Before" is the same code with the changed keys set back to their shipped values and `levels.bossHeal.value` 0 (`--set`). It reproduces the shipped T4 part 4 numbers on L5 (84%, 0.78) and matches an earlier run of the same setting exactly.
+
+Median min HP is per run (whole run). Median min HP, arena is the boss-stage minimum.
+
+| Level | Boss | Clear (16 seeds) | Deaths/run | Median min HP, run | Runs under 30% HP | Median min HP, arena | Approach / fight / walk s | Median clear s |
+|---|---|---|---|---|---|---|---|---|
+| L10 | brute | 88% -> 88% | 0.56 -> 0.44 | 6% -> 18% | 81% -> 69% | 6% -> 34% | 55->55 / 69->74 / 17->16 | 153 -> 151 |
+| L15 | brute | 69% -> 81% | 0.88 -> 0.81 | 0% -> 0% | 75% -> 81% | 24% -> 21% | 67->67 / 65->61 / 16->16 | 145 -> 144 |
+| L20 | bloater | 75% -> 81% | 0.94 -> 0.81 | 0% -> 0% | 81% -> 88% | 0% -> 14% | 64->64 / 42->39 / 20->21 | 126 -> 116 |
+| L25 | taksici | 69% -> 75% | 1.06 -> 1.13 | 0% -> 0% | 88% -> 88% | 0% -> 0% | 60->60 / 79->69 / 17->15 | 144 -> 141 |
+| L30 | kasapBoss | 69% -> 75% | 1.19 -> 0.81 | 0% -> 0% | 88% -> 75% | 0% -> 2% | 62->62 / 71->79 / 19->17 | 162 -> 150 |
+| L35 | taksici | 81% -> 94% | 0.56 -> 0.44 | 31% -> 37% | 50% -> 50% | 35% -> 51% | 69->69 / 61->53 / 13->16 | 138 -> 147 |
+| L40 | spitter | 81% -> 100% | 0.94 -> 0.44 | 0% -> 11% | 88% -> 81% | 0% -> 26% | 57->57 / 40->49 / 14->14 | 115 -> 126 |
+| L45 | bloater | 50% -> 56% | 1.25 -> 1.13 | 0% -> 0% | 88% -> 94% | 0% -> 0% | 79->79 / 39->40 / 18->16 | 130 -> 132 |
+| L50 | tourGuide | 69% -> 88% | 0.81 -> 0.56 | 5% -> 21% | 75% -> 63% | 17% -> 34% | 68->68 / 51->44 / 14->18 | 151 -> 160 |
+| L55 | antiquarian | 69% -> 81% | 0.81 -> 0.75 | 7% -> 0% | 69% -> 63% | 7% -> 0% | 65->65 / 67->57 / 14->15 | 154 -> 147 |
+| L60 | taksici | 100% -> 88% | 0.38 -> 0.31 | 35% -> 43% | 44% -> 31% | 35% -> 70% | 71->71 / 57->50 / 15->22 | 157 -> 154 |
+| L65 | spitter | 38% -> 56% | 1.44 -> 1.19 | 0% -> 0% | 94% -> 75% | 0% -> 0% | 66->66 / 52->68 / 12->12 | 117 -> 132 |
+| L70 | brute | 100% -> 100% | 0.19 -> 0.25 | 33% -> 45% | 50% -> 50% | 51% -> 62% | 59->59 / 50->50 / 15->13 | 137 -> 140 |
+| L75 | spitter | 63% -> 88% | 1.19 -> 0.75 | 0% -> 0% | 100% -> 81% | 0% -> 0% | 60->60 / 58->49 / 12->13 | 132 -> 134 |
+| L80 | bloater | 75% -> 88% | 1.00 -> 0.94 | 0% -> 0% | 81% -> 88% | 0% -> 0% | 63->63 / 52->46 / 18->15 | 130 -> 129 |
+| L85 | taksici | 81% -> 81% | 0.69 -> 0.63 | 10% -> 48% | 63% -> 50% | 10% -> 49% | 60->60 / 56->47 / 20->20 | 147 -> 128 |
+| L90 | bloater | 88% -> 81% | 0.88 -> 0.63 | 0% -> 7% | 88% -> 81% | 0% -> 15% | 65->65 / 51->43 / 15->14 | 131 -> 126 |
+| L95 | kasapBoss | 44% -> 44% | 1.44 -> 1.38 | 0% -> 0% | 88% -> 94% | 0% -> 0% | 63->63 / 94->105 / 14->13 | 138 -> 161 |
+| L100 | brute | 69% -> 88% | 1.06 -> 0.69 | 0% -> 0% | 81% -> 69% | 0% -> 17% | 66->66 / 62->51 / 12->15 | 123 -> 126 |
+
+Arena detail (`Killed` = boss killed; `Deaths before / in arena` per run):
+
+| Level | Killed | Deaths before / in arena | Arena min HP <30% | Boss HP at death | Boss dmg/run | Adds dmg/run |
+|---|---|---|---|---|---|---|
+| L10 | 88% -> 88% | 0.06/0.50 -> 0.06/0.38 | 69% -> 50% | 76% -> 56% | 55.0 -> 43.7 | 24.4 -> 19.2 |
+| L15 | 69% -> 81% | 0.38/0.50 -> 0.38/0.44 | 63% -> 69% | 72% -> 44% | 38.7 -> 48.7 | 37.2 -> 39.6 |
+| L20 | 75% -> 88% | 0.19/0.75 -> 0.19/0.63 | 75% -> 75% | 31% -> 52% | 80.9 -> 85.2 | 10.9 -> 11.4 |
+| L25 | 75% -> 75% | 0.31/0.75 -> 0.31/0.81 | 75% -> 81% | 55% -> 27% | 85.3 -> 75.0 | 50.6 -> 49.9 |
+| L30 | 69% -> 75% | 0.13/1.06 -> 0.13/0.69 | 75% -> 63% | 47% -> 64% | 146.5 -> 121.3 | 27.3 -> 25.8 |
+| L35 | 81% -> 94% | 0.06/0.50 -> 0.06/0.38 | 44% -> 44% | 82% -> 84% | 60.2 -> 52.5 | 36.8 -> 38.6 |
+| L40 | 81% -> 100% | 0.19/0.75 -> 0.19/0.25 | 75% -> 69% | 56% -> 69% | 121.0 -> 88.6 | 15.6 -> 14.8 |
+| L45 | 56% -> 75% | 0.25/1.00 -> 0.25/0.88 | 75% -> 81% | 71% -> 80% | 84.5 -> 85.7 | 50.7 -> 43.6 |
+| L50 | 69% -> 88% | 0.06/0.75 -> 0.06/0.50 | 69% -> 50% | 48% -> 50% | 123.2 -> 95.7 | 19.2 -> 24.5 |
+| L55 | 69% -> 81% | 0.00/0.81 -> 0.00/0.75 | 69% -> 63% | 33% -> 59% | 133.6 -> 139.7 | 36.1 -> 25.6 |
+| L60 | 100% -> 94% | 0.00/0.38 -> 0.00/0.31 | 44% -> 31% | 64% -> 61% | 72.5 -> 58.5 | 32.3 -> 33.0 |
+| L65 | 44% -> 56% | 0.56/0.88 -> 0.56/0.63 | 81% -> 63% | 52% -> 49% | 93.9 -> 97.0 | 50.0 -> 39.1 |
+| L70 | 100% -> 100% | 0.06/0.13 -> 0.06/0.19 | 44% -> 44% | 76% -> 56% | 64.0 -> 59.7 | 20.1 -> 20.7 |
+| L75 | 69% -> 88% | 0.13/1.06 -> 0.13/0.63 | 94% -> 69% | 42% -> 42% | 120.8 -> 105.3 | 54.1 -> 43.6 |
+| L80 | 88% -> 94% | 0.00/1.00 -> 0.00/0.94 | 81% -> 88% | 58% -> 13% | 142.9 -> 145.8 | 48.8 -> 35.6 |
+| L85 | 81% -> 81% | 0.00/0.69 -> 0.00/0.63 | 63% -> 50% | 65% -> 67% | 66.1 -> 61.4 | 92.0 -> 82.8 |
+| L90 | 88% -> 88% | 0.13/0.75 -> 0.13/0.50 | 75% -> 75% | 66% -> 50% | 107.0 -> 93.3 | 43.0 -> 41.1 |
+| L95 | 44% -> 50% | 0.19/1.25 -> 0.19/1.19 | 88% -> 81% | 63% -> 48% | 158.7 -> 153.3 | 98.0 -> 95.5 |
+| L100 | 69% -> 88% | 0.19/0.88 -> 0.19/0.50 | 81% -> 69% | 77% -> 88% | 55.2 -> 44.3 | 91.1 -> 75.5 |
+
+Aggregate over the 19 boss levels: mean clear 72.5% → 80.7% (lowest level 38% → 44%); mean deaths per run 0.91 → 0.74; levels at 85-100% clear 4 → 9; levels with deaths 0.3-0.7 4 → 8; levels with median min HP 25-50% 3 → 4; levels with median min HP 0% 12 → 11.
+
+**L5 (the boss the brief names), shipped vs now:**
+
+| Run | Clear | Deaths/run | No-death runs | Median min HP | Runs under 30% HP | Arena min HP, median | Median clear (s) | Level-ups median |
+|---|---|---|---|---|---|---|---|---|
+| Before, 32 seeds | 84% | 0.78 | 38% | 0% | 91% | 11% | 144 | 7 (2-9) |
+| After, 32 seeds | 94% | 0.53 | 53% | 4% | 72% | 19% | 148 | 6 (4-8) |
+| Before, 96 seeds | 76% | 0.83 | 41% | 0% | 84% | 4% | 137 | 7 (2-9) |
+| After, 96 seeds | 89% | 0.60 | 51% | 3% | 71% | 30% | 145 | 6 (3-9) |
+
+First level-up is unchanged (10.5-10.6 s). L5 arena damage per run, after (96 seeds): charge 27.0, adds 25.3, stomp 12.6, contact 10.1.
+
+L2-4 at 32 seeds are unchanged by this pass (they have no boss and no arena): 94% / 100% / 100% clear, 0.22 / 0.16 / 0.16 deaths, median min HP 35% / 45% / 37%. L1: `node tools/bot.js --levels=1 --seeds=6` is identical with and without the boss-side overrides and with `levels.bossHeal.value=0`.
+
+### Band check
+
+| Measure | Band | After (boss levels) | Status |
+|---|---|---|---|
+| Clear rate | 85-90% | 9 of 19 levels in 85-100% (was 4). Below 85: L15 81, L20 81, L25 75, L30 75, L45 56, L55 81, L65 56, L85 81, L90 81, L95 44 | partly met |
+| Deaths per run | 0.3-0.7 | 8 of 19 levels (was 4). Above 0.7: L15, L20, L25, L30, L45, L55, L65, L75, L80, L95 | partly met |
+| Median min HP | 25-50% | 4 of 19 levels (was 3); 11 levels at 0%; L5 4% (32 seeds) and 3% (96 seeds) | not met |
+| Fight length | 5:00-6:00 incl. approach | stage about 2:00-3:00 (approach 55-79 s, fight 39-105 s, walk 12-22 s) | not met |
+
+### Not met, and why
+
+- **Median min HP.** About half of runs contain a death on most boss levels (no-death share 13-75% after the pass). The median run's minimum is therefore 0% on 11 levels. A 25-50% median needs deaths concentrated in fewer runs and less damage in clean runs. The hero also enters the L5 arena at 49% HP, from the approach crowd. The pass lifts the L5 arena minimum from 4% to 30% at 96 seeds, but the run median stays at 0-3%. Decide the metric definition with the owner (median per run, or the arena only) before tuning further.
+- **Fight length.** The bot's boss stage is about 2:00-3:00, against the design's 5:00-6:00. Boss HP and attack cadence set the length. I did not raise boss HP, because that trades directly against the clear band; this needs a design call.
+- **Late levels (L45, L65, L95).** Clear stays at 44-56%. The remaining bleed there is arena adds (copci crate pushes, roster in `config-enemies4.js`, not owned) and kasap swing volume. Single-key tests did not move these outside the noise (below).
+
+### Tried and not kept
+
+16-seed sweeps have about ±12 points of noise per level, so single-level differences below that are not evidence.
+
+- `levels.bossAddRate` 1.08 → 0.8, all boss levels at 16 seeds: mean clear 81.9% (vs 80.7%), deaths 0.69 (vs 0.74), levels at 85-100% 8 (vs 9). Neutral; not kept. L5 at 96 seeds: 92%.
+- `bosses.kasapBoss.summon.n` 3 → 2, 32 seeds: L30 66% (vs 81% base), L95 69% (vs 53% base). Mixed; not kept.
+- `bosses.kasapBoss.gap` 0.9 → 1.1, L95 at 16 seeds: 63% (vs 44%). Not confirmed; not kept.
+- `bosses.bloater.slam.dmg` 20 → 16, L45 at 16 seeds: 63% (vs 56%). Not kept.
+- `bosses.spitter.fan.dmg` 6 → 5, L65 at 16 seeds: 56%, unchanged. Not kept.
+
+### Recommendations (outside this pass)
+
+- A mid-approach heal: a second pickup about 40 m before the arena, through `js/sim/levels.js` (not owned). This targets the 49% arrival HP directly.
+- Stage-keyed approach density: the route `horde.on` also applies to the stage-5 approach, so a lower approach density needs a stage key in `config-horde.js`. That is a design change, not a tuning change.
+- Arena roster: the copci crate pushes at L95 (`config-enemies4.js`) are the largest add source on late bosses.
+- The metric: "median min HP 25-50%" conflicts with "deaths 0.3-0.7" unless deaths concentrate. Agree the definition first.
+
+### Tests
+
+- `cd prototype && for t in check-ids check-hood-keys check-objective-strings check-death-causes check-entrances test-meta test-dialogue test-enemy-behaviors test-env test-ceiling test-feel test-horde test-tree test-ui-motion test-a11y-canvas test-anim-flavor test-progress-ui; do node tools/$t.js || echo FAIL $t; done`: all pass, no FAIL lines.
+- `node tools/test-arsenal.js --quick`: PASS (exit 0) in the current tree. The `reduceFlash` failure noted under "Tests" above did not reproduce.
+- Not committed or pushed.
+
 # R1-T5: cross-level skill tree (design doc, proposed)
 
 Design only. No gameplay code changed. Doc: `docs/skill-tree.md`. Decision: **D-059, PROPOSED** (`docs/product.md` section 17). Wireframe: `design/lofi/11-skills.html` (the retired Survival Skills screen, repurposed).

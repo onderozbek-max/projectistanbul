@@ -309,7 +309,7 @@ P.Decor = (function () {
       if (hash(y * 1.7 + side) < 0.45) return;
       var txt = th.sign[Math.floor(hash(y * 9 + side * 3) * n)], col = SIGN_COL[Math.floor(hash(y + side * 5) * SIGN_COL.length)];
       var X = R.X(side * 5.35), Y = R.Y(y + 1.2), w = 1.5 * u, hh = 0.55 * u;
-      var flick = hash(y * 4.4 + side) < 0.2 && Math.sin(t * 6 + y) > 0.2 && !(P.Settings && P.Settings.reduceFlash) ? 0.25 : 1;   // about 1 flicker a second: under the 3 flashes a second limit (design-system 11)
+      var flick = hash(y * 4.4 + side) < 0.2 && Math.sin(Math.floor(t * 3) / 3 * 6 + y) > 0.2 && !(P.Settings && P.Settings.reduceFlash) ? 0.25 : 1;   // all flickering signs step together, 3 times a second at most, so the screen never flashes more than 3 a second (design-system 11)
       c.globalAlpha = flick * signAlpha('sign' + side + ':' + y, X, Y, w, hh);
       c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(R.X(side * 7.05), Y - hh * 0.6); c.lineTo(X - side * w * 0.45, Y - hh * 0.6); c.stroke();
       c.fillStyle = col[0]; c.fillRect(X - w / 2, Y - hh / 2, w, hh); c.strokeRect(X - w / 2, Y - hh / 2, w, hh);

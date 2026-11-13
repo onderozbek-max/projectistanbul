@@ -90,7 +90,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
 
   // ---------- Blowtorch (Pürmüz): ignite, then a blue core with an orange jet and heat shimmer ----------
   H.torch = { T: 0.4, held: function (F, G, k) {
-    var t = k.t, ign = M.seg(t, 0, 0.05), flick = 0.92 + 0.08 * Math.sin(t * 60), L = 0.42 * flick * M.seg(t, 0.04, 0.12), c, j, i;
+    var t = k.t, ign = M.seg(t, 0, 0.05), flick = 0.92 + 0.08 * Math.sin(Math.floor(t * 3) / 3 * 60), L = 0.42 * flick * M.seg(t, 0.04, 0.12), c, j, i;
     var pb = t < 0.05 ? 0.05 * M.eo(t / 0.05) : 0.05 * Math.exp(-(t - 0.05) / 0.09);   // draw back to ignite, then the jet pushes the hand forward
     arms(F, G, G.pt(0, 0, 0.2 - pb, 0, 0), G.pt(1, 2, 0.14 - pb * 0.6, -0.08, 0.02));
     c = F.c; M.begin(F, HK.mx, HK.my, G.ang);

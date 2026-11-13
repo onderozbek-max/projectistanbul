@@ -17,7 +17,7 @@ P.CFG = {
                                                                           //     minus the 0.5 m ring. At 4.6 the ring and the knife tip clipped the screen edge.
     spriteScale: { hero: 1.22, walker: 1.15, runner: 1.15, elite: 1.25 }, // G2: draw scale on top of each rig's own scale
                                                                           //     (collision radii are never read here)
-    anim: { bobWalk: 0.05, bobIdle: 0.012, squashWalk: 0.04, stepWidth: 0.02,   // walk cycle: body bob and squash (units)
+    anim: { bobWalk: 0.09, bobIdle: 0.035, squashWalk: 0.08, stepWidth: 0.05, squashIdle: 0.03,   // walk cycle: body bob and squash (units); idle breath bob (units) and squash (fraction)
             hitSquashX: 0.14, hitSquashY: 0.12 },                              // hit squash (fraction of the pose)
     blinkHz: 1.5, blinkMinAlpha: 0.6,                                     // G5: invulnerability pulse, never above 3 per s
     contactShadow: { alpha: 0.22, radius: 0.9, aspect: 0.36 },            // G4: enemy ground shadow (x body radius)
@@ -47,8 +47,11 @@ P.CFG = {
   // GD 4.5 (V3 exp 1.4 -> 1.6: 9 cards + 2 chests). crowd: gem XP divided by 1 + mul x alive / ref (v0.8, AUDIT-7 G-1
   // horde; P.Progression.crowdCost). ref 40 keeps bot clears at 4/6 or better from L25 to L100 (ref 20 dropped L50 to 2/6);
   // level-ups are 9-13 on L2-L12 except L9 (21), and 11-29 from L22 to L100: the 8-14 band is still open on the late levels.
-  xp: { base: 5, mult: 5, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, crowd: { mul: 1, ref: 40 } },
-  drops: { jetonChance: 0.05, jetonMin: 1, jetonMax: 5, simitChance: 0.005, simitHeal: 25 }, // CC 8-9
+  // R1-T4 part 4: generated levels (L2+) use base 30 / mult 5 (first level-up ~11 s, about 8 per L2, 11-12 on L3-4, 7 on L5;
+  // reviews/REVIEW-R1.md T4 part 4). The hand-built Level 1 keeps xp.l1 (level-001-istiklal.md section 8). P.xpHand picks the curve.
+  xp: { base: 30, mult: 5, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, crowd: { mul: 1, ref: 40 }, l1: { base: 5, mult: 5, exp: 1.6 } },
+  // healCap: HP per run from simit and other drops (combat.js dropHeal), R1-T4 part 4. simitChance stays 0.005: 0.002 cost ~9 points of L5 clear.
+  drops: { jetonChance: 0.05, jetonMin: 1, jetonMax: 5, simitChance: 0.005, simitHeal: 25, healCap: 70 }, // CC 8-9
   // V2 Level 1 kit (owner feedback: "ayran, tereyağ, çatal are meaningless"). Every weapon is a distinct verb.
   weapons: {
     knife: {                                                              // signature melee arc (replaces Fork)
@@ -114,8 +117,8 @@ P.CFG = {
   },
   feel: {                                                                 // DS 6-7
     hitFlash: 0.06, stabHitStop: 0.08,
-    traumaPlayerHit: 0.2, traumaDecay: 1.5, maxShakePx: 12, maxShakeDeg: 1,
-    scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.03, punchTime: 0.12,
+    traumaPlayerHit: 0.45, traumaDecay: 1.5, maxShakePx: 12, maxShakeDeg: 1,
+    scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.06, punchTime: 0.12, dmgPop: 1.5, dmgPopT: 0.15,
     dmgNumberLife: 0.7, dmgNumberRise: 0.6, dmgNumberMax: 40, dmgMerge: 0.2, lowHpFrac: 0.3,
     edgePulseFrac: 0.1, edgePulseAlpha: 0.25, edgePulseLife: 0.25, edgePulseGap: 0.55,  // G3: red edge pulse on a heavy hit (gap > 0.5 s so three hits in 1 s give at most two pulses)
     heroFlashGap: 0.34,                                                   // G3: hero white flash, at most 3 in any 1 s window (60 ms each)
@@ -172,8 +175,11 @@ P.CFG = {
   },
 };
 
+// XP to the next run level. P.xpHand is true for the hand-built Level 1; P.createSim sets it for each run, so the HUD bar
+// (js/view/ui.js reads P.xpNeed(level)) follows the curve the run plays without a second argument.
+P.xpHand = true;
 P.xpNeed = function (level) {
-  var c = P.CFG.xp;
+  var c = P.xpHand ? P.CFG.xp.l1 : P.CFG.xp;
   return Math.round(c.base + c.mult * Math.pow(level, c.exp));
 };
 

@@ -23,7 +23,7 @@ const P = globalThis.P;
 if (!P.Enemies || !P.Enemies.frame) P.Enemies = { frame: function () {} };   // E2 stub fallback (test-only)
 // Browser-only globals used by the view layer: no-op stand-ins for the draw smoke test.
 if (!P.Sfx) P.Sfx = { play: function () {} };
-if (!P.Fx) P.Fx = { addTrauma: function () {}, letter: function () {}, punch: function () {} };
+if (!P.Fx) P.Fx = { addTrauma: function () {}, letter: function () {}, punch: function () {}, flashGo: function () { return true; } };
 if (!P.Sprites) P.Sprites = { person: function () {}, shadow: function () {} };
 if (!P.Feel) P.Feel = { hitStop: function () {} };   // T4: weapons-fx.js asks Feel for hit-stop (feel.js is not loaded here)
 

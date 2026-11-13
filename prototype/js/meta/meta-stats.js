@@ -183,8 +183,8 @@ P.Meta = P.Meta || {};
     renderAlloc(panel.ctx);
   }
   Attr.build = function (host, opts) { if (!panel) buildPanel(host, opts); };
-  Attr.show = function () { if (panel) { panel.root.classList.remove('meta-hidden'); draft = {}; renderPanel(); } };
-  Attr.hide = function () { if (panel) panel.root.classList.add('meta-hidden'); draft = {}; };
-  Attr.isOpen = function () { return !!panel && !panel.root.classList.contains('meta-hidden'); };
+  Attr.show = function () { if (panel) { P.UIMotion.panelShow(panel.root); draft = {}; renderPanel(); } };
+  Attr.hide = function () { if (panel) P.UIMotion.panelHide(panel.root); draft = {}; };   // slides out (ui-motion.js)
+  Attr.isOpen = function () { return !!panel && P.UIMotion.panelOpen(panel.root); };
   Attr.hero = function () { return hero; };
 })(P.Meta);

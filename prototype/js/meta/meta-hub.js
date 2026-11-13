@@ -135,9 +135,9 @@ P.Meta = P.Meta || {};
     });
     body = el('div', 'meta-hub-body', root);
   };
-  Hub.show = function (k) { if (root) { if (k) tab = k; root.classList.remove('meta-hidden'); renderBody(); } };
-  Hub.hide = function () { if (root) root.classList.add('meta-hidden'); };
-  Hub.isOpen = function () { return !!root && !root.classList.contains('meta-hidden'); };
+  Hub.show = function (k) { if (root) { if (k) tab = k; P.UIMotion.panelShow(root); renderBody(); } };
+  Hub.hide = function () { if (root) P.UIMotion.panelHide(root); };   // slides out (ui-motion.js)
+  Hub.isOpen = function () { return !!root && P.UIMotion.panelOpen(root); };
 
   // ---- Welcome-back summary (one overlay, Devam closes) ----
   Hub.welcome = function (host, info, done) {
@@ -154,7 +154,9 @@ P.Meta = P.Meta || {};
   function toast(host, text, done) {
     var n = el('div', 'meta-toast', host); n.textContent = text;
     sfx('star');
-    setTimeout(function () { n.remove(); done(); }, 1500);
+    // 1.5 s in all: the slide-out (css/meta.css .meta-toast.is-out, --m-exit) is the last part of it.
+    var out = P.UIMotion.ms('--m-exit');
+    setTimeout(function () { P.UIMotion.leave(n, 'is-out', function () { n.remove(); done(); }); }, 1500 - out);
   }
   function collectionName(id) {
     var it = M.Collect.catalogue().filter(function (x) { return x.id === id; })[0];

@@ -105,7 +105,9 @@ P.Meta = P.Meta || {};
   function render() {
     var st = M.treeState(), kaan = M.bondState().kaan, onBond = page === 'bond' && kaan.joined;
     if (page === 'bond' && !kaan.joined) page = 'fight';
-    panel.sc.textContent = t('tree.sc', { n: st.sc });
+    var scText = t('tree.sc', { n: st.sc });
+    if (panel.sc.textContent && panel.sc.textContent !== scText) P.Meta.Anim.kick(panel.sc, 'is-pop', P.UIMotion.ms('--m-pop'));   // Street Cred changed
+    panel.sc.textContent = scText;
     drawPages(kaan.joined);
     [panel.grid, panel.detail, panel.foot].forEach(function (n) { n.classList.toggle('meta-hidden', onBond); });
     panel.bond.classList.toggle('meta-hidden', !onBond);
@@ -128,9 +130,9 @@ P.Meta = P.Meta || {};
     panel.foot = el('div', 'meta-tree-foot', panel.root);
   }
   T.build = function (host, opts) { if (!panel) build(host, opts); };
-  T.show = function () { if (panel) { confirming = false; sel = null; panel.root.classList.remove('meta-hidden'); render(); } };
-  T.hide = function () { if (panel) panel.root.classList.add('meta-hidden'); confirming = false; };
-  T.isOpen = function () { return !!panel && !panel.root.classList.contains('meta-hidden'); };
+  T.show = function () { if (panel) { confirming = false; sel = null; P.UIMotion.panelShow(panel.root); render(); } };
+  T.hide = function () { if (panel) P.UIMotion.panelHide(panel.root); confirming = false; };   // slides out (ui-motion.js)
+  T.isOpen = function () { return !!panel && P.UIMotion.panelOpen(panel.root); };
   T.showBond = function () { if (panel) { page = 'bond'; render(); } };
   T.select = function (id) { if (panel && P.Tree.node(id)) { page = PAGES.fight.indexOf(id.split('.')[0]) >= 0 ? 'fight' : 'street'; sel = id; render(); } };
 })(P.Meta);

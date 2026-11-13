@@ -100,8 +100,8 @@ P.Meta = P.Meta || {};
     activeBox = el('div', 'meta-ars-ults', root);
   }
   Ars.build = build;
-  Ars.show = function () { if (root) { root.classList.remove('meta-hidden'); renderAll(); } };
-  Ars.hide = function () { if (root) root.classList.add('meta-hidden'); };
-  Ars.isOpen = function () { return !!root && !root.classList.contains('meta-hidden'); };
+  Ars.show = function () { if (root) { P.UIMotion.panelShow(root); renderAll(); } };
+  Ars.hide = function () { if (root) P.UIMotion.panelHide(root); };   // slides out (ui-motion.js)
+  Ars.isOpen = function () { return !!root && P.UIMotion.panelOpen(root); };
   Ars.signatureOf = signatureOf;
 })(P.Meta);

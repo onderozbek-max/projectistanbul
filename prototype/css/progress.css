@@ -1,0 +1,54 @@
+/* Progress on screen (T4 part 5; js/view/ui-progress.js): the Street Cred meter in the HUD, the XP bar's ticks and pop,
+   the level-up banner, the "Your power" strip, the hood card's next unlock and the results recap. Durations are motion
+   tokens (css/motion.css); font sizes scale with --ui-text. Reduce motion: motion.css removes the animations and transitions. */
+
+/* ---- HUD: Street Cred meter (icon, number, bar): in the XP line below 150% text, in HUD row 2 at 150% (settings.js moves it) ---- */
+.sk-meter { flex: none; display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; background: rgba(20,21,31,.85);
+  border: 2px solid var(--ink); border-radius: 999px; }
+.sk-label { font: 800 calc(12px * var(--ui-text, 1)) var(--body); color: #FFD166; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sk-ico { display: block; flex: none; width: calc(14px * var(--ui-text, 1)); height: calc(14px * var(--ui-text, 1)); }
+.sk-track { display: block; width: 32px; height: 6px; background: #0E2A14; border-radius: 3px; overflow: hidden; border: 1.5px solid var(--ink); }
+.sk-track i { display: block; height: 100%; width: 0; background: #FFD166; transition: width var(--m-fill) linear; }
+
+/* ---- XP bar: quarter ticks (ui-progress.js builds them) and one pop per level-up (a single pulse, no loop) ---- */
+.xp-bar { position: relative; }
+.xp-tick { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(20,21,31,.6); pointer-events: none; }
+.xp-bar.is-pop { animation: xp-pop var(--m-pop) var(--m-ease-pop) 1; }
+@keyframes xp-pop {
+  0% { transform: scaleY(1); filter: brightness(1); }
+  40% { transform: scaleY(1.5); filter: brightness(1.5); }
+  100% { transform: scaleY(1); filter: brightness(1); }
+}
+
+/* ---- Level-up banner: under the HUD, pointer-events none, shown for --m-banner, hidden under any overlay ---- */
+.lvl-banner { position: absolute; left: 50%; top: 168px; z-index: 9; transform: translateX(-50%); max-width: calc(100% - 40px);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 14px; background: var(--simit-gold); color: var(--ink);
+  border: 3px solid var(--ink); border-radius: 12px; box-shadow: var(--shadow); text-align: center; pointer-events: none;
+  transition: opacity var(--m-exit) var(--m-ease-in), transform var(--m-exit) var(--m-ease-in);
+  animation: lvl-banner-in var(--m-enter) var(--m-ease-out); }
+.lvl-banner b { font: italic 900 calc(20px * var(--ui-text, 1)) var(--display); letter-spacing: .02em; }
+.lvl-banner span { font: 700 calc(13px * var(--ui-text, 1)) var(--body); line-height: 1.25; }
+.lvl-banner.is-out { transform: translate(-50%, -8px); opacity: 0; }
+@keyframes lvl-banner-in { from { transform: translate(-50%, -12px); opacity: 0; } }
+#phone.overlay-up .lvl-banner { display: none; }
+
+/* ---- "Your power" strip: one line, on the level sheet, the hood card and the results ---- */
+.pw-strip { margin: 4px 0 0; font: 800 calc(14px * var(--ui-text, 1)) var(--body); letter-spacing: .02em; color: var(--ink);
+  text-align: center; font-variant-numeric: tabular-nums; text-wrap: balance; }
+#scr-results .pw-strip { color: #FFD166; }
+.meta-sh-detail .pw-strip { text-align: left; color: var(--bosphorus); }
+
+/* ---- Hood card: the power strip and the next unlock under the fact line (view/hood-card.js) ---- */
+.hc-power { margin-top: 8px; padding-top: 6px; border-top: 2px dashed rgba(20,21,31,.2); }
+.hc-power .pw-strip { margin: 0; text-align: left; color: var(--bosphorus); }
+.hc-next { margin-top: 4px; font: 800 calc(13px * var(--ui-text, 1)) var(--body); letter-spacing: .04em; color: #C0392B; }
+
+/* ---- Results: the run recap panel, and the actions pinned to the bottom of the scrolling screen ---- */
+.res-actions { position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 4px;
+  background: linear-gradient(rgba(20,21,31,0), rgba(20,21,31,.96) 24%); }
+.res-actions .row.gap { align-items: stretch; }            /* at 150% the long label wraps; both buttons keep one height */
+.res-actions .row.gap .btn { padding: 0 12px; }
+.res-recap .res-head { margin: 0 0 4px; }
+.res-reached { margin: 0 0 6px; font: 800 calc(16px * var(--ui-text, 1)) var(--display); color: var(--ink); line-height: 1.2; }
+.kv-wide { flex-direction: column; align-items: flex-start; gap: 2px; }
+.kv-wide span:last-child { font: 800 calc(15px * var(--ui-text, 1)) var(--body); line-height: 1.25; }

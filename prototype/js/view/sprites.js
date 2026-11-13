@@ -94,6 +94,7 @@ P.Sprites = (function () {
     if (!moving) {
       bi = Math.floor(t / 260 + rc.seed) % 4; p.breath = bi * TAU / 4; p.bob = -A.bobIdle * (1 + Math.sin(p.breath)) * 0.5;
       if (p.arms === 'swing' || p.arms === 'run' || p.arms === 'pump') p.arms = 'idle';
+      if (p.arms === 'zswing') p.arms = 'reach';                     // a stopped walker holds the reach, it does not swing
       p.key = 'b' + bi;
     } else {
       wi = Math.round((((o.phase || 0) % TAU) + TAU) % TAU / TAU * 8) % 8;
@@ -106,7 +107,7 @@ P.Sprites = (function () {
   }
   function squash(pose, moving, hit) {
     var A = P.CFG.view.anim;
-    var sy = moving ? 1 - A.squashWalk * Math.abs(Math.sin(pose.walk)) : 1 + 0.008 * Math.sin(pose.breath);
+    var sy = moving ? 1 - A.squashWalk * Math.abs(Math.sin(pose.walk)) : 1 + A.squashIdle * Math.sin(pose.breath);
     var sx = moving ? 1 + A.stepWidth * Math.abs(Math.sin(pose.walk)) : 1;
     return { x: sx * (1 + A.hitSquashX * hit), y: sy * (1 - A.hitSquashY * hit) };
   }
@@ -201,30 +202,47 @@ P.Sprites = (function () {
     if (ring) S.ring(c, X, Y, V.ringRadius * er * u, ring);
     c.restore();
   };
+  // Screen-wide flash budget (design-system 11, WCAG 2.3.1): every white or red flash that starts on screen takes a slot, and no
+  // more than FLASH_HZ starts fit in any 1 s window. A per-object gap alone let a crowd flash dozens of times a second together,
+  // so the hero hit, enemy and prop flashes, blast and burst discs, the edge pulse and the low-HP heartbeat share this budget.
+  // Under Reduce flashing nothing is granted and nothing is counted.
+  var FLASH_HZ = 3, flashLog = [];
+  function trimFlashLog(now) { while (flashLog.length && now - flashLog[0] >= 1) flashLog.shift(); }
+  S.flashOk = function (now) {
+    if (P.Settings && P.Settings.reduceFlash) return false;
+    trimFlashLog(now);
+    if (flashLog.length >= FLASH_HZ) return false;
+    flashLog.push(now);
+    return true;
+  };
+  // A flash that cannot wait (the low-HP heartbeat): always shown, but it counts against the budget.
+  S.flashForce = function (now) { trimFlashLog(now); flashLog.push(now); };
+  S.flashStarts = function (now) { trimFlashLog(now); return flashLog.length; };
   // Guardrail (no flashes faster than 3 per second): one white hit flash per enemy per feel.enemyFlashGap. A hit that
   // lands during an allowed flash keeps it; a suppressed flash stays suppressed until it ends. Squash plays on every hit.
   var flashSt = {}, flashCalls = 0, propFlash = typeof WeakMap === 'function' ? new WeakMap() : null;
   // Same rule for props (carts, canisters, cover): one white flash per object, at most 3 in any 1 s, none under Reduce flashing.
   S.propFlashOk = function (k) {
     var now = performance.now() / 1000, st, hit = (k.flash || 0) > 0;
-    if (P.Settings.reduceFlash || !propFlash) return false;
+    if ((P.Settings && P.Settings.reduceFlash) || !propFlash) return false;
     st = propFlash.get(k);
     if (!st) { st = { on: false, ok: false, at: -1e9 }; propFlash.set(k, st); }
     if (!hit) { st.on = false; st.ok = false; }
-    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap; if (st.ok) st.at = now; }
+    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap && S.flashOk(now); if (st.ok) st.at = now; }
     return hit && st.ok;
   };
   function enemyFlashOk(e, now) {
-    if (P.Settings.reduceFlash) return false;
+    if ((P.Settings && P.Settings.reduceFlash)) return false;
     var k = e.id, st = flashSt[k], hit = (e.flash || 0) > 0;
     if (!st) st = flashSt[k] = { on: false, ok: false, at: -1e9, seen: now };
     if (now - st.seen > 0.2) st.on = false;             // not drawn for a while (off screen): the next hit is a new flash
     st.seen = now;
     if (!hit) { st.on = false; st.ok = false; }
-    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap; if (st.ok) st.at = now; }
+    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap && S.flashOk(now); if (st.ok) st.at = now; }
     if (++flashCalls % 600 === 0) Object.keys(flashSt).forEach(function (q) { if (now - flashSt[q].seen > 2) delete flashSt[q]; });
     return hit && st.ok;
   }
+  S.enemyFlashOk = enemyFlashOk;   // exported for tests/test-a11y-canvas.js
   // Enemy at world pos; Rd is P.Render (X/Y/ppm/ctx), or a view with noGround set when render.js already drew the ground.
   // Handles emerge, turning, elite, boss, crawler.
   S.enemy = function (Rd, e, hero) {
@@ -237,7 +255,8 @@ P.Sprites = (function () {
     c.save();
     if (emerge < 1) { c.globalAlpha = emerge; c.translate(X, Y); c.scale(0.7 + 0.3 * emerge, 0.7 + 0.3 * emerge); c.translate(-X, -Y); }
     var rc = def.custom ? crawlerRc(e) : zombieRc(e, def, human, f);
-    var o = { flash: e.flash, phase: (e.walk || 0) * 5.5, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
+    // Walk phase: distance walked (sim e.walk) plus a per-enemy offset, so a crowd that spawned together does not march in step.
+    var o = { flash: e.flash, phase: (e.walk || 0) * 5.5 + (e.id || 0) * P.CFG.feel2.walk.phaseStep, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
       outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000),
       spring: P.Feel ? P.Feel.hurt(e) : null, stopped: P.Feel ? P.Feel.stopped(e) : false };
     drawFigure(c, X, Y, uf, f, rc, o, performance.now());
@@ -294,7 +313,9 @@ P.Sprites = (function () {
   S.corpse = function (Rd, p) {
     var c = Rd.ctx, u = Rd.ppm, X = Rd.X(p.x), Y = Rd.Y(p.y - 0.2), k = 1 - p.t / p.T, fall = Math.min(1, k / 0.45), f = p.dx >= 0 ? 1 : -1;
     var def = EN.def(p.etype || 'walker'), v = (p.variant | 0) & 7, O = CH.outfit(p.skin || EN.L1[v]), ch = !!p.fling, rc;
-    c.save(); c.globalAlpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
+    // p.fall (0..1) and p.alpha, when given, override the timing here: the death collapse (art-enemies5.js) drives them itself.
+    if (p.fall !== undefined) fall = p.fall;
+    c.save(); c.globalAlpha = p.alpha !== undefined ? p.alpha : (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4);
     if (p.fling) {
       var el = k * p.T, zz = Math.max(0, 6 * el - 10 * el * el);
       X += p.dx * el * 0.25 * u; Y -= zz * u;

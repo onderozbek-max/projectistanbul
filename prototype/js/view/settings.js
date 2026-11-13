@@ -1,11 +1,12 @@
 // Player settings + tiny save (localStorage). The sim never reads these (ARCH 4.17).
-// AUDIT-6 F5 adds view and comfort settings: music level (0-100, step 25), haptics, joystick side (HUD mirrors with it),
-// screen shake (0, 50, 100%) and reduced flashing. Render and input read them; P.applySettings pushes the ones that
-// have a live hook (music level, side, flashing class).
+// AUDIT-6 F5 adds view and comfort settings: haptics, joystick side (HUD mirrors with it), screen shake (0, 50, 100%) and
+// reduced flashing. T4 part 8 adds three volume sliders, 0-100 in 10% steps: Music (musicVol: P.Music), Sound effects
+// (sfxVol: the sfx, ui and ambience buses) and Voice (voiceVol: the voice bus, comic speech and groans). Render and input
+// read them; P.applySettings pushes the ones that have a live hook (volumes, side, flashing class, motion class, text size).
 (function () {
   var KEY = 'istanbul_proto_v1';
   var MUSIC_BASE = 0.7;   // music level 100 = the prototype's default mix (P.Music starts at 0.7)
-  var MUSIC_STEPS = [0, 25, 50, 75, 100], SHAKE_STEPS = [0, 50, 100];
+  var SHAKE_STEPS = [0, 50, 100], TEXT_STEPS = [100, 125, 150];   // shake and text size: DS 4
   // First launch: the phone's language picks the script. Any tr* gives Turkish, anything else gives English (D-051). The result is
   // saved as the player's setting and the Settings control overrides it. ?lang=tr|en overrides for testing and is not saved.
   P.detectLang = function (list) {
@@ -15,7 +16,8 @@
   var phoneLangs = typeof navigator === 'undefined' ? [] : navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
   var defaults = { lang: P.detectLang(phoneLangs), sound: true, subs: true, reduceMotion: false, dmgNumbers: true, blood: true,
                    firstRunDone: false, l1Cleared: false, coldOpenSeen: false, installId: null,
-                   musicVol: 100, haptics: true, joySide: 'right', shake: 100, reduceFlash: false, devTools: false };
+                   musicVol: 100, sfxVol: 100, voiceVol: 100, haptics: true, joySide: 'right', shake: 100, reduceFlash: false,
+                   devTools: false, textSize: 100 };
   var LANGS = ['tr', 'en'];
   var BOOLS = ['sound', 'subs', 'reduceMotion', 'dmgNumbers', 'blood', 'firstRunDone', 'l1Cleared', 'coldOpenSeen',
                'haptics', 'reduceFlash', 'devTools'];
@@ -29,27 +31,51 @@
   // Every fixed-type key falls back to its default when the stored value has another type (a damaged save cannot break
   // the menu, the language or startup).
   BOOLS.forEach(function (k) { if (typeof P.Settings[k] !== 'boolean') P.Settings[k] = defaults[k]; });
+  // The old "Sound effects" on/off switch muted every bus. Its replacement, the Sound effects slider, starts at 0 for a
+  // player who had it off (and Voice with it). The flag itself is retired and stays true.
+  if (P.Settings.sound === false && !('sfxVol' in data)) { P.Settings.sfxVol = 0; P.Settings.voiceVol = 0; }
+  P.Settings.sound = true;
   if (LANGS.indexOf(P.Settings.lang) < 0) P.Settings.lang = defaults.lang;
   if (typeof P.Settings.installId !== 'string' || !P.Settings.installId) P.Settings.installId = 'i-' + Math.random().toString(36).slice(2, 10);
-  // Stored values outside the offered steps fall back to the default (a hand-edited save cannot break the menu).
-  if (MUSIC_STEPS.indexOf(P.Settings.musicVol) < 0) P.Settings.musicVol = defaults.musicVol;
+  // Volumes: a saved number is clamped to 0-100 and rounded to the 10% step (a 25 from the old steps becomes 30); anything
+  // that is not a number is the default. Stored values outside the offered steps fall back to the default too.
+  function volume(v, d) { return typeof v === 'number' && isFinite(v) ? Math.round(Math.min(100, Math.max(0, v)) / 10) * 10 : d; }
+  P.Settings.musicVol = volume(P.Settings.musicVol, defaults.musicVol);
+  P.Settings.sfxVol = volume(P.Settings.sfxVol, defaults.sfxVol);
+  P.Settings.voiceVol = volume(P.Settings.voiceVol, defaults.voiceVol);
   if (SHAKE_STEPS.indexOf(P.Settings.shake) < 0) P.Settings.shake = defaults.shake;
+  if (TEXT_STEPS.indexOf(P.Settings.textSize) < 0) P.Settings.textSize = defaults.textSize;
   if (P.Settings.joySide !== 'left' && P.Settings.joySide !== 'right') P.Settings.joySide = defaults.joySide;
-  P.SettingSteps = { music: MUSIC_STEPS, shake: SHAKE_STEPS };   // offered values (screens.js cycles through them)
+  P.SettingSteps = { shake: SHAKE_STEPS, text: TEXT_STEPS };   // offered values (screens.js cycles through them)
   P.saveSettings = function () {
     try { localStorage.setItem(KEY, JSON.stringify(P.Settings)); } catch (e) { /* private mode: ignore */ }
   };
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && !('reduceMotion' in data)) {
     P.Settings.reduceMotion = true;
   }
-  // Pushes the settings that have a live hook: music level, HUD mirror (joystick side), the flashing class and the motion class.
+  // Pushes the settings that have a live hook: the three volumes (at boot too), HUD mirror (joystick side), the flashing
+  // class, the motion class and the UI text size.
   P.applySettings = function () {
     if (P.Music && P.Music.setVolume) P.Music.setVolume(MUSIC_BASE * P.Settings.musicVol / 100);
+    if (P.Sfx && P.Sfx.setVolume) {
+      var fx = P.Settings.sfxVol / 100;
+      P.Sfx.setVolume('sfx', fx); P.Sfx.setVolume('ui', fx); P.Sfx.setVolume('ambience', fx);
+      P.Sfx.setVolume('voice', P.Settings.voiceVol / 100);
+    }
     var ph = typeof document !== 'undefined' ? document.getElementById('phone') : null;
     if (!ph) return;
     ph.classList.toggle('lefty', P.Settings.joySide === 'left');
     ph.classList.toggle('reduce-flash', !!P.Settings.reduceFlash);
     ph.classList.toggle('reduce-motion', !!P.Settings.reduceMotion);   // the in-game switch does what the OS query does
+    ph.style.setProperty('--ui-text', String(P.Settings.textSize / 100));   // UI text scale (css: calc(Npx * var(--ui-text))); canvas art does not scale
+    // Street Cred: in the XP line below 150% text; in HUD row 2 at 150%, so the streak chip keeps the XP bar at least 120 px
+    // wide (at 150% it was 58 px). Row 2 is the objective and the call strip; the move is a DOM move, never mid-run.
+    // At 125% the move would cut the objective title (58 px), so 125% keeps the XP-line placement.
+    var sk = document.getElementById('sk-meter'), xp = document.querySelector('.hud-xp'), sub = document.querySelector('.hud-sub');
+    if (sk && xp && sub) {
+      var host = P.Settings.textSize >= 150 ? sub : xp;
+      if (sk.parentNode !== host) host.insertBefore(sk, host === sub ? sub.firstChild : xp.querySelector('.xp-bar'));
+    }
   };
   // Gore colour: red blood (default, pending owner decision D-024) or DS 'ink splats'. View-only.
   P.goreRGB = function (shade) {

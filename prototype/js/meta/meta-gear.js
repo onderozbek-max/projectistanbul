@@ -152,16 +152,16 @@ P.Meta.Gear = (function () {
       M.equip(id); sfx('gearEquip'); feedback(slot.id, t('meta.gear.equipped'));
     } else if (M.itemLevel(id) < max) {
       if (M.upgrade(id)) { sfx('coin'); sfx('gearEquip'); feedback(slot.id, t('meta.gear.done')); }
-      else { A.kick(detAct, 'is-shake', 400); sfx('uiBack'); flash(t('meta.gear.need')); }
+      else { A.kick(detAct, 'is-shake', P.UIMotion.ms('--m-beat')); sfx('uiBack'); flash(t('meta.gear.need')); }
     } else return;
     render();
     if (onChange) onChange();
   }
   // Satisfying feedback: slot pops, bust bounces, toast line.
   function feedback(slotId, msg) {
-    A.kick(slotBtn[slotId], 'is-pop', 420);
-    A.kick(bust, 'is-bounce', 500);
-    A.kick(coinEl.parentNode, 'is-pop', 300);
+    A.kick(slotBtn[slotId], 'is-pop', P.UIMotion.ms('--m-beat'));
+    A.kick(bust, 'is-bounce', P.UIMotion.ms('--m-beat'));
+    A.kick(coinEl.parentNode, 'is-pop', P.UIMotion.ms('--m-pop'));
     flash(msg);
   }
   function flash(msg) {
@@ -173,13 +173,13 @@ P.Meta.Gear = (function () {
 
   function show() {
     if (!root) return;
-    root.classList.remove('meta-hidden');
+    P.UIMotion.panelShow(root);
     shown = {};
     render();
-    A.kick(bust, 'is-bounce', 500);
+    A.kick(bust, 'is-bounce', P.UIMotion.ms('--m-beat'));
   }
-  function hide() { if (root) root.classList.add('meta-hidden'); }
-  function isShown() { return !!root && !root.classList.contains('meta-hidden'); }
+  function hide() { if (root) P.UIMotion.panelHide(root); }   // slides out (ui-motion.js)
+  function isShown() { return !!root && P.UIMotion.panelOpen(root); }
 
   return { build: build, show: show, hide: hide, render: render, isShown: isShown };
 })();

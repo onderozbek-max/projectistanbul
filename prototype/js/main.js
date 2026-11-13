@@ -194,6 +194,7 @@
   function pickCard(card) {
     P.Tel.log('card_chosen', { cards: offer.cards.map(function (c) { return c.id; }), chosen: card.id, rerolled: rerolled });
     P.Progression.choose(sim, card);
+    if (P.UIProgress) P.UIProgress.queueLevelUp(sim, card);   // the 1.2 s banner, shown in play once no overlay is up
     handleEvents();
     if (sim.pendingLevels > 0) { openCards(); return; }
     if (sim.pendingChests > 0) { openChest(); return; }
@@ -252,6 +253,7 @@
     }
     // Death beat (AUDIT-6 F4): the world freezes and desaturates for 0.8 s, then the down screen (or results).
     state = 'dying'; dyingT = P.Settings.reduceMotion ? 0 : DEATH_BEAT;
+    if (P.DeathBeat) P.DeathBeat.focus(sim);   // the zoom's origin, set before the class starts the transition (view only)
     phone.classList.add('dying');
     dyingNext = sim.reviveUsed ? function () { endRun(false); } : showDown;
   }
@@ -309,11 +311,12 @@
       var pend = P.Meta.onResults({ levelIndex: levelIndex, won: win, stars: nStars, coins: sim.jeton, kills: sim.kills, timeS: sim.runT,
         tally: sim.tally, reviveUsed: !!sim.reviveUsed, daily: !!runOpts.daily, modifiers: runOpts.modifiers || null, hero: 'arda' });
       if (pend && pend.reward) { jeton = pend.reward.total; first = pend.reward.first; }
-      km = P.Meta.progress().kmWalked;
+      km = P.Meta.progress().kmShown;   // the walk toward the next hood, partial (saved km is unchanged)
     }
     var r = { win: win, stars: stars, goals: goals, jeton: jeton, hurda: C.hurdaBase * (first ? C.firstClearMult : 1), kills: sim.kills, firstClear: first,
-              time: sim.runT, level: sim.level, hpPct: Math.round(h.hp / h.maxHp * 100),
-              hood: L.hood.name, hoodN: L.hoodIndex + 1, stage: L.stage, km: (+km || 0).toFixed(1), hasNext: levelIndex < P.Journey.count() };
+              time: sim.runT, level: sim.level, streak: sim.tally.maxStreak | 0, hpPct: Math.round(h.hp / h.maxHp * 100),
+              hood: L.hood.name, hoodN: L.hoodIndex + 1, stage: L.stage, km: (+km || 0).toFixed(1), hasNext: levelIndex < P.Journey.count(),
+              meta: pend || null };
     P.Tel.log('level_end', { result: win ? 'win' : 'lose', level_id: L.id, t_s: +sim.runT.toFixed(1), stars: nStars, kills: sim.kills, rewards: { jeton: jeton, hurda: win ? r.hurda : 0 } });
     P.Settings.firstRunDone = true; if (win && levelIndex === 1) P.Settings.l1Cleared = true; P.saveSettings();
     state = 'results'; P.UI.showHud(false);

@@ -113,8 +113,9 @@ P.EnemiesFx2 = (function () {
   // Rolling wheelie bin (copci): a green bin on two wheels, a lid line, sway with the roll.
   function drawBin(R, b) {
     if (b.kind === 'crate') return drawCrate(R, b);
-    var c = R.ctx, u = R.ppm, X = R.X(b.x), Y = R.Y(b.y), w = 0.7 * u, h = 0.95 * u, sw = Math.sin(b.t * 14) * 0.04 * u;
-    c.save(); c.translate(X + sw, Y); c.rotate(Math.sin(b.t * 9) * 0.06);
+    var c = R.ctx, u = R.ppm, X = R.X(b.x), Y = R.Y(b.y), w = 0.7 * u, h = 0.95 * u, calm = !!(P.Settings && P.Settings.reduceMotion),
+      sw = calm ? 0 : Math.sin(b.t * 14) * 0.04 * u;
+    c.save(); c.translate(X + sw, Y); c.rotate(calm ? 0 : Math.sin(b.t * 9) * 0.06);
     c.fillStyle = '#2F7D4F'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
     c.beginPath(); c.roundRect ? c.roundRect(-w / 2, -h, w, h, 0.08 * u) : c.rect(-w / 2, -h, w, h); c.fill(); c.stroke();
     c.fillStyle = '#25613D'; c.fillRect(-w / 2, -h, w, 0.14 * u);
@@ -125,8 +126,9 @@ P.EnemiesFx2 = (function () {
 
   // Crate (copci, every second push): a wooden box, two planks and a nail, tumbling a little as it rolls.
   function drawCrate(R, b) {
-    var c = R.ctx, u = R.ppm, X = R.X(b.x), Y = R.Y(b.y), w = 0.8 * u, h = 0.8 * u, sw = Math.sin(b.t * 11) * 0.03 * u;
-    c.save(); c.translate(X + sw, Y - h / 2); c.rotate(Math.sin(b.t * 7) * 0.09);
+    var c = R.ctx, u = R.ppm, X = R.X(b.x), Y = R.Y(b.y), w = 0.8 * u, h = 0.8 * u, calm = !!(P.Settings && P.Settings.reduceMotion),
+      sw = calm ? 0 : Math.sin(b.t * 11) * 0.03 * u;
+    c.save(); c.translate(X + sw, Y - h / 2); c.rotate(calm ? 0 : Math.sin(b.t * 7) * 0.09);
     c.fillStyle = '#8B6B3E'; c.strokeStyle = '#14151F'; c.lineWidth = 2;
     c.fillRect(-w / 2, -h / 2, w, h); c.strokeRect(-w / 2, -h / 2, w, h);
     c.strokeStyle = '#5E4628'; c.lineWidth = 2;

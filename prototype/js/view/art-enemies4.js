@@ -29,18 +29,35 @@
   // Scale for the figure: the same unit S.enemy uses (scale, elite, boss).
   function unitOf(Rd, e) { return Rd.ppm * EN.def(e.type).scale * (e.boss ? 2.2 : 1) * (e.elite ? 1.25 : 1); }
 
+  function clamp1(v) { return v < -1 ? -1 : v > 1 ? 1 : v; }
+  // Spawn puff (ordinary spawns only): a ring of dust lifts off the ground as the zombie comes up. View particles, no sim state.
+  function spawnPuff(e) {
+    var W = P.CFG.feel2.walk, n = W.spawnPuffN, i, a, id = e.id || 0;
+    for (i = 0; i < n; i++) {
+      a = i / n * TAU + id;
+      P.Feel.emit({ k: 'dust', x: e.x + Math.cos(a) * 0.25, y: e.y + Math.sin(a) * 0.1, z: 0.03, vx: Math.cos(a) * 0.5, vy: Math.sin(a) * 0.25,
+        vz: 0.5 + 0.3 * (i % 2), r: W.spawnPuffR, t: W.spawnPuffLife, T: W.spawnPuffLife });
+    }
+  }
+  var puffed = typeof WeakMap === 'function' ? new WeakMap() : null;
+
   var prevEnemy = P.Sprites.enemy;
   P.Sprites.enemy = function (Rd, e, hero) {
     var c = Rd.ctx, u = Rd.ppm, uf = unitOf(Rd, e), X = Rd.X(e.x), Y = Rd.Y(e.y - e.r * 0.6);
     var f = hero.x >= e.x ? 1 : -1, def = EN.def(e.type);
     if (e.state === 'rising' && e.entrance) { drawRising(Rd, e, hero, X, Y, uf, f); return; }
-    var wl = clamp01(e.windup || 0), id = e.id || 0;
-    var rot = flinchOf(e) - f * FL.windupLean * wl, sq = 1 - FL.windupSquash * wl;
+    var wl = clamp01(e.windup || 0), id = e.id || 0, W = P.CFG.feel2.walk;
+    // Walking walkers lean toward the hero (a sideways lean reads as a push); cars and scooters keep their own heading.
+    var walking = !(P.Feel && P.Feel.stopped(e)) && !def.scooter && !def.car;
+    var rot = flinchOf(e) - f * FL.windupLean * wl + (walking ? W.lean * clamp1(hero.x - e.x) : 0);
+    // Windup: lean back, squash down (widening a little) and take a small back-hop. The timing is the sim's; these are visuals.
+    var sq = 1 - FL.windupSquash * wl, sw = 1 + 0.5 * FL.windupSquash * wl, back = FL.windupBack * wl * u, hop = FL.windupHop * wl * u;
     var tw = (e.age + id * 0.37) % FL.twitchEvery < FL.twitchT ? FL.twitchAmp * (id % 2 ? 1 : -1) : 0;
     var sway = Math.sin((e.walk || 0) * 1.1 + id) * FL.shamble * u, sc = e.age < FL.scaleIn ? 0.5 + 0.5 * e.age / FL.scaleIn : 1;
+    if (puffed && e.age < 0.06 && !e.door && !puffed.has(e) && !(P.Settings && P.Settings.reduceMotion)) { puffed.set(e, true); spawnPuff(e); }
     c.save();
     if (sc < 1) c.globalAlpha = sc;
-    c.translate(X + sway, Y); c.rotate(rot); c.scale(sc, sc * sq); c.translate(-X, -Y);
+    c.translate(X + sway - f * back, Y - hop); c.rotate(rot); c.scale(sc * sw, sc * sq); c.translate(-X, -Y);
     if (tw) { var nk = Y - 0.9 * uf; c.translate(X, nk); c.rotate(tw); c.translate(-X, -nk); }
     if (def.scooter) scooter(c, X, Y, uf, f, e);
     if (def.car) taxiCar(c, Rd, e, X, Y, uf);

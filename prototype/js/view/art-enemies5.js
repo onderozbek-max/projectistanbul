@@ -38,14 +38,49 @@
     return { dx: f * slide, dy: 0, rot: -f * 0.35 * e(-a * 16), char: false };
   }
 
-  // Draw one owned corpse at sim age a (s). Base lying pose with t set so the fall is complete; fades in its last seconds.
+  // Death collapse, shared by every pose (design-system 7: a short fall, then the ash). Corpse age a in s, 0.45 s in all:
+  // 1 hit-back: the body squashes and is shoved along the blow; 2 knees buckle: it folds forward (ease-in) and drops;
+  // 3 settle: a landing squash and a small bounce; 4 shadow: the contact shadow shrinks as it folds, then holds.
+  // Returns fall (0..1, the lying angle), sx, sy (squash about the feet), push (m along the blow), lift (m up), shadow (0..1).
+  var CO = { hit: 0.08, fallEnd: 0.3, end: 0.45 };
+  function collapseOf(a) {
+    var r = { fall: 1, sx: 1, sy: 1, push: 0, lift: 0, shadow: 0.7 }, q;
+    if (a < CO.hit) {
+      q = a / CO.hit;
+      r.fall = 0; r.shadow = 1;
+      r.sy = 1 - 0.16 * Math.sin(Math.PI * q); r.sx = 1 + 0.1 * Math.sin(Math.PI * q); r.push = 0.06 * Math.sin(Math.PI / 2 * q);
+    } else if (a < CO.fallEnd) {
+      q = (a - CO.hit) / (CO.fallEnd - CO.hit);
+      r.fall = q * q; r.shadow = 1 - 0.3 * q; r.push = 0.06 * (1 - q);
+      r.lift = -0.06 * q; r.sy = 1 - 0.08 * q; r.sx = 1 + 0.04 * q;
+    } else if (a < CO.end) {
+      q = (a - CO.fallEnd) / (CO.end - CO.fallEnd);
+      r.lift = -0.06 * (1 - q) + 0.05 * Math.sin(Math.PI * q) * (1 - q);
+      r.sy = 0.92 + 0.08 * q; r.sx = 1.04 - 0.04 * q;
+    }
+    return r;
+  }
+  // Pose transform about the feet (X, Y, screen): the collapse squash and push, then the pose extras (x.dx, x.dy, x.rot).
+  function applyPose(c, X, Y, u, f, x, st) {
+    c.translate(X + (x.dx + st.push * f) * u, Y + (x.dy - st.lift) * u);
+    c.scale(st.sx, st.sy); c.rotate(x.rot); c.translate(-X, -Y);
+  }
+  // Contact shadow under the corpse: shrinks with the collapse, then holds at 70%, and fades with the corpse.
+  function shadowOf(Rd, rec, X, Y, u, k) {
+    var cs = P.CFG.view.contactShadow, def = P.CFG.enemies[rec.etype] || {}, r = def.radius || 0.35;
+    P.Sprites.contact(Rd.ctx, X, Y, cs.radius * r * u, cs.alpha * k, cs.aspect);
+  }
+
+  // Draw one owned corpse at sim age a (s): the collapse, then the lying pose with the weapon's extras. Fades in its last seconds.
   function draw(Rd, rec, a) {
     var c = Rd.ctx, u = Rd.ppm, f = rec.dx >= 0 ? 1 : -1, X = Rd.X(rec.x), Y = Rd.Y(rec.y - 0.2);
-    var fade = clamp01((a - (rec.dur - POSE.fade)) / POSE.fade), k = 0.5 + 0.5 * fade, x = extraOf(rec.pose, a, f, rec.etype);
-    var p = { x: rec.x, y: rec.y, dx: rec.dx, dy: rec.dy, etype: rec.etype, variant: rec.variant, skin: rec.skin, fling: false, t: 1 - k, T: 1, pose: rec.pose };
-    if (x.char && charredBody(Rd, p, fade, x, X, Y, u)) return;
-    c.save();
-    c.translate(X + x.dx * u, Y + x.dy * u); c.rotate(x.rot); c.translate(-X, -Y);
+    var fade = clamp01((a - (rec.dur - POSE.fade)) / POSE.fade), k = 0.5 + 0.5 * fade, x = extraOf(rec.pose, a, f, rec.etype), st = collapseOf(a);
+    var alpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
+    var p = { x: rec.x, y: rec.y, dx: rec.dx, dy: rec.dy, etype: rec.etype, variant: rec.variant, skin: rec.skin, fling: false, t: 0, T: 1,
+      pose: rec.pose, fall: st.fall, alpha: alpha };
+    shadowOf(Rd, rec, X, Y, u, st.shadow * alpha);
+    if (x.char && charredBody(Rd, p, fade, x, st, f, X, Y, u)) return;
+    c.save(); applyPose(c, X, Y, u, f, x, st);
     baseCorpse(Rd, p);
     c.restore();
   }
@@ -54,7 +89,7 @@
   // on the live canvas would darken the ground too; on the scratch canvas it only paints where the body has pixels.
   // Returns false when the live transform is not readable, and the caller draws the plain body instead.
   var scratch = null, sctx = null, BOX_W = 3.6, BOX_H = 3.0, PAD = 4;
-  function charredBody(Rd, p, fade, x, X, Y, u) {
+  function charredBody(Rd, p, fade, x, st, f, X, Y, u) {
     var c = Rd.ctx, M = c.getTransform ? c.getTransform() : null;
     if (!M) return false;
     var cx = M.a * X + M.c * Y + M.e, cy = M.b * X + M.d * Y + M.f;       // device centre of the body
@@ -67,8 +102,7 @@
     // Same matrix as the live canvas, shifted so the buffer's corner sits at (ox, oy) in device pixels.
     sctx.setTransform(M.a, M.b, M.c, M.d, M.e - ox, M.f - oy);
     var R2 = Object.create(Rd); R2.ctx = sctx;
-    sctx.save();
-    sctx.translate(X + x.dx * u, Y + x.dy * u); sctx.rotate(x.rot); sctx.translate(-X, -Y);
+    sctx.save(); applyPose(sctx, X, Y, u, f, x, st);
     baseCorpse(R2, p);
     sctx.restore();
     sctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -88,5 +122,5 @@
     baseCorpse(Rd, p);
   };
 
-  P.ArtDeath = { draw: draw, poseFor: poseFor, extraOf: extraOf };
+  P.ArtDeath = { draw: draw, poseFor: poseFor, extraOf: extraOf, collapseOf: collapseOf, collapseEnd: CO.end };
 })();

@@ -68,6 +68,8 @@ P.HoodCard = (function () {
     card.appendChild(fact);
     var p = plan(li);
     if (p) card.appendChild(p);
+    var pw = P.UIProgress && P.UIProgress.hoodNode(li);   // "Your power" strip and the next unlock (ui-progress.js)
+    if (pw) card.appendChild(pw);
     card.appendChild(el('div', 'hc-skip', tx('hc.skip')));
     card.setAttribute('data-sub', en() ? sub.en : sub.tr);
     return card;

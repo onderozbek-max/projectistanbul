@@ -437,7 +437,7 @@ P.Landmarks = (function () {
   // Weather for generated levels: rain streaks, brazier fire glow on the sidewalks, fog bands.
   L.weather = function (R, s, y0, y1) {
     if (isL1(s)) return;
-    var sub = P.Themes.subOf(P.RenderWorld.themeOf(s), P.Themes.subIndex(s)), t = performance.now() / 1000;
+    var sub = P.Themes.subOf(P.RenderWorld.themeOf(s), P.Themes.subIndex(s)), t = P.Settings && P.Settings.reduceMotion ? 0 : performance.now() / 1000;   // Reduce motion freezes the weather drift (rain, fog, sheen, fire glow)
     var covered = !!(P.Indoor && P.Indoor.level(s));   // rain and fog stay outside; braziers may burn indoors
     if (sub.wx === 'rain' && !covered) rain(R, y0, y1, t);
     else if (sub.wx === 'fire') fires(R, y0, y1, t);

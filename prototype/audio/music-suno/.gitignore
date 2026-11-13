@@ -1,0 +1,8 @@
+# Owner's Suno exports: large audio sources, git-ignored like the SFX WAVs. Keep the originals backed up outside the repo.
+# The tool writes the game files to ../music/ (those are the tracked outputs). README.md and PROVENANCE.csv stay tracked.
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.aif
+*.aiff

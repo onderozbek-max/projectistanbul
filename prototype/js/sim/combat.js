@@ -362,7 +362,7 @@ P.Combat.updateDrops = function (s, dt) {
     if (d.kind === 'xp') { s.xpPicked++; P.Progression.addXp(s, d.value); }
     else if (d.kind === 'jeton') s.jeton += d.value;
     else if (d.kind === 'chest') s.pendingChests++;
-    else h.hp = Math.min(h.maxHp, h.hp + d.value + (d.kind === 'simit' ? P.Combat.simitBonus(s) : 0));
+    else P.Combat.dropHeal(s, d.value + (d.kind === 'simit' ? P.Combat.simitBonus(s) : 0), d.uncapped);
     s.events.push({ type: 'pickup', kind: d.kind, value: d.value });
   }
 };
@@ -370,6 +370,21 @@ P.Combat.updateDrops = function (s, dt) {
 // grit.3 Iron Stomach: each simit heals ironStomach.simitHeal more (the caller caps the total at max HP).
 P.Combat.simitBonus = function (s) {
   return P.Combat.hasPerk(s, 'grit.3') ? P.CFG.perks.ironStomach.simitHeal : 0;
+};
+
+// Drop heals (simit pickups from kills, cart and cover breaks, events and hazards) share one budget per run: drops.healCap HP,
+// from journey level levels.rampFrom on (L1 is uncapped, as before).
+// A pickup is still collected past the budget, but it restores nothing. s.dropHealed counts the HP actually restored.
+// uncapped (boss-arena pass): the boss-arena pickup (levels.bossHeal, bosses.js) is outside the budget and does not count
+// toward it; the route's drops cannot spend it before the boss, so the intro heal always restores what it says.
+P.Combat.dropHeal = function (s, amount, uncapped) {
+  var h = s.hero, before = h.hp;
+  if (uncapped) { h.hp = Math.min(h.maxHp, h.hp + amount); return h.hp - before; }
+  var cap = s.levelIndex >= P.CFG.levels.rampFrom ? P.CFG.drops.healCap : Infinity;
+  var room = Math.max(0, cap - (s.dropHealed || 0));
+  h.hp = Math.min(h.maxHp, h.hp + Math.min(amount, room));
+  s.dropHealed = (s.dropHealed || 0) + (h.hp - before);
+  return h.hp - before;
 };
 
 // agg.3 Finisher: a crit kill slows every enemy within finisher.r metres of the victim. Status slow takes the lost fraction,
