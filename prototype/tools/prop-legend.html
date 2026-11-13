@@ -1,0 +1,111 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Prop legend (R1-T4 part 11): sidewalk and street props with their roles</title>
+<!-- Review sheet for the legibility grammar in js/view/istanbul-props.js (ROLE table, DRESS, blockMark). Every street prop the
+     game draws, twice where a kind can be both: as dressing (a sidewalk slot, flatter, smaller, muted) and as a sim block
+     (cover: thick outline, top highlight, hatched top or cracked top). Plus the idle tram from js/view/vehicles.js.
+     Open: prototype/tools/prop-legend.html (no arguments). Screenshot at 390 px wide for the phone check. -->
+<style>
+  html, body { margin: 0; background: #14151F; color: #F4EBDD; font: 13px/1.35 system-ui, sans-serif; max-width: 100%; overflow-x: hidden; }
+  header { padding: 14px 16px 6px; }
+  h1 { font-size: 17px; margin: 0 0 6px; }
+  h2 { font-size: 14px; margin: 18px 16px 6px; color: #FFD166; }
+  p.note { margin: 0 16px 8px; color: #C9C2B0; max-width: 620px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; padding: 0 16px 8px; box-sizing: border-box; }
+  .cell { background: #22242E; border-radius: 6px; padding: 6px; min-width: 0; }
+  .cell canvas { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; background: #5D5F68; border-radius: 4px; }
+  .cell .k { font-weight: 700; margin-top: 4px; }
+  .cell .r { font-size: 11px; color: #C9C2B0; }
+  .tag { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-right: 4px; }
+  .dressing { background: #5B5E66; color: #F4EBDD; }
+  .solid { background: #E9A23B; color: #14151F; }
+  .breakable { background: #7AC7A2; color: #14151F; }
+  .hazard { background: #FF4D2E; color: #14151F; }
+  .fauna { background: #7CC7FF; color: #14151F; }
+  .plain { background: #2A3445; color: #C9C2B0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 6px; }
+  .legend div { font-size: 12px; }
+</style>
+<body>
+<header>
+  <h1>Prop legend: role grammar (R1-T4 part 11)</h1>
+  <div class="legend">
+    <div><span class="tag dressing">dressing</span> sidewalk slot: flatter (x0.8 tall), smaller (x0.9), muted, faint outline</div>
+    <div><span class="tag solid">solid</span> cover block: thick outline, top highlight, hatched top</div>
+    <div><span class="tag breakable">breakable</span> cover block: thick outline, lighter top, crack</div>
+    <div><span class="tag hazard">hazard</span> keeps its colours (fuel, fire, stripes)</div>
+    <div><span class="tag fauna">fauna</span> reacts to Arda: full colour, own silhouette</div>
+    <div><span class="tag plain">plain</span> landmark, overhead rig, decal or fx: drawn as before</div>
+  </div>
+</header>
+<p class="note">Each cell is drawn by the game's own painter (P.Props.draw, P.Vehicles.drawCar). The same kind appears as dressing and as a block where both exist,
+so the difference is visible. Blocks use the sim size from config-levels.js (P.CFG.levels.kinds). Open a phone-width window to check legibility at 390 px.</p>
+<div id="root"></div>
+<script>window.P = {};
+// settings.js owns the real gore palette (blood on); stubbed here so the sheet loads without the game's settings
+P.goreRGB = function (s) { return ['86,14,20', '120,20,28', '160,24,36'][s || 0]; };</script>
+<script src="../js/config.js"></script>
+<script src="../js/config-feel.js"></script>
+<script src="../js/config-levels.js"></script>
+<script src="../js/view/istanbul-props.js"></script>
+<script src="../js/view/istanbul-props2.js"></script>
+<script src="../js/view/istanbul-props-env.js"></script>
+<script src="../js/view/vehicles.js"></script>
+<script src="../js/view/consumables-icons.js"></script>
+<script src="../js/view/consumables.js"></script>
+<script>
+(function () {
+  var DPR = Math.min(2, window.devicePixelRatio || 1) * 2;      // 2x of the 104 px cell, so the sheet reads sharp on a phone
+  var SIZE = 104, root = document.getElementById('root');
+  var LABEL = { dressing: 'dressing', solid: 'solid cover', breakable: 'breakable cover', hazard: 'hazard', fauna: 'fauna', plain: 'plain' };
+  // A fake render frame: metres to canvas px, origin at the cell centre (y up), the way render.js maps the world.
+  function frame(cv, ppm) {
+    var c = cv.getContext('2d');
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.fillStyle = '#5D5F68'; c.fillRect(0, 0, SIZE, SIZE);
+    var R = { ctx: c, ppm: ppm, X: function (x) { return SIZE / 2 + x * ppm; }, Y: function (y) { return SIZE / 2 - y * ppm; }, cam: { y: 0 } };
+    return R;
+  }
+  function cell(group, kind, role, draw) {
+    var d = document.createElement('div'), cv = document.createElement('canvas'), k = document.createElement('div'), r = document.createElement('div');
+    d.className = 'cell';
+    cv.width = SIZE * DPR; cv.height = SIZE * DPR;
+    k.className = 'k'; k.textContent = kind;
+    r.className = 'r'; r.innerHTML = '<span class="tag ' + role + '">' + LABEL[role] + '</span>' + (group || '');
+    d.appendChild(cv); d.appendChild(k); d.appendChild(r);
+    draw(cv);
+    return d;
+  }
+  function section(title, items) {
+    var h = document.createElement('h2'); h.textContent = title; root.appendChild(h);
+    var g = document.createElement('div'); g.className = 'grid'; root.appendChild(g);
+    items.forEach(function (it) { g.appendChild(it); });
+  }
+  var kinds = P.Props.kinds().slice().sort();
+  var sidewalk = [], blocks = [], other = [];
+  kinds.forEach(function (kind) {
+    var size = (P.CFG.levels && P.CFG.levels.kinds && P.CFG.levels.kinds[kind]) || null;
+    var sRole = P.Props.roleOf(kind, {}), bRole = P.Props.roleOf(kind, { w: size ? size[0] : 1, h: size ? size[1] : 1 });
+    if (sRole === 'plain' || sRole === 'fauna' || sRole === 'hazard' || sRole === 'dressing' || sRole === 'breakable' || sRole === 'solid') {
+      var draw = function (cv) { var R = frame(cv, 34); P.Props.draw(kind, R, 0, 0, { k: 1, h: 0.7, n: 6, a: 0.3 }); };
+      if (sRole === 'dressing' || sRole === 'fauna' || sRole === 'plain' || sRole === 'hazard') sidewalk.push(cell('sidewalk slot', kind, sRole, draw));
+    }
+    if (bRole === 'solid' || bRole === 'breakable') {
+      var sz = size || [1, 1];
+      var bd = function (cv) {
+        var ppm = 34, R = frame(cv, ppm), w = sz[0], h = sz[1];
+        P.Props.draw(kind, R, 0, 0, { w: w, h: h, k: 0, v: 0.2, alarm: false });
+      };
+      blocks.push(cell('sim block ' + sz[0] + ' x ' + sz[1] + ' m', kind, bRole, bd));
+    }
+  });
+  // the idle tram and the tram landmark share one drawing (vehicles.js)
+  var tram = cell('vehicles.js drawCar: opaque, always', 'tram', 'plain', function (cv) {
+    var R = frame(cv, 6.4);
+    P.Vehicles.drawCar(R, 0, -6, 6, 2.6, { t: 1, lamp: '255,236,190' });
+  });
+  section('Vehicles (the tram: opaque, always; see vehicles.js header for the opacity rules)', [tram]);
+  section('Sidewalk slots (dressing, fauna, plain, hazard drawn as a sidewalk prop)', sidewalk);
+  section('Sim blocks (cover: solid and breakable, the same kinds at their sim size)', blocks);
+})();
+</script>

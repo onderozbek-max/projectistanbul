@@ -262,7 +262,7 @@ const strings = read('js/strings-ui2.js');
 const trAt = strings.indexOf('P.STR.tr'), enAt = strings.indexOf('P.STR.en');
 check(strings.indexOf("'ui.set.textSize': 'Yazı boyutu'") > trAt && strings.indexOf("'ui.set.textSize': 'Yazı boyutu'") < enAt
   && strings.indexOf("'ui.set.textSize': 'Text size'") > enAt, 'strings-ui2.js: ui.set.textSize has a TR ("Yazı boyutu") and an EN ("Text size") entry');
-check(/\/\/ TR owner check[^\n]*\n\s*'ui\.set\.textSize'/.test(strings), 'the TR text-size label carries the "// TR owner check" comment on the line above');
+check(!/\/\/ TR owner check/.test(strings), 'the TR text-size label is owner-approved (T4 part 9): no "// TR owner check" comment in strings-ui2.js');
 
 // ---- T4 part 5: the level-up banner, the XP pop and the results count-up (css/progress.css, js/view/ui-progress.js) ----
 const progCss = cssOf('css/progress.css'), progJs = codeOf('js/view/ui-progress.js');
@@ -347,17 +347,22 @@ function helperWith(reduced, exitMs) {
   check(!n.names.has('hidden') && !n.names.has('is-leaving'), 'screen: showing it again removes hidden');
 }
 
-// ---- T4 part 8 follow-ups: volume sliders, the results without the kills row, the HUD at 150% ----
+// ---- T4 part 8 follow-ups, revised in T4 part 9 (Voice slider removed): the sound sliders, the results screen, the HUD at 150% ----
 const settingsCode = codeOf('js/view/settings.js'), screensCode = codeOf('js/view/screens.js');
-check(/musicVol: 100, sfxVol: 100, voiceVol: 100/.test(settingsCode), 'settings.js: musicVol, sfxVol and voiceVol default to 100');
+const sfxSrc = read('js/view/sfx.js');
+check(/musicVol: 100, sfxVol: 100, haptics/.test(settingsCode), 'settings.js: musicVol and sfxVol default to 100 (no voiceVol default)');
+check(/delete P\.Settings\.voiceVol;/.test(settingsCode) && !/voiceVol/.test(settingsCode.replace(/delete P\.Settings\.voiceVol;/, '')),
+  'settings.js: the Voice slider is retired; a saved voiceVol is deleted at load and never read or written');
 check(/Math\.round\(Math\.min\(100, Math\.max\(0, v\)\) \/ 10\) \* 10/.test(settingsCode), 'settings.js: a saved volume is clamped to 0-100 and rounded to the 10% step');
 check(/P\.Settings\.sound === false && !\('sfxVol' in data\)/.test(settingsCode) && /P\.Settings\.sound = true;/.test(settingsCode),
-  'settings.js: the old Sound effects switch (off) becomes 0% sound effects and 0% voice; the flag itself stays true');
-check(/P\.Sfx\.setVolume\('sfx', fx\); P\.Sfx\.setVolume\('ui', fx\); P\.Sfx\.setVolume\('ambience', fx\);/.test(settingsCode)
-  && /P\.Sfx\.setVolume\('voice', P\.Settings\.voiceVol \/ 100\)/.test(settingsCode), 'settings.js: applySettings sets the sfx, ui and ambience buses from Sound effects and the voice bus from Voice');
+  'settings.js: the old Sound effects switch (off) becomes 0% sound effects; the flag itself stays true');
+check(/P\.Sfx\.setVolume\('sfx', fx\); P\.Sfx\.setVolume\('ui', fx\); P\.Sfx\.setVolume\('ambience', fx\);/.test(settingsCode) && !/setVolume\('voice'/.test(settingsCode),
+  'settings.js: applySettings sets the sfx, ui and ambience buses from Sound effects; the voice bus is not set separately');
+check(/bus\[k\]\.connect\(k === 'voice' \? bus\.sfx : comp\)/.test(sfxSrc) && /CATS = \{ sfx: 0\.85, ui: 0\.8, voice: 0\.95, ambience: 0\.5 \}/.test(sfxSrc),
+  'sfx.js: the voice bus sits inside the sfx bus, so Sound effects covers speech blips and groans (setVolume("voice") still works as a trim inside it)');
 check(/P\.Music\.setVolume\(MUSIC_BASE \* P\.Settings\.musicVol \/ 100\)/.test(settingsCode), 'settings.js: applySettings sets the music level from Music (P.Music.setVolume exists; music.js is untouched)');
 check(/row\(P\.t\('ui\.set\.music'\), volume\('musicVol'/.test(screensCode) && /row\(P\.t\('ui\.set\.sound'\), volume\('sfxVol'/.test(screensCode)
-  && /row\(P\.t\('ui\.set\.voice'\), volume\('voiceVol'/.test(screensCode), 'screens.js: Settings has Music, Sound effects and Voice sliders');
+  && !/ui\.set\.voice|voiceVol/.test(screensCode), 'screens.js: Settings has Music and Sound effects sliders and no Voice row');
 check(!/toggle\('sound'\)/.test(screensCode) && !/P\.SettingSteps\.music/.test(screensCode), 'screens.js: the old sound toggle and the music step row are gone');
 check(/inp\.type = 'range'; inp\.min = '0'; inp\.max = '100'; inp\.step = '10'/.test(screensCode) && /inp\.onchange = function \(\) \{ P\.saveSettings\(\); \}/.test(screensCode),
   'screens.js: the slider is a 0-100 range in 10% steps, saved when released');
@@ -366,14 +371,20 @@ check(/\.vol input\[type=range\]\s*\{[^}]*height:\s*48px/.test(protoCss) && /\.v
   'proto.css: the volume slider is a 48 px tap band');
 check(/::-webkit-slider-thumb\s*\{[^}]*width:\s*28px/.test(protoCss) && /::-moz-range-thumb\s*\{[^}]*width:\s*28px/.test(protoCss), 'proto.css: the slider thumb is 28 px (WebKit and Firefox)');
 check(!/\.vol[^{]*\{[^}]*(transition|animation)/.test(protoCss), 'proto.css: the volume sliders have no transition or animation (nothing to stop under Reduce motion)');
-check(/\.res-actions\s*\{[^}]*position:\s*sticky/.test(progCss), 'progress.css: the results actions stay pinned (sticky) at the bottom');
+// T4 part 9: the results body scrolls on its own and the actions are a footer under it (a sticky block covered the recap)
+check(/#scr-results \.res-body\s*\{[^}]*overflow-y:\s*auto/.test(progCss) && /\.res-actions\s*\{[^}]*flex:\s*none/.test(progCss) && !/position:\s*sticky/.test(progCss),
+  'progress.css: the results body scrolls and the actions are a footer (no sticky block over the recap)');
+const resultsHtml = read('index.html').slice(read('index.html').indexOf('id="scr-results"'), read('index.html').indexOf('</section>', read('index.html').indexOf('id="scr-results"')));
+check(/<div class="res-body">/.test(resultsHtml) && /<div class="res-actions">/.test(resultsHtml) && resultsHtml.indexOf('res-body') < resultsHtml.indexOf('res-actions') && !/class="spacer"/.test(resultsHtml),
+  'index.html: the results head, rewards and recap sit in .res-body, the actions after it, no spacer');
+check(/<div id="res-run" class="hidden"><\/div>/.test(resultsHtml) && /getElementById\('res-run'\)/.test(read('js/view/objectives-hud.js')) && !/res-run/.test(read('js/view/ui-progress.js')),
+  'index.html: res-run is only the hidden anchor for the objective panel (objectives-hud.js); the time and walk rows are in the recap');
 check(!/kv\(rw, P\.t\('ui\.res\.kills'\)/.test(screensCode) && /kv\(rw, P\.t\('ui\.res\.hurda'\)/.test(screensCode),
   'screens.js: the rewards list has no kills row (the run recap already shows kills); Hurda stays');
-check(/'ui\.set\.voice': 'Ses \(konuşma\)'/.test(strings) && /'ui\.set\.voice': 'Voice'/.test(read('js/strings-ui2.js')), 'strings-ui2.js: Voice is "Ses (konuşma)" in TR and "Voice" in EN');
-check(/\/\/ TR owner check[^\n]*\n\s*'ui\.set\.music': 'Müzik'/.test(strings) && /\/\/ TR owner check[^\n]*\n\s*'ui\.set\.voice': 'Ses \(konuşma\)'/.test(strings),
-  'strings-ui2.js: the TR Müzik and Ses (konuşma) labels carry "// TR owner check" on the line above');
+check(!/'ui\.set\.voice'/.test(strings) && !/'ui\.set\.voice'/.test(read('js/strings.js')), 'the Voice label key is gone from both string tables (T4 part 9)');
+check(/'ui\.set\.music': 'Müzik'/.test(strings) && !/TR owner check/.test(strings), 'strings-ui2.js: the owner-approved TR labels (Müzik, Yazı boyutu) carry no "TR owner check" comment');
 const stringsMain = read('js/strings.js');
-check(/\/\/ TR owner check[^\n]*\n\s*'ui\.set\.sound': 'Ses efektleri'/.test(stringsMain), 'strings.js: the TR Ses efektleri label carries "// TR owner check" on the line above');
+check(/'ui\.set\.sound': 'Ses efektleri'/.test(stringsMain) && !/TR owner check/.test(stringsMain), 'strings.js: the owner-approved TR Ses efektleri label carries no "TR owner check" comment');
 check(/'ui\.set\.sound': 'Sound effects'/.test(stringsMain), 'strings.js: the EN Sound effects label exists');
 // the HUD: at 150% text Street Cred moves to row 2 (settings.js), so the streak chip keeps the XP line and the XP bar room
 const htmlNow = read('index.html');
@@ -385,7 +396,7 @@ check(/#streak-label\s*\{[^}]*max-width:\s*112px/.test(protoCss), 'proto.css: th
 check(/textSize >= 150 \? sub : xp/.test(settingsJs) && /insertBefore\(sk, host === sub/.test(settingsJs),
   'settings.js: at 150% text applySettings moves Street Cred into HUD row 2 (a DOM move, not a re-render)');
 
-// settings behaviour (vm, a stored save and fake audio): the boot values, the 10% rounding and the old on/off switch
+// settings behaviour (vm, a stored save and fake audio): the boot values, the 10% rounding, the old on/off switch and the retired voice key
 function bootSettings(stored) {
   const pushed = { sfx: [], music: [] }, ctx = {
     P: { Sfx: { setVolume: (c, v) => pushed.sfx.push([c, v]) }, Music: { setVolume: v => pushed.music.push(v) } },
@@ -398,19 +409,22 @@ function bootSettings(stored) {
 }
 {
   const d = bootSettings('null');
-  check(d.S.musicVol === 100 && d.S.sfxVol === 100 && d.S.voiceVol === 100, 'settings (vm): the three volumes default to 100 with no save');
-  check(JSON.stringify(d.pushed.sfx) === JSON.stringify([['sfx', 1], ['ui', 1], ['ambience', 1], ['voice', 1]]) && Math.abs(d.pushed.music[0] - 0.7) < 1e-9,
-    'settings (vm): at boot the buses are set (sfx, ui, ambience and voice to 1) and the music level to 0.7 (the default mix)');
-  check(typeof d.saved === 'string' && d.saved.indexOf('"sfxVol":100') >= 0, 'settings (vm): the volumes are saved with the other settings');
-  const o = bootSettings(JSON.stringify({ musicVol: 25, sfxVol: 55, voiceVol: 0 }));
-  check(o.S.musicVol === 30 && o.S.sfxVol === 60 && o.S.voiceVol === 0, 'settings (vm): saved volumes round to the 10% step (25 to 30, 55 to 60); 0 stays 0');
+  check(d.S.musicVol === 100 && d.S.sfxVol === 100 && !('voiceVol' in d.S), 'settings (vm): the two volumes default to 100 with no save, and there is no voice volume');
+  check(JSON.stringify(d.pushed.sfx) === JSON.stringify([['sfx', 1], ['ui', 1], ['ambience', 1]]) && Math.abs(d.pushed.music[0] - 0.7) < 1e-9,
+    'settings (vm): at boot the sfx, ui and ambience buses are set to 1 (voice rides the sfx bus) and the music level to 0.7 (the default mix)');
+  check(typeof d.saved === 'string' && d.saved.indexOf('"sfxVol":100') >= 0 && d.saved.indexOf('voiceVol') < 0, 'settings (vm): the volumes are saved with the other settings, and no voice value is written');
+  const o = bootSettings(JSON.stringify({ musicVol: 25, sfxVol: 55 }));
+  check(o.S.musicVol === 30 && o.S.sfxVol === 60, 'settings (vm): saved volumes round to the 10% step (25 to 30, 55 to 60)');
+  const old = bootSettings(JSON.stringify({ musicVol: 80, sfxVol: 70, voiceVol: 0 }));
+  check(old.S.sfxVol === 70 && !('voiceVol' in old.S) && old.pushed.sfx.every(p => p[0] !== 'voice') && old.saved.indexOf('voiceVol') < 0,
+    'settings (vm): an old saved voice value (0) is ignored: sound effects keep their own value and the voice key is dropped on save');
   const off = bootSettings(JSON.stringify({ sound: false }));
-  check(off.S.sfxVol === 0 && off.S.voiceVol === 0 && off.S.sound === true && off.pushed.sfx.some(p => p[0] === 'voice' && p[1] === 0),
-    'settings (vm): the old Sound effects switch set to off becomes 0% sound effects and 0% voice, and voice is pushed at 0');
+  check(off.S.sfxVol === 0 && off.S.sound === true && off.pushed.sfx.some(p => p[0] === 'sfx' && p[1] === 0),
+    'settings (vm): the old Sound effects switch set to off becomes 0% sound effects, and the sfx bus is pushed at 0');
   const offSlider = bootSettings(JSON.stringify({ sound: false, sfxVol: 40 }));
-  check(offSlider.S.sfxVol === 40 && offSlider.S.voiceVol === 100, 'settings (vm): a saved sfxVol wins over the old switch');
-  const bad = bootSettings(JSON.stringify({ musicVol: 'abc', sfxVol: 250, voiceVol: -20 }));
-  check(bad.S.musicVol === 100 && bad.S.sfxVol === 100 && bad.S.voiceVol === 0, 'settings (vm): a non-number falls back to 100; numbers clamp to 0-100');
+  check(offSlider.S.sfxVol === 40, 'settings (vm): a saved sfxVol wins over the old switch');
+  const bad = bootSettings(JSON.stringify({ musicVol: 'abc', sfxVol: 250 }));
+  check(bad.S.musicVol === 100 && bad.S.sfxVol === 100, 'settings (vm): a non-number falls back to 100; numbers clamp to 0-100');
 }
 
 console.log(fails.length ? fails.length + ' failure(s)' : 'test-ui-motion: all pass (' + passes + ' checks)');

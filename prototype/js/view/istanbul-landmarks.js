@@ -334,15 +334,16 @@ P.Landmarks = (function () {
     for (var y = 0.5; y < h; y += 0.5) R_(c, 0, y, w, 0.04, '#4E4838');
     for (var cx = 0; cx < w; cx += 0.6) R_(c, cx, 0, 0.3, 0.4, '#7E7460', INK, 0.03);
   }
+  // T4 part 11: the tram is the same drawing as the level-1 tram (vehicles.js paintBox), not a flat red box.
   function tramP(c, w, h) {
+    if (P.Vehicles && P.Vehicles.paintBox) { P.Vehicles.paintBox(c, w, h); return; }
     R_(c, 0, 0, w, h, '#C0392B', INK, 0.06); R_(c, 0.2, 0.5, w - 0.4, h - 1, CREAM, INK, 0.03);
-    for (var y = 1; y < h - 0.5; y += 1.6) R_(c, 0.5, y, w - 1.0, 0.9, '#C0392B');
   }
 
   // Painter families: "family:style" kinds. Kinds without a painter fall back to P.Props (e.g. playground).
   var FAM = { tram: tramP, arch: archP, overpass: overpassP, facade: facadeP, tower: towerP, stall: stallP, park: parkP,
     pier: pierP, board: boardP, crane: craneP, dig: digP, minibus: minibusP, steps: stepsP, wall: wallP };
-  var SIZE = { tram: [1.8, 9], board: [1.6, 2.4], stall: [3.2, 6], park: [4, 8], pier: [4, 8], tower: [4, 10], crane: [3, 10],
+  var SIZE = { tram: [3.2, 13.2], board: [1.6, 2.4], stall: [3.2, 6], park: [4, 8], pier: [4, 8], tower: [4, 10], crane: [3, 10],
     dig: [6, 5], steps: [4, 9], wall: [3.2, 9], minibus: [2.2, 5], facade: [3.1, 9], overpass: [14, 3], arch: [14, 3] };
   function paint(c, kind, w, h, t) {
     var f = kind.split(':'), fn = FAM[f[0]];
@@ -359,7 +360,7 @@ P.Landmarks = (function () {
     var fam = kind.split(':')[0], sz = SIZE[fam] || [3.1, 9], it = { kind: kind, t: t, w: sz[0], h: sz[1], y0: y, side: side || 1 };
     it.prop = !FAM[fam];
     if (fam === 'arch' || fam === 'overpass') it.x0 = -7;
-    else if (fam === 'tram') it.x0 = -0.9;
+    else if (fam === 'tram') it.x0 = -1.6;   // centred on the tracks (3.2 m image, 2.6 m car)
     else if (fam === 'dig') it.x0 = -3;
     else if (fam === 'minibus') it.x0 = side > 0 ? 0.6 : -2.8;
     else if (fam === 'board') it.x0 = side > 0 ? 4.9 : -6.5;
@@ -408,14 +409,12 @@ P.Landmarks = (function () {
     return cv;
   }
   function drawItems(R, items, y0, y1, s) {
-    var c = R.ctx, hero = s.hero || { x: 0, y: -999 };
+    var c = R.ctx;
     items.forEach(function (it) {
       if (it.y0 > y1 + 1 || it.y0 + it.h < y0 - 1) return;
       if (it.prop) { if (P.Props && P.Props.has(it.kind)) P.Props.draw(it.kind, R, it.side * 5.9, it.y0, { k: 0 }); return; }
-      var near = it.kind.indexOf('tram') === 0 && Math.abs(hero.y - (it.y0 + it.h / 2)) < 9 && Math.abs(hero.x) < 3;
-      c.globalAlpha = near ? 0.35 : 1;
+      // Opacity (T4 part 11): a tram is never faded (it is not an overhang); the old 35% fade near Arda is gone.
       c.drawImage(image(it, R), R.X(it.x0), R.Y(it.y0 + it.h), it.w * R.ppm, it.h * R.ppm);
-      c.globalAlpha = 1;
     });
   }
   function washL1(R, y0, y1) {

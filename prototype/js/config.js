@@ -25,6 +25,8 @@ P.CFG = {
     crowdRing: { spitter: '#C6F04A', bloater: '#FF8A3D' }, ringRadius: 1.1, // G4: coloured base ring for readable crowds (radius x body)
     eliteOutline: { color: '#FFC93C', units: 0.05 },                      // G4: gold outline on elites (units of figure height)
     ao: { spread: [0.34, 0.18, 0.05], alpha: [0.10, 0.13, 0.16], dx: 0.08, dy: -0.12 }, // ground AO under props (m)
+    maxDpr: 2,                                                            // PERF (T4 part 12): device pixel ratio cap for the world canvas (iPhone 3 -> 2)
+    quality: { emaS: 2, downMs: 20, downHoldS: 4, upMs: 13, upHoldS: 30, menuFps: 30, spriteCacheMB: 64 },   // PERF: governor (js/view/quality.js), menu cadence, sprite bake budget
   },
   hero: {
     maxHp: 100, speed: 3.2, pickupRadius: 1.5, critChance: 0.05, critMult: 1.5,  // GD 4.1, CC 1

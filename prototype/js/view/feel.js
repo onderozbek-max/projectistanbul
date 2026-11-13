@@ -219,7 +219,7 @@ P.Feel = (function () {
   };
 
   // Drawn after the particle layer: ground shadow under anything airborne, then the particle at its height.
-  F.draw = function (R) {
+  F.draw = function (R, s) {
     var c = R.ctx, u = R.ppm, i, p, a, X, Y, ringR, d = C().dust, rgbB = P.goreRGB(2), rgbG = P.goreRGB(1);
     for (i = 0; i < parts.length; i++) {
       p = parts[i]; a = Math.min(1, p.t / p.T * 2);
@@ -254,6 +254,7 @@ P.Feel = (function () {
       if (p.k === 'drop') { c.fillStyle = 'rgba(' + rgbB + ',' + a.toFixed(3) + ')'; c.beginPath(); c.ellipse(X, Y, p.r * u, p.r * u * (1 + Math.min(0.8, Math.abs(p.vz) * 0.1)), 0, 0, TAU); c.fill(); }
       else { c.fillStyle = 'rgba(' + rgbG + ',' + a.toFixed(3) + ')'; c.strokeStyle = 'rgba(20,21,31,' + a.toFixed(3) + ')'; c.lineWidth = 1.2; c.beginPath(); c.arc(X, Y, p.r * u, 0, TAU); c.fill(); c.stroke(); }
     }
+    if (P.Moments && P.Moments.draw) P.Moments.draw(R, s);   // T4 part 13: signature moments, world layer (moments.js), under the hero
   };
 
   // ---------- knife arm: anticipation, overshoot, follow-through ----------

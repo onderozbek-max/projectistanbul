@@ -1,0 +1,275 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Moments still (T4 part 13)</title>
+<!-- Signature moments harness (T4 part 13): one scripted sequence per capture, ?seq=dash|streak|crit|ripple|clear|low|impact|shock|slam and &dpr=1|2. Writes a contact sheet into <pre id=out>PNG:data.... -->
+<style>html,body{margin:0;background:#14151F}#game{width:390px;height:844px;display:block}</style>
+<canvas id="game" width="390" height="844"></canvas>
+<script>window.P = {};</script>
+<script src="../js/config.js"></script>
+<script src="../js/config-weapons.js"></script>
+<script src="../js/config-levels.js"></script>
+<script src="../js/config-layouts.js"></script>
+<script src="../js/config-enemies3.js"></script>
+<script src="../js/config-bosses.js"></script>
+<script src="../js/config-enemies4.js"></script>
+<script src="../js/config-enemies5.js"></script>
+<script src="../js/config-fauna.js"></script>
+<script src="../js/config-skins.js"></script>
+<script src="../js/config-stats.js"></script>
+<script src="../js/config-power.js"></script>
+<script src="../js/config-feel.js"></script>
+<script src="../js/config-weapons2.js"></script>
+<script src="../js/config-weapons3.js"></script>
+<script src="../js/config-env.js"></script>
+<script src="../js/config-objectives.js"></script>
+<script src="../js/config-modifiers.js"></script>
+<script src="../js/config-horde.js"></script>
+<script src="../js/strings.js"></script>
+<script src="../js/journey.js"></script>
+<script src="../js/strings-weapons.js"></script>
+<script src="../js/meta/strings-meta.js"></script>
+<script src="../js/story/strings-story.js"></script>
+<script src="../js/strings-journey.js"></script>
+<script src="../js/strings-enemies3.js"></script>
+<script src="../js/strings-enemies4.js"></script>
+<script src="../js/strings-enemies5.js"></script>
+<script src="../js/strings-weapons2.js"></script>
+<script src="../js/strings-weapons3.js"></script>
+<script src="../js/meta/strings-meta2.js"></script>
+<script src="../js/strings-feel.js"></script>
+<script src="../js/strings-moments.js"></script>
+<script src="../js/strings-env.js"></script>
+<script src="../js/strings-signs.js"></script>
+<script src="../js/strings-progress.js"></script>
+<script src="../js/strings-ui2.js"></script>
+<script src="../js/strings-cards.js"></script>
+<script src="../js/strings-horde.js"></script>
+<script src="../js/sim/rng.js"></script>
+<script src="../js/sim/world.js"></script>
+<script src="../js/sim/combat.js"></script>
+<script src="../js/sim/weapons.js"></script>
+<script src="../js/sim/weapons2.js"></script>
+<script src="../js/sim/weapons3.js"></script>
+<script src="../js/sim/weapons4.js"></script>
+<script src="../js/sim/weapons5.js"></script>
+<script src="../js/sim/mastery.js"></script>
+<script src="../js/sim/enemies.js"></script>
+<script src="../js/sim/enemies2.js"></script>
+<script src="../js/sim/skills.js"></script>
+<script src="../js/sim/bosses.js"></script>
+<script src="../js/sim/layouts.js"></script>
+<script src="../js/sim/levels.js"></script>
+<script src="../js/sim/enemies3.js"></script>
+<script src="../js/sim/skins.js"></script>
+<script src="../js/sim/skins-fisher.js"></script>
+<script src="../js/sim/enemies4.js"></script>
+<script src="../js/sim/enemies4-marti.js"></script>
+<script src="../js/sim/enemies4-cayci.js"></script>
+<script src="../js/sim/events.js"></script>
+<script src="../js/sim/events-kinds.js"></script>
+<script src="../js/sim/env.js"></script>
+<script src="../js/sim/env-kinds.js"></script>
+<script src="../js/sim/env-zones.js"></script>
+<script src="../js/sim/env-rules.js"></script>
+<script src="../js/sim/env-portal.js"></script>
+<script src="../js/sim/hack.js"></script>
+<script src="../js/sim/modifiers.js"></script>
+<script src="../js/sim/objectives.js"></script>
+<script src="../js/sim/objectives-kinds.js"></script>
+<script src="../js/sim/progression.js"></script>
+<script src="../js/sim/weapons6.js"></script>
+<script src="../js/sim/horde.js"></script>
+<script src="../js/sim/director.js"></script>
+<script src="../js/sim/sim.js"></script>
+<script src="../js/view/settings.js"></script>
+<script src="../js/view/icons.js"></script>
+<script src="../js/view/icons-evo.js"></script>
+<script src="../js/view/sfx-bank.js"></script>
+<script src="../js/view/sfx-bank2.js"></script>
+<script src="../js/view/sfx.js"></script>
+<script src="../js/view/indoor.js"></script>
+<script src="../js/view/fx.js"></script>
+<script src="../js/view/render.js"></script>
+<script src="../js/view/render-world.js"></script>
+<script src="../js/view/restaurant-props.js"></script>
+<script src="../js/view/restaurant-art.js"></script>
+<script src="../js/view/art-rig.js"></script>
+<script src="../js/view/art-characters.js"></script>
+<script src="../js/view/art-enemies.js"></script>
+<script src="../js/view/sprites.js"></script>
+<script src="../js/view/art-enemies3.js"></script>
+<script src="../js/view/art-enemies4.js"></script>
+<script src="../js/view/art-enemies5.js"></script>
+<script src="../js/view/art-enemies6.js"></script>
+<script src="../js/view/art-bosses.js"></script>
+<script src="../js/view/portraits.js"></script>
+<script src="../js/view/weapons-fx.js"></script>
+<script src="../js/view/feel.js"></script>
+<script src="../js/view/moments.js"></script>
+<script src="../js/view/moments-screen.js"></script>
+<script src="../js/view/vehicles.js"></script>
+<script src="../js/view/weapons-fx2.js"></script>
+<script src="../js/view/skills-fx.js"></script>
+<script src="../js/view/weapons-fx3.js"></script>
+<script src="../js/view/enemies-fx.js"></script>
+<script src="../js/view/enemies-fx2.js"></script>
+<script src="../js/view/enemies-fx-w1.js"></script>
+<script src="../js/view/weapons-fx4.js"></script>
+<script src="../js/view/fire-anim-prim.js"></script>
+<script src="../js/view/fire-anim-held.js"></script>
+<script src="../js/view/fire-anim-held2.js"></script>
+<script src="../js/view/fire-anim-fx.js"></script>
+<script src="../js/view/fire-anim-fx2.js"></script>
+<script src="../js/view/fire-anim-held3.js"></script>
+<script src="../js/view/fire-anim-fx3.js"></script>
+<script src="../js/view/fire-anim-held4.js"></script>
+<script src="../js/view/fire-anim-fx4.js"></script>
+<script src="../js/view/fire-anim.js"></script>
+<script src="../js/view/events-fx.js"></script>
+<script src="../js/view/istanbul.js"></script>
+<script src="../js/view/istanbul-props.js"></script>
+<script src="../js/view/istanbul-props2.js"></script>
+<script src="../js/view/istanbul-props-env.js"></script>
+<script src="../js/view/env-fx.js"></script>
+<script src="../js/view/fauna-art.js"></script>
+<script src="../js/view/fauna.js"></script>
+<script src="../js/view/arena-art-data.js"></script>
+<script src="../js/view/arena-art.js"></script>
+<script src="../js/view/arena-props-data.js"></script>
+<script src="../js/view/arena-props.js"></script>
+<script src="../js/view/arena-overhead-data.js"></script>
+<script src="../js/view/arena-overhead.js"></script>
+<script src="../js/view/arena-sky-data.js"></script>
+<script src="../js/view/arena-sky.js"></script>
+<script src="../js/view/istanbul-themes.js"></script>
+<script src="../js/view/istanbul-landmarks.js"></script>
+<script src="../js/view/layouts-fx.js"></script>
+<script src="../js/view/layouts-centre.js"></script>
+<script src="../js/view/hood-card.js"></script>
+<script src="../js/view/screens.js"></script>
+<script src="../js/view/coldopen.js"></script>
+<script src="../js/story/strings-finale.js"></script>
+<script src="../js/dialogue/dialogue.js"></script>
+<script src="../js/dialogue/beats-core.js"></script>
+<script src="../js/dialogue/beats-story-hoods.js"></script>
+<script src="../js/dialogue/beats-barks.js"></script>
+<script src="../js/dialogue/batches.js"></script>
+<script src="../js/dialogue/intents.js"></script>
+<script src="../js/dialogue/tr/barks-cards.js"></script>
+<script src="../js/dialogue/tr/barks-combat.js"></script>
+<script src="../js/dialogue/tr/barks-hoods-01-10.js"></script>
+<script src="../js/dialogue/tr/barks-hoods-11-20.js"></script>
+<script src="../js/dialogue/tr/barks-world.js"></script>
+<script src="../js/dialogue/tr/cards-flavour.js"></script>
+<script src="../js/dialogue/tr/core.js"></script>
+<script src="../js/dialogue/tr/finale.js"></script>
+<script src="../js/dialogue/tr/story-hoods-01-10.js"></script>
+<script src="../js/dialogue/tr/story-hoods-11-20.js"></script>
+<script src="../js/dialogue/tr/story-levels.js"></script>
+<script src="../js/dialogue/en/barks-cards.js"></script>
+<script src="../js/dialogue/en/barks-combat.js"></script>
+<script src="../js/dialogue/en/barks-hoods-01-10.js"></script>
+<script src="../js/dialogue/en/barks-hoods-11-20.js"></script>
+<script src="../js/dialogue/en/barks-world.js"></script>
+<script src="../js/dialogue/en/cards-flavour.js"></script>
+<script src="../js/dialogue/en/core.js"></script>
+<script src="../js/dialogue/en/finale.js"></script>
+<script src="../js/dialogue/en/story-hoods-01-10.js"></script>
+<script src="../js/dialogue/en/story-hoods-11-20.js"></script>
+<script src="../js/dialogue/en/story-levels.js"></script>
+<script src="../js/story/story-data.js"></script>
+<script src="../js/story/barks.js"></script>
+<script src="../js/story/finale-data.js"></script>
+<script src="../js/story/finale.js"></script>
+<script src="../js/meta/meta-save.js"></script>
+<script>
+// Driver: runs one scripted sequence through the real P.Fx.onEvent / P.Fx.update / P.Render.frame path at a fixed step, with
+// performance.now and Math.random frozen or seeded so each capture repeats. Writes the contact sheet as PNG:data... into <pre id=out>.
+(function () {
+  var q = new URLSearchParams(location.search), SEQ = q.get('seq') || 'dash', DPR = parseInt(q.get('dpr') || '2', 10);
+  var LOG = [], canvas = document.getElementById('game'), DT = 1 / 120, sim = null, T = 0, script = null, caps = [], sheet = null, sctx = null, CW = 0.6;
+  window.__T = 10000;
+  performance.now = function () { return window.__T; };
+  var seed = 7;
+  Math.random = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  function fakeSim(lv) {
+    var li = P.Journey.level(lv), theme = li.hood.theme;
+    return { seed: 1, t: 0, runT: 0, mode: 'play', levelIndex: lv, levelInfo: li, theme: theme,
+      geo: { xMin: -4.6, xMax: 4.6, length: 230, exitY: 230, holdY: 200, holdT: 56, boss: null, exitOpen: false, blocks: [], sub: li.stage },
+      hero: { x: 0, y: 40, fx: 0, fy: 1, hp: 100, maxHp: 100, moving: false, invuln: 0, pickupRadius: 1.2, sinceHit: 99,
+        weapons: { knife: 1 }, passives: {}, cds: {}, chainA: 0, swingDir: 1, regenOn: false, hitFlash: 0, dashCd: 0 },
+      enemies: [], drops: [], projs: [], nails: [], zones: [], events: [], enemyTele: [], enemyShots: [], hacks: [], ev: { list: [], helpers: [] },
+      props: { carts: [], canisters: [], doorOpen: false, shutter: 0, shutterOpen: false, scaffoldDown: false },
+      dir: { civilians: [], telegraphs: [], flags: {}, bubbles: [], barks: { cur: null, queue: [] }, tut: { active: null }, hold: { active: false }, zoomOut: false } };
+  }
+  function walker(id, x, y) {
+    return { id: id, type: 'walker', x: x, y: y, r: 0.35, age: 5, state: 'walk', variant: 2, flash: 0, vx: 0.4, vy: 0.3, walk: id * 0.4,
+      windup: 0, kbx: 0, kbT: 0, hp: 10, maxHp: 10, dead: false, elite: false, boss: false };
+  }
+  function kill(id, x, y, crit, src) { return { type: 'kill', id: id, enemy: 'walker', x: x, y: y, crit: crit, variant: 2, dx: 0, dy: 1, src: src || 'nailgun', elite: false, boss: false }; }
+  function ring(s, n) {   // a crowd around the hero for the low-HP and shock sequences
+    for (var i = 0; i < n; i++) s.enemies.push(walker(100 + i, ((i * 37) % 9) / 2 - 2, 40 + 1.5 + (i % 4) * 0.7));
+  }
+  var SEQS = {
+    dash: { caps: [0, 0.04, 0.08, 0.12, 0.16, 0.22], setup: function (s) { ring(s, 4); },
+      ev: [[0.02, function (s) { return { type: 'dash', x: s.hero.x, y: s.hero.y, ax: 1, ay: 0, dist: 3.2, T: 0.16 }; }]],
+      tick: function (s, t) { if (t >= 0.02 && t < 0.18) s.hero.x += 3.2 / 0.16 * DT; } },
+    streak: { caps: [1.1, 1.2, 1.4, 1.7, 2.0, 2.6, 2.7, 2.9], setup: function (s) { ring(s, 6); },
+      ev: (function () { var a = [], k; for (k = 1; k <= 25; k++) a.push([0.2 + 0.1 * (k - 1), (function (kk) { return function (s) { return kill(200 + kk, s.hero.x + 1.2, s.hero.y + 1.4, false); }; })(k)]); return a; })() },
+    crit: { caps: [0.1, 0.12, 0.14, 0.18, 0.24, 0.3, 0.38, 0.44], setup: function (s) { ring(s, 4); },
+      ev: [[0.1, function (s) { return kill(301, s.hero.x + 1.0, s.hero.y + 1.6, true); }]] },
+    ripple: { caps: [0.05, 0.12, 0.2, 0.3, 0.42, 0.6], setup: function (s) { ring(s, 3); },
+      ev: [[0.05, function (s) { return { type: 'nearMiss', x: s.hero.x, y: s.hero.y, slowMo: 0.25 }; }]] },
+    clear: { caps: [0.06, 0.2, 0.5, 0.9, 1.3, 1.7], setup: function (s) { },
+      ev: [[0.05, function (s) { return { type: 'win' }; }]] },
+    low: { caps: [0, 0.25, 0.5, 0.75, 1.0, 1.25], setup: function (s) { s.hero.hp = 22; ring(s, 6); }, ev: [] },
+    impact: { caps: [0.05, 0.07, 0.09, 0.12, 0.16, 0.2], setup: function (s) { ring(s, 3); },
+      ev: [[0.05, function (s) { return { type: 'hit', id: 401, x: s.hero.x + 0.8, y: s.hero.y + 1.4, dmg: 14, crit: false, src: 'sledge', dx: -1, dy: 0, boss: false }; }]] },
+    shock: { caps: [0.05, 0.1, 0.15, 0.2, 0.25, 0.32], setup: function (s) { ring(s, 6); },
+      ev: [[0.05, function (s) { return { type: 'explode', x: s.hero.x + 0.4, y: s.hero.y + 2.4, r: 2.2, trauma: 0.3 }; }]] },
+    slam: { caps: [0.05, 0.1, 0.15, 0.2, 0.25, 0.32], setup: function (s) { ring(s, 6); },
+      ev: [[0.05, function (s) { return { type: 'bossSlam', x: s.hero.x, y: s.hero.y + 2.2, r: 2.2 }; }]] }
+  };
+  function capture(i) {
+    var w = canvas.width, h = canvas.height, cw = Math.round(canvas.width * CW), ch = Math.round(canvas.height * CW);
+    if (!sheet) { sheet = document.createElement('canvas'); sheet.width = cw * script.caps.length; sheet.height = ch + 26; sctx = sheet.getContext('2d'); sctx.fillStyle = '#14151F'; sctx.fillRect(0, 0, sheet.width, sheet.height); }
+    sctx.drawImage(canvas, 0, 0, w, h, i * cw, 26, cw, ch);
+    sctx.fillStyle = '#E8E4CC'; sctx.font = '14px Menlo, monospace'; sctx.fillText(SEQ + ' t=' + script.caps[i].toFixed(2) + ' s', i * cw + 8, 18);
+    var MS = P.MomentsScreen || {}, MM = P.Moments || {};
+    LOG.push(script.caps[i].toFixed(2) + ' tear=' + !!MS.tearOn + ' wipe=' + !!MS.wipe + ' word=' + !!MS.word + ' pend=' + !!MS.pending + ' ribbon=' + !!MS.ribbon + ' shocks=' + (MM.shocks || []).filter(function (o) { return o.on; }).length + ' crit=' + (MM.critN ? MM.critN() : '-') + ' low=' + !!MM.lowOn + ' veil=' + (MS.veilA || 0).toFixed(2));
+  }
+  function run() {
+    // nolens=1 (for the lens pixel diff only): the screen layer's lens returns under Reduce motion, and nothing else in the shock
+    // sequence reads that flag at draw time, so the frames differ by the lens alone.
+    if (q.get('nolens') && P.MomentsScreen) { var md = P.MomentsScreen.draw; P.MomentsScreen.draw = function (R, s2) { var o = P.Settings.reduceMotion; P.Settings.reduceMotion = true; try { md(R, s2); } finally { P.Settings.reduceMotion = o; } }; }
+    var s = fakeSim(6), ci = 0, n = 0, fired = [], t, k, maxT = script.caps[script.caps.length - 1] + 0.05;
+    P.Render.init(canvas); P.Render.resize(DPR);
+    P.Fx.reset(s); s.hero.y = 40; sim = s;
+    script.setup(s);
+    P.Fx.cam.y = s.hero.y; P.Fx.cam.x = 0; P.Fx.cam.w = P.CFG.view.widthM;
+    for (t = 0; t <= maxT + 1e-9; t += DT, n++) {
+      window.__T += DT * 1000;
+      s.t = t; s.runT = t;
+      for (k = 0; k < script.ev.length; k++) if (!fired[k] && t >= script.ev[k][0]) { fired[k] = true; P.Fx.onEvent(script.ev[k][1](s), s); }
+      if (script.tick) script.tick(s, t);
+      P.Fx.update(s, DT);
+      P.Render.frame(s, null);
+      if (ci < script.caps.length && t + 1e-9 >= script.caps[ci]) { capture(ci); ci++; }
+    }
+    return ci;
+  }
+  var tries = 0;
+  (function wait() {
+    if (!(P.ArenaArt.ready() && P.ArenaProps.ready() && P.ArenaOverhead.ready() && P.ArenaSky.ready()) && tries++ < 200) return setTimeout(wait, 50);
+    script = SEQS[SEQ];
+    if (!script) { document.body.innerHTML = '<pre id="log">unknown seq [' + SEQ + ']</pre>'; return; }
+    var done = 0; try { done = run(); } catch (e) { LOG.push('ERROR ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).join(' | ') : e)); }
+    var o = document.createElement('pre'); o.id = 'out';
+    o.textContent = 'PNG:' + sheet.toDataURL('image/png');
+    var l = document.createElement('pre'); l.id = 'log'; l.textContent = 'captured ' + done + ' of ' + script.caps.length + '\n' + LOG.join('\n');
+    document.body.innerHTML = ''; document.body.appendChild(l); document.body.appendChild(o);
+  })();
+})();
+</script>
+</body>
+</html>

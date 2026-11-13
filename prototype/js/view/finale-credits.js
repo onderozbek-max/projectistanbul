@@ -1,4 +1,4 @@
-// "Bölüm 1 tamam" / "Chapter 1 complete" card (view). Shown after the arrival comic (story/finale.js). A full-height
+// "1. Kısım Sonu" / "Chapter 1 complete" card (view). Shown after the arrival comic (story/finale.js). A full-height
 // overlay in #phone with the chapter title, the run's stats and a short tease of Chapter 2. Styles are injected once, so
 // no stylesheet changes are needed. P.FinaleCredits.show(stats, onDone): stats = {km, levels, hoods, kills, bosses,
 // runKills, runTime (seconds)}. onDone runs once, when the player taps Continue.

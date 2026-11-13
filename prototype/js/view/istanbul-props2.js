@@ -331,19 +331,53 @@
     ell(c, X + 0.42 * s, Y - 0.08 * s, 0.18 * s, 0.15 * s, col, 1.5);
     rc(c, X + 0.42 * s, Y - 0.26 * s, 0.09 * s, 0.07 * s, '#E9C46A', 1);
   });
+  // One ambient pigeon (fauna role), top-down 3/4, head up the screen, tail down. Plain blue-grey: no gold dot and no dark tip bar,
+  // because those marks are the marti thief's (config-fauna birdLook) and must not read as an enemy on the pavement. o: { fly (s
+  // since take-off, 0 on the ground), z (m, height in flight), k (variant) }. The footprint shadow stays on the ground.
+  // Pigeon in side profile. Baked once per size, facing and peck phase on a 2x canvas, so each bird is one drawImage
+  // per frame (the path version cost about 48 canvas calls per bird). The footprint shadow is drawn live on the ground.
+  var BIRD_SS = 2, birdCache = {}, birdCount = 0;
+  function birdPaint(c, s, peck) {
+    poly(c, [[-0.1 * s, -0.035 * s], [-0.1 * s, 0.035 * s], [-0.165 * s, 0.065 * s], [-0.165 * s, -0.065 * s]], '#5E6676', 1);   // tail fan
+    ell(c, 0, 0, 0.12 * s, 0.065 * s, '#A9B1BF', 1.3);                                                                 // body, side profile
+    poly(c, [[-0.1 * s, -0.05 * s], [0.05 * s, -0.05 * s], [0.07 * s, 0.01 * s], [-0.12 * s, 0.03 * s]], '#7E8798', 1.1);   // folded wing
+    c.strokeStyle = '#3F4656'; c.lineWidth = 1; c.beginPath(); c.moveTo(-0.06 * s, -0.035 * s); c.lineTo(-0.01 * s, 0.035 * s); c.stroke();   // wing mark (dark, not white)
+    ell(c, 0.11 * s, -0.03 * s + peck, 0.05 * s, 0.05 * s, '#A9B1BF', 1.1);                                              // head, pecks down
+    poly(c, [[0.15 * s, -0.04 * s + peck], [0.2 * s, -0.025 * s + peck], [0.15 * s, -0.01 * s + peck]], '#2E2A28', 0.8);   // beak
+    ell(c, 0.125 * s, -0.04 * s + peck, 0.012 * s, 0.012 * s, '#7A3B1E', 0);                                              // eye
+    ell(c, -0.02 * s, 0.05 * s, 0.035 * s, 0.012 * s, 'rgba(94,143,134,0.5)', 0);                                       // neck sheen
+  }
+  function birdSprite(s, face, peckOn) {
+    var key = Math.round(s * 4) + '|' + face + '|' + peckOn, cv = birdCache[key];
+    if (cv) return cv;
+    var W = Math.ceil(0.5 * s) + 6, H = Math.ceil(0.3 * s) + 6;
+    cv = document.createElement('canvas'); cv.width = W * BIRD_SS; cv.height = H * BIRD_SS;
+    var c2 = cv.getContext('2d');
+    c2.setTransform(BIRD_SS, 0, 0, BIRD_SS, 0, 0); c2.clearRect(0, 0, W, H);
+    c2.translate(W / 2, H / 2); c2.scale(face, 1);
+    birdPaint(c2, s, peckOn ? 0.03 * s : 0);
+    if (birdCount > 240) { birdCache = {}; birdCount = 0; }
+    birdCache[key] = cv; birdCount++;
+    return cv;
+  }
+  function bird(c, X, Y, s0, o) {
+    var s = s0 * 1.15, fly = o.fly || 0, z = o.z || 0, k = o.k || 0, t = performance.now() / 1000;
+    var peckOn = fly <= 0 && !(P.Settings && P.Settings.reduceMotion) && Math.sin(t * 2.6 + k) > 0.5;
+    c.fillStyle = 'rgba(0,0,0,' + Math.max(0.1, 0.26 - 0.06 * z).toFixed(3) + ')';
+    c.beginPath(); c.ellipse(X, Y, 0.09 * s, 0.045 * s, 0, 0, TAU); c.fill();
+    var cv = birdSprite(s, k % 2 ? -1 : 1, peckOn);
+    c.drawImage(cv, X - cv.width / BIRD_SS / 2, Y - z * s - cv.height / BIRD_SS / 2, cv.width / BIRD_SS, cv.height / BIRD_SS);
+  }
+  P.Props.bird = bird;
   reg('pigeon', function (c, X, Y, s, o) {
     var fly = o.fly || 0;
     for (var i = 0; i < 4; i++) {
-      var dir = i * 2.4 + (o.k || 0), px = X + Math.sin(i * 2.1) * 0.5 * s, py = Y + Math.cos(i * 1.3) * 0.4 * s, z = 0, flap = 0;
+      var dir = i * 2.4 + (o.k || 0), px = X + Math.sin(i * 2.1) * 0.5 * s, py = Y + Math.cos(i * 1.3) * 0.4 * s, z = 0;
       if (fly > 0) {
         if (fly > 2.5) continue;
-        px += Math.cos(dir) * fly * 1.6 * s; py += Math.sin(dir) * fly * 1.6 * s + fly * 0.8 * s; z = fly * 1.2 * s; flap = Math.sin(fly * 40);
+        px += Math.cos(dir) * fly * 1.6 * s; py += Math.sin(dir) * fly * 1.6 * s + fly * 0.8 * s; z = fly * 1.2;
       }
-      shadow(c, px, py, 0.1 * s, 0.04 * s);
-      var Yb = py - z;
-      ell(c, px, Yb - 0.06 * s, 0.1 * s, 0.065 * s, '#8D96A6', 1.2);
-      ell(c, px + 0.08 * s, Yb - 0.12 * s, 0.045 * s, 0.045 * s, '#6E7787', 1);
-      if (fly > 0) [-1, 1].forEach(function (sd) { poly(c, [[px, Yb - 0.06 * s], [px + sd * 0.2 * s, Yb - 0.06 * s - flap * 0.15 * s], [px + sd * 0.05 * s, Yb - 0.02 * s]], '#A9B1BF', 1.2); });
+      bird(c, px, py, s, { fly: fly, z: z, k: i + (o.k || 0) });
     }
   });
   reg('gull', function (c, X, Y, s) {
@@ -400,8 +434,7 @@
     var kv = o.k || 0;
     for (var i = 0; i < 6; i++) {
       var px = X + Math.sin(i * 2.3 + kv) * 0.7 * s, py = Y + Math.cos(i * 1.7 + kv) * 0.5 * s;
-      ell(c, px, py, 0.16 * s, 0.1 * s, '#D9A441', 1.2);
-      ell(c, px, py, 0.06 * s, 0.03 * s, CREAM, 0);
+      ell(c, px, py, 0.16 * s, 0.1 * s, '#5B4632', 0);     // a dark wet patch (it was gold dots, which read as coins)
     }
   });
   reg('barrel', function (c, X, Y, s, o) {
@@ -454,6 +487,85 @@
     var span = o.span || 9, n = Math.max(2, Math.round(span / 2.5)), i;
     var R = { ctx: c, X: function (x) { return X + x * s; }, Y: function (y) { return Y - y * s; }, ppm: s };
     for (i = 0; i < n; i++) P.Props.draw('lamp', R, 0, -span / 2 + (i + 0.5) * span / n, o);
+  });
+
+  // ---- eczane (pharmacy), T4 part 10: the heal-station look. A cream booth under a green cross sign. o.state: 'usable' (the sign
+  // glows, pulsing unless Reduce motion), 'empty' (grey cross and an EMPTY label) or 'idle'. Art only; the sim has no pharmacy heal yet.
+  reg('eczane', function (c, X, Y, s, o) {
+    var w = ((o && o.w) || 1.4) * s, d = ((o && o.h) || 1.0) * s, hg = 0.9 * s, top = Y - hg;
+    shadow(c, X, Y, w * 0.6, d * 0.5);
+    box(c, X, Y, w, d, hg, '#F4F1E8', '#B9B4A6');
+    rc(c, X, Y + d / 2 - hg * 0.5, w * 0.5, hg * 0.4, '#2E5A4B', 1);
+    P.Consumables.stationSign(c, X, top - 0.32 * s, s, (o && o.state) || 'idle', performance.now() / 1000, !(P.Settings && P.Settings.reduceMotion));
+  });
+
+  // ---- L1 sidewalk vendors (T4 part 11: moved here from istanbul.js so they share the role grammar; dressing role) ----
+  // Top-down and flat. The nazar beads have no pupils (they read as eyes), the shoe-shine stand shows its footrests and brush,
+  // and the flower pots are pots with leaves and one bloom each (the old rows of dots read as pickups).
+  reg('shoeshine', function (c, X, Y, s) {
+    shadow(c, X, Y, 0.42 * s, 0.26 * s);
+    rc(c, X, Y, 0.6 * s, 0.4 * s, '#8A5A2B', 1.5);                                   // box
+    rc(c, X, Y - 0.02 * s, 0.46 * s, 0.26 * s, '#A8743F', 0);                        // lid
+    ell(c, X - 0.2 * s, Y - 0.26 * s, 0.17 * s, 0.12 * s, '#3A2A1E', 1.4);           // footrests
+    ell(c, X + 0.2 * s, Y - 0.26 * s, 0.17 * s, 0.12 * s, '#3A2A1E', 1.4);
+    ell(c, X + 0.2 * s, Y + 0.26 * s, 0.11 * s, 0.09 * s, '#1E1F25', 1.2);           // brush
+    ell(c, X - 0.22 * s, Y + 0.26 * s, 0.06 * s, 0.06 * s, '#C0392B', 1);            // tin of polish
+  });
+  reg('flowers', function (c, X, Y, s, o) {
+    var cols = ['#E63946', '#FFD166', '#F4A3C0', '#F4EBDD', '#9B5DE5'], kv = o.k || 0, i, bx, by;
+    shadow(c, X, Y, 0.8 * s, 0.3 * s);
+    for (i = 0; i < 4; i++) {
+      bx = X + (i - 1.5) * 0.3 * s; by = Y + (i % 2 ? 0.1 : -0.08) * s;
+      ell(c, bx, by + 0.02 * s, 0.13 * s, 0.1 * s, '#B5651D', 1.4);                  // terracotta rim
+      ell(c, bx, by + 0.02 * s, 0.1 * s, 0.075 * s, '#4A3322', 0);                    // soil
+      ell(c, bx - 0.05 * s, by - 0.07 * s, 0.07 * s, 0.045 * s, '#2E7D4F', 1);       // leaves
+      ell(c, bx + 0.05 * s, by - 0.08 * s, 0.07 * s, 0.045 * s, '#3E9A5E', 1);
+      ell(c, bx, by - 0.12 * s, 0.05 * s, 0.05 * s, cols[(i + kv) % 5], 1);          // bloom
+    }
+  });
+  reg('nazar', function (c, X, Y, s) {
+    rc(c, X, Y, 1.0 * s, 0.46 * s, '#6B3E26', 1.5);                                  // tray
+    for (var j = 0; j < 2; j++) for (var i = 0; i < 4; i++) {
+      var bx = X - 0.36 * s + i * 0.24 * s, by = Y - 0.1 * s + j * 0.2 * s;
+      ell(c, bx, by, 0.085 * s, 0.085 * s, '#1F4FB4', 1);
+      ell(c, bx - 0.025 * s, by - 0.025 * s, 0.025 * s, 0.02 * s, '#BFE3FF', 0);     // glint
+    }
+  });
+  reg('carpet', function (c, X, Y, s, o) {
+    var w = 1.3 * s, hh = 0.8 * s, h = o.h || 0, i, dx;
+    shadow(c, X, Y, w * 0.5, hh * 0.45);
+    rc(c, X, Y, w, hh, h > 0.5 ? '#9E2B25' : '#1B4965', 2);
+    rc(c, X, Y, w * 0.82, hh * 0.72, '#F4EBDD', 0);
+    rc(c, X, Y, w * 0.72, hh * 0.58, h > 0.5 ? '#1B4965' : '#9E2B25', 0);
+    for (i = -1; i <= 1; i++) { dx = X + i * 0.28 * s; poly(c, [[dx, Y - 0.16 * s], [dx + 0.1 * s, Y], [dx, Y + 0.16 * s], [dx - 0.1 * s, Y]], '#E9A23B', 0); }
+    ell(c, X + 0.85 * s, Y, 0.16 * s, 0.4 * s, '#7A3E1C', 1.4);                     // rolled end
+  });
+  reg('corn', function (c, X, Y, s) {
+    var i, k;
+    rc(c, X, Y, 0.9 * s, 0.55 * s, '#C0392B', 1.5);                                  // cart
+    for (i = 0; i < 4; i++) ell(c, X - 0.27 * s + i * 0.18 * s, Y - 0.05 * s, 0.06 * s, 0.15 * s, '#F2C14E', 1);   // cobs
+    ln(c, X + 0.3 * s, Y, X + 0.3 * s, Y - 0.9 * s, '#B8B8B8', 2);                   // pole
+    for (k = 0; k < 8; k++) {                                                        // striped umbrella from above
+      c.beginPath(); c.moveTo(X + 0.3 * s, Y - 0.95 * s); c.arc(X + 0.3 * s, Y - 0.95 * s, 0.6 * s, k / 8 * TAU, (k + 1) / 8 * TAU); c.closePath();
+      c.fillStyle = P.Props.dressFill(k % 2 ? '#F4EBDD' : '#D7263D'); c.fill();
+    }
+    c.strokeStyle = P.Props.ink(); c.lineWidth = 1.6; c.beginPath(); c.arc(X + 0.3 * s, Y - 0.95 * s, 0.6 * s, 0, TAU); c.stroke();
+  });
+  reg('pomegranate', function (c, X, Y, s) {
+    var i;
+    rc(c, X, Y, 1.0 * s, 0.5 * s, '#F4EBDD', 1.5);                                   // counter
+    for (i = 0; i < 9; i++) ell(c, X - 0.38 * s + (i % 5) * 0.19 * s, Y - 0.1 * s + Math.floor(i / 5) * 0.2 * s, 0.08 * s, 0.08 * s, '#B5162B', 1);
+    rc(c, X + 0.6 * s, Y - 0.1 * s, 0.2 * s, 0.36 * s, '#B8C0CA', 1.2);
+    teaGlass(c, X + 0.6 * s, Y + 0.28 * s, s);
+  });
+  reg('tea', function (c, X, Y, s) {
+    var tt = performance.now() / 600;
+    rc(c, X, Y, 0.8 * s, 0.5 * s, '#6B3E26', 1.5);                                   // tray
+    ell(c, X - 0.15 * s, Y - 0.05 * s, 0.2 * s, 0.15 * s, '#C87533', 1.2);           // kettle
+    ell(c, X - 0.15 * s, Y - 0.22 * s, 0.12 * s, 0.09 * s, '#D98A4A', 1.2);
+    teaGlass(c, X + 0.22 * s, Y, s); teaGlass(c, X + 0.22 * s, Y + 0.2 * s, s);
+    c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 2;                        // steam
+    c.beginPath(); c.moveTo(X - 0.15 * s, Y - 0.32 * s); c.quadraticCurveTo(X - 0.05 * s + Math.sin(tt) * 4, Y - 0.5 * s, X - 0.15 * s, Y - 0.7 * s); c.stroke();
   });
 
   // ---- aliases so generated levels can use the landmark vocabulary from E2 / sim ----

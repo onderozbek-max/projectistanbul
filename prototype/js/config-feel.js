@@ -60,3 +60,41 @@ P.CFG.feel2 = {
   // Knife follow-through: after the swing ends the hand eases back to rest over this long (s).
   knife: { settle: 0.22, anticip: 0.18, overshoot: 0.1 }
 };
+
+// Signature moments (T4 part 13; view only, js/view/moments*.js). Each moment is cause-tied and short. Every bright start takes a
+// slot from the screen flash budget (P.Fx.flashGo, at most 3 a second) or is dropped; Reduce motion and Reduce flashing turn the
+// moving or bright parts off (rows in reviews/A11Y-CHECKLIST-R1.md). Times in s, distances in m, sizes in px unless noted.
+P.CFG.moments = {
+  // 1. Dash glitch: a red and a cyan ghost pair at each of `ghostN` points along the dash (`ghostLife` s, `ghostOff` m apart),
+  //    and a tear of `tearBands` horizontal bands across the hero's row (`tearSpan` px either side). The tear is `tearShift` px
+  //    wide, updated `tearRate` times a second (quantised) for `tearT` s, and needs a budget slot. One dash, one tear (cooldown 3.5 s).
+  dash: { ghostN: 3, ghostLife: 0.24, ghostOff: 0.06, tearT: 0.14, tearRate: 3, tearBands: 3, tearShift: 12, tearSpan: 120, fringe: 0.16 },
+  // 2. Ground shock: a ring grows from an explosion or a ground slam (to at least the event's radius, `r1` m at least) and magnifies
+  //    the picture inside its band (`band` of the radius wide) by up to `zoom`, for `life` s. No colour change. Up to `max` at once.
+  //    A boss slam and a brute stomp also push the picture down once: `slamKick` and `stompKick` px (the shake setting scales them).
+  shock: { max: 2, life: 0.3, r0: 0.5, r1: 2.4, band: 0.35, zoom: 0.08, slamKick: 3.0, stompKick: 1.5, gap: 0.34 },   // one ring per gap s
+  // 3. Kill streak ladder: when a kill streak (the frenzy window of skills.frenzy) reaches a mark, an ink splash shows the word for it
+  //    for `bannerT` s (pops in over `popIn` s, splash radius `splashR` of the screen width), and an ink wipe runs in from both
+  //    screen edges (`wipeFrac` of the width each side, `wipeT` s) if a budget slot is free. The word sits at `wordY` of the height.
+  streak: { marks: [10, 25, 50], wipeT: 0.34, wipeFrac: 0.22, wipeJag: 12, wipeA: 0.94, bannerT: 1.1, popIn: 0.12, fadeT: 0.3, splashR: 0.42,
+            wordY: 0.36, inkA: 0.92, fontPx: 40, queueT: 0.5 },
+  // 4. Crit kill: a halftone burst of gold dots (a `grid` by `grid` lattice, `step` m apart, dot radius up to `dot` m). It holds for
+  //    `hold` s (two frames) at radius r0, then grows to r1 and fades over `life` s. One burst at most every `gap` s. Crit kills keep
+  //    their 60 ms hit-stop (feel.js), so this adds no second freeze.
+  crit: { max: 2, gap: 0.34, hold: 0.034, life: 0.34, r0: 0.25, r1: 1.1, grid: 5, step: 0.15, dot: 0.085, col: '255,209,102' },
+  // 5. Near miss: a slow ripple ring (`life` s, from r0 to r1 m) that wobbles `wobbleAmp` m at `wobbleHz`, with a red and a cyan
+  //    fringe `fringe` m to either side (not under Reduce flashing). The near miss comes once per dash (sim nearMissDone).
+  ripple: { max: 2, life: 0.6, r0: 0.9, r1: 2.6, wobbleAmp: 0.05, wobbleHz: 1.5, fringe: 0.06, col: '61,220,255' },
+  // 6. Level clear (journey levels): `n` paper simit rings and tulip tea glasses fall past the screen for `life` s (about `size` px,
+  //    `drift` px/s sideways, `grav` px/s2, spin `spin` rad/s max). The hood name bounces in on a ribbon for `ribbonT` s (a damped
+  //    spring of `bounceHz` Hz, decay `bounceK`). Under Reduce motion the pieces are not spawned.
+  clear: { n: 36, life: 1.8, grav: 420, vmax: 260, drift: 60, spin: 2.2, size: 9, fadeT: 0.4, ribbonT: 1.6, ribbonFade: 0.35, h: 38,
+           fontPx: 18, bounceHz: 2, bounceK: 5 },
+  // 7. Last stand: each enemy within `radius` m of the hero (at most `max`) gets a red ring on its feet. The ring swells at `pulseHz`
+  //    (0.5 Hz: one smooth cycle every 2 s between `alpha` levels). Each cycle takes one budget slot (with none free, the ring holds at the upper level that cycle). Under Reduce flashing the ring
+  //    holds at the upper level. The edges of the screen grey in under a veil of alpha `veil` (`veilIn` s to reach it).
+  low: { radius: 3.2, max: 10, pulseHz: 0.5, ring: 0.14, alpha: [0.3, 0.8], veil: 0.26, veilIn: 0.4, col: '215,38,61' },
+  // 8. Heavy hit (a heavy weapon or a boss): an ink starburst of `spikes` points (outer `r` m, inner `inner` m) with a gold core, held
+  //    for `hold` s (two frames), then gone over `life` s. Budget slot and at most one every `gap` s, per `max` at once.
+  impact: { max: 2, gap: 0.34, hold: 0.034, life: 0.12, r: 0.6, inner: 0.3, spikes: 12, ink: '20,21,31', core: '255,209,102' }
+};

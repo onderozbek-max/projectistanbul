@@ -1,8 +1,9 @@
 // Player settings + tiny save (localStorage). The sim never reads these (ARCH 4.17).
 // AUDIT-6 F5 adds view and comfort settings: haptics, joystick side (HUD mirrors with it), screen shake (0, 50, 100%) and
-// reduced flashing. T4 part 8 adds three volume sliders, 0-100 in 10% steps: Music (musicVol: P.Music), Sound effects
-// (sfxVol: the sfx, ui and ambience buses) and Voice (voiceVol: the voice bus, comic speech and groans). Render and input
-// read them; P.applySettings pushes the ones that have a live hook (volumes, side, flashing class, motion class, text size).
+// reduced flashing. T4 part 8 adds two volume sliders, 0-100 in 10% steps: Music (musicVol: P.Music) and Sound effects
+// (sfxVol: the sfx, ui, ambience and voice buses). The game has no voice acting, so comic speech blips and zombie groans are
+// sound effects and follow the Sound effects slider (sfx.js routes the voice bus through the sfx bus). T4 part 9 removed the
+// Voice slider; a saved voiceVol is ignored. Render and input read them; P.applySettings pushes the ones that have a live hook.
 (function () {
   var KEY = 'istanbul_proto_v1';
   var MUSIC_BASE = 0.7;   // music level 100 = the prototype's default mix (P.Music starts at 0.7)
@@ -16,7 +17,7 @@
   var phoneLangs = typeof navigator === 'undefined' ? [] : navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
   var defaults = { lang: P.detectLang(phoneLangs), sound: true, subs: true, reduceMotion: false, dmgNumbers: true, blood: true,
                    firstRunDone: false, l1Cleared: false, coldOpenSeen: false, installId: null,
-                   musicVol: 100, sfxVol: 100, voiceVol: 100, haptics: true, joySide: 'right', shake: 100, reduceFlash: false,
+                   musicVol: 100, sfxVol: 100, haptics: true, joySide: 'right', shake: 100, reduceFlash: false,
                    devTools: false, textSize: 100 };
   var LANGS = ['tr', 'en'];
   var BOOLS = ['sound', 'subs', 'reduceMotion', 'dmgNumbers', 'blood', 'firstRunDone', 'l1Cleared', 'coldOpenSeen',
@@ -32,8 +33,8 @@
   // the menu, the language or startup).
   BOOLS.forEach(function (k) { if (typeof P.Settings[k] !== 'boolean') P.Settings[k] = defaults[k]; });
   // The old "Sound effects" on/off switch muted every bus. Its replacement, the Sound effects slider, starts at 0 for a
-  // player who had it off (and Voice with it). The flag itself is retired and stays true.
-  if (P.Settings.sound === false && !('sfxVol' in data)) { P.Settings.sfxVol = 0; P.Settings.voiceVol = 0; }
+  // player who had it off. The flag itself is retired and stays true.
+  if (P.Settings.sound === false && !('sfxVol' in data)) P.Settings.sfxVol = 0;
   P.Settings.sound = true;
   if (LANGS.indexOf(P.Settings.lang) < 0) P.Settings.lang = defaults.lang;
   if (typeof P.Settings.installId !== 'string' || !P.Settings.installId) P.Settings.installId = 'i-' + Math.random().toString(36).slice(2, 10);
@@ -42,7 +43,8 @@
   function volume(v, d) { return typeof v === 'number' && isFinite(v) ? Math.round(Math.min(100, Math.max(0, v)) / 10) * 10 : d; }
   P.Settings.musicVol = volume(P.Settings.musicVol, defaults.musicVol);
   P.Settings.sfxVol = volume(P.Settings.sfxVol, defaults.sfxVol);
-  P.Settings.voiceVol = volume(P.Settings.voiceVol, defaults.voiceVol);
+  // The Voice slider is retired (T4 part 9): a saved voiceVol is dropped here, so it is not written back on the next save.
+  delete P.Settings.voiceVol;
   if (SHAKE_STEPS.indexOf(P.Settings.shake) < 0) P.Settings.shake = defaults.shake;
   if (TEXT_STEPS.indexOf(P.Settings.textSize) < 0) P.Settings.textSize = defaults.textSize;
   if (P.Settings.joySide !== 'left' && P.Settings.joySide !== 'right') P.Settings.joySide = defaults.joySide;
@@ -53,14 +55,13 @@
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && !('reduceMotion' in data)) {
     P.Settings.reduceMotion = true;
   }
-  // Pushes the settings that have a live hook: the three volumes (at boot too), HUD mirror (joystick side), the flashing
+  // Pushes the settings that have a live hook: the two volumes (at boot too), HUD mirror (joystick side), the flashing
   // class, the motion class and the UI text size.
   P.applySettings = function () {
     if (P.Music && P.Music.setVolume) P.Music.setVolume(MUSIC_BASE * P.Settings.musicVol / 100);
     if (P.Sfx && P.Sfx.setVolume) {
-      var fx = P.Settings.sfxVol / 100;
+      var fx = P.Settings.sfxVol / 100;   // the voice bus is not set here: it sits inside the sfx bus (sfx.js)
       P.Sfx.setVolume('sfx', fx); P.Sfx.setVolume('ui', fx); P.Sfx.setVolume('ambience', fx);
-      P.Sfx.setVolume('voice', P.Settings.voiceVol / 100);
     }
     var ph = typeof document !== 'undefined' ? document.getElementById('phone') : null;
     if (!ph) return;

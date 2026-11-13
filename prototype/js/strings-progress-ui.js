@@ -8,28 +8,29 @@
 // Placeholders are {name}. Loaded after strings-horde.js (P.STR must exist).
 if (P.STR) {
   Object.assign(P.STR.tr, {
-    'hud.skLabel': 'Sokak Kredisi {n}, sonraki için {k} öldürme', // TR owner check
-    'lvb.title': 'SEVİYE ATLA · Lv {n}', // TR owner check: level-up banner title
-    'lvb.line': 'Seçildi: {name} · Lv {n}', // TR owner check
-    'lvb.lineF': 'Seçildi: {name}', // TR owner check
-    'prog.powerLabel': 'Gücün', // TR owner check: "your power" strip label
-    'prog.dmg': 'hasar +{v}%', // TR owner check
-    'prog.hp': 'can +{v}%', // TR owner check
-    'prog.perks': '{n} yetenek', // TR owner check: Street Tree perks
-    'prog.gainDmg': '+{v}% hasar', // TR owner check
-    'prog.gainHp': '+{v}% can', // TR owner check
-    'prog.levelN': 'Bölüm {n}', // TR owner check: journey level, see the header note on Bölüm
-    'ui.res.labelLevel': 'BÖLÜM {n} · {hood}', // TR owner check
-    'ui.res.walk': 'Yürüyüş', // TR owner check
-    'res.recap.head': 'KOŞU ÖZETİ', // TR owner check
-    'res.recap.reached': 'Ulaşılan Lv {n} · {kills} öldürme · en iyi seri {streak}', // TR owner check
-    'res.recap.sc': 'Sokak Kredisi', // TR owner check
-    'res.recap.scVal': '+{n} · sonraki için {k} öldürme', // TR owner check
-    'res.recap.power': 'Güç', // TR owner check
-    'res.recap.noPower': 'Yeni bölge yok', // TR owner check
-    'res.recap.next': 'Sonraki', // TR owner check
-    'res.recap.retry': '{unlock} (tekrar)', // TR owner check
-    'hc.next': 'SONRAKİ: {unlock}', // TR owner check: hood card, the next unlock
+    // The TR strings below are owner-approved (T4 part 9); "Bölüm" is the journey level (see the header note).
+    'hud.skLabel': 'Sokak Kredisi {n}, sonraki için {k} öldür',
+    'lvb.title': 'SEVİYE ATLA · Lv {n}',
+    'lvb.line': 'Seçildi: {name} · Lv {n}',
+    'lvb.lineF': 'Seçildi: {name}',
+    'prog.powerLabel': 'Gücün',
+    'prog.dmg': 'hasar +{v}%',
+    'prog.hp': 'can +{v}%',
+    'prog.perks': '{n} yetenek',
+    'prog.gainDmg': '+{v}% hasar',
+    'prog.gainHp': '+{v}% can',
+    'prog.levelN': 'Bölüm {n}',
+    'ui.res.labelLevel': 'BÖLÜM {n} · {hood}',
+    'ui.res.walk': 'Yürüyüş',
+    'res.recap.head': 'KOŞU ÖZETİ',
+    'res.recap.reached': 'Ulaşılan Lv {n} · {kills} öldürme · en iyi seri {streak}',
+    'res.recap.sc': 'Sokak Kredisi',
+    'res.recap.scVal': '+{n} · sonraki için {k} öldür',
+    'res.recap.power': 'Güç',
+    'res.recap.noPower': 'Yeni bölge yok',
+    'res.recap.next': 'Sonraki',
+    'res.recap.retry': '{unlock} (tekrar)',
+    'hc.next': 'SONRAKİ: {unlock}',
   });
   Object.assign(P.STR.en, {
     'hud.skLabel': 'Street Cred {n}, {k} kills to the next',

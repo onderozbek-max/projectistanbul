@@ -388,7 +388,6 @@ P.Screens = (function () {
     row(P.t('ui.set.lang'), lang);
     row(P.t('ui.set.music'), volume('musicVol', P.t('ui.set.music')));
     row(P.t('ui.set.sound'), volume('sfxVol', P.t('ui.set.sound')));
-    row(P.t('ui.set.voice'), volume('voiceVol', P.t('ui.set.voice')));
     row(P.t('ui.set.subs'), toggle('subs'));
     row(P.t('ui.set.reduceMotion'), toggle('reduceMotion'));
     row(P.t('ui.set.reduceFlash'), toggle('reduceFlash'));

@@ -4,9 +4,12 @@ P.Render = (function () {
   var R = { ctx: null, canvas: null, W: 390, H: 844, dpr: 1, ppm: 32.5, cam: null };
   var heroAnim = { x: 0, y: 0, walk: 0 };
 
-  R.init = function (canvas) { R.canvas = canvas; R.ctx = canvas.getContext('2d'); };
+  // alpha:false: every frame starts with a full-canvas fill (or the finale sky), so the backing store is opaque and cheaper to composite.
+  R.init = function (canvas) { R.canvas = canvas; R.ctx = canvas.getContext('2d', { alpha: false }); };
+  // The world canvas uses min(devicePixelRatio, view.maxDpr), lower on the governor's tiers (quality.js). Changing it re-allocates
+  // the backing store, so it only happens on a window resize or a tier step.
   R.resize = function (scale) {
-    R.dpr = Math.min(window.devicePixelRatio || 1, 3) * scale;
+    R.dpr = Math.min(window.devicePixelRatio || 1, P.Quality ? P.Quality.dprCap() : 3) * scale;
     R.canvas.width = Math.round(R.W * R.dpr); R.canvas.height = Math.round(R.H * R.dpr);
   };
   R.X = function (x) { return (x - R.cam.x) * R.ppm; };
@@ -76,6 +79,7 @@ P.Render = (function () {
   function drawDrops(s) {
     var c = R.ctx, t = performance.now() / 1000, u = R.ppm, pk = P.CFG.feel2.pickup, hero = s.hero;
     s.drops.forEach(function (d, i) {
+      if (P.Consumables && P.Consumables.handles(d.kind)) return;   // heal, power and currency drops: the overlay pass (T4 part 10)
       var X = R.X(d.x), Y = R.Y(d.y) - Math.sin(t * 3 + i) * pk.bob * u, lift = 0, hd, tx, ty, gl, g;
       if (d.pop > 0 && d.pop <= pk.popT && !(P.Settings && P.Settings.reduceMotion)) {   // pops out on a small arc (the sim holds it for `pop` s)
         lift = Math.sin(Math.PI * (1 - d.pop / pk.popT)) * pk.lift;
@@ -148,9 +152,13 @@ P.Render = (function () {
     });
   }
 
+  // Optional particles (gibs, blood, sparks, embers, shards, dust) are drawn 1 in k at the governor's tiers (quality.js);
+  // corpses, muzzle flashes and the rest always draw.
+  var PART_OPTIONAL = { gib: 1, blood: 1, spark: 1, ember: 1, shard: 1, dust: 1 };
   function drawFx() {
-    var c = R.ctx, F = P.Fx, u = R.ppm;
-    F.parts.forEach(function (p) {
+    var c = R.ctx, F = P.Fx, u = R.ppm, k = P.Quality ? P.Quality.partStep() : 1;
+    F.parts.forEach(function (p, pi) {
+      if (k > 1 && PART_OPTIONAL[p.kind] && pi % k) return;
       var a = p.t / p.T;
       if (p.kind === 'corpse') P.Sprites.corpse(R, p);
       else if (p.kind === 'gib') circle(p.x, p.y, 0.07, 'rgba(' + P.goreRGB(1) + ',' + a + ')', '#14151F', 1);
@@ -219,9 +227,12 @@ P.Render = (function () {
     hook(P.WFx2, 'drawGround', s);
     hook(P.EnemyFx, 'drawGround', s);
     hook(P.EventsFx, 'drawGround', s);
+    if (L1 && y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);   // T4 part 11: the idle tram is on the ground, opaque, under the actors
     // Ground layer for actors: contact shadows, base rings and auras sit under every figure, so no shadow lands on a
     // neighbour's legs (G4). Figures then draw through RF, which skips their ground.
-    var actors = s.enemies.filter(function (e) { return Math.abs(e.y - cam.y) < half; }), RF = Object.create(R);
+    // Actors outside the screen sideways are not drawn (48 px of margin for the shadow, recoil and the knife).
+    var hw = (R.W / 2 + Math.abs(cam.ox || 0) + 48) / R.ppm;
+    var actors = s.enemies.filter(function (e) { return Math.abs(e.y - cam.y) < half && Math.abs(e.x - cam.x) < hw; }), RF = Object.create(R);
     RF.noGround = true;
     actors.forEach(function (e) { P.Sprites.groundEnemy(R, e); });
     s.dir.civilians.forEach(function (v) { P.Sprites.groundCivilian(R, v); });
@@ -247,6 +258,7 @@ P.Render = (function () {
     hook(P.SkillsFx, 'drawUnder', s);
     drawHero(s);
     runDepth(post);
+    hook(P.Consumables, 'drawOver', s);            // T4 part 10: consumables above the actors, so no zombie hides one
     P.WFx.drawChain(R, s);
     P.WFx.drawProjectiles(R, s);
     hook(P.FireAnim, 'drawFx', s);
@@ -256,7 +268,6 @@ P.Render = (function () {
     hook(P.Vehicles, 'drawAir', s);
     hook(P.EnvFx, 'drawAir', s);                  // lane A: airborne env (debris, smoke, gulls) after the crowd
     hook(P.SkillsFx, 'drawOver', s);
-    if (L1 && y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);
     if (L1 && y1 > 222) P.RenderWorld.drawScaffold(R, s);
     P.RenderWorld.drawLights(R, s, y0, y1);
     P.Decor.drawOverhead(R, s, y0, y1);
@@ -265,6 +276,7 @@ P.Render = (function () {
     hook(P.Barks, 'draw', s);
     c.restore();
     P.RenderOverlay.screen(R, s);
+    hook(P.ConsumablesZone, 'drawScreen', s);      // T4 part 10: edge arrows for off-screen link terminals
   };
 
   R.circle = circle;
@@ -372,17 +384,31 @@ P.RenderOverlay = (function () {
     var n = Math.floor(now / P.Fx.heartPeriod);
     if (n !== heartN && P.Sprites && P.Sprites.flashForce) { heartN = n; P.Sprites.flashForce(now); }
   }
+  // The edge vignette is the same radial gradient on every frame of a level, so it is rasterised once per colour, alpha and
+  // device scale and then drawn as one image. A gradient fill over the whole screen is a per-pixel evaluation each frame.
+  var vig = { key: '', cv: null };
+  function vignetteImage(R, vc, a) {
+    var key = vc + '|' + a + '|' + R.dpr, W = R.W, H = R.H, g2, g;
+    if (vig.key !== key) {
+      if (!vig.cv) vig.cv = document.createElement('canvas');
+      vig.cv.width = Math.round(W * R.dpr); vig.cv.height = Math.round(H * R.dpr);
+      g2 = vig.cv.getContext('2d'); g2.setTransform(R.dpr, 0, 0, R.dpr, 0, 0);
+      g = g2.createRadialGradient(W / 2, H * 0.65, 0, W / 2, H * 0.65, H * 0.75);
+      g.addColorStop(0.6, 'rgba(' + vc + ',0)'); g.addColorStop(1, 'rgba(' + vc + ',' + a + ')');
+      g2.fillStyle = g; g2.fillRect(0, 0, W, H);
+      vig.key = key;
+    }
+    return vig.cv;
+  }
   O.screen = function (R, s) {
     var c = R.ctx, W = R.W, H = R.H;
     var l = (s.levelIndex > 1 && P.RenderWorld.screenLight) ? P.RenderWorld.screenLight(s) : light(s.hero.y);
     // No full-screen flash here (v0.7 removed the level-up and bloater flashes). Light, vignette and the low-HP beat only.
     c.fillStyle = 'rgba(' + Math.round(l[0]) + ',' + Math.round(l[1]) + ',' + Math.round(l[2]) + ',' + l[3].toFixed(3) + ')';
     c.fillRect(0, 0, W, H);
-    var g = c.createRadialGradient(W / 2, H * 0.65, 0, W / 2, H * 0.65, H * 0.75);
     var vg = (s.levelIndex > 1 && P.RenderWorld.vignette) ? P.RenderWorld.vignette(s) : [27, 73, 101, 0.45];
     var vc = Math.round(vg[0]) + ',' + Math.round(vg[1]) + ',' + Math.round(vg[2]);
-    g.addColorStop(0.6, 'rgba(' + vc + ',0)'); g.addColorStop(1, 'rgba(' + vc + ',' + vg[3] + ')');
-    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.drawImage(vignetteImage(R, vc, vg[3].toFixed(3)), 0, 0, W, H);   // cached image; the transform here is the device-scale one
     if (s.hero.hp / s.hero.maxHp < P.CFG.feel.lowHpFrac && s.mode === 'play') {
       // Last stand: a dark red vignette that beats like a heart (two beats per cycle, never a flash).
       var beat = (P.Settings && P.Settings.reduceFlash) ? 0.5 : (P.Fx.heart ? P.Fx.heart(performance.now() / 1000) : 0.5);
@@ -403,6 +429,7 @@ P.RenderOverlay = (function () {
     if (P.EnemyFx && P.EnemyFx.screen) P.EnemyFx.screen(R, s);
     if (P.EventsFx && P.EventsFx.screen) P.EventsFx.screen(R, s);
     if (P.SkillsFx && P.SkillsFx.screen) P.SkillsFx.screen(R, s);
+    if (P.MomentsScreen && P.MomentsScreen.draw) P.MomentsScreen.draw(R, s);   // T4 part 13: signature moments, screen layer
   };
   return O;
 })();

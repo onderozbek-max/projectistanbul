@@ -1204,7 +1204,224 @@ L2-4 at 32 seeds are unchanged by this pass (they have no boss and no arena): 94
 - `node tools/test-arsenal.js --quick`: PASS (exit 0) in the current tree. The `reduceFlash` failure noted under "Tests" above did not reproduce.
 - Not committed or pushed.
 
-# R1-T5: cross-level skill tree (design doc, proposed)
+# T4 part 9 (phone feedback): UI follow-ups
+
+Owner played on his phone and decided three things. Headless only (390x844, Chromium, the same seeded results data as the part 5 follow-up, 1,001 px at 100%). Not device-tested.
+
+- **Voice slider removed.** Settings has Music and Sound effects. The voice bus (speech blips, zombie groans) now sits inside the sfx bus (`js/view/sfx.js`, one line in `buildGraph`), so the Sound effects slider covers them; `setVolume('voice')` still works as a trim inside it. A saved `voiceVol` is deleted at load and never written back; an old sound-off switch still sets Sound effects to 0. The `ui.set.voice` key is gone from both tables.
+  - Loudness: the voice bus base gain (0.95) now multiplies the sfx bus (0.85), so speech blips and groans are about 1.4 dB quieter at 100% than before. `CATS` is unchanged; raise `CATS.voice` to about 1.12 if the old level is wanted.
+- **TR strings (owner-approved).** `fin.credits.kicker` "1. Kısım Sonu", `fin.next.text` "2. Kısım · Sarıyer'e Yolculuk.", `hud.skLabel` and `res.recap.scVal` now end in "öldür". The `// TR owner check` tags are gone from every TR line in `strings-progress-ui.js`, `strings-ui2.js` and `strings.js` (kept in the other files and hoods). Stale "Bölüm 1 tamam" comments in `js/story/finale.js` and `js/view/finale-credits.js` now say "1. Kısım Sonu". `tools/test-progress-ui.js` and `tools/test-ui-motion.js` expectations updated.
+- **Results fit (100% text).** The Time and Walk rows are one compact line each at the top of the recap; the separate run panel is gone. `#res-run` stays as a hidden anchor because `objectives-hud.js` inserts its panel after it (that file is not in this pass). The head, rewards, recap and objective panel now scroll in `.res-body`; the four actions are a footer under it (no sticky block, so nothing covers a line). Tightened: centre block and stars margins, panel gap 10 px, row padding 4 px, footer button top margin 0. Tap targets stay at the 52 px `.btn` minimum. The count-up and the motion tokens are unchanged.
+
+Measured (`reviews/media/R1/results-fit/`, before and after):
+
+| Case | Before | After |
+| --- | --- | --- |
+| Base result, 100%, EN and TR | 1,001 px content (157 over) | fits: no scroll, footer at y 630 to 810 |
+| Base result, 150%, EN | 1,364 px | body scrolls (907 px in 548 visible); footer pinned at y 607 to 810; no overlap; last row reachable at scroll end |
+| Base result, 150%, TR | not measured | body scrolls (942 in 520); footer pinned; no overlap |
+| Lost level with objective panel, 100% | 900 px | fits (no DOUBLE button on a loss) |
+| **Won level with objective panel, 100%** | 1,221 px | **still scrolls ~215 px (EN) and ~195 px (TR)**; footer pinned |
+
+**Open for the owner.** The objective panel (`objectives-hud.js`, not owned here) adds 204 px (EN) on a won level, because its unlock preview lists up to four rows. With it, the won screen cannot fit 844 px at 100% without losing content. Options: (a) keep the scroll on won levels (current; the action footer stays pinned); (b) show two unlock rows, saves about 60 px, still over; (c) move the objective panel off the results screen. The owner's 1,001 px figure matches the screen without that panel, so it may not have been on the phone run.
+
+- **Tests.** `check-ids`, `test-meta` (122), `test-dialogue`, `test-feel`, `test-tree` (165) and `test-progress-ui` (585) pass. `test-ui-motion` passes its T4 part 9 checks; its one failure is the font-size scan on `js/view/quality.js`, an untracked file from another lane. `test-a11y-canvas` fails on `js/view/istanbul-props2.js:339` (uncommitted work from another lane); neither failure comes from this pass.
+- **Not done.** `tools/sfx-preview.html` still has a Voice slider (dev tool, its own page). `design/lofi/16-settings.html` (wireframe) still shows a Voice row, and `docs/audio-cue-sheet.md` lines 15 and 42 say the Settings sliders are not wired. None of these were in the owned list.
+- Not committed or pushed.
+
+# T4 part 11: tram and sidewalk legibility
+
+Owner playtest on iPhone: the street tram did not read as a tram and turned opaque for no clear reason; sidewalk objects did not say what they were for. Headless only (390x844 at 2x, `tools/arena-still.html`, hood 0, stage 1). Not device-tested. Not committed or pushed. No sim logic, config numbers, strings or CSS changed.
+
+**Why the tram went opaque.** The translucent band in the owner's screenshot was the idle L1 tram, not the hack telegraph (the baseline still at y=150 reproduces it exactly). `W.drawTram` in `render-world.js` faded it to 0.3 whenever Arda stood beside it, which applied the overhang rule (design-system 6.5 item 5) to a vehicle that is not an overhang. It was also drawn after the hero, so it could cover him. Now the tram is always opaque (alpha 1) and is drawn in the ground layer (`render.js`, after `EventsFx.drawGround`), so actors stand above it. The opacity rules are in the `vehicles.js` header. The hack telegraph lane is the only translucent tram element.
+
+**Tram redraw** (`vehicles.js`). Top-down 3/4 Istanbul nostalgic tram: red body, cream roof stripe (0.3 m), window bays on both sides, bellows, windscreen with glint, headlamp, route plate, brass bell, two bogies with wheels, soft contact shadow. Live parts (pantograph, contact flash, headlamp glow) are drawn per frame; the body is a cached canvas per size (cap 12). The landmark tram (`istanbul-landmarks.js`) uses the same `paintBox`; its drawn size went from 1.8 x 9 m to 3.2 x 13.2 m. Sim rect unchanged.
+
+**Telegraph lane** (`events-fx.js`, `tramLane`). Replaces the flat 0.3 danger rectangle with a translucent fill (0.22), hazard-stripe edges, an outline, chevrons moving at 0.8 m/s over 2.4 m (about 0.33 Hz, under the 0.5 Hz limit; static under Reduce motion), a tram icon at the entry and a countdown ring (remaining `H.rush` over `rushT`). No ghost tram. Timing unchanged: the crush still lands at hack completion and the lane shows for the 0.8 s after it.
+
+**Sidewalk roles** (`istanbul-props.js`, one `ROLE` table read from the code). Solid: bollard, barrier, tree, car, taxi, dolmus, bus, lx_*. Breakable: bin, bench, tables, cart, planter, crates, kiosk, antique, extinguisher. Hazard: gascan, barrel, hazard. Fauna: cat, catbox, dog, pigeon, gull. Plain: gates and arches, smoke, blood, strings, lanterns, laundry, vault, lamp_row, spill, phones. Dressing (a sidewalk slot with no footprint) is 0.9 scale, 0.8 squash, 40% toward its luminance, faint outline. Sim blocks get the shared grammar: thick outline, top highlight, hatched top (solid) or lighter top with a crack (breakable), baked once per size. The role is a view decision; the sim does not read it. Consumables, eczane and hold/link zones are not changed (another lane).
+
+**Redrawn** (`istanbul-props2.js`, `istanbul.js`). Pigeon: side profile, baked sprite, peck stops under Reduce motion (the old top-down pigeons read as penguins). Spill: dark patches (was gold dots). Shoeshine: footrests and brush. Flowers: pots with leaves, not rows of dots that read as pickups. Nazar: no pupils. Carpet, corn, pomegranate and tea moved from `istanbul.js` into the library so they share the grammar. `istanbul.js` is outside the stated ownership list; the change there is minimal (the DRAW table is gone, `l1Street` calls `P.Props.draw`, and the pigeon flock calls `P.Props.bird`).
+
+**Legend** (`prototype/tools/prop-legend.html`, new). Every kind drawn by the game's own painters with its role tag, the sim blocks at their sim size, and the tram. It loads the game scripts, stubs `P.goreRGB` (settings.js owns it) and loads the consumables files for the eczane cell. Labels are inline English; no new strings were needed, so `js/strings-legibility.js` was not created. Loads with no console errors at 390 px.
+
+**Before and after** (`reviews/media/R1/legibility/`, 2x crops of the stills):
+- `t4-tram-before-y150.png`, `t4-tram-after-y150.png` (tram beside Arda)
+- `t4-tram-before-front-y136.png`, `t4-tram-after-front-y136.png`
+- `t4-pigeons-before-y136.png`, `t4-pigeons-after-y136.png` (upper flock)
+- `t4-pigeons-before-low-y136.png`, `t4-pigeons-after-low-y136.png` (lower flock)
+- `t4-grey-blob-before-y136.png`, `t4-grey-blob-after-y136.png`
+- `t4-prop-legend-top-390.png` (legend: tram and sidewalk slots)
+
+No before/after yet for flowers, shoeshine, nazar, tea or the cafe; they are not in these stills.
+
+**Frame budget.** `/tmp/filmstrip/cost.js` (enemy-only, outside the repo; its stub gained a `transform` method so the current `art-rig.js` runs) reports 4510 calls per frame on the working tree against 4890 at HEAD. That scene draws no props or tram, so it does not measure this part. The per-kind counts below come from a stub-canvas harness (`/tmp/filmstrip/cost-props.js`, steady state, average per draw):
+
+| Draw | HEAD | Now |
+| --- | --- | --- |
+| Tram (`Vehicles.drawCar`) | 143 | 14 |
+| Pigeon (4 birds) | 44 | 16 |
+| Spill | 42 | 18 |
+| Dressing bin / bench / cart | 9 / 22 / 22 | 12 / 25 / 25 (transform and the baked mark) |
+| Flowers, nazar, tea, shoeshine | 10 each (placeholder: drawn in `istanbul.js` at HEAD, not comparable) | 82, 61, 41, 25 (not baked yet) |
+
+Caches: sidewalk marks cap 160, tram bodies 12, birds 240. Per bird, the draw path still builds a few small strings (sprite key, fill colour); not measured on a phone.
+
+**Tests.** All eight pass: `check-ids`, `test-feel`, `test-a11y-canvas`, `test-ceiling`, `test-enemy-behaviors`, `test-env`, `test-horde`, `test-meta` (122 checks). `test-a11y-canvas` had a stale allowlist entry for the old pigeon peck; it is removed from `tools/a11y-canvas-allowlist.json` (the peck is now a two-pose switch at about 0.4 Hz, off under Reduce motion). This is the `istanbul-props2.js:339` failure noted under T4 part 9.
+
+**Open.**
+1. Pre-hack telegraph preview: the lane shows after the hack. A warning before the crush would change the feel, so it is a design call for the owner.
+2. The telegraph lane has not been checked in a live hack state (needs a temporary harness).
+3. Pigeons at true phone size and on a device are not checked (the 48 px check is still owed).
+4. Flowers, nazar, tea and shoeshine draw 25 to 82 calls each and are not baked. Bake them if the phone heat pass needs it.
+5. The grey patch on the cobbles at (550, 995) in the y=136 still is gone after this pass, but I have not traced it to a kind in code, so its cause is unconfirmed.
+6. The marti thief's pigeon look (`config-fauna` birdLook) and the ambient bird are not aligned.
+7. `restaurant-art.js` window tram left as is.
+8. SVG solid blocks are not chamfered.
+9. `render.js`, `events-fx.js` and `istanbul-props2.js` were also changed by other lanes during this work. Edits were applied with anchor checks; nothing was reverted.
+10. Eczane and consumables art were not touched (another lane).
+
+# T4 part 13: signature moments
+
+Owner: "I loved the ground shaking, glitching animations. Amazing job. If you can think of such creative animation ideas feel free to test things." The ground shake and the blackout glitch are kept as they were. This pass adds eight short, cause-tied moments in the same language (view only). Every bright start takes a slot from the screen flash budget (`P.Fx.flashGo`, at most 3 starts a second). Headless only; not device-tested. Not committed or pushed. No sim, balance or other strings changed.
+
+Files: `js/view/moments.js` (events, state and the world layer), `js/view/moments-screen.js` (the screen layer), `js/strings-moments.js`, `tools/moments-still.html` (harness). Additive hooks: `fx.js` (reset, update, onEvent), `feel.js` (world layer, under the hero), `render.js` (screen layer, last in `RenderOverlay.screen`). Every number is in `P.CFG.moments` (`config-feel.js`).
+
+| Moment | Trigger | Starts a second (max) | Area | Guard |
+| --- | --- | --- | --- | --- |
+| Dash glitch: ghost pair, then a 0.14 s tear | dash | one per dash (3.5 s cooldown); tear re-rolls 3 steps/s | ghosts hero-sized; tear full width, within 120 px of the hero | Reduce motion and Reduce flashing: off |
+| Ground shock: ring and an 8% lens; one kick for slams and stomps | explosion, boss slam, brute stomp | one per 0.34 s; 0.3 s life; two live at most | ring up to 2.4 m | Reduce motion: off (the kick is zeroed in `F.kick`) |
+| Kill-streak ladder: ink word and ink wipe at 10, 25 and 50 | kills in the frenzy window (1.5 s) | one per mark (one dark pass, 0.34 s) | wipe 22% of the width from each edge; word up to two thirds of the width | Reduce flashing: steady word, no wipe; Reduce motion: no wipe, no pop |
+| Crit halftone burst | crit kill | one per 0.34 s; 2-frame hold, then fades | 11 by 11 dots, up to 1.1 m | Reduce motion and Reduce flashing: off; budget slot |
+| Near-miss ripple, red and cyan fringe | near miss (once per dash) | one per near miss; 0.6 s | ring 0.9 to 2.6 m | Reduce motion: off; under Reduce flashing the budget refuses it |
+| Heavy-hit starburst (heavy weapons and bosses) | heavy or boss hit | one per 0.34 s; 2-frame hold, gone in 0.12 s | star, about 0.6 m | Reduce motion and Reduce flashing: off; budget slot |
+| Level clear: simit and tulip-glass confetti, hood ribbon | win on a journey level (not L1) | 36 pieces once; ribbon spring 2 Hz, decays in about 1 s | pieces about 9 px; ribbon 150 to 200 px | Reduce motion: no pieces; ribbon static |
+| Last stand: red rings on nearby enemies, grey veil | HP below 30% | rings swell at 0.5 Hz; one budget slot per 2 s cycle | up to 10 rings within 3.2 m | Reduce flashing: rings held high |
+
+Changes made during the pass (both covered by the tests):
+
+- The last-stand pulse first used a forced start (`flashForce`), which is never refused. A dense mix then took 4 starts in one second, and the new budget test caught it. The pulse now takes an ordinary slot per cycle and holds high on a cycle that gets none.
+- The ground-shock ring is limited to one per 0.34 s (`shock.gap`), so a chain of blasts gives at most about 3 zooms a second. The lens is motion, not luminance, but it keeps the same pace as the other moments.
+
+Verified (headless):
+
+- Filmstrips: `reviews/media/R1/animation/t4b-{dash,streak,crit,ripple,clear,low,impact,shock,slam}.png` (2x, downscaled to 1800 px wide).
+- Lens pixel diff (`tools/moments-still.html?seq=slam&nolens=1` against the default): 5,000 to 20,000 changed pixels per frame from 0.10 to 0.32 s (1 to 4% of the frame), and none at 0.05 s, which is captured one step before the event. The lens is visible but subtle. The orange ring in the sheet is the existing slam ring, not the lens.
+
+Tests:
+
+- `test-anim-flavor`: all pass. The moments block checks the config keys, the streak marks (10, 25 and 50 only), the frenzy reset (first mark on the 10th kill after it), the window gap, the crit and impact gaps, the dash ghosts and tear clearing within 0.3 s, Reduce flashing and Reduce motion starting nothing bright, level clear on journey levels only, the 0.5 Hz last-stand swell, one ring per shock gap, and that no moments file writes to the sim.
+- `test-a11y-canvas`: all pass (83 view files, 14 candidates, 4 allowlisted, 39 wiring checks). Runtime: a dense 4 s mix of crit kills, boss hits, near misses and the last-stand pulse, through the real budget, holds to 3 starts a second, and Reduce flashing starts none. Static: each sin and cos term in the moments files is one of four config rates (all at most 3 Hz), and each Reduce flag is read where its moment starts.
+- Required loop: check-ids, test-feel, test-a11y-canvas, test-anim-flavor, test-ceiling, test-enemy-behaviors, test-env, test-horde and test-ui-motion (536 checks) all exit 0.
+
+Not built (candidates):
+
+- Hood-card wipe in the hood colour: the hood card is DOM and CSS, outside the owned files.
+- Magnet comet trail: needs a change to `drawDrops` in render.js (not owned).
+- Boss intro letterbox slide: enemies-fx already has the bars and the stepped title word.
+- Explosion-launch ragdoll: the canister fling already exists (sprites.js, fx.js), so nothing was added.
+- Zombie hit starburst: a starburst on every zombie hit would exceed the budget. The starburst is for heavy and boss hits only.
+
+Not verified:
+
+- Device frame time and the real flash rate at 60 fps (headless only).
+- Lens visibility on a phone (pixel diff in headless only).
+- Crowd starvation: enemy hit flashes take the shared budget first, so in a crowd the crit burst is dropped, and the streak word waits up to 0.5 s before it is dropped. Owner decision: reserve a slot for moments.
+- TR words `DEVAM!`, `KIRIM!` and `EFSANE!` (`// TR owner check` in `js/strings-moments.js`). The EN words are `KEEP IT UP!`, `SMASH!` and `LEGEND!`.
+- Art taste: the confetti, the ribbon and the starburst colours.
+- The scaffold drop shake (level event `scaffold`, `scaffoldTrauma` 0.4) is unchanged. It should be checked against the earthquake guardrail.
+- Harness: the crit column in the log reads `crit=-` (a placeholder with no effect on the sheets).
+
+Shared-file touches: `fx.js` (three hooks), `feel.js` (one draw hook), `render.js` (one line), `index.html` and `tools/arena-still.html` (script tags), and `tools/moments-still.html` (harness). Other lanes' edits were applied with anchor checks, and nothing was reverted.
+
+- Not committed or pushed.
+
+# T4 part 12: performance and heat
+
+Owner report: the iPhone (DPR 3, Safari) gets warm after 5 to 10 minutes of play. Goal: cut GPU and CPU work with no visible change at tier 0 and no sim change. Stub and headless only. Device frame time and heat are not measured here; the phone test is in `reviews/PLAYTEST-GUIDE-R1.md` ("Performance and heat (T4 part 12)"). Not committed or pushed.
+
+**What changed, in the order of the brief.**
+1. **Profile.** `/tmp/perf/frame-cost.js` runs the real `P.Render.frame` and `P.UI.update` in a node vm with DOM and canvas stubs, a seeded `Math.random`, and a level-5 sim with 200 enemies. Stack mode attributes each canvas call to a category. Stub timings are relative only.
+2. **DPR cap and governor.** `view.maxDpr: 2` (`config.js`); `R.dpr = min(devicePixelRatio, cap) * scale`; the world context is opaque (`alpha: false`). New `js/view/quality.js` (view only): an EMA over 2 s of the live frame interval; above 20 ms for 4 s steps down; below 13 ms for 30 s steps up. Tiers 0, 1, 2 = DPR 2, 1.5, 1.25. Tier 1: one in two of gib, blood, spark, ember, shard and dust particles; no shop-window glows. Tier 2: one in three of those particles; no rain or haze; no ground AO pads under props. `?quality=0|1|2` locks a tier; `?fps=1` shows the debug box. The sim never reads any of this (checked by `tools/test-quality.js`).
+3. **Static layers cached.** The figure bake cache (`art-rig.js`) is LRU under a byte budget (`view.quality.spriteCacheMB`, 64 MB). It replaces a count-based eviction at 700 entries that re-baked about 6,600 figure layers per frame at DPR 3. Enemy recipes and joint solves are memoised (`sprites.js`). The lamp pool and the edge vignette are cached images (`render-world.js`, `render.js`). Sprite blits use one transform.
+4. **Crowd cost.** Actors more than half a screen plus 48 px to the side are skipped (`render.js`). Optional particles are thinned at tiers 1 and 2 (above).
+5. **Idle.** The loop runs at most 60 times a second (every second callback on 120 Hz), at 30 when a menu freezes the world (`view.quality.menuFps`), and not at all while the page is hidden (`main.js`). Pause already runs on `visibilitychange`.
+
+**Stub numbers** (`/tmp/perf/seeded/`; level 5, 200 enemies, device DPR 3, 120 frames, seeded; the before tree is HEAD plus the other lanes' edits at the time, with this part's edits reverted, so both sides carry the same other-lane code):
+
+| Metric | Before | After, tier 0 | Tier 1 | Tier 2 |
+| --- | --- | --- | --- | --- |
+| Backing store | 1170 x 2532 | 780 x 1688 | 585 x 1266 | 488 x 1055 |
+| Canvas calls per frame (main context) | 8,353 | 7,918 | 7,907 | 7,898 |
+| Bake calls per frame (into sprite canvases) | 6,652 | 2,030 | 962 | 934 |
+| Offscreen sprite canvases created per frame | 69 | 19.6 | 9.9 | 9.6 |
+| Estimated fill, Mpx per frame | 21.8 | 9.7 | 5.5 | 3.7 |
+| Stub render JS / sim JS, same run | 2.6 (median of 3) | 1.65 (median of 3) | 1.70 (1 run) | 1.45 (1 run) |
+
+- **Estimated JS per frame.** Raw stub milliseconds are not reliable on this machine: the same code ranged 13.6 to 26.6 ms on the before side and 13.0 to 16.0 ms on the after side. Normalised to the sim cost in the same run, render JS is about 35% lower. An earlier unseeded run gave 10.1 to 6.3 ms, in the same direction.
+- **Per category** (stack mode, 20 frames, estimated Mpx per frame): enemies 9.13 to 4.07; ground 3.52 to 1.57; overlays 5.92 to 2.63; base 2.96 to 1.32; props 1.09 to 0.48; fx 0.98 to 0.44. Canvas calls fell only about 5% overall, because most calls come from vector props, landmarks and fx, which this part does not change.
+- **Expected GPU fill.** DPR 3 to 2 cuts backing-store pixels by 55% (4/9 of the pixels remain). The stub's 21.8 to 9.7 Mpx matches. This is an estimate of pixel work, not a GPU time. Device time is what `?fps=1` on the phone confirms.
+- **Memory budget trade-off.** At 64 MB the stub misses 19.6 figure layers per frame. Earlier unseeded runs gave about 11 at 96 MB and 10 at 128 MB. Safari kills canvas-heavy tabs when memory runs high, so 64 MB stays the default. The owner can tune `view.quality.spriteCacheMB` after the phone test.
+
+**Tests.**
+- `tools/test-quality.js`: all pass (83 checks). Static: the sim never references quality or the DPR cap; `quality.js` has no timers; the bake cache is LRU; the loop pauses when hidden or when a menu is open. Runtime (fake clock): governor steps, locks, DPR caps per tier, a real `render.js` in a vm, and the real `main.js` loop at 60 fps in play, 30 fps when frozen, and 0 when hidden.
+- Battery, all pass on the final run: `check-ids`, `test-feel`, `test-a11y-canvas` (83 view files), `test-ceiling`, `test-enemy-behaviors`, `test-env` (117 checks), `test-horde`, `test-quality` (83 checks), `test-anim-flavor`, `test-ui-motion` (536 checks), `test-arsenal --quick`.
+- During the work, `test-a11y-canvas` flagged the bird peck in `js/view/istanbul-props2.js` (another lane's uncommitted edit; not this part's files). It passes on the final run.
+
+**Tier-0 look.** `tools/arena-still.html` at 2x, hoods 1, 7 and 18, with `blocks=0`. Before and after differ on the same things as two identical baseline renders: lamp pools (flicker), the moving arcs, the hero and the gulls. The stills are not pixel-exact, because lamps and arcs read `performance.now()`. The heatmaps show no new static difference. The `blocks=1` path of the still throws at HEAD (`b.rc` is undefined in the still's fake sim, `render-world.js` AO pads). It is not fixed here; use `blocks=0`.
+
+**Files.** `js/config.js` (`view.maxDpr`, `view.quality`); `js/view/quality.js` (new); `js/view/render.js` (DPR cap, opaque context, particle thinning, actor cull, vignette cache); `js/view/render-world.js` (pool image; shop-glow, fog and AO gates); `js/view/sprites.js` (pose and recipe memo); `js/view/art-rig.js` (LRU bake cache, blit transform); `js/main.js` (cadence, governor feed, hidden guard, `?fps`/`?quality` wiring); `index.html` (one script tag); `tools/test-quality.js` (new); `reviews/PLAYTEST-GUIDE-R1.md` (Performance and heat). `art-rig.js`, `render-world.js` and `index.html` were not in the brief's owned list. The changes there are caches, gates and one script tag, and the sim is untouched.
+
+**Open.**
+1. Device frame time, fps and heat are confirmed only by the 10-minute Level 5 test with `?fps=1` (playtest guide). Expect about 60 fps and `dpr 2.00` on the phone.
+2. `js/view/ui.js` `P.UI.update` writes about 14 DOM properties every frame with no change gating. Caching the last values would remove that. Not changed (ui.js is outside this part).
+3. `css/proto.css` `.screen.overlay` applies `backdrop-filter: blur(3px) saturate(.7)` over the canvas while a menu is open. A tier class could drop it. Not changed (CSS owner).
+4. Audio (`sfx.js`, `music.js`, the ambience bed) is not audited for per-frame node creation or leaks.
+5. `motion.css` is not re-audited.
+6. `istanbul-props*.js` and `istanbul-landmarks.js` redraw vector props every frame on generated levels. This is the largest remaining level-5 call cost. Caching needs their owners.
+7. No sub-pixel snapping or distant-enemy LOD. The view has no perspective scaling, and snapping would change the look.
+
+# T4 part 10: interaction clarity
+
+Owner feedback from the iPhone: consumables are not obvious (the green-cross heal, and which objects can be used up), the "link - hold" hack terminal is unclear, and a first-time player gets no guidance. View only: the sim, balance, settings and `css/` are untouched, and the sim never reads any of this. Not committed or pushed.
+
+**Link - hold (one line, for the owner's copy):** "A hack terminal: stand in its ring to link it in; the rim fills while you stay and decays when you leave." The sim decays progress when the hero is outside the ring (`sim/hack.js`), so the paused look (grey rim, "PAUSED" label) is the decaying state.
+
+**What changed.**
+1. **Consumable grammar.** `js/view/consumables.js` (new) draws each pickup class in one overlay pass after the actors (`render.js`), so no enemy hides one. Every class has a glow ring and a bobbing icon, at least 28 px across, with colour and icon shape distinct (table below). A pickup shows a burst, a floating amount, and a cue from the existing `P.Sfx` names. Icons are in `consumables-icons.js`. XP gems keep their green diamond (design system 3.2) and are outside the grammar.
+2. **Eczane as a heal station.** `istanbul-props2.js` (`reg('eczane')`) draws a cream cabinet with a green cross, which pulses while usable, and a grey "EMPTY" sign when spent (`P.Consumables.stationSign`). It is **not placed in any level**: the sim has no pharmacy heal (only the ECZANE shop-sign text), so placing it would mislead the player. This needs a sim decision.
+3. **Hack zone.** `js/view/consumables-zone.js` (new) replaces the old ring in `events-fx.js` `drawHack`. Four looks: idle (dashed ring), active (blue ring, rim fills, pulse), paused (grey ring, "PAUSED" label), done (completion pop). Off-screen terminals get an edge arrow.
+4. **First-time hints.** `hints.js` (core: once ever per store, queue, 4 s gap), `hints-view.js` (DOM callout in `#phone`, tap to skip, never covers the hero's keep-out box, arrow to the anchor), `hints-detect.js` (what is in view), `hints-config.js` (tokens). Timers run on game time, so a pause stops them. Store key `nsi.hints.v1` (localStorage). Reduce motion: no bob, opacity-only fade. Gating: no callout starts while a scripted prompt is on screen (`tut.active`), and the explosive hint waits for the L1 canister step (`C.hintGates`, scoped to level 1). L1 scripted hints are otherwise untouched.
+5. **Strings.** `js/strings-hints.js` (new): `hint.*`, `consume.*`, `zone.*`. Every TR line carries `// TR owner check`. Also added `hack.signal` ("Signal box" / "Sinyal kutusu"): the signal-box zone label was showing the raw key `hack.signal` in game, because no string existed (the label comes from the existing `EV.drawAir`). TR owner check.
+
+**Consumable classes.**
+
+| Class | Look (colour, shape) | Sim drop or object | Cue | Floating text |
+| --- | --- | --- | --- | --- |
+| heal | green `#2EBD6B`, cross | `simit` | `heal` | `+N HP`; `FULL` at full HP; `CAP` when the run's drop-heal budget is spent |
+| power | gold `#FFD166`, star | `chest` (mini chest) | `star` | `REWARD` |
+| currency | amber `#E9A23B`, coin | `jeton` | `coin` | `+N` |
+| objective | blue `#3D8BFF`, pin | objective item (`crate`) | `pick` | burst only |
+| XP | green diamond, unchanged | `xp` | unchanged (`tink`) | none |
+
+Shield and tea are button skills and are not changed.
+
+**Files.** `js/view/hints-config.js`, `js/view/hints.js`, `js/view/hints-detect.js`, `js/view/hints-view.js`, `js/view/consumables.js`, `js/view/consumables-icons.js`, `js/view/consumables-zone.js` (all new); `js/strings-hints.js` (new); `tools/test-hints.js` (new, 115 checks). Edited, targeted: `js/view/events-fx.js` (`drawHack`), `js/view/render.js` (three hook lines and the drop skip), `js/main.js` (three lines: consumable events, pickup cue, `P.Hints.update`), `js/view/istanbul-props2.js` (`reg('eczane')`), `index.html` (script tags).
+
+**Tests.**
+- `tools/test-hints.js`: 115 checks pass. Covers once-ever, queue spacing (4 s), persistence, tap-to-skip, Reduce motion (bob and pulse), TR/EN strings (2 to 4 words), layout (hero clearance, margins, edge mode, HUD anchors), the L1 gates, no sim writes, the grammar (classes, floaters, minimum size), zone phases and the edge arrow, and the station sign.
+- Named list, all pass: `check-ids`, `test-feel`, `test-a11y-canvas` (83 view files, 39 wiring checks), `test-ceiling`, `test-enemy-behaviors`, `test-env`, `test-hints`.
+- Headless stills (Chrome, 1x, a harness outside the repo that places props relative to the hero): the consumable classes, both eczane states, the four hack-zone looks, the signal-box label, and a hint callout (`Green cross: heals you`). Checked by reading the PNGs and 3x crops.
+
+**Found, not fixed (outside this part's files, or a sim decision).**
+1. **Boss-arena simit can read CAP.** The boss pickup is uncapped (`combat.js` `dropHeal(..., d.uncapped)`), but the `pickup` event (`combat.js` line 366) carries only `kind` and `value`. When the run's heal budget is spent and HP is below max, the floater says `CAP` while the heal still restores HP. Fix: add `uncapped` to the event (sim owner).
+2. **Grit bonus not in the number.** `dropHeal` adds `simitBonus`, but the floater shows the base `ev.value`, so with the grit perk the amount reads low.
+3. **Story overlay covers hints.** On L2 the Arda portrait and starburst draw over the DOM callout (the overlay stacks above it), so its start and arrow can be hidden for 2 s. The layout does not know about story overlays. Needs a UI-owner call (hold hints during story beats, or move the portrait).
+4. **Eczane not in game.** See item 2 of the changes. Decision for the sim owner.
+5. **Colour overlap.** Heal (green cross) and XP (green diamond) share a hue; shape separates them. Flagged for the art pass.
+6. **Consumables draw after the hero** (an overlay pass, not design-system 6.1 depth order). Needs the owner's OK.
+
+**Could not verify.** Device frame time and flash rate on the iPhone; hint placement on a real iPhone (headless 1x only); hint timing in wall-clock play (the 2 s and 4 s spacing is checked by `test-hints` with a fake clock); the TR wording (owner check); Reduce motion and Reduce flashing visually (checked by code path only).
 
 Design only. No gameplay code changed. Doc: `docs/skill-tree.md`. Decision: **D-059, PROPOSED** (`docs/product.md` section 17). Wireframe: `design/lofi/11-skills.html` (the retired Survival Skills screen, repurposed).
 

@@ -5,7 +5,7 @@
 P.ArtRig = (function () {
   var R = {}, TAU = Math.PI * 2, INK = '#14151F', LW = 0.028;
   var LOW_BOX = [-0.55, 0.55, -1.12, 0.14], HIGH_BOX = [-0.38, 0.38, -1.34, -0.38];
-  var memo = {}, cache = {}, cacheN = 0, MAX = 700;
+  var memo = {};
   R.INK = INK; R.LW = LW; R.TAU = TAU; R.LOW_BOX = LOW_BOX; R.HIGH_BOX = HIGH_BOX;
 
   R.clamp = function (v, a, b) { return v < a ? a : (v > b ? b : v); };
@@ -185,43 +185,51 @@ P.ArtRig = (function () {
   // ---- pre-render cache ----
   // Bucketed device scale: sprites are baked at the nearest 4% step so zoom pulses do not thrash.
   R.bucket = function (px) { var s = Math.log(1.04); return Math.exp(Math.round(Math.log(Math.max(4, px)) / s) * s); };
-  // Drop the oldest half of the cache (insertion order) so a full wipe never causes a mid-game hitch.
-  function evict() {
-    var ks = Object.keys(cache), i;
-    for (i = 0; i < ks.length / 2; i++) delete cache[ks[i]];
-    cacheN = ks.length - Math.floor(ks.length / 2);
+  // Least recently used under a byte budget (view.quality.spriteCacheMB). A hit moves the entry to the back; a bake that takes the
+  // total over the budget drops the front (least recent) entries. The old rule dropped half the entries by count at 700, and a
+  // crowd whose walk poses cycle needs more layers than that, so it rebaked dozens of canvases every frame (T4 part 12).
+  var cache = new Map(), cacheBytes = 0;
+  function budget() { return (P.CFG.view.quality ? P.CFG.view.quality.spriteCacheMB : 64) * 1048576; }
+  function trim() {
+    var lim = budget(), k, old;
+    while (cacheBytes > lim && cache.size > 1) {
+      k = cache.keys().next().value; old = cache.get(k);
+      cacheBytes -= old.bytes; old.live = false; cache.delete(k);
+    }
   }
   // Bake draw(ctx) in unit space into a canvas covering box [l, r, t, b]. Returns an entry.
   R.bake = function (key, U, box, draw) {
-    var k = key + '@' + U.toFixed(1), e = cache[k];
-    if (e) return e;
-    if (cacheN > MAX) evict();
-    var cv = document.createElement('canvas');
+    var k = key + '@' + U.toFixed(1), e = cache.get(k), cv, g;
+    if (e) { cache.delete(k); cache.set(k, e); return e; }
+    cv = document.createElement('canvas');
     cv.width = Math.max(2, Math.ceil((box[1] - box[0]) * U)); cv.height = Math.max(2, Math.ceil((box[3] - box[2]) * U));
-    var g = cv.getContext('2d');
+    g = cv.getContext('2d');
     g.setTransform(U, 0, 0, U, -box[0] * U, -box[2] * U);
     draw(g);
-    e = cache[k] = { cv: cv, ax: -box[0] * U, ay: -box[2] * U, U: U, white: null };
-    cacheN++;
+    e = { cv: cv, ax: -box[0] * U, ay: -box[2] * U, U: U, white: null, bytes: cv.width * cv.height * 4, live: true };
+    cache.set(k, e); cacheBytes += e.bytes; trim();
     return e;
   };
-  // White silhouette of an entry (hit flash), built once and cached on the entry.
+  // White silhouette of an entry (hit flash), built once and cached on the entry. Its bytes count against the budget too.
   R.white = function (e) {
     if (e.white) return e.white;
     var cv = document.createElement('canvas'), g;
     cv.width = e.cv.width; cv.height = e.cv.height; g = cv.getContext('2d');
     g.drawImage(e.cv, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, cv.width, cv.height);
-    e.white = { cv: cv, ax: e.ax, ay: e.ay, U: e.U, white: null };
+    e.white = { cv: cv, ax: e.ax, ay: e.ay, U: e.U, white: null, bytes: 0, live: false };
+    if (e.live) { e.bytes += cv.width * cv.height * 4; cacheBytes += cv.width * cv.height * 4; }
     return e.white;
   };
   // Draw an entry feet-anchored at (X, Y) in CSS px. u = CSS px per unit, f = facing (+1/-1),
   // sq = {x, y} squash, ox/oy = recoil in CSS px, dx/dy = unit offset inside the figure (mirrors with f).
+  // One setTransform-style call (translate, rotate about the feet, then scale) instead of three.
   R.blit = function (c, e, X, Y, u, f, sq, ox, oy, dx, dy) {
-    var k = u / e.U, sx = sq ? sq.x : 1, sy = sq ? sq.y : 1;
-    c.save(); c.translate(X + (ox || 0), Y + (oy || 0)); if (sq && sq.r) c.rotate(sq.r); c.scale(f * sx, sy);   // sq.r: tilt about the feet (screen space)
+    var k = u / e.U, sx = sq ? sq.x : 1, sy = sq ? sq.y : 1, sx2 = f * sx, r = sq && sq.r ? sq.r : 0, co = Math.cos(r), si = Math.sin(r);
+    c.save(); c.transform(co * sx2, si * sx2, -si * sy, co * sy, X + (ox || 0), Y + (oy || 0));   // sq.r: tilt about the feet (screen space)
     c.drawImage(e.cv, (dx || 0) * u - e.ax * k, (dy || 0) * u - e.ay * k, e.cv.width * k, e.cv.height * k);
     c.restore();
   };
-  R.cacheSize = function () { return cacheN; };
+  R.cacheSize = function () { return cache.size; };
+  R.cacheBytes = function () { return cacheBytes; };
   return R;
 })();

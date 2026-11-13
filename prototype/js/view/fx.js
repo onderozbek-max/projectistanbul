@@ -21,6 +21,7 @@ P.Fx = (function () {
     if (P.EnemyFx && P.EnemyFx.reset) P.EnemyFx.reset();
     if (P.EventsFx && P.EventsFx.reset) P.EventsFx.reset();
     if (P.RenderWorld && P.RenderWorld.resetAmbience) P.RenderWorld.resetAmbience();
+    if (P.Moments && P.Moments.reset) P.Moments.reset(s);   // T4 part 13: signature moments (moments.js) start clean each run
   };
 
   // Generated levels clamp the camera to the corridor (s.geo); L1 keeps its street walls and the restaurant.
@@ -105,6 +106,7 @@ P.Fx = (function () {
     c.zoom = 1 + (rm ? 0 : fe.punchZoom * pp * shk);   // the punch follows the shake setting (0 = none); Reduce motion zeroes it
     P.WFx.update(dt, s);
     if (P.Feel) P.Feel.update(dt, s);
+    if (P.Moments && P.Moments.update) P.Moments.update(rdt, s);   // signature moments run on unscaled time (moments.js)
     ageList(F.nums, dt); ageList(F.swings, dt); ageList(F.rings, dt); ageList(F.bursts, dt); ageList(F.letters, dt);
     F.parts.forEach(function (p) { p.t -= dt; p.x += (p.vx || 0) * dt; p.y += (p.vy || 0) * dt; });
     F.parts = F.parts.filter(function (p) { return p.t > 0; });
@@ -164,6 +166,7 @@ P.Fx = (function () {
     if (P.Feel) P.Feel.onEvent(ev, s);
     if (P.EnemyFx && P.EnemyFx.onEvent) P.EnemyFx.onEvent(ev, s);
     if (P.EventsFx && P.EventsFx.onEvent) P.EventsFx.onEvent(ev, s);
+    if (P.Moments && P.Moments.onEvent) P.Moments.onEvent(ev, s);   // T4 part 13: signature moments (moments.js)
     switch (ev.type) {
       case 'shockwave': break;                             // level-up ring only: the card pick is the cause
       case 'bloaterPop':                                    // a burst of the pop itself, no camera move

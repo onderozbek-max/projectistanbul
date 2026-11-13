@@ -6,8 +6,8 @@ Object.assign(P.STR.tr, {
   "fin.approach.km": "{a} / {b} km",
   "fin.approach.hint": "Kapıya doğru yürü",
   "fin.approach.hintTouch": "Sürükleyerek yürü",
-  // TR owner check: the chapter is "Kısım" in TR (T4 part 8); "bölüm" stays the journey level in the stat rows below.
-  "fin.credits.kicker": "KISIM 1 TAMAM",
+  // The chapter is "Kısım" in TR; "bölüm" stays the journey level in the stat rows below.
+  "fin.credits.kicker": "1. Kısım Sonu",
   "fin.credits.title": "EVE DÖNÜŞ",
   "fin.credits.route": "Taksim → Ataköy · 17 km · 100 bölüm",
   "fin.stat.km": "yürüyüş",
@@ -18,8 +18,7 @@ Object.assign(P.STR.tr, {
   "fin.stat.runKills": "zombi (bu bölüm)",
   "fin.stat.runTime": "süre (bu bölüm)",
   "fin.next.kicker": "SONRAKİ",
-  // TR owner check: chapter 2 is "Kısım 2" in TR (T4 part 8).
-  "fin.next.text": "Kısım 2 · Şarj Bitmeden: Mila ile Sarıyer ve Zekeriyaköy'ye.",
+  "fin.next.text": "2. Kısım · Sarıyer'e Yolculuk.",
   "fin.credits.note": "Prototip · Project Istanbul. Ses, müzik ve metinler taslak.",
   "fin.credits.go": "Devam",
   "fin.credits.hint": "Sonuçlara geçmek için dokun",

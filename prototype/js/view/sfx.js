@@ -47,7 +47,7 @@ P.Sfx = (function () {
     var ret = c.createGain(); ret.gain.value = 0.45; rev.connect(ret); ret.connect(comp);
     for (k in CATS) {
       if (!has(CATS, k)) continue;
-      bus[k] = c.createGain(); bus[k].gain.value = CATS[k] * vol[k]; bus[k].connect(comp);
+      bus[k] = c.createGain(); bus[k].gain.value = CATS[k] * vol[k]; bus[k].connect(k === 'voice' ? bus.sfx : comp);   // voice (speech blips, groans) sits in the sfx bus: one Sound effects slider (T4 part 9)
     }
   }
   // Lazily creates the context and graph. Returns null where WebAudio is unavailable.

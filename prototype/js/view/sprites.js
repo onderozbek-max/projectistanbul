@@ -136,9 +136,16 @@ P.Sprites = (function () {
   }
 
   // Draw one figure: cached low layer, live knife, cached head, live back-hand weapon (original z-order).
+  // The solved joints depend only on the recipe and the pose key (walk or breath frame), so they are solved once per pair, and the
+  // low-layer bake key is built once too (T4 part 12: the per-frame string and solve work was most of the crowd's JS).
+  function poseMemo(rc, pose) {
+    var pm = rc.pm || (rc.pm = {}), pe = pm[pose.key];
+    if (!pe) pe = pm[pose.key] = { J: R.solve(rc.B, pose), lk: rc.key + '|L|' + pose.key + '|s' + rc.swell };
+    return pe;
+  }
   function drawFigure(c, X, Y, u, f, rc, o, t) {
-    var U = R.bucket(u * devScale(c)), moving = !rc.still && !o.stopped, pose = poseOf(rc, o, moving, t), J = R.solve(rc.B, pose);
-    var refJ = R.solve(rc.B, { lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch, arms: 'idle' });
+    var U = R.bucket(u * devScale(c)), moving = !rc.still && !o.stopped, pose = poseOf(rc, o, moving, t), pe = poseMemo(rc, pose), J = pe.J;
+    var refJ = rc.refJ || (rc.refJ = R.solve(rc.B, { lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch, arms: 'idle' }));
     var hit = clamp((o.flash || 0) / P.CFG.feel.hitFlash, 0, 1), sq = squash(pose, moving, hit), ox = (o.recoil || 0) * hit * u, oy = 0;
     if (o.spring) { sq.x *= o.spring.x; sq.y *= o.spring.y; sq.r = o.spring.r; ox += o.spring.ox * u; }   // v0.9 hit spring / hero start-stop
     var white = (o.flash || 0) > 0 && !o.noWhite, low, high, dx, dy, ow = o.outline ? P.CFG.view.eliteOutline.units : 0;
@@ -150,8 +157,8 @@ P.Sprites = (function () {
       return;
     }
     // Low layer depends on pose and swell; head layer depends on windup (spitter throat) only.
-    low = R.bake(rc.key + '|L|' + pose.key + '|s' + rc.swell, U, R.LOW_BOX, function (g) { bakeGlow(g, rc, U); R.drawLow(g, rc, J, pose); bakeGlow(g, {}, U); });
-    high = R.bake(rc.key + '|H|w' + rc.windup, U, R.HIGH_BOX, function (g) { bakeGlow(g, rc, U); R.drawHigh(g, rc, refJ); bakeGlow(g, {}, U); });
+    low = R.bake(pe.lk, U, R.LOW_BOX, function (g) { bakeGlow(g, rc, U); R.drawLow(g, rc, J, pose); bakeGlow(g, {}, U); });
+    high = R.bake(rc.hk || (rc.hk = rc.key + '|H|w' + rc.windup), U, R.HIGH_BOX, function (g) { bakeGlow(g, rc, U); R.drawHigh(g, rc, refJ); bakeGlow(g, {}, U); });
     dx = J.hd[0] - refJ.hd[0]; dy = J.hd[1] - refJ.hd[1];
     if (o.outline) outlineFigure(c, X, Y, u, f, low, high, sq, ox, oy, dx, dy, o.outline, ow);
     R.blit(c, white ? R.white(low) : low, X, Y, u, f, sq, ox, oy, 0, 0);
@@ -254,7 +261,7 @@ P.Sprites = (function () {
     if (e.state === 'turning') X += (Math.random() - 0.5) * 3;
     c.save();
     if (emerge < 1) { c.globalAlpha = emerge; c.translate(X, Y); c.scale(0.7 + 0.3 * emerge, 0.7 + 0.3 * emerge); c.translate(-X, -Y); }
-    var rc = def.custom ? crawlerRc(e) : zombieRc(e, def, human, f);
+    var rc = enemyRc(e, def, human);
     // Walk phase: distance walked (sim e.walk) plus a per-enemy offset, so a crowd that spawned together does not march in step.
     var o = { flash: e.flash, phase: (e.walk || 0) * 5.5 + (e.id || 0) * P.CFG.feel2.walk.phaseStep, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
       outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000),
@@ -293,6 +300,22 @@ P.Sprites = (function () {
       still: false, seed: 0, mot: {}, glow: e.elite ? ELITE_GLOW : null });
   }
 
+  // A crowd member's recipe reads only these fields (its type, variant, skin, human or zombie state, wind-up and swell as quantised
+  // here, elite or boss, facing back, and the id-based breath seed), so it is built once per signature and reused each frame.
+  // Keys are exact: two enemies with the same signature get identical pixels.
+  var rcMemo = {}, rcMemoN = 0;
+  function enemyRc(e, def, human) {
+    var wq = Math.round(clamp(e.windup || 0, 0, 1) * 3), sq = Math.round(clamp(e.swell || 0, 0, 1) * 4);
+    var key = e.type + '|' + ((e.variant | 0) & 7) + '|' + (e.skin || '') + '|' + (human ? 'h' + (e.state === 'turning' ? 't' : '') : 'z') +
+      '|' + wq + '|' + sq + '|' + (e.elite ? 'e' : '') + (e.boss ? 'b' : '') + '|' + (!human && e.vy > 0.35 ? 'k' : '') + '|' + ((e.id || 0) % 4);
+    var rc = rcMemo[key];
+    if (!rc) {
+      if (rcMemoN > 4000) { rcMemo = {}; rcMemoN = 0; }   // a long run with many skins: start the memo again rather than grow
+      rc = rcMemo[key] = def.custom ? crawlerRc(e) : zombieRc(e, def, human);
+      rcMemoN++;
+    }
+    return rc;
+  }
   // Civilians fleeing: varied living humans, arms up, running. v = {x, y, drift, walk, scream, variant, skin?}.
   // Ground shadow of a civilian (ground layer; the figure view has noGround set, see groundEnemy).
   S.groundCivilian = function (Rd, v) { S.shadow(Rd.ctx, Rd.X(v.x), Rd.Y(v.y), Rd.ppm); };

@@ -20,9 +20,10 @@ P.UIProgress = (function () {
     return tr() ? s.replace('.', ',') : s;
   }
   function km(v) { var s = (Math.round(v * 10) / 10).toFixed(1); return tr() ? s.replace('.', ',') : s; }
-  // A label and a value row (the .kv style). Returns the value node, so a count-up can write into it.
-  function kv(parent, k, v, wide) {
-    var d = el('div', 'kv' + (wide ? ' kv-wide' : '')), val = el('span', null, v);
+  // A label and a value row (the .kv style). Returns the value node, so a count-up can write into it. wide: the value goes
+  // under the label. line: one compact row (the recap's time and walk, T4 part 9).
+  function kv(parent, k, v, wide, line) {
+    var d = el('div', 'kv' + (wide ? ' kv-wide' : '') + (line ? ' kv-line' : '')), val = el('span', null, v);
     d.appendChild(el('span', null, k));
     d.appendChild(val);
     parent.appendChild(d);
@@ -102,18 +103,20 @@ P.UIProgress = (function () {
     if (nodes.banner) { nodes.banner.classList.add('hidden'); nodes.banner.classList.remove('is-out'); }
   };
 
-  // ---- Results: power strip, run recap and the walk (time, km with the part of the next district) ----
+  // ---- Results: power strip, run recap (time and walk as one compact line each, then Street Cred, power and the next unlock) ----
   V.results = function (r) {
     var idx = (r.hoodN - 1) * P.Journey.levelsPerHood + r.stage, label = $('res-label');
     if (label) label.textContent = P.t('ui.res.labelLevel', { n: idx, hood: P.upper(r.hood) });   // "LEVEL 12 · İSTİKLAL"
-    var strip = $('res-power'), rc = $('res-recap'), run = $('res-run');
-    if (!ready() || !strip || !rc || !run) return;
+    var strip = $('res-power'), rc = $('res-recap');
+    if (!ready() || !strip || !rc) return;
     var meta = r.meta || null, pw = P.Progress.power(), earned = meta && meta.statGains ? meta.statGains.gains.sc : 0;
     strip.textContent = powerText(pw);
     rc.innerHTML = '';
     rc.appendChild(el('p', 'caption res-head', P.t('res.recap.head')));
     rc.appendChild(el('p', 'res-reached', P.t('res.recap.reached', { n: r.level, kills: r.kills, streak: r.streak | 0 })));
-    var scNode = kv(rc, P.t('res.recap.sc'), '', true);
+    kv(rc, P.t('ui.res.time'), P.UI.fmt(r.time), false, true);
+    kv(rc, P.t('ui.res.walk'), P.t('ui.res.progress', { km: km(+r.km || 0), total: P.Journey.totalKm }), false, true);   // km with the part of the next district
+    var scNode = kv(rc, P.t('res.recap.sc'), '');
     P.UIMotion.countUp(scNode, earned, function (v) { return P.t('res.recap.scVal', { n: v, k: P.Progress.streetCred(0).next }); });
     var g = meta ? P.Progress.hoodGain(meta.before.done, meta.after.done) : null;
     kv(rc, P.t('res.recap.power'), g && g.rank > 0 ? [P.t('prog.gainDmg', { v: pct(g.dmg) }), P.t('prog.gainHp', { v: pct(g.hp) })].join(' · ')
@@ -121,9 +124,6 @@ P.UIProgress = (function () {
     var nx = P.Progress.nextAfter(idx, !!r.win), nextTxt = P.t('meta.allDone');
     if (nx) nextTxt = r.win ? V.unlockText(nx) : P.t('res.recap.retry', { unlock: V.unlockText(nx) });
     kv(rc, P.t('res.recap.next'), nextTxt, true);
-    run.innerHTML = '';
-    kv(run, P.t('ui.res.time'), P.UI.fmt(r.time));
-    kv(run, P.t('ui.res.walk'), P.t('ui.res.progress', { km: km(+r.km || 0), total: P.Journey.totalKm }));
   };
 
   V.init = function () {

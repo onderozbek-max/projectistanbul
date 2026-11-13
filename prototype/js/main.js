@@ -134,12 +134,13 @@
   function handleEvents() {
     P.drainEvents(sim).forEach(function (ev) {
       P.Fx.onEvent(ev, sim);
+      if (P.Consumables) P.Consumables.onEvent(ev, sim);   // T4 part 10: use bursts, floating amounts and the class cue
       if (P.Barks && P.Barks.onEvent) P.Barks.onEvent(ev, sim);
       if (P.FireAnim) P.FireAnim.onEvent(ev, sim);
       if (P.EnvFx && P.EnvFx.onEvent) P.EnvFx.onEvent(ev, sim);   // lane A: env sfx, shards and labels
       switch (ev.type) {
         case 'kill': P.Sfx.play('splat', 45); break;
-        case 'pickup': P.Sfx.play(ev.kind === 'xp' ? 'tink' : 'click', 30); break;
+        case 'pickup': if (!(P.Consumables && P.Consumables.handles(ev.kind))) P.Sfx.play(ev.kind === 'xp' ? 'tink' : 'click', 30); break;
         case 'shockwave': P.Sfx.play('shock'); break;
         case 'eliteSpawn': P.Sfx.play('elite'); P.Tel.log('elite_spawn', { t_s: +sim.runT.toFixed(1) }); break;
         case 'explode': P.Sfx.play('boom'); break;
@@ -372,15 +373,24 @@
     perfSample(dt);
   }
 
+  // Frame cadence (T4 part 12; view only). The logic and the world draw run at most 60 times a second, so a 120 Hz display runs
+  // every second callback. While the world is frozen behind an overlay (pause, cards, chest, down, story pages) they run at
+  // view.quality.menuFps (30). The sim keeps its fixed 60 Hz step, and dt is the real time since the last run, so nothing slows down.
+  // A hidden page runs nothing (the browser also stops the callbacks; pause() already ran on visibilitychange).
+  var RUN_MS = 1000 / 60, MENU_RUN_MS = 1000 / P.CFG.view.quality.menuFps, lastRun = -1e9;
+  var LIVE = { play: 1, exit: 1, dying: 1, cold: 1 };   // states where the sim runs: their frame interval is what the governor measures
   // The loop always re-arms itself: an error in one frame is logged (every 60th) and the next frame still runs.
   function frame(ts) {
-    try { tick(ts); } catch (e) {
+    try { if (!document.hidden) tick(ts); } catch (e) {
       if (frameErrs++ % 60 === 0) P.UI.bootError('frame', e && e.stack ? e.stack.split('\n').slice(0, 2).join(' | ') : e);
     }
     requestAnimationFrame(frame);
   }
 
   function tick(ts) {
+    var gap = ts - lastRun, want = FROZEN[state] ? MENU_RUN_MS : RUN_MS;
+    if (gap < want - 2) return;   // not due yet (2 ms of slack for display jitter)
+    lastRun = ts;
     var dt = Math.min(0.1, (ts - (last || ts)) / 1000);
     last = ts;
     if (state === 'cold') P.ColdOpen.update(dt);
@@ -393,15 +403,21 @@
       if (P.FireAnim) P.FireAnim.update(FROZEN[state] ? 0 : dt * (P.Fx.timeScale ? P.Fx.timeScale() : 1), sim);
       P.Render.frame(sim, levelIndex === 1 ? P.ColdOpen.draw : null);
       if (state === 'play' || state === 'exit') P.UI.update(sim); else document.getElementById('prompt').classList.add('hidden');
+      if (P.Hints) P.Hints.update(state === 'play' ? sim : null, dt);   // T4 part 10: first-time callouts (never pauses the game)
     }
     P.UI.tick(dt);
     if (P.Speech) P.Speech.tick(dt);
+    if (P.Quality) {   // governor (view only): the interval since the last run, measured on live frames
+      P.Quality.feed(gap, !!LIVE[state]);   // the first run after a long gap (> 250 ms) only restarts the EMA
+      if (P.Quality.debugFps) P.Quality.debugText(ts, $('game'), P.Render.dpr);
+    }
   }
 
   // ---------- wiring ----------
   function on(id, fn) { $(id).addEventListener('click', function (e) { e.stopPropagation(); fn(e); }); }
   P.Render.init($('game')); P.UI.init(); fit(); window.addEventListener('resize', fit);
   P.Input.init(phone, toLocal); P.Input.onPause = pause;
+  if (P.Quality) { P.Quality.onChange(function () { P.Render.resize(scale); }); if (P.Quality.debugFps) P.Quality.showFps(phone); }   // T4 part 12
   P.UI.applyI18n(); P.Screens.drawKeyArt($('keyart'));
   if (P.applySettings) P.applySettings();
   $('btn-title-settings').innerHTML = P.Icons.svg('gear', 30);

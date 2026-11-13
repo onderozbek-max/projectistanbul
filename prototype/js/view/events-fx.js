@@ -104,20 +104,51 @@ P.EventsFx = (function () {
 
   // Hack terminal: idle dashed ring, active solid ring with a progress arc, done faded; alarm pulse; tram box.
   function drawHack(R, H, t) {
-    var c = R.ctx, X = R.X(H.x), Y = R.Y(H.y), r = C.hack.r * R.ppm, p = clamp01(H.prog), done = H.state === 'done';
-    var a = done ? 0.25 : H.state === 'active' ? 0.8 : 0.45 + 0.1 * Math.sin(t * 3);
-    c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.fillStyle = SIGNAL + (a * 0.25) + ')'; c.fill();
-    c.setLineDash(H.state === 'active' ? [] : [8, 6]); c.strokeStyle = SIGNAL + a + ')'; c.lineWidth = 2.5;
-    c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-    if (H.state === 'active' || (!done && p > 0)) {   // an idle terminal with progress is a Second Look (int.2) terminal
-      c.lineWidth = 6; c.beginPath(); c.arc(X, Y, r * 0.8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); c.stroke();
-    }
+    var c = R.ctx, X = R.X(H.x), Y = R.Y(H.y), r = C.hack.r * R.ppm;
+    P.ConsumablesZone.draw(R, H, t);   // the ring, the rim that fills, the link icon, PAUSED and the completion pop (T4 part 10)
     if (H.alarm > 0) { c.strokeStyle = DANGER + (0.5 + 0.4 * Math.sin(t * 9)) + ')'; c.lineWidth = 4; c.beginPath(); c.arc(X, Y, r * 1.1, 0, Math.PI * 2); c.stroke(); }
-    if (H.rush > 0) {
-      var T = C.hack.tram;
-      rectWorld(R, H.x - T.w / 2, H.x + T.w / 2, H.y - T.back, H.y + (H.lane || T.len), DANGER + '0.3)');
-    }
+    if (H.rush > 0) tramLane(R, H, t);
   }
+
+  // Tram-box lane (T4 part 11): the telegraph of the tram crush. Only this lane is translucent (the tram itself is opaque, see
+  // vehicles.js). Hazard-stripe edges, a translucent danger fill, chevrons along the travel direction (north, up the screen) that
+  // creep at 0.8 m/s with a 2.4 m step (one cycle every 3 s, under 0.5 Hz; they stop under Reduce motion), a small tram icon at the
+  // entry (south) end and a ring that empties with the rush time left. No tram shape inside the lane (no ghost tram). Timing is the
+  // sim's (H.rush counts down from hack.tram.rushT); nothing here changes it.
+  var LANE = { step: 2.4, speed: 0.8, icon: 0.85 };
+  function tramLane(R, H, t) {
+    var c = R.ctx, T = C.hack.tram, u = R.ppm, len = H.lane || T.len, x0 = H.x - T.w / 2, x1 = H.x + T.w / 2, y0 = H.y - T.back, y1 = H.y + len;
+    var X0 = R.X(x0), X1 = R.X(x1), Yt = R.Y(y1), Yb = R.Y(y0), W = X1 - X0, Hh = Yb - Yt, ew = 0.3 * u, i, sy, off, yy, cx = R.X(H.x);
+    var rm = !!(P.Settings && P.Settings.reduceMotion), frac = clamp01(H.rush / T.rushT);
+    off = rm ? 0 : (t * LANE.speed) % LANE.step;
+    c.save();
+    c.fillStyle = DANGER + '0.22)'; c.fillRect(X0, Yt, W, Hh);                                        // the translucent danger fill
+    c.beginPath(); c.rect(X0, Yt, ew, Hh); c.rect(X1 - ew, Yt, ew, Hh); c.clip();                    // hazard-stripe edges
+    c.fillStyle = 'rgba(255,209,102,0.92)'; c.fillRect(X0, Yt, W, Hh);
+    c.fillStyle = 'rgba(20,21,31,0.9)';
+    for (sy = Yt - W; sy < Yb; sy += 0.6 * u) { c.beginPath(); c.moveTo(X0, sy); c.lineTo(X1, sy + W); c.lineTo(X1, sy + W + 0.3 * u); c.lineTo(X0, sy + 0.3 * u); c.closePath(); c.fill(); }
+    c.restore();
+    c.save();
+    c.strokeStyle = 'rgba(255,240,200,0.8)'; c.lineWidth = Math.max(1.5, 0.12 * u); c.lineCap = 'round'; c.beginPath();   // chevrons, pointing up the lane
+    for (yy = y0 + 0.5 + off; yy < y1 - 0.2; yy += LANE.step) {
+      var py = R.Y(yy), a = 0.36 * u;
+      c.moveTo(cx - a, py + 0.42 * a); c.lineTo(cx, py - 0.42 * a); c.lineTo(cx + a, py + 0.42 * a);
+    }
+    c.stroke();
+    c.strokeStyle = DANGER + '0.9)'; c.lineWidth = 2; c.strokeRect(X0, Yt, W, Hh);                    // lane outline, solid
+    // tram icon at the entry edge, and the countdown ring beside it
+    var iy = R.Y(y0 - LANE.icon), iw = 0.9 * u, ih = 0.42 * u, ir = 0.3 * u, rx = cx + 0.72 * u;
+    c.fillStyle = CREAM_T; c.strokeStyle = INK_T; c.lineWidth = 1.5;
+    c.beginPath(); c.rect(cx - iw / 2, iy - ih / 2, iw, ih); c.fill(); c.stroke();
+    c.fillStyle = '#C0392B'; c.fillRect(cx - iw / 2, iy - ih / 2, iw, ih * 0.3);
+    c.fillStyle = '#2A3445'; c.fillRect(cx - iw * 0.36, iy - ih * 0.12, iw * 0.72, ih * 0.3);
+    c.fillStyle = 'rgba(20,21,31,0.72)'; c.beginPath(); c.arc(rx, iy, ir, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(255,209,102,0.95)'; c.lineWidth = 3; c.beginPath(); c.arc(rx, iy, ir * 0.82, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); c.stroke();
+    c.fillStyle = '#F4EBDD'; c.font = 'bold ' + Math.round(0.26 * u) + 'px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(H.rush.toFixed(1), rx, iy + 1);
+    c.restore();
+  }
+  var CREAM_T = '#F4EBDD', INK_T = '#14151F';
 
   // ---------- world air: labels, progress bars, helpers, blackout glow ----------
   EV.drawAir = function (R, s) {

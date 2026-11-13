@@ -1,5 +1,6 @@
 // Canvas accessibility guard (design-system 11: no flashing more than 3 times a second; Reduce flashing and Reduce motion).
-// (1) Runtime: the screen flash budget (sprites.js), the low-HP heartbeat (fx.js), the blackout glitch rate (config-feel.js).
+// (1) Runtime: the screen flash budget (sprites.js), the low-HP heartbeat (fx.js), the blackout glitch rate (config-feel.js), and the
+//     signature moments (T4 part 13) driven through the same budget.
 // (2) Static heuristics over js/view. Each candidate is a time-based oscillator above 3 Hz, a sin-based on/off threshold, a parity
 //     toggle, a floor(time * N) re-roll with N above 3, or a flash start. A candidate passes when it is quantised to 3 steps a
 //     second, guarded by a Reduce flags token on the same or a neighbouring line, or listed in tools/a11y-canvas-allowlist.json
@@ -91,6 +92,40 @@ load(cc, 'js/config-feel.js');
 ok(cc.P.CFG.feel2.glitch.rate <= 3, 'glitch tear rate is at most 3 steps a second');
 ok(cc.P.CFG.feel2.hitStop.minGap === 0.25, 'hit-stop limiter gap unchanged (0.25 s)');
 
+// Signature moments (T4 part 13): a dense mix of bright starts (crit kills, boss hits, near misses, the last-stand pulse) through the
+// real budget (fx.js flashGo, sprites.js flashOk). No 1 s window holds more than 3 starts, and the budget refuses some attempts.
+function momentsMix(rf) {
+  const mc = sandbox({ ArtRig: { TAU: Math.PI * 2, INK: '#14151F' }, ArtChars: {}, ArtEnemies: { def: () => ({}) } });
+  mc.P.Settings.reduceFlash = rf;
+  mc.P.CFG = { feel: { enemyFlashGap: 0.34, hitFlash: 0.06, lowHpFrac: 0.3 }, view: {}, skills: { frenzy: { window: 1.5 } } };
+  clock = 200;
+  ['js/config-feel.js', 'js/view/sprites.js', 'js/view/fx.js', 'js/view/moments.js'].forEach((f) => load(mc, f));
+  const MP = mc.P, MS = MP.Sprites, grantT = [];
+  const goReal = MP.Fx.flashGo;
+  MP.Fx.flashGo = () => { const g = goReal(); if (g) grantT.push(clock); return g; };
+  const forceReal = MS.flashForce;
+  MS.flashForce = (now) => { forceReal(now); grantT.push(clock); };
+  const sim = { t: 0, mode: 'play', levelIndex: 6, levelInfo: { hood: { name: 'X' } }, hero: { x: 0, y: 40, hp: 20, maxHp: 100 }, enemies: [] };
+  let attempts = 0;
+  for (let i = 0; i < 4 * 120; i++) {                       // 4 s at 1/120 s steps
+    clock += 1 / 120; sim.t = clock - 200;
+    MP.Moments.update(1 / 120, sim);
+    if (i % 2 === 0) { attempts++; MP.Moments.onEvent({ type: 'kill', crit: true, x: 0, y: 40 }, sim); }
+    if (i % 3 === 0) { attempts++; MP.Moments.onEvent({ type: 'hit', boss: true, id: i, x: 0, y: 40, src: 'x' }, sim); }
+    if (i % 5 === 0) { attempts++; MP.Moments.onEvent({ type: 'nearMiss', x: 0, y: 40 }, sim); }
+  }
+  return { worst: countIn1s(grantT), grants: grantT.length, attempts, starts: MP.Moments.active().starts };
+}
+{
+  const mix = momentsMix(false);
+  ok(mix.worst <= 3, 'moments budget: no 1 s window of crit bursts, starbursts, ripples and the last-stand pulse holds more than 3 starts (worst ' + mix.worst + ')');
+  ok(mix.grants >= 6, 'moments budget: the budget still grants a steady stream (' + mix.grants + ' in 4 s)');
+  const used = mix.starts.crit + mix.starts.impact + mix.starts.ripple;
+  ok(used < mix.attempts, 'moments budget: the budget refuses some attempts (' + used + ' bright starts of ' + mix.attempts + ' tries)');
+  const quiet = momentsMix(true);
+  ok(quiet.starts.crit + quiet.starts.impact + quiet.starts.ripple + quiet.starts.low === 0, 'moments budget: Reduce flashing starts nothing bright');
+}
+
 // ---------- (2) static heuristics over js/view ----------
 const AUDIO = /\/(sfx|sfx-bank|sfx-bank2|music|telemetry)\.js$/;
 // Audio and DOM menus are out of this canvas audit: sound is not a visual flash, and the menu and HUD motion (CSS, screens.js,
@@ -175,6 +210,25 @@ ALLOW.forEach((e) => {
   if (!e.why || e.why.length < 40) { fails++; console.log('FAIL allowlist entry needs a rationale: ' + e.file + ' "' + e.match + '"'); }
 });
 
+// Signature moments (T4 part 13). The generic scan above reads only literal time names (t, now, T), so the moments files get their own
+// audit: each sin or cos of time must be one of the four config rates checked here (at most 3 Hz); the angle terms are not time at all.
+const MOM = ['js/view/moments.js', 'js/view/moments-screen.js'];
+let momTrig = 0;
+MOM.forEach((file) => {
+  read(file).split('\n').forEach((line, i) => {
+    if (/^\s*\/\//.test(line) || !/Math\.(sin|cos)\(/.test(line)) return;
+    if (/Math\.(sin|cos)\((ang|a\)|n \* 127\.1)/.test(line)) return;           // polygon and blob angles, and the grain hash: not time
+    if (/pulseHz|wobbleHz|bounceHz|p\.fv/.test(line)) { momTrig++; return; }    // a config rate (checked below)
+    fails++; console.log('FAIL moments trig is not tied to a checked rate: ' + file + ':' + (i + 1) + ' | ' + line.trim().slice(0, 120));
+  });
+});
+const momCfg = cc.P.CFG.moments;
+const fvBase = parseFloat((/p\.fv = ([\d.]+) \+ Math\.random\(\)/.exec(read('js/view/moments-screen.js')) || [0, NaN])[1]);
+const momRates = { 'low.pulseHz': momCfg.low.pulseHz, 'ripple.wobbleHz': momCfg.ripple.wobbleHz, 'clear.bounceHz': momCfg.clear.bounceHz,
+  'dash.tearRate (steps a second)': momCfg.dash.tearRate, 'confetti flip (|cos| bumps a second)': (fvBase + 1) / Math.PI };
+Object.keys(momRates).forEach((k) => { if (!(momRates[k] <= 3)) { fails++; console.log('FAIL moments rate above 3 Hz: ' + k + ' = ' + momRates[k]); } });
+ok(momTrig === 4, 'moments: the trig audit finds the four time terms (pulse, ripple wobble, ribbon spring, confetti flip) (got ' + momTrig + ')');
+
 // Wiring: each flash source takes a budget slot, and each flicker reads a Reduce flag.
 const has = (f, re) => re.test(read(f));
 const count = (f, re) => (read(f).match(re) || []).length;
@@ -198,6 +252,27 @@ const wiring = [
   ['cable bolt reads Reduce flashing', has('js/view/weapons-fx3.js', /reduceFlash/)],
   ['storm bolts and blowtorch read Reduce flashing', has('js/view/weapons-fx4.js', /reduceFlash/)],
   ['weather drift freezes under Reduce motion', has('js/view/istanbul-landmarks.js', /reduceMotion \? 0 : performance\.now/)],
+  // T4 part 13: signature moments. Each bright start takes a budget slot, and each Reduce flag is read where its moment starts.
+  ['dash tear takes a budget slot', has('js/view/moments-screen.js', /S\.tear = function \(\) \{ if \(go\(\)\)/)],
+  ['dash ghosts and tear are off under Reduce motion and Reduce flashing', has('js/view/moments.js', /if \(rm\(\) \|\| rf\(\)\) return;\s*M\.starts\.dash\+\+/)],
+  ['kill-streak mark takes a budget slot, and a waiting word retries through the budget', has('js/view/moments-screen.js', /if \(go\(\)\) showStreak\(n, true\)/) && has('js/view/moments-screen.js', /else if \(go\(\)\) showStreak\(S\.pending\.n, true\)/)],
+  ['kill-streak word is steady and wipe-free under Reduce flashing', has('js/view/moments-screen.js', /if \(rf\(\)\) \{ showStreak\(n, false\); return; \}/)],
+  ['kill-streak ink wipe is off under Reduce motion', has('js/view/moments-screen.js', /if \(wipe && !rm\(\)\) S\.wipe/)],
+  ['kill-streak word does not pop under Reduce motion or Reduce flashing', has('js/view/moments-screen.js', /sc = rm\(\) \|\| rf\(\) \? 1 :/)],
+  ['crit burst takes a budget slot and at most one per gap', has('js/view/moments.js', /function crit\(ev\) \{[\s\S]{0,260}!go\(\)\) return;/)],
+  ['crit burst is off under Reduce motion and Reduce flashing', has('js/view/moments.js', /function crit\(ev\) \{\s*var k = C\(\)\.crit;\s*if \(rm\(\) \|\| rf\(\)/)],
+  ['impact starburst takes a budget slot and at most one per gap', has('js/view/moments.js', /function impact\(ev\) \{[\s\S]{0,260}!go\(\)\) return;/)],
+  ['impact starburst is off under Reduce motion and Reduce flashing', has('js/view/moments.js', /function impact\(ev\) \{\s*var k = C\(\)\.impact;\s*if \(rm\(\) \|\| rf\(\)/)],
+  ['near-miss ripple takes a budget slot and is off under Reduce motion', has('js/view/moments.js', /function ripple\(ev\) \{\s*if \(rm\(\) \|\| !go\(\)\) return;/)],
+  ['ripple fringe is off under Reduce flashing', has('js/view/moments.js', /fr = rf\(\) \? 0 :/)],
+  ['last-stand pulse takes one budget slot a cycle (holds high when refused), and not under Reduce flashing', has('js/view/moments.js', /if \(M\.lowOn && !rf\(\)\)[\s\S]{0,260}M\.lowGranted = go\(\)/) && has('js/view/moments.js', /if \(!M\.lowGranted\) M\.pulse = 1;/)],
+  ['last-stand ring holds at the upper alpha under Reduce flashing', has('js/view/moments.js', /a = rf\(\) \? k\.alpha\[1\]/)],
+  ['ground-shock ring is off under Reduce motion and gapped', has('js/view/moments.js', /if \(rm\(\) \|\| M\.t - M\.shockAt < k\.gap\) return;/)],
+  ['ground-shock lens is off under Reduce motion', has('js/view/moments-screen.js', /function drawLens\(c, R\) \{[\s\S]{0,400}if \(rm\(\) \|\| !list\.length\) return;/)],
+  ['level-clear confetti is not spawned under Reduce motion', has('js/view/moments-screen.js', /n = rm\(\) \? 0 : k\.n/)],
+  ['hood ribbon is static under Reduce motion', has('js/view/moments-screen.js', /sc = rm\(\) \? 1 :/)],
+  ['moments read both Reduce flags', has('js/view/moments.js', /reduceMotion/) && has('js/view/moments.js', /reduceFlash/) && has('js/view/moments-screen.js', /reduceMotion/) && has('js/view/moments-screen.js', /reduceFlash/)],
+  ['moments take the budget only through P.Fx.flashGo (no direct sprites flashOk)', !has('js/view/moments.js', /P\.Sprites\.flashOk/) && !has('js/view/moments-screen.js', /P\.Sprites\.flashOk/)],
 ];
 wiring.forEach(([why, pass]) => { if (!pass) { fails++; console.log('FAIL wiring: ' + why); } });
 

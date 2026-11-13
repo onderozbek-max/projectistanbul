@@ -6,24 +6,70 @@
 // Generic only: no brands, religious objects, flags, police or military. Sign words live in istanbul-themes.js.
 P.Props = (function () {
   var REG = {}, M = {}, INK = '#14151F', TAU = Math.PI * 2, glowCv = null;
+
+  // ---- Legibility grammar (T4 part 11) ----
+  // Every ground prop has one role, and the role sets its look, so the player can tell cover from dressing before touching it.
+  //   solid / breakable  gameplay cover (a sim block: o.w and o.h in metres are given). Thicker ink outline, a top highlight
+  //                      on the footprint, then the role marker: solid = hatched top, breakable = lighter top with a crack.
+  //                      Round kinds (tree, bollard) get the highlight only.
+  //   dressing           street dressing (a sidewalk slot, no o.w/o.h): flatter (y x0.8), smaller (x0.9), muted (40 % toward grey,
+  //                      so it is desaturated) and its outline is a faint ink line (half weight), so it never reads as cover,
+  //                      a pickup or an enemy.
+  //   hazard             keeps its own colours (fuel, fire, stripes).
+  //   fauna              an animal that reacts to Arda: its own readable silhouette, full colour, full size.
+  //   plain              landmarks, overhead rigs, decals and fx: drawn as before.
+  // ROLE is by kind; a kind with no entry is dressing. Blocks follow the sim's kit (journey.js) and env kinds (config-env.js).
+  var ROLE = {
+    bin: 'breakable', bench: 'breakable', tables: 'breakable', cart: 'breakable', planter: 'breakable', crates: 'breakable',
+    crate: 'breakable', kiosk: 'breakable', antique: 'breakable', extinguisher: 'breakable',
+    bollard: 'solid', barrier: 'solid', tree: 'solid', car: 'solid', taxi: 'solid', dolmus: 'solid', bus: 'solid',
+    lx_pillar: 'solid', lx_stall: 'solid', lx_wall: 'solid', lx_truck: 'solid', lx_boat: 'solid',
+    gascan: 'hazard', barrel: 'hazard', hazard: 'hazard',
+    cat: 'fauna', catbox: 'fauna', dog: 'fauna', pigeon: 'fauna', gull: 'fauna',
+    exitGate: 'plain', gateArch: 'plain', smoke: 'plain', blood: 'plain', strings: 'plain', lanterns: 'plain',
+    laundry: 'plain', vault: 'plain', lamp_row: 'plain', spill: 'plain', phones: 'plain'
+  };
+  var ROUND = { tree: 1, bollard: 1, barrel: 1 };
+  var DRESS = { scale: 0.9, squash: 0.8, ink: 'rgba(20,21,31,0.5)' };
+  var dressOn = false, blockOn = false, MUTE = {}, MARK = {}, MARK_N = 0;
+  // The role a draw takes. (kind, o) -> 'solid' | 'breakable' | 'dressing' | 'hazard' | 'fauna' | 'plain'.
+  function roleOf(kind, o) {
+    var r = ROLE[kind] || 'dressing';
+    if (r === 'fauna' || r === 'hazard' || r === 'plain') return r;
+    if (o && o.w && o.h) return r === 'breakable' ? 'breakable' : 'solid';   // a sim block: cover
+    return 'dressing';                                                       // a sidewalk slot
+  }
+  // Dressing colour: hex to a muted grey-mix (40 % toward its own luminance). Other strings pass through.
+  function paint(f) {
+    if (!dressOn || typeof f !== 'string' || f.charAt(0) !== '#' || f.length !== 7) return f;
+    var m = MUTE[f];
+    if (m) return m;
+    var r = parseInt(f.substr(1, 2), 16), g = parseInt(f.substr(3, 2), 16), b = parseInt(f.substr(5, 2), 16), L = 0.3 * r + 0.59 * g + 0.11 * b;
+    m = 'rgb(' + Math.round(r + (L - r) * 0.4) + ',' + Math.round(g + (L - g) * 0.4) + ',' + Math.round(b + (L - b) * 0.4) + ')';
+    MUTE[f] = m;
+    return m;
+  }
+  function inkCol() { return dressOn ? DRESS.ink : INK; }
+  // Outline width under the role: blocks thicker, dressing at half weight.
+  function outW(lw) { return (lw || 1.5) * (blockOn ? 1.6 : dressOn ? 0.5 : 1); }
   function ell(c, X, Y, rx, ry, f, lw) {
     c.beginPath(); c.ellipse(X, Y, Math.max(0.3, rx), Math.max(0.3, ry), 0, 0, TAU);
-    if (f) { c.fillStyle = f; c.fill(); }
-    if (lw !== 0) { c.strokeStyle = INK; c.lineWidth = lw || 1.5; c.stroke(); }
+    if (f) { c.fillStyle = paint(f); c.fill(); }
+    if (lw !== 0) { c.strokeStyle = inkCol(); c.lineWidth = outW(lw); c.stroke(); }
   }
   function rc(c, X, Y, w, h, f, lw) {
-    c.fillStyle = f; c.fillRect(X - w / 2, Y - h / 2, w, h);
-    if (lw !== 0) { c.strokeStyle = INK; c.lineWidth = lw || 1.5; c.strokeRect(X - w / 2, Y - h / 2, w, h); }
+    c.fillStyle = paint(f); c.fillRect(X - w / 2, Y - h / 2, w, h);
+    if (lw !== 0) { c.strokeStyle = inkCol(); c.lineWidth = outW(lw); c.strokeRect(X - w / 2, Y - h / 2, w, h); }
   }
   function poly(c, p, f, lw) {
     c.beginPath(); c.moveTo(p[0][0], p[0][1]);
     for (var i = 1; i < p.length; i++) c.lineTo(p[i][0], p[i][1]);
     c.closePath();
-    if (f) { c.fillStyle = f; c.fill(); }
-    if (lw !== 0) { c.strokeStyle = INK; c.lineWidth = lw || 1.5; c.stroke(); }
+    if (f) { c.fillStyle = paint(f); c.fill(); }
+    if (lw !== 0) { c.strokeStyle = inkCol(); c.lineWidth = outW(lw); c.stroke(); }
   }
   function ln(c, x0, y0, x1, y1, col, w) {
-    c.strokeStyle = col || INK; c.lineWidth = w || 1.5; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+    c.strokeStyle = col ? paint(col) : inkCol(); c.lineWidth = outW(w); c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
   }
   function shadow(c, X, Y, rx, ry) {
     c.fillStyle = 'rgba(0,0,0,0.26)'; c.beginPath(); c.ellipse(X, Y, rx, ry || rx * 0.45, 0, 0, TAU); c.fill();
@@ -31,10 +77,37 @@ P.Props = (function () {
   // 3/4 block: footprint centred on (X,Y), w x d px, hgt px rising up the screen (top face + front face).
   function box(c, X, Y, w, d, hgt, top, side) {
     var x0 = X - w / 2, yb = Y + d / 2, yt = yb - d - hgt;
-    c.fillStyle = side; c.fillRect(x0, yb - hgt, w, hgt);
-    c.fillStyle = top; c.fillRect(x0, yt, w, d);
-    c.strokeStyle = INK; c.lineWidth = 1.5; c.strokeRect(x0, yt, w, d + hgt);
-    ln(c, x0, yb - hgt, x0 + w, yb - hgt, INK, 1.2);
+    c.fillStyle = paint(side); c.fillRect(x0, yb - hgt, w, hgt);
+    c.fillStyle = paint(top); c.fillRect(x0, yt, w, d);
+    c.strokeStyle = inkCol(); c.lineWidth = outW(1.5); c.strokeRect(x0, yt, w, d + hgt);
+    ln(c, x0, yb - hgt, x0 + w, yb - hgt, null, 1.2);
+  }
+  // The block mark for a footprint of w x d px: a top highlight on the top edge, then solid = hatched top, breakable = lighter top
+  // and a crack. Baked once per size and role (MARK), so a block costs one drawImage per frame.
+  function markCanvas(kind, role, w, d) {
+    var key = kind + '|' + role + '|' + Math.round(w) + 'x' + Math.round(d), cv = MARK[key], c, x0 = 1, y0 = 1, k;
+    if (cv) return cv;
+    if (MARK_N > 160) { MARK = {}; MARK_N = 0; }
+    cv = document.createElement('canvas'); cv.width = Math.ceil(w) + 2; cv.height = Math.ceil(d) + 2;
+    c = cv.getContext('2d');
+    c.beginPath(); c.rect(x0, y0, w, d); c.clip();
+    if (!ROUND[kind]) {
+      if (role === 'breakable') { c.fillStyle = 'rgba(255,255,255,0.16)'; c.fillRect(x0, y0, w, d * 0.42); }
+      else {
+        c.save(); c.beginPath(); c.rect(x0, y0, w, d * 0.42); c.clip();
+        c.strokeStyle = 'rgba(20,21,31,0.34)'; c.lineWidth = 1.2; c.beginPath();
+        for (k = -d; k < w; k += Math.max(4, d * 0.16)) { c.moveTo(x0 + k, y0 + d * 0.42); c.lineTo(x0 + k + d * 0.42, y0); }
+        c.stroke(); c.restore();
+      }
+    }
+    c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 2; c.beginPath(); c.moveTo(x0 + 1, y0 + 1.5); c.lineTo(x0 + w - 1, y0 + 1.5); c.stroke();
+    if (role === 'breakable' && !ROUND[kind]) {
+      c.strokeStyle = INK; c.lineWidth = 1.4; c.beginPath();
+      c.moveTo(x0 + w * 0.3, y0 + d * 0.12); c.lineTo(x0 + w * 0.42, y0 + d * 0.27); c.lineTo(x0 + w * 0.36, y0 + d * 0.36); c.lineTo(x0 + w * 0.56, y0 + d * 0.46);
+      c.stroke();
+    }
+    MARK[key] = cv; MARK_N++;
+    return cv;
   }
   // Warm additive-friendly glow from one cached sprite (same pattern as istanbul.js lamps).
   function glow(c, X, Y, r, a) {
@@ -165,7 +238,7 @@ P.Props = (function () {
     ln(c, px, py, px, py - 1.5 * s, '#B8C0CA', 3);
     for (var i = 0; i < 6; i++) {
       var ry = py - 0.12 * s - i * 0.2 * s;
-      ell(c, px, ry, 0.22 * s, 0.1 * s, '#D9A441', 1.2);
+      ell(c, px, ry, 0.22 * s, 0.1 * s, '#B07A3A', 1.2);   // sesame bread, not gold (gold reads as a pickup)
       ell(c, px, ry, 0.08 * s, 0.04 * s, '#F4EBDD', 0);
     }
   };
@@ -317,15 +390,26 @@ P.Props = (function () {
     for (var j = 0; j < 3; j++) ell(c, X + (j - 1) * 0.1 * s, Y - 0.35 * s - ((now * 0.4 + j / 3) % 1) * 0.6 * s, 0.1 * s, 0.1 * s, 'rgba(180,180,180,0.35)', 0);
   };
 
+  // Draw one prop at world (x, y) by its role (see the grammar above). Re-entrant: lamp_row calls draw inside draw.
   M.draw = function (kind, R, x, y, o) {
-    if (o && o.theme && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, kind, o)) return;   // R1-T3: authored art for the hood's kit
-    var f = REG[kind] || REG.crate;
-    f(R.ctx, R.X(x), R.Y(y), R.ppm, o || {});
+    o = o || {};
+    var c = R.ctx, X = R.X(x), Y = R.Y(y), s = R.ppm, role = roleOf(kind, o), pd = dressOn, pb = blockOn;
+    var block = role === 'solid' || role === 'breakable', dress = role === 'dressing';
+    blockOn = block; dressOn = dress;
+    if (dress) { c.save(); c.transform(DRESS.scale, 0, 0, DRESS.squash, X * (1 - DRESS.scale), Y * (1 - DRESS.squash)); }   // flatter and smaller about the footprint centre
+    if (!(o.theme && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, kind, o))) (REG[kind] || REG.crate)(c, X, Y, s, o);   // R1-T3: authored art for the hood's kit, else the procedural painter
+    if (block) c.drawImage(markCanvas(kind, role, o.w * s, o.h * s), X - o.w * s / 2 - 1, Y - o.h * s / 2 - 1);   // blocks always carry a footprint (roleOf)
+    if (dress) c.restore();
+    blockOn = pb; dressOn = pd;
   };
   M.has = function (kind) { return !!REG[kind]; };
   M.reg = function (kind, fn) { REG[kind] = fn; };
   M.alias = function (kind, to) { if (REG[to]) REG[kind] = REG[to]; };
   M.kinds = function () { return Object.keys(REG); };
+  M.roleOf = function (kind, o) { return roleOf(kind, o || {}); };
+  M.roles = function () { return ROLE; };
+  M.dressFill = function (f) { return dressOn ? paint(f) : f; };   // for painters that set fills directly (istanbul-props2.js)
+  M.ink = function () { return inkCol(); };                         // the outline colour under the current role
   M.h = { ell: ell, rc: rc, poly: poly, ln: ln, shadow: shadow, box: box, glow: glow, teaGlass: teaGlass };
   return M;
 })();

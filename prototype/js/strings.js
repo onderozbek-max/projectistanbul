@@ -3,7 +3,7 @@
 P.STR = {
   tr: {
     'ui.title.logo': 'No Signal', 'ui.title.sub': 'İSTANBUL', 'ui.title.tap': 'Başlamak için dokun',
-    // TR owner check: chapter word is "Kısım" (T4 part 8). strings-journey.js overrides this key, so it is not on screen.
+    // The chapter word is "Kısım". strings-journey.js overrides this key, so it is not on screen.
     'ui.title.proto': 'Prototip v0.3 · Kısım 1 · Seviye 1', 'ui.title.settings': 'Ayarlar',
     'ui.skip': 'Geçmek için basılı tut',
     'ui.hud.hold': 'DAYAN', 'ui.hud.mom': 'Anne', 'ui.hud.pause': 'Duraklat',
@@ -15,7 +15,6 @@ P.STR = {
     'ui.pause.quitNote': "Çıkarsan şimdiye kadar kazanılan Jeton'un %{p}'si kalır.",
     'ui.pause.build': 'MEVCUT YAPI', 'ui.pause.export': 'Telemetriyi indir (JSONL)',
     'ui.set.title': 'Ayarlar', 'ui.set.lang': 'Dil',
-    // TR owner check: Settings audio label for the Sound effects slider (T4 part 8).
     'ui.set.sound': 'Ses efektleri', 'ui.set.subs': 'Altyazılar',
     'ui.set.reduceMotion': 'Hareketi azalt', 'ui.set.dmgNumbers': 'Hasar sayıları', 'ui.set.blood': 'Kan efekti', 'ui.set.back': 'Geri',
     'ui.set.on': 'Açık', 'ui.set.off': 'Kapalı',

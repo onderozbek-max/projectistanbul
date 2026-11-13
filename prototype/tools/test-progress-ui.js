@@ -91,7 +91,10 @@ const P = loadP();
 ['js/view/hood-card.js', 'js/view/ui-progress.js'].forEach(f => vm.runInThisContext(read(f), { filename: f }));
 const TR = P.STR.tr, EN = P.STR.en;
 // the finale and the title: the TR chapter is "Kısım", the EN chapter stays "Chapter" (T4 part 8)
-check(TR['fin.credits.kicker'] === 'KISIM 1 TAMAM' && /^Kısım 2 · /.test(TR['fin.next.text']), 'TR finale: chapter 1 complete reads "KISIM 1 TAMAM", chapter 2 reads "Kısım 2"');
+check(TR['fin.credits.kicker'] === '1. Kısım Sonu' && TR['fin.next.text'] === "2. Kısım · Sarıyer'e Yolculuk.",
+  'TR finale (T4 part 9 wording): chapter 1 ends with "1. Kısım Sonu", and the next line reads "2. Kısım · Sarıyer\'e Yolculuk."');
+check(TR['hud.skLabel'] === 'Sokak Kredisi {n}, sonraki için {k} öldür' && TR['res.recap.scVal'] === '+{n} · sonraki için {k} öldür',
+  'TR Street Cred strings (T4 part 9 wording): the HUD label and the recap value both say "öldür" (kill), not "öldürme"');
 check(EN['fin.credits.kicker'] === 'CHAPTER 1 COMPLETE' && /^Chapter 2 · /.test(EN['fin.next.text']), 'EN finale keeps "Chapter"');
 check(!/Bölüm/.test(TR['ui.title.proto']), 'TR title (the live value, after strings-journey.js): no "Bölüm" for the chapter');
 
@@ -105,8 +108,10 @@ usedKeys.forEach(k => { check(k in TR, `TR has no string for ${k}`); check(k in 
   'res.recap.noPower', 'res.recap.next', 'res.recap.retry', 'hc.next'].forEach(k => check(k in TR && k in EN, `progress string ${k} needs TR and EN`));
 const psrc = read('js/strings-progress-ui.js');
 const trBlock = psrc.slice(psrc.indexOf('Object.assign(P.STR.tr'), psrc.indexOf('Object.assign(P.STR.en'));
-const untagged = trBlock.split('\n').filter(l => /^\s*'[\w.]+':/.test(l) && !/\/\/ TR owner check/.test(l));
-check(untagged.length === 0, 'each new TR string carries "// TR owner check": ' + untagged.join(' | '));
+// T4 part 9: the owner approved every TR line in this file, so no "// TR owner check" tag is left here (a new unapproved line
+// would carry one again)
+const tagged = trBlock.split('\n').filter(l => /TR owner check/.test(l));
+check(tagged.length === 0, 'strings-progress-ui.js: the owner-approved TR lines carry no "TR owner check" tag: ' + tagged.join(' | '));
 
 // terms in the tables: a hood is never a chapter or Bölüm; the banner is "LEVEL UP"; no range-style HUD values
 const HOOD_KEY = /^(meta\.district|meta\.hood\.|hc\.)/;

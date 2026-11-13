@@ -43,12 +43,21 @@
 .hc-power .pw-strip { margin: 0; text-align: left; color: var(--bosphorus); }
 .hc-next { margin-top: 4px; font: 800 calc(13px * var(--ui-text, 1)) var(--body); letter-spacing: .04em; color: #C0392B; }
 
-/* ---- Results: the run recap panel, and the actions pinned to the bottom of the scrolling screen ---- */
-.res-actions { position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 4px;
-  background: linear-gradient(rgba(20,21,31,0), rgba(20,21,31,.96) 24%); }
+/* ---- Results (T4 part 9): one screen. .res-body (head, rewards, recap, objective panel) scrolls on its own; .res-actions is a
+   footer under it, so it never covers a line. At 100% text the base screen fits 844 px without scrolling; at 150% the body
+   scrolls and the footer stays in reach. Tap targets stay at the .btn minimum (52 px). ---- */
+#scr-results { overflow: hidden; }
+#scr-results .res-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 8px; }
+#scr-results .center-block { margin-top: 8px; }
+#scr-results .stars { margin: 4px 0 0; }
+#scr-results .res-body > .panel { margin-top: 10px; }
+#scr-results .kv { padding: 4px 0; }
+.res-actions { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 8px 0 0; }
+.res-actions .btn.wide { margin-top: 0; }
 .res-actions .row.gap { align-items: stretch; }            /* at 150% the long label wraps; both buttons keep one height */
 .res-actions .row.gap .btn { padding: 0 12px; }
-.res-recap .res-head { margin: 0 0 4px; }
-.res-reached { margin: 0 0 6px; font: 800 calc(16px * var(--ui-text, 1)) var(--display); color: var(--ink); line-height: 1.2; }
+.res-recap .res-head { margin: 0 0 2px; }
+.res-reached { margin: 0 0 4px; font: 800 calc(16px * var(--ui-text, 1)) var(--display); color: var(--ink); line-height: 1.2; }
+#scr-results .res-recap .kv-line { padding: 2px 0; }       /* time and walk: one compact line each */
 .kv-wide { flex-direction: column; align-items: flex-start; gap: 2px; }
 .kv-wide span:last-child { font: 800 calc(15px * var(--ui-text, 1)) var(--body); line-height: 1.25; }

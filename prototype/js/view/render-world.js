@@ -1,6 +1,8 @@
 // Static environment drawing: street, facades, doors, restaurant, props (LD 3, 6; gameplay-peak.svg palette).
 P.RenderWorld = (function () {
   var W = {}, L = function () { return P.CFG.level; };
+  // Governor gates (view only, js/view/quality.js): on when the module is missing.
+  function q(name) { return !P.Quality || P.Quality[name](); }
   var SHOPS = [ { side: 1, y: 22, name: 'Pera Kitap' }, { side: -1, y: 44, name: 'Telefon Tamir' },
     { side: 1, y: 58, name: 'Çiçek Optik' }, { side: -1, y: 98, name: 'Pastane' },
     { side: 1, y: 122, name: 'Beyoğlu Plak' }, { side: -1, y: 196, name: 'Çiçekçi' } ];
@@ -105,6 +107,17 @@ P.RenderWorld = (function () {
   }
 
   function lightK(s) { return P.EventsFx && P.EventsFx.lightK ? P.EventsFx.lightK(s) : 1; }   // blackout glitch: lamps hum low and dip
+  // Lamp pool: the same three-stop radial gradient every frame, so it is rasterised once (64 px) and scaled into each pool.
+  var poolCv = null;
+  function poolImage() {
+    if (poolCv) return poolCv;
+    var c2, g;
+    poolCv = document.createElement('canvas'); poolCv.width = poolCv.height = 64;
+    c2 = poolCv.getContext('2d'); g = c2.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,180,100,0.34)'); g.addColorStop(0.5, 'rgba(255,160,80,0.10)'); g.addColorStop(1, 'rgba(255,190,110,0)');
+    c2.fillStyle = g; c2.fillRect(0, 0, 64, 64);
+    return poolCv;
+  }
   W.drawLights = function (R, s, y0, y1) {
     if (!isL1(s)) { genLights(R, s, y0, y1); return; }
     var c = R.ctx, u = R.ppm;
@@ -112,10 +125,9 @@ P.RenderWorld = (function () {
     for (var py = Math.ceil((y0 - 6) / 12) * 12; py < y1 + 6; py += 12) {
       if (py <= 4 || py >= 228) continue;
       [[-4.85, py], [4.85, py + 6]].forEach(function (l) {
-        var X = R.X(l[0]), Y = R.Y(l[1] + 0.6), g = c.createRadialGradient(0, 0, 0, 0, 0, 3.6 * u);
-        g.addColorStop(0, 'rgba(255,180,100,0.34)'); g.addColorStop(0.5, 'rgba(255,160,80,0.10)'); g.addColorStop(1, 'rgba(255,190,110,0)');
+        var X = R.X(l[0]), Y = R.Y(l[1] + 0.6);
         c.save(); c.translate(X, Y); c.scale(1, P.CFG.feel2.light.squash);          // a pool on the ground foreshortens into an ellipse
-        c.fillStyle = g; c.fillRect(-3.6 * u, -3.6 * u, 7.2 * u, 7.2 * u); c.restore();
+        c.drawImage(poolImage(), -3.6 * u, -3.6 * u, 7.2 * u, 7.2 * u); c.restore();
       });
     }
     c.restore();
@@ -210,6 +222,7 @@ P.RenderWorld = (function () {
     }
   }
   W.drawShadows = function (R, s, y0, y1) {
+    if (!q('ambientOcclusion')) return;   // tier 2: no ground AO pads (quality.js)
     if (isL1(s)) {
       s.props.carts.forEach(function (k) { if (k.alive && k.y > y0 - 2 && k.y < y1 + 2) aoPad(R, k.x - 0.9, k.x + 0.9, k.y - 0.6, k.y + 0.6, 1); });
       s.props.canisters.forEach(function (k) { if (k.alive && k.y > y0 - 2 && k.y < y1 + 2) aoPad(R, k.x - 0.28, k.x + 0.28, k.y - 0.43, k.y + 0.43, 0.6); });
@@ -221,10 +234,11 @@ P.RenderWorld = (function () {
     });
   };
 
+  // The idle tram on level 1 (T4 part 11). Always opaque: it is not an overhang, so no fade applies (the old rule dropped it to
+  // 30% whenever Arda was within 8 m, which read as a ghost tram). Drawn on the ground layer (render.js), under the actors.
   W.drawTram = function (R, s) {
-    var tr = L().tram, h = s.hero;
-    var beside = Math.abs(h.y - (tr.yMin + tr.yMax) / 2) < 8 && Math.abs(h.x) < 5;
-    P.Vehicles.drawCar(R, (tr.xMin + tr.xMax) / 2, tr.yMin, tr.yMax, tr.xMax - tr.xMin, { alpha: beside ? 0.3 : 1, t: performance.now() / 1000, lamp: '255,236,190' });
+    var tr = L().tram;
+    P.Vehicles.drawCar(R, (tr.xMin + tr.xMax) / 2, tr.yMin, tr.yMax, tr.xMax - tr.xMin, { t: performance.now() / 1000, lamp: '255,236,190' });
   };
 
   W.drawScaffold = function (R, s) {
@@ -380,7 +394,7 @@ P.RenderWorld = (function () {
     c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = lightK(s);
     for (var y = Math.ceil((y0 - 3) / 6) * 6; y < y1 + 3 && th.shop > 0; y += 6) {
       [-1, 1].forEach(function (sd) {
-        if ((sd > 0 ? th.R : th.L) === 'facade' && hash(y * 3.3 + sd * 7) < th.shop * 0.6) { c.save(); c.translate(R.X(sd * 7.4), R.Y(y + 3.5)); c.scale(1, P.CFG.feel2.light.squash); P.Props.h.glow(c, 0, 0, 1.8 * u, 0.14); c.restore(); }
+        if (q('glows') && (sd > 0 ? th.R : th.L) === 'facade' && hash(y * 3.3 + sd * 7) < th.shop * 0.6) { c.save(); c.translate(R.X(sd * 7.4), R.Y(y + 3.5)); c.scale(1, P.CFG.feel2.light.squash); P.Props.h.glow(c, 0, 0, 1.8 * u, 0.14); c.restore(); }
       });
     }
     if (hp >= 4 && hp <= 17) for (i = 0; i < 14; i++) {
@@ -389,8 +403,8 @@ P.RenderWorld = (function () {
       c.beginPath(); c.arc(R.X(ex), R.Y(ey), 0.05 * u, 0, Math.PI * 2); c.fill();
     }
     c.restore();
-    P.Landmarks.weather(R, s, y0, y1);
-    if (th.fog && hp >= 6 && !covered) for (i = 0; i < 4; i++) {
+    if (q('fog')) P.Landmarks.weather(R, s, y0, y1);      // ambient weather (rain, haze) drops at tier 2 (quality.js)
+    if (th.fog && hp >= 6 && !covered && q('fog')) for (i = 0; i < 4; i++) {
       c.fillStyle = 'rgba(170,182,198,0.07)'; c.beginPath();
       c.ellipse(R.X(Math.sin(t * 0.05 + i * 2.1) * 3), R.Y(y0 + ((i * 7.3 + t * 0.6) % (y1 - y0))), 5 * u, 2.5 * u, 0, 0, Math.PI * 2); c.fill();
     }

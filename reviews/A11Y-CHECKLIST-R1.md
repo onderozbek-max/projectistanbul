@@ -1,6 +1,6 @@
 # Accessibility checklist, R1 (canvas effects)
 
-Updated 2026-11-12. Scope: every canvas effect in `prototype/js/view/` (71 files), including the R1 layers (weapons, held-weapon animation, comic panels, istanbul props and lamps, arena overhead, tram, blackout glitch). The UI files owned by the UI pass (screens, ui*, objectives-hud, css/*) are out of scope and are listed under "Not in this pass".
+Updated 2026-11-13. Scope: every canvas effect in `prototype/js/view/` (83 files scanned by the test, after the audio and DOM-menu exclusions), including the R1 layers (weapons, held-weapon animation, comic panels, istanbul props and lamps, arena overhead, tram, blackout glitch) and the T4 part 13 signature moments (`moments.js`, `moments-screen.js`). The UI files owned by the UI pass (screens, ui*, objectives-hud, css/*) are out of scope and are listed under "Not in this pass".
 
 ## Rules applied
 
@@ -8,7 +8,7 @@ Updated 2026-11-12. Scope: every canvas effect in `prototype/js/view/` (71 files
 - **Area (team heuristic, not a WCAG number):** an element under about 150 by 150 px on a phone is treated as small and is not rate-capped. WCAG's own test is relative to a 10 degree field of view. The owner must confirm this heuristic (decision a below).
 - **Reduce motion (DS §7):** disables shake, hit-stop, slow-mo and camera punch, and keeps flashes at 3/s or fewer.
 - **Reduce flashing (`P.Settings.reduceFlash`):** removes white and red flashes, flicker and re-rolls, and holds a steady fallback.
-- **Status:** `pass` = compliant with no change in this pass; `fixed` = changed in this pass; `needs-device` = cannot be decided from code; `owner` = needs a product decision.
+- **Status:** `pass` = compliant with no change in this pass; `fixed` = changed in this pass; `new` = added in T4 part 13 (signature moments); `needs-device` = cannot be decided from code; `owner` = needs a product decision.
 
 ## Screen-wide flash budget
 
@@ -67,10 +67,23 @@ Hz is the rate of luminance or size change, or of flash starts. Area is the appr
 | Boss spin | enemies-fx2.js:146 | motion | small | Reduce motion: 0.8 Hz wobble instead of spin | pass |
 | Cold-open diner flash | enemy path | single event | small | budget | pass |
 | Chest reveal shake | screens.js (UI pass) | about 9.5 Hz, position | UI | Reduce motion guard at function start | needs-device (UI pass) |
+| Dash ghost pair | moments.js `drawGhosts` | one pair per dash (3.5 s cooldown), fades in 0.24 s | hero-sized, small | Reduce motion and Reduce flashing: off | new |
+| Dash screen tear | moments-screen.js `drawTear` | 3 steps/s (quantised) for 0.14 s, one burst per dash; band shift up to 12 px | full-width bands within 120 px of the hero row | Reduce motion and Reduce flashing: off; takes a budget slot | new |
+| Ground-shock lens | moments-screen.js `drawLens` | one ring per 0.34 s (`shock.gap`), 0.3 s life, up to 2 live; zoom 8% that decays | ring band, up to about 2.4 m radius (large); no colour change | Reduce motion: off | new (motion; pixel diff in harness) |
+| Ground-shock kick | feel.js `F.kick` | slam 3.0 px, stomp 1.5 px, once per event | whole view | Reduce motion: zeroed in `F.kick` | pass (existing rule; moments call it) |
+| Kill-streak ink wipe | moments-screen.js `drawWipe` | one dark pass per mark (10, 25, 50), 0.34 s | two edge bands, 22% of the width each side | Reduce flashing and Reduce motion: no wipe; takes the mark's budget slot | new (owner g) |
+| Kill-streak word | moments-screen.js `drawWord` | one pop per mark, shown 1.1 s, fades 0.3 s | up to about two thirds of the width, gold on ink | Reduce flashing: steady, no pop; Reduce motion: no pop | new |
+| Crit halftone burst | moments.js `drawCrits` | at most one per 0.34 s (`crit.gap`); 2-frame hold, then grows and fades over 0.34 s | 11 by 11 dot lattice, up to 1.1 m radius | Reduce motion and Reduce flashing: off; takes a budget slot | new |
+| Near-miss ripple | moments.js `drawRipples` | one per near miss (once per dash), 0.6 s; wobble 1.5 Hz at 0.05 m | thin ring, 0.9 to 2.6 m radius | Reduce motion: off; under Reduce flashing the budget refuses it | new |
+| Level-clear confetti | moments-screen.js `drawConfetti` | 36 pieces fall 1.4 to 2.2 s; width flip at 0.4 to 0.7 Hz | pieces about 9 px | Reduce motion: none spawned; journey levels only | new (motion) |
+| Hood ribbon bounce | moments-screen.js `drawRibbon` | damped spring at 2 Hz, decays in about 1 s; fades in 0.35 s | about 150 to 200 px by 38 px; one bounce | Reduce motion: static | new (motion; owner h) |
+| Last-stand rings | moments.js `drawLow` | 0.5 Hz swell (a 2 s cycle), alpha 0.3 to 0.8; one budget slot a cycle, else held high | a ring on the feet of up to 10 enemies, small | Reduce flashing: held at upper alpha, no start | new |
+| Last-stand veil | moments-screen.js `drawVeil` | eases in over 0.4 s, then steady (no pulse) | screen edges, grey at alpha 0.26 | none needed (steady) | new |
+| Heavy-hit starburst | moments.js `drawImpacts` | one per 0.34 s (`impact.gap`); 2-frame hold, gone in 0.12 s | 12-spike star, about 0.6 m radius, small | Reduce motion and Reduce flashing: off; takes a budget slot | new |
 
 ## Static test
 
-`prototype/tools/test-a11y-canvas.js` scans the 71 view files for flicker candidates (rate above 3 Hz, on/off thresholds, re-rolls above 3/s, parity toggles, flash starts without the budget). A candidate passes if a Reduce token appears within 2 lines, or if the line is quantised. Result: 14 candidates, 4 allowlisted, 19 wiring checks, all pass.
+`prototype/tools/test-a11y-canvas.js` scans the 71 view files for flicker candidates (rate above 3 Hz, on/off thresholds, re-rolls above 3/s, parity toggles, flash starts without the budget). A candidate passes if a Reduce token appears within 2 lines, or if the line is quantised. Result: 14 candidates, 4 allowlisted, 39 wiring checks, all pass. The same file also drives the signature moments through the real flash budget (crit bursts, starbursts, ripples and the last-stand pulse together: no 1 s window above 3 starts; Reduce flashing starts none) and audits the moments' own sin and cos terms, which the generic scan cannot read (four config rates: the last-stand pulse 0.5 Hz, ripple wobble 1.5 Hz, ribbon spring 2 Hz, confetti flip 0.4 to 0.7 Hz; the tear re-rolls at 3 steps a second). `prototype/tools/test-anim-flavor.js` checks the moments' timing (streak marks 10, 25 and 50; the frenzy reset; the window gap; the crit and impact gaps; the Reduce flags; the 0.5 Hz swell; journey-only confetti) and that no moments file writes to the sim.
 
 `prototype/tools/a11y-canvas-allowlist.json` holds the 4 geometry-only exemptions. Each has a rationale of at least 40 characters, and a stale entry fails the test:
 
@@ -86,6 +99,7 @@ Reduce motion ON (Settings):
 - [ ] Weather drift is frozen; bins and crates do not sway; comic panels do not zoom.
 - [ ] Tram rush: car and speed streaks show; no sway, sparks or dust.
 - [ ] Toasts and meta panels change by fade only; the call card appears and leaves at once; no death zoom.
+- [ ] Moments: no dash tear, no ground-shock lens, no ink wipe, no confetti; the hood ribbon appears static.
 
 Reduce motion OFF:
 - [ ] Shake at 50% is half the strength of 100%; 0% gives none.
@@ -95,9 +109,11 @@ Reduce flashing ON:
 - [ ] No full-screen white or red flash; no neon or alarm flicker; the fuse marker holds steady; the blackout picture holds still with a soft dim.
 - [ ] Hits still read through squash and damage numbers.
 - [ ] The low-HP heartbeat still pulses softly (1.2 a second) with no extra flash.
+- [ ] Moments: no dash tear, no ink wipe, no crit burst, starburst or near-miss ripple; the kill-streak word shows steady; the last-stand rings hold high.
 
 Reduce flashing OFF:
 - [ ] Record a 60 fps capture of a crowd fight and of a blackout; screen-wide luminance peaks are 3 a second or fewer.
+- [ ] Record a 60 fps capture of a dash, a crit kill and a 10-kill streak in the same second: the tear, the crit burst and the ink wipe together stay at 3 starts a second or fewer.
 
 Colour-blind check (shape, not colour):
 - [ ] Enemy attack telegraphs, hazards (fire, poison, electric) and pickups are identifiable in greyscale.
@@ -119,6 +135,8 @@ Tap target:
 - **(d) Tap target.** Confirm 48 dp (DS) over 44 pt (brief).
 - **(e) Text size.** Built in REVIEW-R1 T4 part 2 (100, 125 and 150%). Confirm that canvas lettering and comic pops staying at their size is the intended scope, and that the TR label "Yazı boyutu" is right (marked `// TR owner check`).
 - **(f) Chest reveal shake.** `screens.js` shakes about 9.5 times a second on the chest reveal. It is guarded by Reduce motion at the start of the function, and it belongs to the UI pass. Flagged for that owner.
+- **(g) Large moments.** The kill-streak ink wipe (two dark edge bands, 0.34 s, once per mark) and the dash tear (full-width bands, 0.14 s, once per dash) are large changes. Both take a budget slot. Confirm one slot per mark and per dash, or drop them under the area heuristic.
+- **(h) Ribbon and lens motion.** The hood ribbon bounces (scale, 2 Hz, decaying in about 1 s) and the ground-shock lens zooms the picture by 8% inside a ring (one per 0.34 s). Both are motion, not luminance, and both are off under Reduce motion. Confirm.
 
 ## Not in this pass
 
