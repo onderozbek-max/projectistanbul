@@ -163,29 +163,32 @@ Format per hood: feel, sound and people, landmarks, streets, food, zombie locals
 - **Stages:** 1 Lane entrance, night, rain · 2 Quay, night, fire from the meyhane grills · 3 Fish-ice cart, night, fog, the boat waits at the quay (survive.boat) · 4 Musician plays a tune (boss cue), night, clear · 5 Quay end, night, rain.
 - **Postcard fact (high):** Kumkapı is known for its fish restaurants on the Marmara coast.
 
-### H10 · Laleli · Fatih · km 7.8 · L46–50 · Boss: The Wholesaler
-- **Feel:** wholesale streets with cartons stacked on pavements. Shop windows full of mannequins. Sodium lamps.
-- **Sound and people:** hand carts on tiles, shutters, radios. Shopkeepers, hamal porters, tourist shoppers with suitcases.
-- **Steam and light:** sodium orange. Grey carton stacks.
-- **Landmarks:** none single; the wholesale arcades are the landmark. (The mosque in the district is background only.)
-- **Streets (confirm):** Laleli's main wholesale lanes.
-- **Food:** çay, simit.
-- **Zombie locals:** shopkeeper (measuring tape, walker). Hamal with a cart (brute). Tourist with suitcase (crawler).
-- **Arda hook:** *Visual*. TR: "Mankenler bana bakıyor. Hayatımda hiç bu kadar beğenilmedim." EN: "The mannequins are staring at me. Never been this popular."
-- **Stages:** 1 Wholesale lane, deep night, fog · 2 Carton stacks, night, clear · 3 Mannequin wake (W48), night, rain · 4 Fabric lane, night, fire from the bins, zombies hide behind rolls · 5 Crate yard, night, clear.
-- **Postcard fact (high):** Laleli is known for wholesale clothing and luggage shops.
+### H10 · Topkapı Sarayı · Fatih · km 7.8 · L46–50 · Boss: The Docent (D-060)
+- **Feel:** a grand stone square in golden late light. Queue barriers and a ticket line, calm architecture and a chaotic crowd. The palace is a museum, so the locals are visitors and staff.
+- **Sound and people:** a tour group's chatter, a guide calling the group together, the queue barriers. Visitors, museum staff, vendors.
+- **Steam and light:** late afternoon sun, warm and low from the gate side. Cool shadow under the plane trees.
+- **Landmarks:** the palace gate tower and the crenellated wall along the Gülhane side (background only, never damaged). The palace kitchen domes on the skyline (background only).
+- **Streets (confirm):** Saray Meydanı (the gate square, stage 1); Gülhane Yolu. TR owner check.
+- **Food:** none in the proposal. Candidate: çay from a çay ocağı (confirm).
+- **Zombie locals:** tourist with a camera (crawler). Tour group straggler with a lanyard (walker). Museum attendant in a waistcoat (walker, new skin). Vendor (runner).
+- **Arda hook:** *To zombies* (proposed, owner writes TR). TR: to be written by owner. EN: "Please stay in line. No? Okay, fair."
+- **Stages:** 1 Palace Square, late afternoon, clear · 2 Gülhane Path, golden hour, fog off the park · 3 Ticket Queue, dusk, barriers funnel the lanes · 4 Outer Courtyard, dusk, rain · 5 Palace Gate, dusk, clear, boss.
+  - TR names, **TR owner check**: Saray Meydanı · Gülhane Yolu · Bilet Kuyruğu · Dış Avlu · Saray Kapısı (owner, 2026-11-13: stage 1 and stage 5 set; Kule Kapısı stays with Yedikule stage 5).
+- **Postcard fact (confirm):** Topkapı Palace was the Ottoman sultans' residence for about four centuries and is now a museum.
 
-### H11 · Aksaray · Fatih · km 8.6 · L51–55 · Boss: The Dolmuş Driver
-- **Feel:** a bus-stop plaza at a busy junction. Minibuses and taxis in neutral colours. Bus shelters, traffic cones, a pide bakery.
-- **Sound and people:** dolmuş drivers shouting destinations, horns, the bakery's oven. Drivers, bakers, commuters.
-- **Steam and light:** bread steam and kebap smoke. Headlights as lane markers.
-- **Landmarks:** the junction and its bus shelters (generic). No real livery.
-- **Streets (confirm):** the Aksaray junction.
-- **Food:** pide, kebap from an ocakbaşı, simit.
-- **Zombie locals:** driver (dolmuş, brute). Baker (pide peel, walker). Commuter (bag, runner).
-- **Arda hook:** *To zombies*. TR: "Dolmuşçu abi, boş yer var mı? Yok mu? Tahmin etmiştim." EN: "Driver, any seats? No? I figured."
-- **Stages:** 1 Bus stop, night, rain · 2 Plaza, night, fog · 3 Traffic lanes, night, fire glow from the döner spits, minibuses in the lanes · 4 Closed bakery, night, clear, the campfire rest (no combat) · 5 Junction, night, fog, horn telegraph.
-- **Postcard fact:** None yet. Candidate: the junction is a major bus and minibus interchange (confirm).
+### H11 · Haliç–Balat · Fatih · km 8.6 · L51–55 · Boss: The Antiquarian (D-060)
+- **Feel:** steep lanes of narrow, brightly painted row houses on the Golden Horn shore. Antique and bric-a-brac shops, cafés with mismatched chairs, laundry between the balconies, the Balat quay.
+- **Sound and people:** water on the quay and gulls. Antique dealers, café owners, fishermen, a grandmother with a shopping bag.
+- **Steam and light:** blue hour into night. Warm window light and café lamps. Fire from a toppled brazier in stage 3, under 3 flashes a second.
+- **Landmarks:** a red-brick hilltop school on the skyline (generic, no name). The Horn water and the far bank. No religious building is a set piece (a minaret and a dome far across the water are background only).
+- **Streets (confirm):** Haliç Kıyısı; Antikacılar Sokağı; the Balat quay (Balat İskelesi). TR owner check.
+- **Food:** çay in the cafés (confirm). Fishing crates on the quay.
+- **Zombie locals:** antique dealer (walker). Café owner (walker). Fisherman (existing skin). Grandmother with a shopping bag (runner, existing skin). No child zombies.
+- **Arda hook:** *Self-talk* (proposed, owner writes TR). TR: to be written by owner. EN: "Everything here is old and expensive. I am neither."
+- **Stages:** 1 Haliç Shore, blue hour, clear · 2 Colour Houses, dusk, fog off the water · 3 Antique Lane, night, fire from a toppled brazier, stands block the lanes · 4 Fatma Nine's Garage, night, clear, the campfire story page (combat stays on) · 5 Balat Pier, night, rain, the boss.
+  - TR names, **TR owner check**: Haliç Kıyısı · Renkli Evler · Antikacılar Sokağı · Fatma Nine'nin Garajı · Balat İskelesi.
+- **Campfire, stage 4:** Kaan's grandmother's garage, with the half-painted *Fatma Nine Balık Ekmek* sign (characters.md). The story call and the Turkish are the owner's. The old L54 page (closed bakery) needs a rewrite. Combat stays on in stage 4, as L54 worked before (owner, 2026-11-13); a true no-combat stage is deferred.
+- **Postcard fact (confirm):** Balat is a historic Golden Horn neighbourhood known for its colourful houses and antique shops.
 
 ### H12 · Yenikapı · Fatih · km 9.5 · L56–60 · Boss: The Evening Crowd
 - **Feel:** an underground station hall. Tiled walls with bands, ticket gates, stopped escalators, safety barriers, luggage.
@@ -212,15 +215,16 @@ Format per hood: feel, sound and people, landmarks, streets, food, zombie locals
 - **Postcard fact:** None yet. Candidate: the seafront promenade (confirm the name and whether it is a sea wall).
 
 ### H14 · Yedikule · Fatih · km 11.1 · L66–70 · Boss: The Key Keeper
-- **Feel:** old city walls and towers. Gardens and a tea garden inside the walls. Ivy on stone.
+- **Feel:** old city walls and towers. Gardens and a tea garden inside the walls. Ivy on stone. Stage 2 is the Zindanlar (dungeons), a vaulted corridor under the walls (D-060).
 - **Sound and people:** birds, water, gate keys. Gardeners, workers, grannies.
-- **Steam and light:** morning blue. Ivy green.
+- **Steam and light:** morning blue. Ivy green. Stage 2 is torch-lit and underground, with drip and fog.
 - **Landmarks:** the Yedikule Fortress and the Theodosian walls.
 - **Streets (confirm):** the walls' footpath; Yedikule Hisarı.
 - **Food:** tea in the garden, gözleme.
 - **Zombie locals:** gardener (rake, walker). Worker (crawler). Granny (spitter).
 - **Arda hook:** *Self-talk*. TR: "Duvarlar hâlâ ayakta. Ben pek emin değilim." EN: "The walls are still standing. I'm not so sure about me."
-- **Stages:** 1 Wall-walk entrance, sunrise, clear · 2 Gardens, morning, fog · 3 Find three keys (O8), sunrise light, dawn wash · 4 Tea garden, morning, rain, tables block the lanes · 5 Gatehouse, morning, clear.
+- **Stages:** 1 Wall-walk entrance, sunrise, clear · 2 Zindanlar (Dungeons), underground, torch light, fog · 3 Find three keys (O8), sunrise light, dawn wash · 4 Tea garden, morning, rain, tables block the lanes · 5 Gatehouse, morning, clear.
+  - TR names, **TR owner check**: Yedikule Surları · Zindanlar · Anahtarlar · Çay Bahçesi · Kule Kapısı. (Owner, 2026-11-13: Kule Kapısı stays here as stage 5; Topkapı Sarayı's stage 5 is Saray Kapısı.)
 - **Postcard fact (high):** Yedikule Fortress was built in 1458, at the south end of the Theodosian walls.
 
 ### H15 · Kazlıçeşme · Zeytinburnu · km 12.0 · L71–75 · Boss: The Hose Man
@@ -236,15 +240,16 @@ Format per hood: feel, sound and people, landmarks, streets, food, zombie locals
 - **Postcard fact (high):** Kazlıçeşme is a Marmaray station between Yenikapı and Zeytinburnu.
 
 ### H16 · Zeytinburnu · Zeytinburnu · km 13.0 · L76–80 · Boss: The Dye Foreman
-- **Feel:** textile workshops and yards. Brick and concrete. Dye-coloured drums.
+- **Feel:** textile workshops and yards. Brick and concrete. Dye-coloured drums. Stage 2 is the Marmara shore: a concrete quay and fishing piers (D-060).
 - **Sound and people:** machines, forklift alarms (generic), radios. Workers, shoppers, students.
-- **Steam and light:** daylight with haze. Teal, magenta and yellow drums.
-- **Landmarks:** the textile yards and drums (generic). The canal in the far distance.
-- **Streets (confirm):** the workshop lanes.
+- **Steam and light:** daylight with haze. Rain on the shore in stage 2. Teal, magenta and yellow drums.
+- **Landmarks:** the textile yards and drums (generic). The Marmara shore pier in stage 2 (generic). The canal in the far distance.
+- **Streets (confirm):** the workshop lanes; the shore pier, Sahil Rıhtımı (TR owner check).
 - **Food:** çay, simit, tost from a kiosk.
 - **Zombie locals:** worker (overall, walker). Shopper (bags, runner). Student (backpack, crawler).
 - **Arda hook:** *To zombies*. TR: "Mesai bitti, ben de çıkıyorum. Yanlış kapıdan." EN: "Shift's over, I'm clocking out. Wrong door."
-- **Stages:** 1 Yard gate, morning, clear · 2 Bale stacks, morning, rain · 3 Conveyor belt, morning, clear, zombies ride the belt · 4 Drum yard, morning, welders' sparks, drums explode in chains · 5 Foreman's yard, morning, clear, haze.
+- **Stages:** 1 Yard gate, morning, clear · 2 Shore pier (Sahil Rıhtımı), morning, rain, wet concrete quay and fishing piers · 3 Conveyor belt, morning, clear, zombies ride the belt · 4 Drum yard, morning, welders' sparks, drums explode in chains · 5 Foreman's yard, morning, clear, haze.
+  - TR names, **TR owner check**: Fabrika Kapısı · Sahil Rıhtımı · Konveyör · Boya Avlusu · Ustabaşı Avlusu.
 - **Postcard fact:** None yet. Candidate: a textile district (verify the detail before use).
 
 ### H17 · Bakırköy Çarşı · Bakırköy · km 14.0 · L81–85 · Boss: The Principal
@@ -310,9 +315,9 @@ Chapter 2 is **Levels 101–200, twenty hoods, five levels each**, the same temp
 | 22 | `c2_yenibosna` | Yenibosna / Yenibosna | Bahçelievler | L106–110 | 101–110 | **The Scrapyard Horde** (canon, L110) | Scrapyard horde in the lots (confirm the lot types). |
 | 23 | `c2_bahcelievler` | Bahçelievler, D-100 ramp / Bahçelievler ramp | Bahçelievler | L111–115 | 111–120: D-100 | Konvoy Şoförü (convoy driver), **proposed** | First vehicle combat. **Mila quotes Dad's "avoid the highways".** |
 | 24 | `c2_gunesli` | Güneşli, D-100 jam / Güneşli jam | Bahçelievler | L116–120 | 111–120 | **The Bendy Bus** (canon, L120) | The world's biggest parking lot. The payoff of the highway warning. |
-| 25 | `c2_mahmutbey` | Mahmutbey depots / Mahmutbey warehouses | Bağcılar | L121–125 | 121–130: humans | Kuzgun Gözcüsü (scout), **proposed** | First Kuzgunlar ambush. Batteries stolen. Moves from the narrative's Topkapı (see §3.3). |
+| 25 | `c2_mahmutbey` | Mahmutbey depots / Mahmutbey warehouses | Bağcılar | L121–125 | 121–130: humans | Kuzgun Gözcüsü (scout), **proposed** | First Kuzgunlar ambush. Batteries stolen. Moves from the narrative's Topkapı Surları (see §3.3). |
 | 26 | `c2_kuzgun_kampi` | Kuzgun kampı / the Kuzgun camp (fictional) | Bağcılar edge | L126–130 | 121–130 | **Kuzgun Lieutenant** (canon, L130) | The camp. Battery recovery starts. |
-| 27 | `c2_halic_basi` | Haliç başı / the Golden Horn head | Kağıthane edge | L131–135 | 131–140: Golden Horn crossing | The Ferryman (Kayıkçı), **proposed** | The Horn's northern head. A raft and a bridge (confirm the crossing). |
+| 27 | `c2_halic_basi` | Haliç başı / the Golden Horn head | Kağıthane edge | L131–135 | 131–140: Fener–Eyüp crossing (TR owner check) | The Ferryman (Kayıkçı), **proposed** | The Horn's northern head. A raft and a bridge (confirm the crossing). |
 | 28 | `c2_halic_kopru` | Haliç köprüsü / the Horn bridge | Kağıthane edge | L136–140 | 131–140 | **Reis** (canon, L140) | Mila takes charge. Arda notices Kaan noticing. |
 | 29 | `c2_kagithane_cayir` | Kağıthane çayırı / the Kağıthane meadows | Kağıthane | L141–145 | 141–150: Kağıthane | The Lorry Man (Kamyoncu), **proposed** | The rescue of the barefoot girl. The Sweet Waters valley. |
 | 30 | `c2_kagithane_sokak` | Kağıthane sokakları / Kağıthane streets | Kağıthane | L146–150 | 141–150 | **The Swarm** (canon, L150) | **Ada joins** at the end (L150). |
@@ -338,8 +343,8 @@ Chapter 2 is **Levels 101–200, twenty hoods, five levels each**, the same temp
 
 ### 3.3 Changes to the canon walk (for the owner to approve)
 
-1. **Topkapı and the Theodosian walls (narrative 121–130) are south-west of the northbound route.** The route moves the first Kuzgun ambush to the Mahmutbey depots (hood 25). The walls can stay as a Ch2 memory or a Ch3 reference. Owner decision.
-2. **The Golden Horn crossing (131–140)** is placed at the Horn's northern head (hood 27–28). It is the only way north-east without a long detour. Confirm the crossing on a map.
+1. **Topkapı Surları (TR owner check; the land walls, narrative 121–130; renamed from "Topkapı & the Theodosian Walls" by D-060) are south-west of the northbound route.** The route moves the first Kuzgun ambush to the Mahmutbey depots (hood 25). The walls can stay as a Ch2 memory or a Ch3 reference. Owner decision.
+2. **The Fener–Eyüp crossing (131–140; renamed from "Golden Horn (Haliç) crossing" by D-060, so Balat is not used twice)** is placed at the Horn's northern head (hood 27–28). It is the only way north-east without a long detour. Owner, 2026-11-13: hoods 27–28 stay as they are, and Fener–Eyüp is only the crossing label. Still confirm the crossing on a map.
 3. **Kağıthane** comes after the crossing, as in the canon.
 
 ### 3.4 Chapter 2 risks
@@ -388,8 +393,8 @@ Chapter 2 is **Levels 101–200, twenty hoods, five levels each**, the same temp
 | 7 | Kapalıçarşı (`kapalicarsi`) | H07 | L31–35 | 5.6 | none (indoor) | atm, shutter |
 | 8 | Beyazıt (`beyazit`) | H08 | L36–40 | 6.3 | tram, dolmuş | atm, traffic, tram |
 | 9 | Kumkapı (`kumkapi`) | H09 | L41–45 | 7.0 | boat | atm, cell |
-| 10 | Laleli (`laleli`) | H10 | L46–50 | 7.8 | tram, dolmuş | atm, traffic, car, tram |
-| 11 | Aksaray (`aksaray`) | H11 | L51–55 | 8.6 | tram, dolmuş, taxi | atm, traffic, car, tram |
+| 10 | Topkapı Sarayı (`saray`) | H10 | L46–50 | 7.8 | tram, dolmuş (carried over; owner check) | atm, traffic, car, tram (carried over) |
+| 11 | Haliç–Balat (`halic`) | H11 | L51–55 | 8.6 | tram, dolmuş, taxi (carried over; owner check) | atm, traffic, car, tram (carried over) |
 | 12 | Yenikapı (`yenikapi`) | H12 | L56–60 | 9.5 | marmaray, ferry | cell, shutter, atm |
 | 13 | Samatya (`samatya`) | H13 | L61–65 | 10.3 | boat, dolmuş | traffic, cell |
 | 14 | Yedikule (`yedikule`) | H14 | L66–70 | 11.1 | dolmuş | atm, shutter, cell |
@@ -401,8 +406,9 @@ Chapter 2 is **Levels 101–200, twenty hoods, five levels each**, the same temp
 | 20 | Ataköy (`atakoy`) | H20 | L96–100 | 17.0 | dolmuş, taxi, car | atm, car, shutter, traffic |
 
 Route check (approximate coordinates): the walk is İstiklal → Karaköy → the bridge → Eminönü → Sirkeci → Kapalıçarşı →
-Beyazıt → Kumkapı → Laleli → Aksaray → Yenikapı → Samatya → Yedikule → Kazlıçeşme → Zeytinburnu → Bakırköy → the
-sea → Ataköy. Kumkapı now follows Beyazıt (it was after Aksaray). Kazlıçeşme comes before Zeytinburnu.
+Beyazıt → Kumkapı → Topkapı Sarayı → Haliç–Balat → Yenikapı → Samatya → Yedikule → Kazlıçeşme → Zeytinburnu → Bakırköy → the
+sea → Ataköy. Kumkapı now follows Beyazıt (it used to sit after Aksaray, which is no longer on the walk). Kazlıçeşme comes before Zeytinburnu.
+D-060 (approved 2026-11-12): the palace and Balat take the same slots. The walk shows the detour as one line ("Arda takes the long way, the bridges are blocked"), not as a route change.
 
 ### 5.2 Fact table (per hood)
 
@@ -420,8 +426,8 @@ A vehicle is listed only when the hood has it in real life. Taxis are generic ye
 | Kapalıçarşı | Covered bazaar with gates that shut at night (high). Carpet and jewellery trades (high). | None (indoor). Shutters are the objective. | Shop names (no brands). |
 | Beyazıt | Booksellers' street (high). Plane trees on the square (high). T1 stop, Beyazıt–Ayasofya (check). Pigeons (high). | Tram and dolmuş. Book crates. | Book titles. |
 | Kumkapı | Fish market and fishing boats in the harbour (high). Meyhane street and fasıl music (high). | Boat. The fishing boat waits at the quay. | Fish-ice cart. |
-| Laleli | Textile and wholesale trade (high). Mannequins in windows (high). T1 stop, Laleli–Üniversite (check). | Tram and dolmuş. Wholesale boxes. | Mannequin names. |
-| Aksaray | Junction with a flyover and taxi rank (high). Dolmuş stops (high). T1 stop (high). | Tram, dolmuş and taxi. Junction lights are the terminals. | Minibus numbers. |
+| Topkapı Sarayı | Topkapı Palace was the Ottoman sultans' residence for about four centuries, and is now a museum (confirm). | None shown in D-060. Queue barriers and audio-guide carts. | Tour guide and tour group. Ticket and sign names. |
+| Haliç–Balat | Balat is a historic Golden Horn neighbourhood known for colourful houses and antique shops (confirm). The Horn water (high). | None shown in D-060. Handcarts and fishing crates. | Antique and café names. Fatma Nine's garage. |
 | Yenikapı | Marmaray, T1 and metro interchange (high). Byzantine harbour excavation with timber hulls (high). Ferry terminal (check). | Train and ferry. Excavation trench, blackout event. The T1 tram also stops here (check; not in the data). | Excavation signs. |
 | Samatya | No tram (high). Fishing boats on the shore (check). Wooden houses and café grills (check). | Boat and dolmuş. The boat wait is at the shore. | Cafés. |
 | Yedikule | Byzantine walls and the Yedikule fortress (high). Market gardens (bostan) (check). | Dolmuş. The keys are fictional. | Garden names. |
@@ -449,8 +455,8 @@ marina; a minibus wait at a dolmuş stop. No kind repeats in a row inside a hood
 | 7 | Kapalıçarşı | collect.crate | escort | hack.gate | reach | The Carpet Golem |
 | 8 | Beyazıt | survive.tram | collect.crate | defend.booster | hack.street | The Pigeon Man |
 | 9 | Kumkapı | collect.crate | escort | survive.boat | reach | The Fish Porter |
-| 10 | Laleli | survive.dolmus | collect.crate | defend.booster | reach | The Wholesaler |
-| 11 | Aksaray | survive.tram | hack.street | escort | defend.booster | The Dolmuş Driver |
+| 10 | Topkapı Sarayı | survive.dolmus | collect.crate | defend.booster | reach | The Docent |
+| 11 | Haliç–Balat | survive.tram | hack.street | escort | defend.booster | The Antiquarian |
 | 12 | Yenikapı | survive.marmaray | hack.signal | collect.lamp | escort | The Evening Crowd |
 | 13 | Samatya | survive.boat | escort | defend.booster | collect.charcoal | The Grill Man |
 | 14 | Yedikule | reach | hack.gate | collect.key | escort | The Key Keeper |
@@ -461,6 +467,8 @@ marina; a minibus wait at a dolmuş stop. No kind repeats in a row inside a hood
 | 19 | Ataköy Marina | survive.boat | collect.crate | hack.signal | escort | The Yacht Owner |
 | 20 | Ataköy | reach.home | escort | hack.gate | collect.key | Sayın Abim |
 
+**Owner check (D-060, rows 10 and 11):** the objectives, vehicles and terminal kinds are the Laleli and Aksaray values, carried over by the mechanical id rename. The rule above says a dolmuş wait needs a dolmuş stop, and a tram wait needs a tram. The proposal shows neither at Topkapı Sarayı or Haliç–Balat, so `survive.dolmus` (row 10) and `survive.tram` (row 11) need either a vehicle in the hood or a new objective. The `hack` terminals for both hoods need the same check.
+
 Variant values (config-objectives.js): survive tram 75 s, ferry 90 s, marmaray 60 s, dolmuş 45 s, boat 90 s.
 collect: crate 5, cut 4 (fishing lines or tram wires), lamp 4, key 3, charcoal 4. defend: booster 60 hp and 20 s upload,
 cart 45 hp and 16 s, bell 60 hp and 8 s. hack: street (atm, traffic), signal (cell), gate (shutter).
@@ -469,7 +477,8 @@ cart 45 hp and 16 s, bell 60 hp and 8 s. hack: street (atm, traffic), signal (ce
 
 Weather per sub-location, stage 1 to stage 5. `*` = indoor (no weather shows). Time of day follows the hood position in
 the walk (TINT in `istanbul-themes.js`): evening at Taksim, dusk by Karaköy, night from Kapalıçarşı to Samatya, a
-pre-dawn at Samatya's shore road, sunrise there, morning from Yedikule, and dawn light at Ataköy.
+pre-dawn at Samatya's shore road, sunrise there, morning from Yedikule, and dawn light at Ataköy. D-060 (approved
+2026-11-12) adds late afternoon into dusk at Topkapı Sarayı (position 10) and blue hour into night at Haliç–Balat (position 11).
 
 | Pos | Hood | S1 | S2 | S3 | S4 | S5 | Time |
 |---|---|---|---|---|---|---|---|
@@ -482,8 +491,8 @@ pre-dawn at Samatya's shore road, sunrise there, morning from Yedikule, and dawn
 | 7 | Kapalıçarşı | clear* | fire* | rain* | fog* | rain* | night (indoor) |
 | 8 | Beyazıt | fog | rain | clear | fire | clear | night |
 | 9 | Kumkapı | rain | fire | fog | clear | rain | night |
-| 10 | Laleli | fog | clear | rain | fire | clear | night |
-| 11 | Aksaray | rain | fog | fire | clear | fog | night |
+| 10 | Topkapı Sarayı | clear | fog | tbd | rain | clear | late afternoon into dusk |
+| 11 | Haliç–Balat | clear | fog | fire | clear | rain | blue hour into night |
 | 12 | Yenikapı | clear | rain | clear | fog | rain | night |
 | 13 | Samatya | fog | clear | rain | fire | dawn | night, pre-dawn, sunrise at S5 |
 | 14 | Yedikule | clear | fog | dawn | rain | clear | sunrise, then morning |
@@ -496,12 +505,14 @@ pre-dawn at Samatya's shore road, sunrise there, morning from Yedikule, and dawn
 
 Rules the grid follows (check again after any change):
 1. A stage never has the same weather as the same stage of the next hood. A hood's stage 5 never matches the next hood's stage 1.
-2. Dusk appears only before position 3.5 (evening), and dawn only from position 12.5 (sunrise and after).
+2. Dusk appears only before position 3.5 (evening), and dawn only from position 12.5 (sunrise and after). D-060 (approved) is an exception: dusk at position 10 and blue hour at position 11.
 3. Fire (the wash and the embers) appears at night and in the cooking or welding scenes, not as a daytime effect.
 4. Indoor sub-locations drop the weather; the key is still kept distinct for the rule above.
 
 Time-of-day tints changed in v0.8. The old tint put the sunrise at Ataköy Marina (position 18). v0.8 puts it at Samatya's
-stage 5 (position 12.9), so the morning runs from Yedikule to Ataköy, and the blue hour is gone from the walk. The narrative "Sunrise over the sea" (narrative.md, arc G) sits at Samatya's stage 5.
+stage 5 (position 12.9), so the morning runs from Yedikule to Ataköy, and the blue hour is gone from the walk. D-060 brings the blue hour back at Haliç–Balat (position 11). The narrative "Sunrise over the sea" (narrative.md, arc G) sits at Samatya's stage 5.
+
+**Owner check (D-060):** rule 1 fails between positions 10 and 11. Both stage 1s are clear, and Topkapı Sarayı's stage 5 is clear before Haliç–Balat's stage 1. The proposal gives these weathers. Topkapı Sarayı's stage 3 weather is not set in the proposal (shown as tbd). Pick one value for each before the grid is checked.
 
 ### 5.5 Signature mechanic per hood
 
@@ -519,11 +530,11 @@ the idea is not built. **Proposed** = not built.
 | 7 | Kapalıçarşı | Shutters close behind Arda | Wired | `hack.gate`, `barricade` event |
 | 8 | Beyazıt | Book crates, and the pigeon flock | Partly (flock walk proposed) | `collect.crate`, pigeon props |
 | 9 | Kumkapı | Fish crates on the quay, then the fishing boat | Wired | `collect.crate`, `survive.boat` |
-| 10 | Laleli | Wholesale boxes, and the mannequin wake (W48) | Partly (wake proposed) | `collect.crate`, mannequin prop |
-| 11 | Aksaray | The junction lights | Wired | `hack.street` |
+| 10 | Topkapı Sarayı | Queue barriers that funnel the lanes, and the Docent's rally call | Proposed (D-060) | solid stanchions, `tourGuide` (new tuning of kasapBoss) |
+| 11 | Haliç–Balat | Antique stands that block the lanes, and the brazier fire in stage 3 | Proposed (D-060) | solid antique stands, `antiquarian` (new tuning of kasapBoss) |
 | 12 | Yenikapı | Excavation trench in the dark, and the power cut | Wired | `blackout` event, `collect.lamp`, dig landmarks |
 | 13 | Samatya | Sunrise over the sea at stage 5 | Wired (light, weather, boat wait); blankets that stop zombies proposed | weather arc, `survive.boat` |
-| 14 | Yedikule | Three garden keys | Wired | `collect.key` |
+| 14 | Yedikule | Three garden keys; the Zindanlar dungeon stage (D-060) | Wired (keys); Zindanlar proposed | `collect.key`, stage 2 dungeon art |
 | 15 | Kazlıçeşme | Sprinkled lawns and wet ground for the live cable | Partly (wet-ground rule proposed) | sprinkler landmark, cable hazard |
 | 16 | Zeytinburnu | Gas leak at the dye works | Wired (gas); drum chain explosions (O10) proposed | `hazard` gas |
 | 17 | Bakırköy Çarşı | School bell: the booster on the bell | Partly (the ring that repels proposed) | `defend.bell` |
@@ -539,6 +550,6 @@ later (proposed).
 
 - **9.9** Arc F (Kumkapı and Yenikapı) is no longer contiguous.
 - **9.10** Story keys (`H##i#`, barks, HOOD_LOOK, PAGE_MID) follow the walk position. The story lane must re-key them.
-- **9.11** The campfire rest moves from L49 to L54 (Aksaray stage 4).
+- **9.11** The campfire rest moves from L49 to L54 (Haliç–Balat stage 4, Fatma Nine's Garage, D-060). The story call is the owner's.
 - **9.12** Marmaray at Zeytinburnu and Bakırköy: the data lists a train at Bakırköy, not at Zeytinburnu. Confirm the stations.
 - **9.13** Ataköy Marina stays before home for the story.

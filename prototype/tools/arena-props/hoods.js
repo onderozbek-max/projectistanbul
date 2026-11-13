@@ -45,16 +45,21 @@ module.exports = {
     one('crates', G.crates({ kind: 'fish', crate: '#7A5530' })),
     one('tables', S.tables({ shape: 'round', cloth: 'solid', a: CREAM, items: 'plates', chair: '#6B3E26' })),
     one('bollard', S.bollard({ kind: 'mooring', body: IRON, cap: '#C9A227' }))),
-  laleli: kit(
-    one('crates', G.crates({ kind: 'cartons', crate: '#8B6B4A' })),
-    one('cart', G.cart({ kind: 'hand', body: '#8B6B4A', trim: '#C9A227', a: '#C9A66B', b: '#8B6B4A' })),
-    one('lx_truck', V.truck({ box: '#D9CBB0', stripe: '#8B6B4A', cab: '#B5651D' })),
-    one('bin', S.bin({ top: '#4A4F55', side: '#5A6068', band: '#8B6B4A' }))),
-  aksaray: kit(
-    one('dolmus', V.vehicle({ kind: 'dolmus', body: '#E8E1CF', dark: '#B8B2A0', roof: '#F4EEDC', stripe: '#E5C02A' })),
-    one('taxi', V.vehicle({ kind: 'taxi', body: '#E5C02A', dark: '#B8921C', roof: '#F2D454', stripe: IRON, sign: CREAM })),
-    one('barrier', S.barrier({ a: '#E5C02A', b: IRON, rail: '#C9C4B8' })),
-    one('bollard', S.bollard({ kind: 'post', body: '#C9C4B8', cap: '#E5C02A' }))),
+  // D-060 Topkapı Sarayı (id saray): queue stanchions, ticket kiosk, audio-guide cart, plane tree, stone bench, souvenir stand.
+  saray: kit(
+    one('barrier', S.stanchion({ post: IRON, cap: '#C9A227', rope: '#B5453A' })),
+    one('kiosk', G.kiosk({ body: '#B5651D', roof: '#E9C88B', a: '#B5453A', b: CREAM, hatch: '#F2C46D', label: sign('bilet', 'Bilet Gişesi', '#14151F') })),
+    one('cart', G.cart({ kind: 'audio', body: IRON, trim: '#B5453A', a: '#B5453A', b: CREAM, label: sign('rehber', 'Rehber Hasan', CREAM) })),
+    one('tree', S.tree({ kind: 'plane', leaf: ['#5E7F3A', '#7A9A4A'], trunk: '#6B5238', seed: 5 })),
+    one('bench', S.bench({ top: '#CFC6B4', back: '#9C9080', side: '#7A7060', leg: '#14151F' })),
+    one('lx_stall', G.stall({ body: '#B5651D', top: CREAM, a: '#B5453A', b: CREAM, goods: 'books', trim: '#B5651D', label: sign('hediyelik', 'Saray Hediyelik', CREAM) }))),
+  // D-060 Haliç–Balat (id halic): antique stands, café tables and chairs, flower pots, handcarts, fishing crates on the quay.
+  halic: kit(
+    one('antique', G.antique({ body: '#4F8FAE', glass: '#B9D3DE', a: '#C8553D', b: '#E3B04B', c: CREAM, label: sign('antika', 'Antika Reşat', CREAM) })),
+    one('tables', S.tables({ shape: 'round', cloth: 'check', a: '#C8553D', b: CREAM, chair: '#4F8FAE' })),
+    one('planter', S.planter({ shape: 'pot', box: '#C8553D', rim: '#8A4A1C', leaf: GREENS, flower: ['#E3B04B', '#D98BA0'], seed: 23 })),
+    one('cart', G.cart({ kind: 'hand', body: '#4F8FAE', trim: '#E3B04B', a: '#E3B04B', b: '#8A5A30' })),
+    one('crates', G.crates({ kind: 'fish', crate: '#4F8FAE', crate2: '#3F7A9A' }))),
   yenikapi: kit(
     one('barrier', S.barrier({ a: '#E5A93B', b: '#6B5A44', rail: '#8A8F98' })),
     one('bench', S.bench({ top: '#7A5230', back: '#5A3A20', side: '#3E2A18', leg: '#14151F' })),

@@ -1,7 +1,9 @@
 # PROPOSAL D-060: Topkapı Palace and Haliç–Balat join the walk (design only, no code yet)
 
-Status: **proposed**. Nothing in `prototype/` or the other docs has changed. On approval I implement mechanically (section 6).
-Owner direction (2026-11-12): swap **Topkapı Palace** in for Laleli (L46–50) and **Haliç–Balat** in for Aksaray (L51–55); keep 20 hoods and 100 levels; restyle **Yedikule** (add Zindanlar) and **Zeytinburnu** (add a shore stage). Every Turkish string below is a **TR owner check**; I write nothing in Turkish voice (D-051).
+Status: **accepted 2026-11-13**. The owner's follow-up answers are applied in place (see the status update below). Section 6 is the implementation plan.
+Owner direction (2026-11-12): swap **Topkapı Palace** in for Laleli (L46–50) and **Haliç–Balat** in for Aksaray (L51–55); keep 20 hoods and 100 levels; restyle **Yedikule** (add Zindanlar) and **Zeytinburnu** (add a shore stage). Every Turkish string below is a **TR owner check**; I write nothing in Turkish voice (D-051), except the one-off D-060 drafts noted in the status update.
+Status update: **approved by owner 2026-11-12 (recommendations accepted), implementation in progress.**
+Follow-up answers, owner 2026-11-13, applied in place: Topkapı stage 1 is **Saray Meydanı** (EN Palace Square) and stage 5 is **Saray Kapısı** (EN Palace Gate); Yedikule keeps **Kule Kapısı** for stage 5. The Docent's phase-3 flag charge is removed; phase 3 has a second rally call instead. Fatma Nine's Garage stays a combat stage with the campfire story page, as L54 worked before; a true no-combat stage is deferred. W48 (mannequin wake) is re-homed to Bakırköy Çarşı (H17) as a proposed idea; W45 (dolmuş horn) stays parked until Chapter 2. Hoods 27–28 stay as they are; Fener–Eyüp is only the crossing label. The Turkish for H10, H11 and the L54 campfire is drafted for owner review under a one-off exception to D-051; the owner still owns the final Turkish.
 
 ## 1. Decisions I need from you
 
@@ -13,7 +15,7 @@ Owner direction (2026-11-12): swap **Topkapı Palace** in for Laleli (L46–50) 
 | 4 | **Stage names** (sections 2 to 5). | Accept or rename. |
 | 5 | **Dawn-to-dusk spread.** Yedikule and Samatya are dawn, so the palace goes late afternoon to dusk and Balat goes blue hour into night. | Accept. |
 
-## 2. Hood H10 · Topkapı Sarayı · Fatih · km 7.8 · L46–50 · Boss: The Tour Guide
+## 2. Hood H10 · Topkapı Sarayı · Fatih · km 7.8 · L46–50 · Boss: The Docent
 
 - **Reads as Istanbul because:** the outer palace gate square, plane trees, the ticket queue, and the old palace wall running along the Gülhane side. Palace is a museum, so the locals are visitors and staff.
 - **Feel:** a grand stone square in golden late light. Orderly queue barriers gone wrong. Calm architecture, chaotic crowd.
@@ -23,9 +25,9 @@ Owner direction (2026-11-12): swap **Topkapı Palace** in for Laleli (L46–50) 
 - **Light:** late afternoon to dusk. Warm low sun from the gate side (left), `simit_gold`. Cool shadow under the planes, `bosphorus_blue`.
 - **Zombie locals:** tourist with a camera (crawler, existing), tour group straggler with a lanyard (walker), museum attendant in a waistcoat (walker, new skin), vendor (runner, existing skin).
 - **Sky shapes:** palace-kitchen domes, gate tower, plane tree. **Overhead:** bunting from the souvenir stands, one rig of tour-group flags.
-- **Stages:** 1 Palace Gate Square, late afternoon, clear · 2 Gülhane Path, golden hour, fog off the park · 3 Ticket Queue, dusk, barriers funnel the lanes · 4 Outer Courtyard, dusk, rain · 5 Gate Tower, dusk, clear, boss.
-  - TR names, **owner check**: Saray Kapısı Meydanı · Gülhane Yolu · Bilet Kuyruğu · Dış Avlu · Kule Kapısı.
-- **Boss, The Tour Guide:** a zombie guide with an umbrella and a flag. Umbrella sweep (wide arc, telegraphed), **rally call** (a ring telegraph, then a small tour group of walkers files in), flag charge in phase 3. Reuses the kasapBoss shape: combo, throw (a thrown audio guide), summon. New tuning only, no new engine behaviour.
+- **Stages:** 1 Palace Square, late afternoon, clear · 2 Gülhane Path, golden hour, fog off the park · 3 Ticket Queue, dusk, barriers funnel the lanes · 4 Outer Courtyard, dusk, rain · 5 Palace Gate, dusk, clear, boss.
+  - TR names, **owner check**: Saray Meydanı · Gülhane Yolu · Bilet Kuyruğu · Dış Avlu · Saray Kapısı (stage 1 and stage 5 set 2026-11-13; Kule Kapısı stays with Yedikule).
+- **Boss, The Docent:** a zombie guide with an umbrella and a flag. Umbrella sweep (wide arc, telegraphed), **rally call** (a ring telegraph, then a small tour group of walkers files in), and a second rally call in phase 3. No flag charge (owner, 2026-11-13). Reuses the kasapBoss shape: combo, throw (a thrown audio guide), summon. New tuning only, no new engine behaviour.
 - **Signs (owner check):** Saray Hediyelik, Bilet Gişesi, Rehber Hasan, Çay Ocağı.
 - **Arda hook (proposed, owner writes TR):** to zombies: "Please stay in line. No? Okay, fair."
 - **Contrast:** Kumkapı is wet quay and lanterns; the palace is dry open stone in daylight. Haliç–Balat next is cramped colour, so keep the palace square wide and quiet-coloured.
@@ -39,9 +41,9 @@ Owner direction (2026-11-12): swap **Topkapı Palace** in for Laleli (L46–50) 
 - **Light:** blue hour into night. Warm window light and café lamps (left), `tea_amber`. Cool wet shadow, `bosphorus_blue`. Fire only in stage 3, under 3 flashes a second.
 - **Zombie locals:** antique dealer (walker), café owner (walker), fisherman (existing skin), grandmother with a shopping bag (runner, existing skin), child on a bike is **not** used.
 - **Sky shapes:** hilltop school block, a minaret and a dome far across the water, a crane on the far shore. **Overhead:** laundry lines (existing rig, three arrangements), café festoon lights.
-- **Stages:** 1 Haliç Shore, blue hour, clear · 2 Colour Houses, dusk, fog off the water · 3 Antique Lane, night, fire from a toppled brazier, stands block the lanes · 4 **Fatma Nine's Garage**, night, clear, the campfire rest (no combat) · 5 Balat Pier, night, rain, boss.
+- **Stages:** 1 Haliç Shore, blue hour, clear · 2 Colour Houses, dusk, fog off the water · 3 Antique Lane, night, fire from a toppled brazier, stands block the lanes · 4 **Fatma Nine's Garage**, night, clear, combat stays on, with the campfire story page (as L54 worked before) · 5 Balat Pier, night, rain, boss.
   - TR names, **owner check**: Haliç Kıyısı · Renkli Evler · Antikacılar Sokağı · Fatma Nine'nin Garajı · Balat İskelesi.
-- **Campfire, stage 4:** this gives Kaan his missing Balat backstory (`characters.md:65-67`): his grandmother's garage with the half-painted *Fatma Nine Balık Ekmek* sign. The existing L54 campfire page (`CMPa`, mentions a closed bakery) needs a rewrite. **Your story call**, and the Turkish is yours.
+- **Campfire, stage 4:** this gives Kaan his missing Balat backstory (`characters.md:65-67`): his grandmother's garage with the half-painted *Fatma Nine Balık Ekmek* sign. The existing L54 campfire page (`CMPa`, mentions a closed bakery) needs a rewrite. **Your story call**, and the Turkish is yours. Combat stays on in stage 4 (owner, 2026-11-13); a true no-combat stage is deferred.
 - **Boss, The Antiquarian:** a dealer with a brass lamp on a chain. Lamp swing (chain arc), **thrown vase** (ring telegraph, shards), summon of "customers" in phase 2, and a frenzy of falling stock in phase 3. Reuses the kasapBoss shape, new tuning, no new engine behaviour.
 - **Signs (owner check):** Antika Reşat, Balat Kahvesi, Çiçekçi Hacer, Eskici Necmi.
 - **Arda hook (proposed, owner writes TR):** self-talk: "Everything here is old and expensive. I am neither."
@@ -52,7 +54,7 @@ Owner direction (2026-11-12): swap **Topkapı Palace** in for Laleli (L46–50) 
 - Today the docs show: 1 Wall-walk, 2 Gardens, 3 Three keys, 4 Tea garden, 5 Gatehouse. Code names differ (Surlar, Kule Kapısı, Bostan, Sur Yolu, Bostancı Sabahı). I align both.
 - **Change:** stage 2 becomes **Zindanlar (Dungeons)**: vaulted stone corridor, rusted gates, torches and drip, fog. Underground feel but no combat change. Generic cells; no real prisoner, state actor or execution imagery (guardrails).
 - **Art:** vault overhead rig (reuse the Kapalıçarşı vault, no kilims, torch glow), flagstone ground with wet patches (no openings in the floor, D-058), sky list unchanged.
-- **Proposed stage list:** 1 Yedikule Surları · 2 **Zindanlar** · 3 Anahtarlar (the three keys) · 4 Çay Bahçesi · 5 Kule Kapısı. **Owner check**, and the stage 2 fog stays.
+- **Proposed stage list:** 1 Yedikule Surları · 2 **Zindanlar** · 3 Anahtarlar (the three keys) · 4 Çay Bahçesi · 5 Kule Kapısı. **Owner check**: stage 5 keeps Kule Kapısı (owner, 2026-11-13). The stage 2 fog stays.
 
 ## 5. Zeytinburnu restyle (L76–80)
 
@@ -70,3 +72,7 @@ Owner direction (2026-11-12): swap **Topkapı Palace** in for Laleli (L46–50) 
 5. Docs: `journey.md`, `hoods-bible.md`, `hood-visual-briefs.md`, `narrative.md` (Ch2 rename), `wow-catalog.md`, `story-presentation.md`, `voice-*.md`, `content-catalog.md`, `audio-cue-sheet.md`.
 6. Run `check-ids`, `check-hood-keys`, `check-objective-strings`, `check-death-causes`, `test-meta`, `test-enemy-behaviors`; bot sim on the swapped levels; fix before I hand back.
 - **Cost estimate:** code and art about two working sessions; your Turkish voice for 2 hoods is the long pole.
+
+## Implementation note (2026-11-12)
+- Boss renamed **The Docent** (EN) / Müze Rehberi (TR placeholder, owner check): "The Tour Guide" is already the Galata boss.
+- Code, art and doc passes are in; TR voice for both hoods is placeholder (`[TR owner] <key>`), 28 keys plus CMPa.

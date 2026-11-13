@@ -200,8 +200,8 @@ Zombi **kelime kullanmaz**: ünsüz yığını, hırıltı ("Hıııırrr...", "
 | Halı Golem (Kapalıçarşı) | esnaf nezaketi, "Gel abi, bak" | pazarlıkçı klişesi |
 | Güvercinci (Beyazıt) | kuş gibi cıvıl, sevgi dolu | hayvana zarar |
 | Balık Hamalı (Kumkapı) | iri, az konuşur, işçi | alay |
-| Toptancı (Laleli) | hızlı satış, rakamlar | etnik ticaret klişesi |
-| Dolmuşçu (Aksaray) | bağıran, "Abi bir kişi daha!" | gerçek hat ya da şoför lakabı |
+| Müze Rehberi (The Docent; Topkapı Sarayı; TR owner check; D-060) | to be rewritten by owner (was: hızlı satış, rakamlar, Toptancı) | to be rewritten by owner (was: etnik ticaret klişesi) |
+| The Antiquarian (Haliç–Balat; TR name: owner, TR owner check; D-060) | to be rewritten by owner (was: bağıran, "Abi bir kişi daha!", Dolmuşçu) | to be rewritten by owner (was: gerçek hat ya da şoför lakabı) |
 | Akşam Kalabalığı (Yenikapı) | tek ses değil, koro; tekrar | tek kişi gibi konuşmak |
 | Mangal Baba (Samatya) | sıcak, ev sahibi, tehlikeli misafirperver | dinî ya da bölgesel imge |
 | Anahtarcı (Yedikule) | gizemli, kısa, "Bende." | efsane, din |

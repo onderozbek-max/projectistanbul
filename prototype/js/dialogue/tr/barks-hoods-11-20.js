@@ -2,29 +2,29 @@
 // Group: barks-hoods-11-20. beatId -> [{ t, j (joke), spk (only when it differs from the beat) }]. No logic.
 Object.assign(P.DLG.tr, {
   "BK.hd11.1": [
-    { t: "Dolmuşlar yolda kalmış. Hâlâ yolcu bekliyorlar, umutlular.", ok: 1 },
-    { t: "Durakta bekleyen var, otobüs yok. Kıyamet değil, normal gün.", ok: 1 },
-    { t: "Koniler her yerde. Yol çalışması kıyamete bile yetişmedi.", ok: 1 },
+    { t: "Haliç–Balat. Tepede boyalı evler.", ok: 1 },
+    { t: "Çamaşır ipleri asılı. Toplayan yok.", ok: 1 },
+    { t: "Haliç masmavi. Güzel. Yanlış zamanda.", j: 1, ok: 1 },
   ],
   "BK.hd11.2": [
-    { t: "Dolmuş kornası! Kusura bakma şoför abi, bu sefer yürüyorum.", j: 1, ok: 1 },
-    { t: "Meydan kalabalık. Herkes binmek istiyor, inen yok.", ok: 1 },
-    { t: "Aksaray. Bütün yollar buradan geçer, zombiler de.", ok: 1 },
+    { t: "Sis suyun üstünde. Duvarlarda renk.", ok: 1 },
+    { t: "Pembe, sarı, mavi. Biri zevkli olmuş.", j: 1, ok: 1 },
+    { t: "Kafe sandalyeleri merdivende dizili.", ok: 1 },
   ],
   "BK.hd11.3": [
-    { t: "Pide fırını yanıyor. Bu koku beni zombilerden önce öldürür.", j: 1, ok: 1 },
-    { t: "Dolmuşlar ağır ağır geçiyor. Kapılar açık, şoför yok.", ok: 1 },
-    { t: "Şerit değiştirmek imkânsız. Trafik kıyametten güçlü.", ok: 1 },
+    { t: "Antika her yerde. Alıcı yok.", ok: 1 },
+    { t: "Raflar sokağı kapatmış. Sıkış bakalım.", j: 1, ok: 1 },
+    { t: "Mangal devrilmiş, ateş yayılıyor.", ok: 1 },
   ],
   "BK.hd11.4": [
-    { t: "Kebap kokusu! Biri hâlâ ızgarada. Midem zombi gibi hırlıyor.", ok: 1 },
-    { t: "Fırının kapısı kapalı, ocak sıcak. Sabah ekmeği kaçmış.", ok: 1 },
-    { t: "Biraz duralım. Kimse saldırmıyor. Şüpheli.", ok: 1 },
+    { t: "Fatma Nine'nin garajı. Bu sefer sessiz.", ok: 1 },
+    { t: "Tabela yarım. Kaan bakmamaya çalışıyor.", ok: 1 },
+    { t: "Çamaşır damlıyor. Çay kokusu, nihayet.", ok: 1 },
   ],
   "BK.hd11.5": [
-    { t: "Dolmuşçu 'atla abi' diyor. Abi bu sefer atlamıyor.", j: 1, ok: 1 },
-    { t: "Korna! Sağa kaç! Dolmuşçu sinyal vermez, bilirim.", ok: 1 },
-    { t: "Kavşak kilit. Dolmuşçu bile çıkamıyor, ilk defa.", ok: 1 },
+    { t: "Balat iskelesi. Lamba hâlâ sallanıyor.", ok: 1 },
+    { t: "Yağmur iskelede. Ayaklar kayıyor.", ok: 1 },
+    { t: "Eşya yağıyor. İndirim değil bu.", j: 1, ok: 1 },
   ],
   "BK.hd12.1": [
     { t: "Yenikapı'nın altı zifiri karanlık. Fenerim zayıf, ben de.", ok: 1 },

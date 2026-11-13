@@ -138,6 +138,18 @@ P.Landmarks = (function () {
       R_(c, 0, 0, w, h, '#E9DCC4');
       var cols = ['#C0392B', '#1B4965', '#E9A23B', '#2E7D4F', '#7A4F8C'];
       for (var i = 0; i < 12; i++) E_(c, hs(i) * w, hs(i + 7) * h, 0.2 + hs(i + 3) * 0.5, 0.2 + hs(i + 5) * 0.5, cols[i % 5]);
+    },
+    // D-060: narrow painted row houses (Haliç–Balat). One house per colour across the billboard, shutters on each window.
+    painted: function (c, w, h) {
+      var cols = ['#C8553D', '#E3B04B', '#4F8FAE', '#D98BA0'], cw = w / cols.length;
+      for (var i = 0; i < cols.length; i++) {
+        var x0 = i * cw;
+        R_(c, x0, 0, cw, h, cols[i], INK, 0.03);
+        for (var y = 1.0; y + 1.4 < h; y += 2.6) {
+          R_(c, x0 + cw * 0.3, y, cw * 0.4, 1.2, '#2A3445', CREAM, 0.03);
+          R_(c, x0 + cw * 0.12, y, cw * 0.14, 1.2, '#B5651D'); R_(c, x0 + cw * 0.74, y, cw * 0.14, 1.2, '#B5651D');
+        }
+      }
     }
   };
   function facadeP(c, w, h, st) { (FAC[st] || FAC.stone)(c, w, h); }
@@ -188,6 +200,12 @@ P.Landmarks = (function () {
       R_(c, 0.1, h - 2.4, w - 0.2, 1.1, '#6B4A2E', INK, 0.03); R_(c, 0.6, 1.5, 0.05, 1.7, '#C9A46A');
       E_(c, 1.5, 3.4, 0.3, 0.35, '#8A5A34', INK, 0.03);
       c.beginPath(); c.moveTo(1.9, 2.2); c.lineTo(2.6, 2.2); c.lineTo(2.8, 3.4); c.lineTo(1.7, 3.4); c.closePath(); c.fillStyle = '#9E7A4A'; c.fill();
+    },
+    // D-060: souvenir stand (Topkapı Sarayı). Hung postcards and runners, plates on the counter.
+    souvenir: function (c, w, h) {
+      var cols = ['#B5453A', GOLD, '#1B4965', CREAM, '#2E7D4F'];
+      for (var i = 0; i < 5; i++) R_(c, 0.25 + i * 0.55, 1.4 + (i % 2) * 0.4, 0.42, 1.5, cols[i], INK, 0.02);
+      for (var k = 0; k < 3; k++) E_(c, 0.7 + k * 0.9, h - 1.9, 0.3, 0.22, '#E9DCC4', INK, 0.02);
     }
   };
   function stallP(c, w, h, st, t) {
@@ -424,7 +442,25 @@ P.Landmarks = (function () {
     if (sub.wx === 'rain' && !covered) rain(R, y0, y1, t);
     else if (sub.wx === 'fire') fires(R, y0, y1, t);
     else if (sub.wx === 'fog' && !covered) fog(R, y0, y1, t);
+    if (sub.dark) dim(R, y0, y1);      // D-060 Zindanlar: vaulted and unlit
+    if (sub.wet) sheen(R, y0, y1, t);  // D-060 Sahil Rıhtımı: wet paving
   };
+  // Dim wash over the corridor (the same band as the L1 washes).
+  function dim(R, y0, y1) {
+    var c = R.ctx, g = c.createLinearGradient(0, R.Y(y0), 0, R.Y(y1));
+    g.addColorStop(0, 'rgba(8,9,14,0.18)'); g.addColorStop(0.5, 'rgba(8,9,14,0.34)'); g.addColorStop(1, 'rgba(8,9,14,0.18)');
+    c.fillStyle = g; c.fillRect(R.X(-7), R.Y(y1), 14 * R.ppm, (y1 - y0) * R.ppm);
+  }
+  // Light streaks on wet paving: a few short pale strokes that drift with the walk.
+  function sheen(R, y0, y1, t) {
+    var c = R.ctx, span = y1 - y0;
+    c.save(); c.strokeStyle = 'rgba(214,226,236,0.16)'; c.lineWidth = 0.08; c.lineCap = 'round'; c.beginPath();
+    for (var i = 0; i < 9; i++) {
+      var x = -5 + 10 * hs(i * 2.3), y = y0 + ((hs(i * 5.1) * span + t * 0.6) % span);
+      c.moveTo(R.X(x), R.Y(y)); c.lineTo(R.X(x + 0.8), R.Y(y));
+    }
+    c.stroke(); c.restore();
+  }
   function rain(R, y0, y1, t) {
     var c = R.ctx, span = y1 - y0 + 1;
     c.save(); c.strokeStyle = 'rgba(200,220,255,0.35)'; c.lineWidth = 1; c.beginPath();

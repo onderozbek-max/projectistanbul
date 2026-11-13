@@ -131,9 +131,10 @@ function start(s, e, name) {
   } else if (name === 'stomp') {
     a.W = tele(B.stomp.windup);
     addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: B.stomp.r, T: a.W, then: 'stomp', dmg: P.Enemies.dmgOf(s, e, B.stomp.dmg), kb: 2.5 });
-  } else if (name === 'summon') {
-    a.W = tele(B.summon.windup);
-    addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: B.summon.r, T: a.W, then: 'summon', n: B.summon.n, kind2: 'walker', skin: e.skin, col: 'summon' });
+  } else if (name === 'summon' || name === 'rally') {  // rally calls: walkers file in; 'rally' is the Docent's phase 3 call (own def)
+    var CALL = name === 'rally' ? B.rally : B.summon;
+    a.W = tele(CALL.windup);
+    addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: CALL.r, T: a.W, then: 'summon', n: CALL.n, kind2: 'walker', skin: e.skin, col: 'summon' });
   } else if (name === 'pools') {
     a.W = tele(B.pools.windup);
     for (var i = 0; i < B.pools.n; i++) {
@@ -168,7 +169,7 @@ function start(s, e, name) {
     a.W = tele(B.throw.windup * a.wm);
     addTele(s, e, { kind: 'ring', x: h.x, y: h.y, r: B.throw.r, T: a.W, then: 'swing', dmg: P.Enemies.dmgOf(s, e, B.throw.dmg),
       kb: 0.6, cause: e.type, col: 'danger' });
-    P.Enemies3.launchBlade(s, e.x, e.y, h.x, h.y, a.W);
+    P.Enemies3.launchBlade(s, e.x, e.y, h.x, h.y, a.W, e.type);   // the boss type keys the flying object's sprite (view only)
     s.events.push({ type: 'bossWindup', id: e.id, x: e.x, y: e.y, boss: e.type });
   } else if (name === 'frenzy') {                      // kasapBoss: four small swings on the hero's area
     a.W = tele(B.frenzy.windup * a.wm);

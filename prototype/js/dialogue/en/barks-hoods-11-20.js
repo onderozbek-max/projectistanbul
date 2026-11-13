@@ -2,29 +2,29 @@
 // Group: barks-hoods-11-20. beatId -> [{ t, j (joke), spk (only when it differs from the beat) }]. No logic.
 Object.assign(P.DLG.en, {
   "BK.hd11.1": [
-    { t: "Aksaray. Minibuses everywhere and none of them moving.", ok: 1 },
-    { t: "Dolmuş headlights still on. Nobody's driving.", ok: 1 },
-    { t: "Bus shelter's still got a timetable on it. Bit optimistic.", j: 1, ok: 1 },
+    { t: "Haliç–Balat. Steep, and very colorful.", ok: 1 },
+    { t: "Laundry's out. Nobody's bringing it in.", ok: 1 },
+    { t: "Blue hour on the Horn. Wrong decade.", j: 1, ok: 1 },
   ],
   "BK.hd11.2": [
-    { t: "The plaza's quiet, bar one horn, somewhere.", ok: 1 },
-    { t: "A horn, then another. Nobody's getting a seat.", ok: 1 },
-    { t: "Cones, a plaza, and a driver waving me over. No.", j: 1, ok: 1 },
+    { t: "Fog on the Horn. Painted walls, no one.", ok: 1 },
+    { t: "Pink next to ochre. Nobody's arguing.", j: 1, ok: 1 },
+    { t: "Café chairs stacked, waiting for guests.", ok: 1 },
   ],
   "BK.hd11.3": [
-    { t: "Minibuses jammed in every lane. Nothing's getting through.", ok: 1 },
-    { t: "Lanes full of minibuses. Walking is faster, honestly.", j: 1, ok: 1 },
-    { t: "Engines off, doors open. Something's in each one.", ok: 1 },
+    { t: "Old stuff on every step. Zero bidders.", ok: 1 },
+    { t: "Shelves on the lane. Climb or squeeze.", j: 1, ok: 1 },
+    { t: "Brazier tipped. Fire's having a moment.", ok: 1 },
   ],
   "BK.hd11.4": [
-    { t: "Bakery's closed, but the bread smell's still here.", ok: 1 },
-    { t: "A closed bakery. Warm enough to sit near for a minute.", ok: 1 },
-    { t: "The pide oven's still warm. Five minutes, then go.", ok: 1 },
+    { t: "Fatma Nine's garage. Finally, a break.", ok: 1 },
+    { t: "Kaan keeps not looking at the sign.", ok: 1 },
+    { t: "Wet sheets, and somebody's brewing tea.", ok: 1 },
   ],
   "BK.hd11.5": [
-    { t: "Junction. The driver wants a fare. Says he'll wait.", ok: 1 },
-    { t: "The horn's a signal. Something's coming through.", ok: 1 },
-    { t: "The driver's honking. Right, we're coming, man.", j: 1, ok: 1 },
+    { t: "Chain lamp swinging. Ominous, classy.", ok: 1 },
+    { t: "Rain on the boards. Everyone's slipping.", ok: 1 },
+    { t: "Stock's falling. This isn't a sale.", j: 1, ok: 1 },
   ],
   "BK.hd12.1": [
     { t: "Yenikapı. Underground, gray light, gray phone.", ok: 1 },

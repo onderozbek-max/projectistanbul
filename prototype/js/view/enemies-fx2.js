@@ -1,5 +1,5 @@
 // v0.7 enemy world FX (lane C, view only): the 6 s corpse list (death poses, art-enemies5.js), spawn-entrance props
-// (window, A5 door, balcony slab, tram door), rolling wheelie bins and crates, the flying cleaver,
+// (window, A5 door, balcony slab, tram door), rolling wheelie bins and crates, the boss thrown objects (cleaver, audio guide, vase),
 // electric sparks and the death puffs. Hooks: P.EnemiesFx2.drawUnder (ground, under enemies) and drawOver (air).
 // Sim state read: s.e3 (bins, blades), s.enemies (entrance), s.dir.telegraphs, s.t (sim time).
 P.EnemiesFx2 = (function () {
@@ -135,11 +135,13 @@ P.EnemiesFx2 = (function () {
     c.restore();
   }
 
-  // Flying cleaver (kasapBoss throw): spins from the boss to the spot and lifts on an arc.
+  // Thrown object (boss throw): flies from the boss to the spot and lifts on an arc. The boss kind (b.kind, set by the sim)
+  // picks the sprite: the audio guide and the vase (art-bosses.js); the kasapBoss cleaver is drawn here. Reduce motion sways.
   function drawBlade(R, b) {
     var c = R.ctx, u = R.ppm, f = clamp01(b.t / b.dur), x = b.x0 + (b.x1 - b.x0) * f, y = b.y0 + (b.y1 - b.y0) * f;
     var lift = Math.sin(Math.PI * f) * 1.6, X = R.X(x), Y = R.Y(y) - lift * u;
-    c.save(); c.translate(X, Y); c.rotate(b.t * 13);
+    if (P.ArtBosses && P.ArtBosses.drawThrown(c, u, X, Y, b)) return;
+    c.save(); c.translate(X, Y); c.rotate(P.Settings && P.Settings.reduceMotion ? 0.4 * Math.sin(b.t * 5) : b.t * 13);
     c.fillStyle = METAL; c.strokeStyle = '#14151F'; c.lineWidth = 2;
     c.fillRect(-0.05 * u, -0.22 * u, 0.36 * u, 0.36 * u); c.strokeRect(-0.05 * u, -0.22 * u, 0.36 * u, 0.36 * u);
     c.fillStyle = '#6B4A2E'; c.fillRect(-0.2 * u, -0.05 * u, 0.2 * u, 0.1 * u); c.strokeRect(-0.2 * u, -0.05 * u, 0.2 * u, 0.1 * u);

@@ -1,14 +1,14 @@
 // Turkish voice lines (class C). Native script, written from the beat in beats-*.js; never translated from English.
 // Group: story-hoods-11-20. beatId -> [{ t, j (joke), spk (only when it differs from the beat) }]. No logic.
 Object.assign(P.DLG.tr, {
-  "H11b": [{ t: "Kapı kapanmadan kalk abi! Arkaya doğru ilerleyelim! Bozuk yok mu?", ok: 1 }],
-  "H11i1a": [{ t: "Aksaray. Dolmuşlar yolda kalmış, farlar hâlâ yanıyor. Trafik hiç bu kadar akmamıştı.", ok: 1 }],
-  "H11i2a": [{ t: "Bir korna sesi... Dolmuş geliyor. Bu sefer binmeyeceğim, yemin ederim.", ok: 1 }],
-  "H11i3a": [{ t: "Dolmuşun kapısı açık, içi karanlık. Şöför \"atla koçum, yer var\" diye beni çağırıyor.", ok: 1 }],
-  "H11p1": [{ t: "Dolmuşların farları hâlâ yanıyor. Sıra sıra dizilmişler, ışıklı bir konvoy gibi.", ok: 1 }],
-  "H11p2": [{ t: "Açık kapılı dolmuşa binme. İçinde kim var bilmiyoruz. Ücreti de belli değil.", ok: 1 }],
-  "H11p3": [{ t: "Pide fırınının önünden geçiyoruz. Sıcak ekmek kokusu. Bu bir tuzak, biliyorum.", ok: 1 }],
-  "H11p4": [{ t: "Ekmek kokusu... Usta'nın ocağı gibi. Bir tane de bana. İki tane. Üç.", ok: 1 }],
+  "H11b": [{ t: "Vazo üç yüz yıllıktı. Artık üç yüz parça.", ok: 1 }],
+  "H11i1a": [{ t: "Haliç–Balat. Mavi saat. Boyalı evler, her balkonda bir çamaşır ipi.", ok: 1 }],
+  "H11i2a": [{ t: "Antikacılar. Camda eski telefonlar. Benimki de sinyal arıyor, hâlâ.", j: 1, ok: 1 }],
+  "H11i3a": [{ t: "Garajın kapısı aralık, içeride ışık var. Tabelanın yarısı boyalı.", ok: 1 }],
+  "H11p1": [{ t: "Haliç sakin. Selfie çekecek kimse kalmamış. Ah ergenler.", ok: 1 }],
+  "H11p2": [{ t: "Pembe ev lokum gibi duruyor. Eskimiş ve tadı kaçmış bir lokum.", ok: 1 }],
+  "H11p3": [{ t: "Burada her şey ya eski ya pahalı. Ben ikisi de değilim, sadece terliyim.", j: 1, ok: 1 }],
+  "H11p4": [{ t: "Abi, tabela yarım. Ninem 'bitir şunu' derdi. Bir dahaki sefere, söz.", ok: 1 }],
   "H12b": [{ t: "Yetişin! Tren gidiyor! İtmeyin! İtin! Kapı kapanıyor!", ok: 1 }],
   "H12i1a": [{ t: "Yenikapı. Metro tünelleri. Işık sadece el fenerinden. Pil de yarı yarıya.", ok: 1 }],
   "H12i2a": [{ t: "Son mesaj, dünden: 'Eve gel. Seni bekliyoruz.' Görüldü. Cevap yazılamadı.", ok: 1 }],

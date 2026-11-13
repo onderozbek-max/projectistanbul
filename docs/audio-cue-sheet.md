@@ -114,7 +114,7 @@ Limit format: `P<prio> · max <concurrent> · gap <ms> · bus · reverb`.
 
 | Group | Themes (journey.js) | Layers |
 |---|---|---|
-| `street` | istiklal, galata, eminonu, sirkeci, beyazit, laleli, aksaray, yedikule, bakirkoy, zeytinburnu | Pink murmur low-passed at 1.3 kHz with 3 and 7 cycle swells, 260 Hz traffic bed, two gulls and two dog barks |
+| `street` | istiklal, galata, eminonu, sirkeci, beyazit, saray, halic, yedikule, bakirkoy, zeytinburnu | Pink murmur low-passed at 1.3 kHz with 3 and 7 cycle swells, 260 Hz traffic bed, two gulls and two dog barks |
 | `waterfront` | karakoy, kumkapi, yenikapi, samatya, kazlicesme, sahil, marina | Surf: pink noise low-passed at 900 Hz with two wave swells, ripple hiss at 4.5 kHz, three gulls |
 | `bazaar` | bazaar | Murmur band-passed at 900 Hz with 4 and 9 cycle swells, four distant metal clinks, 230 ms feedback echo |
 | `wind` | bridge | Wind low-passed at 420 Hz with gusts, wire whistle (900 Hz ±250 Hz band-noise), 92 Hz cable hum, one distant gull |

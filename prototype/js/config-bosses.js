@@ -35,10 +35,46 @@
       { seq: ['combo', 'frenzy', 'throw'], wm: 0.7, gapMul: 0.6, spdMul: 1.2 },
     ],
   };
-  // Hood id -> boss archetype. Brute now covers 6 hoods (was 13), taksici 4, kasapBoss 3; bloater and spitter unchanged.
+  // v0.8 (D-060, kasapBoss shape, new tuning only): The Docent (saray, Topkapı Sarayı) and The Antiquarian (halic,
+  // Haliç–Balat). The attack names are the kasapBoss ones (sim/bosses.js): 'combo' is the three-swing arc (the tour guide's
+  // umbrella sweep, the antiquarian's lamp on a chain), 'throw' the ring telegraph and flying object (an audio guide, a vase),
+  // 'summon' the walkers that file in (a rally call, customers), 'frenzy' the small drops (falling stock), and 'rally' the
+  // Docent's second rally call (phase 3, replaces the old flag charge; own def block, same ring telegraph). Every windup is >= 0.8 s.
+  C.bosses.tourGuide = {
+    base: 'brute', hp: 1450, speed: 0.75, contact: 15, radius: 1.0, xp: 90, kbResist: 1.0,
+    armour: 0.6, exposedArmour: 1.0, exposeT: 1.6,                        // umbrella down after the sweep: full damage
+    gap: 1.0, pause: 1.0,
+    swing: { r: 1.9, reach: 1.6, windup: [0.9, 0.9, 0.9], dmg: 16, kb: 0.8, recover: 0.3 },   // umbrella sweep: three arcs (kasap reach and damage, longer windups)
+    throw: { r: 1.2, windup: 1.1, dmg: 14 },                              // thrown audio guide: ring on the hero, the box flies in
+    summon: { n: 3, windup: 1.0, r: 3.5 },                                // rally call: a small tour group of walkers
+    rally: { n: 4, windup: 1.0, r: 3.5 },                                 // second rally call (phase 3): a bigger group; boss adds stop at D-056's 220
+    phaseAt: [0.66, 0.33],
+    phases: [
+      { seq: ['combo', 'summon'], wm: 1.0, gapMul: 1.0, spdMul: 1.0 },
+      { seq: ['combo', 'throw', 'summon'], wm: 0.85, gapMul: 0.8, spdMul: 1.1 },
+      { seq: ['combo', 'rally', 'throw'], wm: 0.7, gapMul: 0.6, spdMul: 1.2 },
+    ],
+  };
+  C.bosses.antiquarian = {
+    base: 'kasap', hp: 1400, speed: 0.65, contact: 15, radius: 1.0, xp: 90, kbResist: 1.0,
+    armour: 0.6, exposedArmour: 1.0, exposeT: 1.6,                        // lamp spent after its chain swing: full damage
+    gap: 0.9, pause: 1.0,
+    swing: { r: 1.7, reach: 1.5, windup: [0.85, 0.85, 0.85], dmg: 15, kb: 0.9, recover: 0.35 },   // lamp on a chain: three swings
+    throw: { r: 1.1, windup: 1.0, dmg: 13 },                              // thrown vase: ring on the hero, shards fly in
+    frenzy: { n: 5, span: 3.5, windup: 0.8, r: 1.0, dmg: 11 },            // falling stock: five small drops on the hero's area
+    summon: { n: 3, windup: 0.9, r: 3 },                                  // customers from the shop door
+    phaseAt: [0.66, 0.33],
+    phases: [
+      { seq: ['combo', 'throw'], wm: 1.0, gapMul: 1.0, spdMul: 1.0 },
+      { seq: ['combo', 'throw', 'summon'], wm: 0.85, gapMul: 0.8, spdMul: 1.1 },
+      { seq: ['combo', 'frenzy', 'throw'], wm: 0.7, gapMul: 0.6, spdMul: 1.2 },
+    ],
+  };
+  // Hood id -> boss archetype. Brute covers 5 hoods, taksici 4, kasapBoss 2, tourGuide 1 (saray), antiquarian 1 (halic);
+  // bloater and spitter unchanged. journey.js holds the same boss per hood (check-hood-keys.js §8).
   C.bossByHood = {
     istiklal: 'brute', galata: 'brute', karakoy: 'brute', bridge: 'bloater', eminonu: 'taksici', sirkeci: 'kasapBoss',
-    kapalicarsi: 'taksici', beyazit: 'spitter', laleli: 'kasapBoss', aksaray: 'brute', kumkapi: 'bloater', yenikapi: 'taksici',
+    kapalicarsi: 'taksici', beyazit: 'spitter', saray: 'tourGuide', halic: 'antiquarian', kumkapi: 'bloater', yenikapi: 'taksici',
     samatya: 'spitter', yedikule: 'brute', zeytinburnu: 'bloater', kazlicesme: 'spitter', bakirkoy: 'taksici',
     bakirkoysahil: 'bloater', atakoysahil: 'kasapBoss', atakoy: 'brute',
   };

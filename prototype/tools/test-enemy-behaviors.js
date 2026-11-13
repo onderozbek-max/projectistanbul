@@ -275,8 +275,8 @@ function digest(seed, idx) {
 function loadView(file) { vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'view', file), 'utf8'), { filename: file }); }
 const fs = require('fs'), path = require('path'), vm = require('vm');
 loadView('fauna-art.js'); loadView('fauna.js');
-const SEA = ['galata', 'bridge', 'karakoy', 'eminonu', 'sirkeci', 'kumkapi', 'samatya', 'yedikule', 'kazlicesme', 'bakirkoysahil', 'atakoysahil', 'atakoy'];
-const INLAND = ['istiklal', 'kapalicarsi', 'beyazit', 'laleli', 'aksaray', 'yenikapi', 'zeytinburnu', 'bakirkoy'];
+const SEA = ['galata', 'bridge', 'karakoy', 'eminonu', 'sirkeci', 'kumkapi', 'samatya', 'yedikule', 'kazlicesme', 'bakirkoysahil', 'atakoysahil', 'atakoy', 'halic'];
+const INLAND = ['istiklal', 'kapalicarsi', 'beyazit', 'saray', 'yenikapi', 'zeytinburnu', 'bakirkoy'];
 {
   const ids = P.Journey.hoods.map(h => h.id);
   const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));

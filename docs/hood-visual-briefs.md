@@ -42,13 +42,13 @@ Every shop and sign name below is fictional and needs a TR owner check.
 | H07 | Kapalıçarşı | Brown vault, brass, kilim red | Grand Bazaar vaults | Night, indoors, lantern light only |
 | H08 | Beyazıt | Paper and book tones, plane green | University gate, Sahaflar | Night, warm book-lamp light |
 | H09 | Kumkapı | Red and gold lanterns, wet stone | Marmara quay, fish restaurants | Night, lanterns, sea mist |
-| H10 | Laleli | Sodium orange, carton brown | Wholesale arcades (no single landmark) | Deep night, sodium lamps |
-| H11 | Aksaray | Minibus cream, taxi yellow, bread brown | Junction and bus shelters | Night, headlights, döner fire |
+| H10 | Topkapı Sarayı | Stone grey, tea amber, tour-flag red | Palace gate tower and wall (background) | Late afternoon into dusk, low gold sun |
+| H11 | Haliç–Balat | Terracotta, ochre, blue and faded pink house walls | Colour houses and the Horn water | Blue hour into night, window and café light |
 | H12 | Yenikapı | Tile blue, timber hull brown, torch amber | Marmaray hall, excavation display | Night, torch only, blackout |
 | H13 | Samatya | Dawn pink and gold, stone grey | Marmara sea wall and promenade | Pre-dawn to sunrise over the sea |
-| H14 | Yedikule | Old stone, ivy green, morning blue | Yedikule Fortress, Theodosian walls | Sunrise into morning |
+| H14 | Yedikule | Old stone, ivy green, morning blue | Yedikule Fortress, Theodosian walls | Sunrise into morning; torch-lit Zindanlar in stage 2 |
 | H15 | Kazlıçeşme | Lawn green, sprinkler water, warm sun | Marmara coast path, rail sleepers | Full day, warm |
-| H16 | Zeytinburnu | Teal and magenta drums, brick | Textile yards and dye drums (generic) | Daylight with haze, welder sparks |
+| H16 | Zeytinburnu | Teal and magenta drums, brick, wet concrete quay | Textile yards, dye drums, shore pier in stage 2 (generic) | Daylight with haze, rain on the shore, welder sparks |
 | H17 | Bakırköy Çarşı | Dusty cream, school green, skylight white | Arcade and the school next door | Morning, skylight dust beams |
 | H18 | Bakırköy Sahil | Pastel blue and white, ice-cream pink | Seafront promenade, ice-cream cart | Late morning, pastel |
 | H19 | Ataköy Marina | White hulls, teal water, morning gold | Marina basin and pontoons | Morning, gold on the hulls |
@@ -232,47 +232,47 @@ Every shop and sign name below is fictional and needs a TR owner check.
 
 **Ambient sound idea:** A fasıl band from a restaurant, the sea and crushed ice.
 
-**Contrast with neighbours:** Beyazıt is a dry square with trees and books, so Kumkapı is wet stone, lanterns and sea. Laleli is dry, sodium-lit streets with no sea, so keep the water and lanterns here.
+**Contrast with neighbours:** Beyazıt is a dry square with trees and books, so Kumkapı is wet stone, lanterns and sea. Topkapı Sarayı is dry, late-lit stone with no sea, so keep the water and lanterns here.
 
 ---
 
-## H10 · Laleli
+## H10 · Topkapı Sarayı
 
-`laleli` · Fatih · L46–50 · km 7.8 · Boss: The Wholesaler
+`saray` · Fatih · L46–50 · km 7.8 · Boss: The Docent (D-060)
 
-**Reads as Istanbul because:** The wholesale arcades are the landmark, since the bible names no single building. Shop windows full of mannequins. Laleli is known for wholesale clothing and luggage shops.
+**Reads as Istanbul because:** The outer gate square of the palace, with the gate tower and the crenellated wall along the Gülhane side. Plane trees and a ticket queue behind barriers. The palace is a museum, so the people here are visitors and staff. Postcard fact (confirm): Topkapı Palace was the Ottoman sultans' residence for about four centuries and is now a museum.
 
-**Props (ground and street level):** carton stacks (solid, breakable); hand carts on the tiles (solid, breakable); loading truck at the kerb (solid); bins (solid, breakable); mannequins in the windows (dressing until the wake, then enemies, so keep a distinct outline); luggage stacks (dressing); sodium lamp poles (dressing, out of the lane).
+**Props (ground and street level):** queue stanchions (solid, breakable); ticket kiosks (solid); audio-guide carts (solid, breakable); plane trees (solid); stone benches (solid); souvenir stands (solid, breakable); guide's flag poles (dressing); bunting from the souvenir stands (dressing, overhead); tour-group flags (dressing, overhead). The palace kitchen domes are on the skyline, background only.
 
-**Materials:** Ground: `stone_grey` tile with `night_ink` joints. Walls: `paper` shopfronts with `stone_grey` piers. Awnings and shutters: `tea_amber`. Accent: `#8B6B4A` carton brown.
+**Materials:** Ground: `stone_grey` flagstone with wide joints, sun-warmed. Walls: `paper` cream stone with `stone_grey` courses. Roofs and awnings: `tea_amber`. Accent: `#B5453A` tour-flag red.
 
-**Signage and text:** Valiz Cengiz, Çanta Gül Toptan, Mankenci Sevim, Kumaş Melek. TR owner check.
+**Signage and text:** Saray Hediyelik, Bilet Gişesi, Rehber Hasan, Çay Ocağı. TR owner check. Street and place names (Saray Meydanı, Gülhane Yolu, Bilet Kuyruğu, Dış Avlu, Saray Kapısı): TR owner check.
 
-**Light:** Deep night, fog, then clear and rain. Sodium orange from the street lamps (left), the warmest colour in the hood. Cool shadow from the grey carton stacks, `bosphorus_blue`. Fire from the bins in stage 4.
+**Light:** Late afternoon to dusk. Warm low sun from the gate side (left), `simit_gold`. Cool shadow under the planes, `bosphorus_blue`.
 
-**Ambient sound idea:** Hand carts rolling on tiles, shutters and radios.
+**Ambient sound idea:** A tour group's chatter over the queue barriers. This is an idea, not a D-060 item.
 
-**Contrast with neighbours:** Kumkapı has wet quay and red and gold lanterns, so Laleli is dry, sodium-orange and grey-brown with no water. Aksaray is an open junction lit by headlights, so keep Laleli's shopfronts and carts off the road.
+**Contrast with neighbours:** Kumkapı is wet quay and lanterns; the palace is dry open stone in late light. Haliç–Balat next is cramped colour, so keep the palace square wide and quiet-coloured.
 
 ---
 
-## H11 · Aksaray
+## H11 · Haliç–Balat
 
-`aksaray` · Fatih · L51–55 · km 8.6 · Boss: The Dolmuş Driver
+`halic` · Fatih · L51–55 · km 8.6 · Boss: The Antiquarian (D-060)
 
-**Reads as Istanbul because:** The Aksaray junction and its bus shelters, generic with no livery. Minibuses and taxis in neutral colours. Dolmuş drivers calling their destinations. Interchange status: no bible fact, proposed.
+**Reads as Istanbul because:** Steep lanes of narrow, brightly painted row houses on the Golden Horn shore. Antique and bric-a-brac shops, cafés with mismatched chairs, laundry between the balconies, and the Balat quay. Postcard fact (confirm): Balat is a historic Golden Horn neighbourhood known for its colourful houses and antique shops. Landmarks (background only): a red-brick hilltop school on the skyline (generic, no name), the Horn water and the far bank. No religious building is a set piece.
 
-**Props (ground and street level):** dolmuş minibus (solid, breakable); taxi (solid, breakable); road barrier (solid); kerb bollards (solid); bus shelter (dressing, overhang); traffic cones (dressing); pide peel rack at the bakery door (dressing).
+**Props (ground and street level):** antique stands (solid, breakable); café chairs and tables (solid, breakable); stair rails (dressing); flower pots (solid, breakable); handcarts (solid, breakable); fishing crates on the quay (solid, breakable); laundry lines (dressing, overhang, existing rig); café festoon lights (dressing, overhead); street cats (fauna).
 
-**Materials:** Ground: `stone_grey` asphalt with `night_ink` lane paint. Walls: `paper` concrete fronts, `tea_amber` brick at the pide bakery. Shelter glass: `bosphorus_blue` at low alpha. Accent: `#E5C02A` taxi yellow.
+**Materials:** Ground: `stone_grey` cobble, uneven and damp, with kerb steps. Walls: painted plaster in `#C8553D` terracotta, `#E3B04B` ochre, `#4F8FAE` blue and `#D98BA0` faded pink. Shutters: `tea_amber`. Water: `bosphorus_blue`. Accent colours are proposals, as in the other hoods.
 
-**Signage and text:** Kavşak Pide Fırını, Halil Ocakbaşı, Şoför Lokantası, Durak Büfesi. TR owner check.
+**Signage and text:** Antika Reşat, Balat Kahvesi, Çiçekçi Hacer, Eskici Necmi. TR owner check. Street and place names (Haliç Kıyısı, Renkli Evler, Antikacılar Sokağı, Fatma Nine'nin Garajı, Balat İskelesi): TR owner check.
 
-**Light:** Night, rain then fog, with fire glow from the döner spits in stage 3. Warm from the bakery oven and spits (left), `tea_amber`. Cool shadow and wet tarmac reflections in `bosphorus_blue`. Headlights act as the white lane markers.
+**Light:** Blue hour into night. Warm window light and café lamps (left), `tea_amber`. Cool wet shadow, `bosphorus_blue`. Fire only in stage 3, under 3 flashes a second.
 
-**Ambient sound idea:** Dolmuş drivers shouting destinations, horns and the bakery oven.
+**Ambient sound idea:** Water on the quay and gulls, with the rattle of handcarts on the cobbles. This is an idea, not a D-060 item.
 
-**Contrast with neighbours:** Laleli is dead shopfronts and carts with no traffic, so Aksaray is open, lit by headlights, with vehicles in the lanes. Yenikapı is underground and tiled, so keep the junction open to the sky.
+**Contrast with neighbours:** Topkapı Sarayı is open stone in late light, so Balat is cramped, colourful and wet at night. Yenikapı is underground and tiled, so keep the sky and the water here.
 
 ---
 
@@ -292,7 +292,7 @@ Every shop and sign name below is fictional and needs a TR owner check.
 
 **Ambient sound idea:** Echo and dripping, with generic station announcements.
 
-**Contrast with neighbours:** Aksaray is an open junction with traffic and headlights, so Yenikapı has no sky, only tile and torch. Samatya is open sea at dawn, so Yenikapı must stay sealed and dark.
+**Contrast with neighbours:** Haliç–Balat is cramped colour, open to the sky and the Horn water at night, so Yenikapı has no sky, only tile and torch. Samatya is open sea at dawn, so Yenikapı must stay sealed and dark.
 
 ---
 
@@ -320,19 +320,19 @@ Every shop and sign name below is fictional and needs a TR owner check.
 
 `yedikule` · Fatih · L66–70 · km 11.1 · Boss: The Key Keeper
 
-**Reads as Istanbul because:** The Yedikule Fortress and the Theodosian walls, built in 1458 at the southern end of the walls. Gardens and a tea garden inside the walls. Ivy on the stone.
+**Reads as Istanbul because:** The Yedikule Fortress and the Theodosian walls, built in 1458 at the southern end of the walls. Gardens and a tea garden inside the walls. Ivy on the stone. Stage 2 is the Zindanlar (dungeons), a generic vaulted corridor under the walls with generic cells (D-060).
 
-**Props (ground and street level):** wall-walk parapet (boundary, solid edge); garden keys (gameplay, the stage 3 collect.key pickups); garden planters (solid, breakable); garden cart (solid, breakable); garden trees (solid); gardener's bin (solid, breakable); ivy on the stone (dressing); tea-garden tables (solid, not in the kit yet, and stage 4 needs them).
+**Props (ground and street level):** wall-walk parapet (boundary, solid edge); garden keys (gameplay, the stage 3 collect.key pickups); garden planters (solid, breakable); garden cart (solid, breakable); garden trees (solid); gardener's bin (solid, breakable); ivy on the stone (dressing); tea-garden tables (solid, not in the kit yet, and stage 4 needs them). Stage 2 only: vault torches (dressing, overhead) and rusted gates (solid).
 
-**Materials:** Ground: `stone_grey` cobble and gravel path. Walls: `stone_grey` stone with ivy in green. Gatehouse roof: `tea_amber` tile. Accents: `#2E5E4E` ivy green and `#7FA7C4` morning blue.
+**Materials:** Ground: `stone_grey` cobble and gravel path. Walls: `stone_grey` stone with ivy in green. Gatehouse roof: `tea_amber` tile. Accents: `#2E5E4E` ivy green and `#7FA7C4` morning blue. Stage 2 (Zindanlar): flagstone with wet patches and no openings in the floor (D-058). The vault overhead reuses the Kapalıçarşı vault rig, with no kilims and a torch glow.
 
-**Signage and text:** Surlar Çay Bahçesi, Bostan Ali, Anahtarcı Mahmut, Gül Fidancı. TR owner check.
+**Signage and text:** Surlar Çay Bahçesi, Bostan Ali, Anahtarcı Mahmut, Gül Fidancı. TR owner check. Stage names (Yedikule Surları, Zindanlar, Anahtarlar, Çay Bahçesi, Kule Kapısı): TR owner check.
 
-**Light:** Sunrise, then morning, with a dawn wash at stage 3. Morning blue and ivy green. Warm sunrise gold (`simit_gold`) on the wall tops (right). Cool shadow inside the walls, `bosphorus_blue`.
+**Light:** Sunrise, then morning, with a dawn wash at stage 3. Morning blue and ivy green. Warm sunrise gold (`simit_gold`) on the wall tops (right). Cool shadow inside the walls, `bosphorus_blue`. Stage 2 is underground: torch glow and fog, with no daylight.
 
 **Ambient sound idea:** Birds, running water and gate keys.
 
-**Contrast with neighbours:** Samatya is open sea and sky at dawn, so Yedikule is walled, green and enclosed. Kazlıçeşme is an open coast path with lawns and sprinklers and no walls, so keep the stone and ivy here.
+**Contrast with neighbours:** Samatya is open sea and sky at dawn, so Yedikule is walled, green and enclosed, and its Zindanlar stage is underground and torch-lit only. Kazlıçeşme is an open coast path with lawns and sprinklers and no walls, so keep the stone and ivy here.
 
 ---
 
@@ -352,7 +352,7 @@ Every shop and sign name below is fictional and needs a TR owner check.
 
 **Ambient sound idea:** Sprinklers hissing, joggers' feet and gulls.
 
-**Contrast with neighbours:** Yedikule is stone walls, ivy and enclosed gardens, so Kazlıçeşme is open lawn and sea. Zeytinburnu is brick, concrete and factory yards with no sea, so keep the lawns and water here.
+**Contrast with neighbours:** Yedikule is stone walls, ivy and enclosed gardens, so Kazlıçeşme is open lawn and sea. Zeytinburnu is brick, concrete and factory yards, with a concrete shore quay only in its stage 2 (D-060), so keep the lawns and water here.
 
 ---
 
@@ -360,19 +360,19 @@ Every shop and sign name below is fictional and needs a TR owner check.
 
 `zeytinburnu` · Zeytinburnu · L76–80 · km 13.0 · Boss: The Dye Foreman
 
-**Reads as Istanbul because:** Textile workshops and yards with dye-coloured drums. The canal in the far background. The bible names no single landmark here, so the workshops carry the hood.
+**Reads as Istanbul because:** Textile workshops and yards with dye-coloured drums. The Marmara shore in stage 2: a concrete quay and fishing piers, with dye-stained runoff (D-060). The canal in the far background. The bible names no single landmark here, so the workshops carry the hood.
 
-**Props (ground and street level):** dye drums (solid, chain explosions proposed); bale stacks (solid, breakable); conveyor belt (gameplay, zombies ride it in stage 3); fabric carts (solid, breakable); delivery truck (solid); workshop bins (solid, breakable); tost kiosk (solid, breakable).
+**Props (ground and street level):** dye drums (solid, chain explosions proposed); bale stacks (solid, breakable; stages 1 and 5 only); conveyor belt (gameplay, zombies ride it in stage 3); fabric carts (solid, breakable); delivery truck (solid); workshop bins (solid, breakable); tost kiosk (solid, breakable). Stage 2 only: fishing piers (solid, collision to be set); rope and bollard marks on the concrete (dressing); a water band at the lane edge (visual only).
 
-**Materials:** Ground: `stone_grey` concrete with `night_ink` cracks. Walls: `tea_amber` brick and `stone_grey` concrete. Sawtooth roofs: `night_ink`. Accents: `#2A7F80` dye teal and `#A8327D` dye magenta. Yellow drums use `simit_gold`.
+**Materials:** Ground: `stone_grey` concrete with `night_ink` cracks. Stage 2: wet concrete with rope and bollard marks. Walls: `tea_amber` brick and `stone_grey` concrete. Sawtooth roofs: `night_ink`. Accents: `#2A7F80` dye teal and `#A8327D` dye magenta. Yellow drums use `simit_gold`. Sea-side sky in stage 2: a crane and a mast.
 
-**Signage and text:** Boya Atölyesi Naci, Dokuma Yaprak, Balya Deposu Osman, Tost Sadık, and PERSONEL GİRİŞİ. TR owner check.
+**Signage and text:** Boya Atölyesi Naci, Dokuma Yaprak, Balya Deposu Osman, Tost Sadık, and PERSONEL GİRİŞİ. TR owner check. Stage names (Fabrika Kapısı, Sahil Rıhtımı, Konveyör, Boya Avlusu, Ustabaşı Avlusu): TR owner check.
 
-**Light:** Morning daylight with haze, rain in stage 2, then welder sparks and drum fire in stage 4, kept under 3 flashes per second. Warm sun in `simit_gold` from the yard side (left). Cool shadow under the sawtooth roofs, `bosphorus_blue`.
+**Light:** Morning daylight with haze, rain on the shore in stage 2, then welder sparks and drum fire in stage 4, kept under 3 flashes per second. Warm sun in `simit_gold` from the yard side (left). Cool shadow under the sawtooth roofs, `bosphorus_blue`.
 
-**Ambient sound idea:** Machines, forklift alarms and radios.
+**Ambient sound idea:** Machines, forklift alarms and radios, with gulls at the shore in stage 2.
 
-**Contrast with neighbours:** Kazlıçeşme is open coast, lawns and sea, so Zeytinburnu is inland, brick and concrete with no water. Bakırköy Çarşı is an arcade of shops and a school, so keep these yards free of shopfronts.
+**Contrast with neighbours:** Kazlıçeşme is open coast, lawns and sea, so Zeytinburnu is brick and concrete, with a concrete shore quay in stage 2 only and no lawns. Bakırköy Çarşı is an arcade of shops and a school, so keep these yards free of shopfronts.
 
 ---
 
@@ -392,7 +392,9 @@ Every shop and sign name below is fictional and needs a TR owner check.
 
 **Ambient sound idea:** The school bell, shutters and a trolley's squeak.
 
-**Contrast with neighbours:** Zeytinburnu is inland factory yards with drums, so Bakırköy Çarşı is an enclosed, dusty arcade with shopfronts. Bakırköy Sahil is open to the sea with palms and pastel light, so keep this arcade indoors and beige.
+**Proposed idea, not a requirement:** shop-window mannequins in the arcade's shopfronts wake as the horde passes (wow W48, a shape change, not a flash). The owner re-homed W48 here on 2026-11-13; the art pass may take it or drop it.
+
+**Contrast with neighbours:** Zeytinburnu is factory yards with drums, mostly inland, so Bakırköy Çarşı is an enclosed, dusty arcade with shopfronts. Bakırköy Sahil is open to the sea with palms and pastel light, so keep this arcade indoors and beige.
 
 ---
 

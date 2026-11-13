@@ -21,11 +21,11 @@
 
   // Roster adds (AUDIT-6 C3): hood id -> new types. Read by enemies3.js augmentRoster from stage enemyRosterFrom on,
   // for generated levels only. Stage gate: 1 = from the hood's first stage. Keyed by id (v0.8): the table used to be
-  // keyed by walk position, so the Kumkapı/Laleli/Aksaray and Zeytinburnu/Kazlıçeşme reorder would have moved the adds.
+  // keyed by walk position, so the Kumkapı/Saray/Halic and Zeytinburnu/Kazlıçeşme reorder would have moved the adds.
   C.enemyRosterFrom = 1;
   C.enemyRosterAdds = {
     bridge: ['copci'], eminonu: ['kurye'], sirkeci: ['kurye'], kapalicarsi: ['kurye', 'copci'],
-    beyazit: ['kurye'], laleli: ['copci'], aksaray: ['kurye'], kumkapi: ['copci'], yenikapi: ['kurye', 'copci'],
+    beyazit: ['kurye'], saray: ['copci'], halic: ['kurye'], kumkapi: ['copci'], yenikapi: ['kurye', 'copci'],
     samatya: ['copci'], yedikule: ['kurye'], zeytinburnu: ['copci'], kazlicesme: ['kurye'],
     bakirkoy: ['copci', 'kurye'], bakirkoysahil: ['kurye'], atakoysahil: ['copci'], atakoy: ['kurye', 'copci'],
   };

@@ -18,6 +18,11 @@ Object.assign(P.STR.en, {
   'boss.intro': 'BOSS', 'boss.rage': 'RAGE!',
 });
 
+// Death causes of the D-060 boss archetypes (config-bosses.js): the down screen reads cause.<archetype> (check-death-causes.js).
+// TR owner check: the Turkish cause names reuse the boss names (Rehber, Antikacı); the owner confirms them.
+Object.assign(P.STR.tr, { 'cause.tourGuide': 'Müze Rehberi', 'cause.antiquarian': 'Antikacı' });
+Object.assign(P.STR.en, { 'cause.tourGuide': 'Docent', 'cause.antiquarian': 'Antiquarian' });
+
 // One boss-name set (AUDIT-5 D-8/H2, owner 2026-11-08): the narrative spk.b.<hood> names in strings-story.js are the
 // only source. This copies them to boss.<hood> for the boss banner. Ataköy: Sayın Abim (D-039); the character's name
 // stays Ahmet Abi (spk.ahmet, H1 option a). config-levels.js carries no boss names.

@@ -4,11 +4,11 @@
 (function (C) {
   C.env = {
     // ---- A1 · breakable cover: hp by block kind (levels.js kinds plus the env kinds). Dash contact hits once per dash. ----
-    hp: { bin: 12, bench: 20, crates: 25, tables: 30, kiosk: 40, car: 60, taxi: 60, dolmus: 60, cart: 25, planter: 20,
+    hp: { bin: 12, bench: 20, crates: 25, tables: 30, kiosk: 40, antique: 40, car: 60, taxi: 60, dolmus: 60, cart: 25, planter: 20,
       gascan: 10, extinguisher: 30 },
     dashDmg: 12,
     // Material: glass slicks (bins, kiosks, cars) and wood debris (benches, crates, tables, carts, planters).
-    glassKinds: ['bin', 'kiosk', 'car', 'taxi', 'dolmus'],
+    glassKinds: ['bin', 'kiosk', 'antique', 'car', 'taxi', 'dolmus'],
     loot: { simitChance: 0.2, jetonChance: 0.5, jetonMin: 6, jetonMax: 12 },   // simit (20%) or jeton on break
     // Solid env props placed by P.Env.place (AABB, side lane only so the centre stays open).
     gas: { every: 26, chance: 0.5, w: 0.7, h: 0.7 },

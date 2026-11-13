@@ -35,8 +35,24 @@ module.exports = {
   eminonu: { ground: cobble(71, '#5D5246', '#48403A', { extra: MK.eminonu }), walk: slab(72, '#6A5E50') },
   sirkeci: { ground: tiles(81, 4, 6, '#5E6068', '#2A2C34', { extra: MK.sirkeci }), walk: tiles(82, 2, 4, '#6F7178', '#2A2C34', { tones: tri('#6F7178', 0.08) }) },
   beyazit: { ground: stones(91, 4, { rows: 8, cols: [6, 7], tones: tri('#5C5E62', 0.07), joint: '#4A4C50', extra: MK.beyazit }), walk: slab(92, '#6A6C70') },
-  laleli: { ground: road(101, '#44474E', { stains: ['#8B6B4A'], marks: MK.laleli, W: 9.2, H: 12 }), walk: tiles(102, 2, 4, '#55585F', '#2E3036') },
-  aksaray: { ground: road(111, '#3A3D44', { lanes: true }), walk: slab(112, '#5A5E66') },
+  // D-060 Topkapı Sarayı (id saray, Fatih): sun-warmed flagstone with wide joints; cream stone walk. Mid value, quiet colour.
+  saray: {
+    ground: stones(201, 4, { rows: 3, cols: [2, 3], gap: 0.06, jitter: 0.03, round: 0.1, line: 0.03, tones: ['#9C8A6C', '#A69476', '#B09E84'], hi: 0.45, lo: 0.35, joint: '#CBBC9E', extra: MK.saray }),
+    walk: slab(212, '#D8CAA9', { rows: 2, cols: [1, 2], round: 0.08, joint: '#A8997A' }),
+  },
+  // D-060 Haliç–Balat (id halic, Fatih): uneven damp cobble with kerb steps and puddle marks; a walk strip of worn stone.
+  halic: {
+    ground: cobble(221, '#5B5448', '#3C3730', { rows: 10, cols: [5, 7], jitter: 0.1, round: 0.34, extra: MK.halic }),
+    walk: slab(222, '#7C7468', { rows: 2, cols: [1, 2], jitter: 0.06 }),
+  },
+  // D-060 Yedikule Zindanlar (stage 2 only, keyed 'yedikule.s2'): darker wet flagstone. The hood's walk (grass) is kept.
+  'yedikule.s2': {
+    ground: stones(231, 4, { rows: 3, cols: [2, 3], gap: 0.05, jitter: 0.03, round: 0.12, line: 0.025, tones: ['#44433F', '#4A4944', '#51504A'], hi: 0.18, lo: 0.3, joint: '#22211F', extra: MK.zindan }),
+  },
+  // D-060 Zeytinburnu Sahil Rıhtımı (stage 2 only, keyed 'zeytinburnu.s2'): wet concrete quay slabs. The hood's road and walk are kept.
+  'zeytinburnu.s2': {
+    ground: paving(241, 4, 4, { rows: 2, cols: [2, 2], exact: true, gap: 0.025, jitter: 0.012, round: 0.03, line: 0.018, tones: ['#6E7275', '#767B7E', '#7E8386'], hi: 0.06, lo: 0.09, joint: '#2C2F33', extra: MK.quay }),
+  },
   kumkapi: { ground: cobble(121, '#55504A', '#403B36', { tones: tri('#55504A', 0.14), extra: MK.kumkapi }), walk: slab(122, '#66615A') },
   yenikapi: { ground: road(131, '#4B4D52', { stains: ['#7A5230'], marks: MK.yenikapi, W: 9.2, H: 12 }), walk: slab(132, '#5A5C60') },
   samatya: { ground: cobble(141, '#5B5044', '#463C32', { rows: 9, cols: [6, 7], tones: tri('#5B5044', 0.12), extra: MK.samatya }), walk: slab(142, '#6A5E50') },

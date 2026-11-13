@@ -27,7 +27,7 @@
 | **Juice** | Small, frequent feedback. Feels good on every hit. | Knife smear, hit flash. |
 | **Spike** | A big, rare beat that changes the fight for a few seconds. | Level-up shockwave, evolution. |
 | **Spectacle** | A set piece in the world. Looks big. Changes nothing in the rules. | Fog on the bridge. |
-| **Surprise** | Something the player did not expect. | Mannequin wake, diner turn. |
+| **Surprise** | Something the player did not expect. | Mannequin wake (W48, re-homed to Bakırköy Çarşı on 2026-11-13), diner turn. |
 | **Social** | Something a player wants to show someone. | Kill cam, hood postcard. |
 
 ### 1.2 Status codes
@@ -98,10 +98,10 @@
 | W42 | Sunrise over the Marmara | Spectacle | Samatya stage 3 | 1 per hood | proposed (F) | Light shift over 60 s. |
 | W43 | Streetlamps fail one by one | Spectacle | İstiklal stage 3 | 1 per hood | proposed (F) | Lamp goes dark and stays dark (no flicker). |
 | W44 | Ice-cream bell as spawn warning | Spectacle | Bakırköy Sahil stage 3 | Before each spawn | proposed (A, F) | Audio cue with a visual ring. |
-| W45 | Dolmuş horn and lane charge | Spectacle | Aksaray boss | Per charge | proposed (E2 boss kit) | Horn telegraph. |
+| W45 | Dolmuş horn and lane charge | Spectacle | Aksaray boss (removed by D-060; no boss now) | Per charge | parked until Chapter 2 (owner, 2026-11-13) | Horn telegraph. Stays parked until Chapter 2. |
 | W46 | Balık-ekmek grill sizzle and flip | Spectacle | Captain boss arena | Per attack | proposed | Kaan's grill. No harm to animals. |
 | W47 | Ferry horn on the quay | Spectacle | Eminönü stage 1 | Once per hood | proposed (A) | Sound-led. |
-| W48 | Mannequins wake | Spectacle | Laleli stage 3 | Each mannequin once | proposed (E2, F) | Shape change, not a flash. |
+| W48 | Mannequins wake | Spectacle | Bakırköy Çarşı (H17), re-homed 2026-11-13 (was Laleli stage 3); stage not set | Each mannequin once | re-homed (owner, 2026-11-13) | Shape change, not a flash. Proposed for H17, not a hard requirement. |
 | W49 | Turnstile gate slams shut | Spectacle | Sirkeci stage 3 | Each gate | proposed (F, E2) | Gate closes on a zombie. |
 
 ### 2.4 Surprise (U)

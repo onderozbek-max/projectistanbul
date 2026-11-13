@@ -52,6 +52,8 @@
   });
 
   // ---- bosses (one per hood type; scaled by hood and difficulty in levels.js) ----
+  // Archetypes in this table are the base set. tourGuide (saray) and antiquarian (halic) are defined in config-bosses.js
+  // (kasapBoss shape), which extends this table; their hood wiring is bossByHood there and hood.boss in journey.js.
   C.bosses = {
     brute: {                                                             // CC 6 style: charges, stomps, summons
       hp: 1400, speed: 0.8, contact: 14, radius: 0.9, xp: 80, kbResist: 0.95,
@@ -108,11 +110,12 @@
       car: [1.9, 4.2], taxi: [1.9, 4.2], dolmus: [2.2, 5.0], bus: [2.6, 9.0], barrier: [3.0, 0.6],
       kiosk: [1.6, 1.6], bench: [0.6, 1.8], bin: [0.6, 0.6], planter: [1.2, 1.2], crates: [1.0, 1.0],
       tables: [1.2, 1.2], cart: [1.4, 0.9], tree: [0.8, 0.8], bollard: [0.35, 0.35],
+      antique: [1.6, 1.2],           // D-060 Haliç–Balat antique stand (art fw 1.6 x fd 1.2); breakable, hp in config-env.js. lx_stall: config-layouts.js
     },
     // v0.5 · extra roster types per hood id (added from stage 2), weight = extraShare x segment share.
     hoodExtras: {
       galata: ['screamer'], karakoy: ['hardhat'], bridge: ['screamer'], eminonu: ['hardhat'], kapalicarsi: ['screamer'],
-      laleli: ['hardhat'], aksaray: ['screamer'], yenikapi: ['hardhat'], zeytinburnu: ['hardhat'],
+      saray: ['hardhat'], halic: ['screamer'], yenikapi: ['hardhat'], zeytinburnu: ['hardhat'],
       bakirkoy: ['screamer'], atakoy: ['screamer', 'hardhat'],
     },
     extraFrom: 2, extraShare: 0.5,
@@ -120,7 +123,7 @@
     // Tier curve (docs/journey.md §5.1): tier 1 = H01-H04 (no new type), tier 2 = H05-H10, tier 3 = H11-H15, tier 4 = H16-H20.
     schedule: [
       { hood: 'eminonu', type: 'parkur', from: 3 }, { hood: 'kapalicarsi', type: 'kasap', from: 3 },
-      { hood: 'beyazit', type: 'parkur', from: 4 }, { hood: 'aksaray', type: 'zehirli', from: 3 },
+      { hood: 'beyazit', type: 'parkur', from: 4 }, { hood: 'halic', type: 'zehirli', from: 3 },
       { hood: 'samatya', type: 'kasap', from: 3 }, { hood: 'zeytinburnu', type: 'zehirli', from: 2 },
       { hood: 'yedikule', type: 'zehirli', from: 4 }, { hood: 'kumkapi', type: 'kasap', from: 4 },
       { hood: 'kazlicesme', type: 'parkur', from: 3 }, { hood: 'bakirkoy', type: 'kasap', from: 4 },
@@ -128,7 +131,7 @@
       { hood: 'atakoy', type: 'parkur', from: 2 }, { hood: 'atakoy', type: 'zehirli', from: 3 }, { hood: 'atakoy', type: 'kasap', from: 4 },
       // Wave 1 (R1, audit section 10): cayci (tea carrier) in the old city, from stage 2. The thief (marti) is set by `thief` below.
       { hood: 'eminonu', type: 'cayci', from: 2 }, { hood: 'sirkeci', type: 'cayci', from: 2 }, { hood: 'beyazit', type: 'cayci', from: 2 },
-      { hood: 'kapalicarsi', type: 'cayci', from: 2 }, { hood: 'laleli', type: 'cayci', from: 2 }, { hood: 'aksaray', type: 'cayci', from: 2 },
+      { hood: 'kapalicarsi', type: 'cayci', from: 2 }, { hood: 'saray', type: 'cayci', from: 2 }, { hood: 'halic', type: 'cayci', from: 2 },
     ],
     // Thief (marti, R1 audit 13 answer 1): one behaviour, two looks by geography (config-fauna.js birdLook). It is in every hood
     // from fromHood on (0-based: 4 = H05 Eminönü), from stage `from`. H01 to H04 have no enemy thieves (docs/journey.md §5.0).

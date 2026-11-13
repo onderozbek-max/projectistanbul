@@ -106,6 +106,35 @@ const SHAPES = {
     }
     return wrap([-1.3, -5.3, 1.3, 0], s, 1);
   },
+  // D-060 Topkapı palace kitchens: a row of lead domes on a stone base, each with a tall conical chimney.
+  kitchens: () => {
+    const wall = hz('#CDBE9F', 0.18), lead = hz('#6F8A86', 0.2), cone = hz('#A99878', 0.2);
+    let s = body(-1.6, -1.2, 3.2, 1.2, wall) + body(-1.7, -1.35, 3.4, 0.2, hz('#A18F72', 0.15));
+    [[-1.1, 0.5], [0, 0.6], [1.1, 0.5]].forEach(([x, r]) => {
+      s += path(`M${f(x - r)} -1.35A${f(r)} ${f(r * 0.8)} 0 0 1 ${f(x + r)} -1.35Z`, lead, { lw: LW });
+      s += poly([[x - 0.1, -1.8], [x + 0.1, -1.8], [x + 0.03, -3.1], [x - 0.03, -3.1]], cone, { lw: 0.03 }) + rect(x - 0.06, -3.14, 0.12, 0.06, INK, { ink: 0, op: 0.6 });
+    });
+    for (let i = 0; i < 5; i++) s += rect(-1.4 + i * 0.6, -0.8, 0.22, 0.4, '#2A3040', { lw: 0.02 });
+    return wrap([-1.8, -3.3, 1.8, 0], s, 1);
+  },
+  // D-060 Topkapı gate tower: a square stone tower with a crenellated parapet, a round-arched gate at its foot and a red tour flag.
+  gate: () => {
+    const st = hz('#D3C3A0', 0.16), dk = '#2A3040';
+    let s = body(-0.9, -6.0, 1.8, 6.0, st) + body(-1.05, -6.4, 2.1, 0.5, hz('#B7A67F', 0.15));
+    for (let i = 0; i < 5; i++) s += rect(-1.0 + i * 0.42, -6.95, 0.26, 0.55, st, { lw: 0.03 });
+    s += path(`M-0.3 0L-0.3 -1.6A0.3 0.3 0 0 1 0.3 -1.6L0.3 0Z`, dk, { lw: 0.02 }) + rect(-0.08, -4.6, 0.16, 0.5, dk, { lw: 0.02 });
+    s += line(0, -6.95, 0, -7.6, INK, 0.03) + poly([[0, -7.6], [0.5, -7.45], [0, -7.3]], hz('#B5453A', 0.1), { lw: 0.02 });
+    return wrap([-1.1, -7.7, 1.1, 0], s, 1);
+  },
+  // D-060 hilltop school: a red-brick block on a green hill with a gable roof and a small bell turret. Generic, no name.
+  hillschool: () => {
+    const brick = hz('#C8553D', 0.25), roof = hz('#4A3A36', 0.2), hill = hz('#7E8A6A', 0.3);
+    let s = path(`M-2.0 0Q-1.2 -1.5 0 -1.6Q1.3 -1.5 2.0 0Z`, hill, { lw: LW });
+    s += body(-1.4, -3.0, 2.8, 1.8, brick) + poly([[-1.55, -3.0], [1.55, -3.0], [0, -3.9]], roof, { lw: LW });
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 5; c++) s += rect(-1.1 + c * 0.5, -2.7 + r * 0.7, 0.24, 0.36, (r + c) % 3 ? '#2A3040' : '#F2C46D', { lw: 0.02 });
+    s += body(-0.22, -4.9, 0.44, 1.0, brick) + poly([[-0.28, -4.9], [0.28, -4.9], [0, -5.6]], roof, { lw: LW }) + ell(0, -4.4, 0.07, 0.07, '#F4EBDD', { lw: 0.02 });
+    return wrap([-2.1, -5.7, 2.1, 0], s, 1);
+  },
   // Tall stone pine or palm for the leafy and seaside hoods.
   tree: () => {
     let s = path(`M-0.12 0L-0.08 -3.4L0.1 -3.4L0.14 0Z`, hz('#5A4230', 0.15), { lw: 0.035 });

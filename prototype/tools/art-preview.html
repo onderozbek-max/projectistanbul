@@ -60,6 +60,7 @@
 <script src="../js/view/art-characters.js"></script>
 <script src="../js/view/art-enemies.js"></script>
 <script src="../js/view/sprites.js"></script>
+<script src="../js/view/art-bosses.js"></script>
 <script src="../js/view/comic-busts.js"></script>
 <script src="../js/view/comic-busts-hair.js"></script>
 <script src="../js/view/comic-busts-cast.js"></script>
@@ -169,6 +170,14 @@
   cell(sp, 'boss bloater (2.2x)', 2 * W, 2 * H, 1, enemyFn('bloater', 'picnicker', 4, 1, { boss: true }), 'big');
   cell(sp, 'boss taksici (2.2x)', 2 * W, 2 * H, 1, enemyFn('taksici', 'driver', 3, 1, { boss: true }), 'big');
   cell(sp, 'boss kasapBoss (2.2x)', 2 * W, 2 * H, 1, enemyFn('kasapBoss', 'hamal', 2, 1, { boss: true }), 'big');
+  cell(sp, 'boss tourGuide, The Docent (2.2x)', 2 * W, 2 * H, 1, enemyFn('tourGuide', 'conductor', 3, 1, { boss: true }), 'big');
+  cell(sp, 'boss antiquarian (2.2x)', 2 * W, 2 * H, 1, enemyFn('antiquarian', 'halici', 4, 1, { boss: true }), 'big');
+  // Thrown objects (art-bosses.js): the Docent's audio guide and the Antiquarian's vase, spinning in place.
+  function thrownFn(kind) {
+    return function (g, x, y, time) { P.ArtBosses.drawThrown(g, 120, x, y, { kind: kind, x0: 0, y0: 0, x1: 0.8, y1: 0, t: time, dur: 1 }); };
+  }
+  cell(sp, 'thrown audio guide (tourGuide)', W, H, 1, thrownFn('tourGuide'));
+  cell(sp, 'thrown vase (antiquarian)', W, H, 1, thrownFn('antiquarian'));
   cell(sp, 'spitter windup', W, H, 1, enemyFn('spitter', 'vendor', 1, 1, { windup: 0.9 }));
   cell(sp, 'brute windup (red eyes)', W, H, 1.6, enemyFn('brute', 'conductor', 3, 1.6, { windup: 1 }));
   cell(sp, 'bloater swollen', W, H, 1.2, enemyFn('bloater', 'picnicker', 5, 1.2, { swell: 1 }));

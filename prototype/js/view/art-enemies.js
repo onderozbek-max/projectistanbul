@@ -37,7 +37,11 @@ P.ArtEnemies = (function () {
     bloater: { body: 'bloat', gait: 'waddle', arms: 'reach', scale: 1.2, strideK: 0.45, liftK: 0.4, sway: 0.06, eyes: '#B8FF5A', brow: 'worried', pust: true, wounds: 1 },
     screamer: { body: 'scream', gait: 'run', arms: 'panic', scale: 1.1, strideK: 1.4, liftK: 1.2, lean: 0.14, hunch: 0.02, sway: 0.03, eyes: '#FF3B2E', brow: 'worried', torn: true, wounds: 1, mouthScream: true },
     hardhat: { body: 'bulky', gait: 'stomp', arms: 'reach', scale: 1.22, strideK: 0.6, liftK: 0.45, lean: 0.03, hunch: 0.04, sway: 0.02, eyes: '#FFD27A', brow: 'angry', torn: true, wounds: 1, helmet: true, vest: true },
-    crawler: { custom: true, scale: 1.0, eyes: '#E8FF6B' }
+    crawler: { custom: true, scale: 1.0, eyes: '#E8FF6B' },
+    // D-060 boss bodies (config-bosses.js). Own body names keep their bakes apart from the crowd; bossProp picks the hand
+    // props (art-bosses.js: umbrella and tour flag, brass lamp on a chain).
+    tourGuide: { body: 'docent', bossProp: 'docent', gait: 'shamble', arms: 'hold', scale: 1.5, strideK: 0.6, liftK: 0.5, lean: 0.04, hunch: 0.04, sway: 0.02, eyes: '#FFD27A', brow: 'angry', torn: true, wounds: 1 },
+    antiquarian: { body: 'antiquarian', bossProp: 'antiquarian', gait: 'shamble', arms: 'swing', scale: 1.5, strideK: 0.6, liftK: 0.5, lean: 0.03, hunch: 0.1, sway: 0.03, eyes: '#FFD27A', brow: 'worried', torn: true, wounds: 1 }
   };
   E.def = function (type) { return E.DEFS[type] || E.DEFS.walker; };
   E.body = function (name) { return E.BODY[name] || CH.body(name); };
@@ -56,8 +60,8 @@ P.ArtEnemies = (function () {
     sirkeci: ['commuter', 'conductor', 'tourist', 'vapurcu', 'mudur', 'vendor'],
     kapalicarsi: ['shopkeeper', 'kuyumcu', 'halici', 'hamal', 'tourist', 'sahaf'],
     beyazit: ['student', 'sahaf', 'pigeonman', 'vendor', 'kapici', 'dondurmaci'],
-    laleli: ['shopper', 'hamal', 'shopkeeper', 'halici', 'kapici', 'teyze'],
-    aksaray: ['commuter', 'driver', 'worker', 'simitci', 'dondurmaci', 'mudur'],
+    saray: ['conductor', 'tourist', 'vendor', 'student', 'shopper', 'granny'],
+    halic: ['halici', 'shopkeeper', 'fisher', 'teyze', 'sahaf', 'barista'],
     kumkapi: ['waiter', 'faslci', 'balikci', 'midyeci', 'musician', 'kapici'],
     yenikapi: ['arkeolog', 'worker', 'commuter', 'vapurcu', 'conductor', 'driver'],
     samatya: ['granny', 'teyze', 'kapici', 'simitci', 'dondurmaci', 'balikci'],

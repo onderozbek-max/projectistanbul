@@ -1,7 +1,7 @@
 // Hood key check (v0.8, integration follow-up 1): story and bark content is keyed by hood POSITION (H##i#, H##p#, H##b,
 // BK.hdNN.S beats of js/dialogue/), but it must belong to the HOOD. For every hood id this checks that its position's keys exist in TR and EN,
 // that the hood's own intro line (or first bark) names the hood, that its comic page reads its own lines, and that the
-// campfire sits in Aksaray. Loads the non-view scripts of index.html, as check-objective-strings.js does.
+// campfire sits in Haliç–Balat (halic, stage 4). Loads the non-view scripts of index.html, as check-objective-strings.js does.
 // Usage: node prototype/tools/check-hood-keys.js   (exit 1 with the list of problems)
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -19,7 +19,7 @@ const P = globalThis.P;
 const NAME = {
   istiklal: /İstiklal|Istiklal|tram/i, galata: /Galata(?! Köprü| Bridge)/i, karakoy: /Karaköy|Karakoy/i,
   bridge: /Köprü|Bridge/i, eminonu: /Eminönü|Eminonu/i, sirkeci: /Sirkeci/i, kapalicarsi: /Kapal[ıi]çarşı|Bazaar/i,
-  beyazit: /Beyazıt|Beyazit/i, laleli: /Laleli/i, aksaray: /Aksaray/i, kumkapi: /Kumkapı|Kumkapi/i,
+  beyazit: /Beyazıt|Beyazit/i, saray: /Topkapı|Topkapi|Saray|Palace/i, halic: /Haliç|Halic|Balat/i, kumkapi: /Kumkapı|Kumkapi/i,
   yenikapi: /Yenikapı|Yenikapi/i, samatya: /Samatya/i, yedikule: /Yedikule/i, zeytinburnu: /Zeytinburnu/i,
   kazlicesme: /Kazlıçeşme|Kazlicesme/i, bakirkoy: /Bakırköy|Bakirkoy/i, bakirkoysahil: /Sahil|Seaside|promenade/i,
   atakoysahil: /Marina/i, atakoy: /Ataköy|Atakoy|Apartman|apartment|lobby/i,
@@ -86,9 +86,9 @@ Object.keys(P.DLG.beats).forEach(id => {
   if (m && (+m[1] < 1 || +m[1] > hoods.length)) problems.push(`orphan bark pool ${lang} ${key}`);
 }));
 
-// 6. Level-pinned beats: the campfire is the Aksaray stage-4 mid beat (L54), and L49 is no longer a campfire.
+// 6. Level-pinned beats: the campfire is the Haliç–Balat stage-4 mid beat (L54), and L49 is no longer a campfire.
 const L54 = J.level(54);
-if (L54.hood.id !== 'aksaray' || L54.stage !== 4) problems.push(`L54 is ${L54.hood.id} stage ${L54.stage}, expected aksaray stage 4`);
+if (L54.hood.id !== 'halic' || L54.stage !== 4) problems.push(`L54 is ${L54.hood.id} stage ${L54.stage}, expected halic stage 4`);
 const mid54 = P.Story.beat(54, 'mid');
 if (!mid54 || mid54.kind !== 'page' || mid54.id !== 'campfire') problems.push('L54 mid beat is not the campfire page');
 const mid49 = P.Story.beat(49, 'mid');

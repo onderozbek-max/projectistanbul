@@ -284,7 +284,7 @@ P.Decor = (function () {
     });
   }
   function genOverhead(R, s, y0, y1) {
-    var th = P.RenderWorld.themeOf(s), rig = th.overhead, hp = P.RenderWorld.hoodPos(s), t = performance.now() / 1000;
+    var th = P.RenderWorld.themeOf(s), rig = P.ArenaOverhead ? P.ArenaOverhead.rig(th.id, s, th.overhead) : th.overhead, hp = P.RenderWorld.hoodPos(s), t = performance.now() / 1000;   // D-060: a stage's authored rig may replace 'none'
     for (var y = Math.ceil(y0 / 12) * 12; y < y1 && rig !== 'none'; y += 12) {
       var ry = rig === 'laundry' ? y + 3 : y;
       if (P.ArenaOverhead && P.ArenaOverhead.draw(R, s, th.id, rig, 0, ry, { v: hash(y * 0.37) })) continue;   // R1-T3: authored rig, fades under the player

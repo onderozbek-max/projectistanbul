@@ -13,8 +13,10 @@ P.HoodCard = (function () {
     sirkeci: ['Sirkeci Garı 1890’da açıldı; Avrupa’dan gelen demiryolu hattının İstanbul’daki son durağıydı.', 'Sirkeci Station opened in 1890 as the Istanbul end of the railway line from Europe.'],
     kapalicarsi: ['Kapalıçarşı’da 60’tan fazla sokak ve binlerce dükkân vardır.', 'The Grand Bazaar has more than 60 streets and thousands of shops.'],
     beyazit: ['Sahaflar, eski kitapların satıldığı Beyazıt’ın ünlü sokağıdır.', 'Sahaflar is Beyazıt’s famous lane of second-hand books.'],
-    laleli: ['Laleli, 1980’lerden beri tekstil ve hazır giyim toptancılığıyla bilinir.', 'Laleli has been known for textile and ready-to-wear wholesale since the 1980s.'],
-    aksaray: ['Aksaray, minibüs, otobüs ve metro bağlantılarının kesiştiği büyük bir kavşaktır.', 'Aksaray is a major junction where minibus, bus and metro lines meet.'],
+    // TR owner check: the Turkish line below is a neutral placeholder; the owner writes the real text.
+    saray: ['Topkapı Sarayı, Osmanlı sultanlarının yaklaşık 400 yıl boyunca ana konutuydu.', 'Topkapı Palace was the main home of the Ottoman sultans for nearly 400 years.'],
+    // TR owner check: placeholder line, owner writes the real Turkish.
+    halic: ['Balat’ın renkli evleri, Haliç kıyısına inen dik sokaklara dizilidir.', 'Balat’s brightly painted houses climb steep lanes down to the Golden Horn.'],
     kumkapi: ['Kumkapı, meyhaneleri ve balık pazarıyla bilinen eski bir semttir.', 'Kumkapı is an old district known for its meyhanes and fish market.'],
     yenikapi: ['Yenikapı kazılarında Bizans dönemine ait ahşap gemi kalıntıları bulundu.', 'Excavations at Yenikapı uncovered wooden ship hulls from the Byzantine era.'],
     samatya: ['Samatya’nın ahşap evleri, eski Rum ve Ermeni mahallelerinin dokusunu taşır.', 'Samatya’s wooden houses keep the texture of its former Greek and Armenian neighbourhoods.'],

@@ -63,8 +63,20 @@ P.ArenaOverhead = (function () {
 
   A.ready = function () { return pending === 0; };
   A.has = function (theme, kind) { return !!(P.ArenaOverheadData && P.ArenaOverheadData[theme] && P.ArenaOverheadData[theme][kind]); };
-  A.draw = function (R, s, theme, kind, x, y, o) {
-    var set = P.ArenaOverheadData && P.ArenaOverheadData[theme] && P.ArenaOverheadData[theme][kind], v, key, d, u, X, Y, c, k, x0, y0, a, calm, now, i, g, tw;
+  // D-060: a 'hood.sN' entry (N = 1-based stage) is the hood's art on that stage only.
+  function stageId(hood, s) {
+    var d = P.ArenaOverheadData, k;
+    if (!d || !s || !P.Themes) return hood;
+    k = hood + '.s' + (P.Themes.subIndex(s) + 1);
+    return d[k] ? k : hood;
+  }
+  // The rig kind for this hood on this stage: a stage entry's kind (it may be a hood whose theme says 'none'), else the theme's kind.
+  A.rig = function (hood, s, dflt) {
+    var sid = stageId(hood, s);
+    return sid !== hood ? Object.keys(P.ArenaOverheadData[sid])[0] : dflt;
+  };
+  A.draw = function (R, s, hood, kind, x, y, o) {
+    var theme = stageId(hood, s), set = P.ArenaOverheadData && P.ArenaOverheadData[theme] && P.ArenaOverheadData[theme][kind], v, key, d, u, X, Y, c, k, x0, y0, a, calm, now, i, g, tw;
     if (!set) return false;
     v = Math.min(set.length - 1, Math.floor(((o && o.v) || 0) * set.length)); key = theme + '|' + kind + '|' + v; d = set[v];
     if (!IMG[key]) return false;
@@ -74,7 +86,7 @@ P.ArenaOverhead = (function () {
     c.save(); c.globalAlpha = d.alpha * a;
     c.drawImage(raster(key, d, k), x0, y0, d.w * u, d.h * u);
     if (d.glows.length) {
-      calm = !!(P.Settings && P.Settings.reduceMotion); now = performance.now() / 1000;
+      calm = !!(P.Settings && (P.Settings.reduceMotion || P.Settings.reduceFlash)); now = performance.now() / 1000;   // steady glows under either setting (D-060 Zindanlar torches)
       c.globalCompositeOperation = 'lighter';
       for (i = 0; i < d.glows.length; i++) {
         g = d.glows[i]; tw = calm ? 1 : 0.75 + 0.25 * Math.sin(now * 3 + i * 1.7 + y);

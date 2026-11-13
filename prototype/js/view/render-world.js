@@ -257,8 +257,9 @@ P.RenderWorld = (function () {
   }
   W.resetAmbience = function () { ambTheme = null; };
   // Tile record for a theme role, pre-rendered per ppm step (P.Themes.tile). Its pattern is created once.
-  function pattern(R, th, role) {
-    var t = P.Themes.tile(th, role, Math.max(8, Math.round(R.ppm / 4) * 4));
+  // R1-T3 / D-060: with the sim s given, a stage-keyed authored tile (ArenaArt 'hood.sN') wins for that stage only.
+  function pattern(R, th, role, s) {
+    var k = Math.max(8, Math.round(R.ppm / 4) * 4), t = (s && P.ArenaArt && P.ArenaArt.tileFor(th.id, s, role, k)) || P.Themes.tile(th, role, k);
     if (t && !t.pat) t.pat = R.ctx.createPattern(t.cv, 'repeat');
     return t;
   }
@@ -272,11 +273,13 @@ P.RenderWorld = (function () {
     R.ctx.fillStyle = col; R.ctx.fillRect(R.X(Math.min(x0, x1)), R.Y(y1), Math.abs(x1 - x0) * R.ppm, (y1 - y0) * R.ppm);
   }
   function genGround(R, s, y0, y1) {
-    var th = themeOf(s), ya = y0 - 1, yb = y1 + 1, g = pattern(R, th, 'ground'), w = pattern(R, th, 'walk');
+    var th = themeOf(s), ya = y0 - 1, yb = y1 + 1, g = pattern(R, th, 'ground', s), w = pattern(R, th, 'walk', s);
+    var wet = P.Themes.subOf(th, P.Themes.subIndex(s)).wet;   // D-060: the sub-row 'wet' flag (zeytinburnu stage 2) adds the lane-edge water
     if (g) fillTile(R, g, -4.6, 4.6, ya, yb, 0, 1);
     [-1, 1].forEach(function (sd) {
       if (w) fillTile(R, w, sd * 4.6, sd * 7, ya, yb, sd * 4.6, sd);
       sideGround(R, th, sd, ya, yb);
+      if (wet && sd > 0) laneWater(R, th, ya, yb);
       kerb(R, sd, ya, yb, th);
     });
     if (P.ArenaSky) P.ArenaSky.draw(R, s, th, ya, yb);   // R1-T3: distant landmarks at the edges, slower than the street
@@ -293,23 +296,35 @@ P.RenderWorld = (function () {
     if (t) fillTile(R, t, sd * 7, sd * (7 + t.w), ya, yb, sd * 7, sd);
     darkFill(R, sd * (7 + (t ? t.w : 0)), sd * 16, ya, yb, kind === 'grass' ? '#3F4A36' : '#2A2C31');
   }
-  function water(R, th, sd, ya, yb) {
-    var c = R.ctx, u = R.ppm, t = performance.now() / 1000, xa = sd > 0 ? 7 : -16, xb = sd > 0 ? 16 : -7, i;
-    darkFill(R, xa, xb, ya, yb, th.wat);
+  // A water strip from x0 to x1: the colour fill and the drifting ripple lines (the waterfront and quay water drawing).
+  function waterStrip(R, col, x0, x1, ya, yb, t) {
+    var c = R.ctx, i;
+    darkFill(R, x0, x1, ya, yb, col);
     c.strokeStyle = 'rgba(190,220,230,0.2)'; c.lineWidth = 1.2;
     for (var wy = Math.floor(ya / 1.5) * 1.5; wy < yb; wy += 1.5) {
       c.beginPath();
       for (i = 0; i <= 8; i++) {
-        var wx = xa + (xb - xa) * i / 8, yy = wy + 0.12 * Math.sin(t * 1.4 + wx * 1.3 + wy * 0.7);
+        var wx = x0 + (x1 - x0) * i / 8, yy = wy + 0.12 * Math.sin(t * 1.4 + wx * 1.3 + wy * 0.7);
         if (i) c.lineTo(R.X(wx), R.Y(yy)); else c.moveTo(R.X(wx), R.Y(yy));
       }
       c.stroke();
     }
+  }
+  function water(R, th, sd, ya, yb) {
+    var c = R.ctx, u = R.ppm, t = performance.now() / 1000, i;
+    waterStrip(R, th.wat, sd > 0 ? 7 : -16, sd > 0 ? 16 : -7, ya, yb, t);
     c.fillStyle = 'rgba(255,220,160,0.14)';
     for (i = 0; i < 4; i++) {
       var ry = ya + ((i * 13 + Math.floor(t * 0.5)) % 10);
       c.fillRect(R.X(sd * (7.4 + i * 0.2)), R.Y(ry + 1.4), 0.2 * u, 1.6 * u);
     }
+  }
+  // D-060 Sahil Rıhtımı (zeytinburnu stage 2, sub flag 'wet'): a water band on the sea-side walk that starts at the kerb (|x| 4.6,
+  // outside the 4.4 m lane). Visual only: no collision and no gameplay. A pale quay lip marks its outer edge.
+  function laneWater(R, th, ya, yb) {
+    var x0 = 4.6, x1 = 5.8;
+    waterStrip(R, th.wat, x0, x1, ya, yb, performance.now() / 1000);
+    darkFill(R, x1, x1 + 0.06, ya, yb, 'rgba(214,206,190,0.85)');
   }
   function kerb(R, sd, ya, yb, th) {
     var c = R.ctx, u = R.ppm, X = R.X(sd * 4.6);
@@ -384,9 +399,9 @@ P.RenderWorld = (function () {
   // Screen tint: no weather tint while the hero is under a roof (rain or fog would not reach the hero there).
   W.screenLight = function (s) {
     var wx = P.Indoor && P.Indoor.near(s) ? 'clear' : P.Themes.subOf(themeOf(s), P.Themes.subIndex(s)).wx;
-    return P.Themes.tintFor(hoodPos(s), wx);
+    return P.Themes.tintFor(hoodPos(s), wx, themeOf(s));
   };
-  W.vignette = function (s) { return P.Themes.vignette(hoodPos(s)); };
+  W.vignette = function (s) { return P.Themes.vignette(hoodPos(s), themeOf(s)); };
 
   return W;
 })();

@@ -2,8 +2,8 @@
 // Sign words on authored street props. Keys: sign.* (written at runtime by view/arena-props.js, so the art holds no words).
 // Shop and vendor names are proper nouns from docs/hood-visual-briefs.md; each carries "TR owner check" until the owner confirms.
 Object.assign(P.STR.tr, {
-  'sign.bilet': 'Bilet Gişesi', 'sign.borek': 'Börekçi Nazmiye', 'sign.kahveci': 'Kahveci Sadık', 'sign.karabiber': 'Karabiber Kemal', 'sign.kestane': 'Dede Kestaneci', 'sign.kuyumcu': 'Nazlı Kuyumcu', 'sign.simit': 'Simit', 'sign.vapur': 'Vapur Pastanesi',
+  'sign.antika': 'Antika Reşat', 'sign.bilet': 'Bilet Gişesi', 'sign.borek': 'Börekçi Nazmiye', 'sign.hediyelik': 'Saray Hediyelik', 'sign.kahveci': 'Kahveci Sadık', 'sign.karabiber': 'Karabiber Kemal', 'sign.kestane': 'Dede Kestaneci', 'sign.kuyumcu': 'Nazlı Kuyumcu', 'sign.rehber': 'Rehber Hasan', 'sign.simit': 'Simit', 'sign.vapur': 'Vapur Pastanesi',
 });
 Object.assign(P.STR.en, {
-  'sign.bilet': 'Bilet Gişesi', 'sign.borek': 'Börekçi Nazmiye', 'sign.kahveci': 'Kahveci Sadık', 'sign.karabiber': 'Karabiber Kemal', 'sign.kestane': 'Dede Kestaneci', 'sign.kuyumcu': 'Nazlı Kuyumcu', 'sign.simit': 'Simit', 'sign.vapur': 'Vapur Pastanesi',
+  'sign.antika': 'Antika Reşat', 'sign.bilet': 'Bilet Gişesi', 'sign.borek': 'Börekçi Nazmiye', 'sign.hediyelik': 'Saray Hediyelik', 'sign.kahveci': 'Kahveci Sadık', 'sign.karabiber': 'Karabiber Kemal', 'sign.kestane': 'Dede Kestaneci', 'sign.kuyumcu': 'Nazlı Kuyumcu', 'sign.rehber': 'Rehber Hasan', 'sign.simit': 'Simit', 'sign.vapur': 'Vapur Pastanesi',
 });

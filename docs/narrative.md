@@ -126,7 +126,7 @@ traffic is gridlocked. Ataköy is 17 km away and the only way there is to walk.
 | B. Karaköy & the Bridge | H03–H04 (11–20) | Paşa the cat hisses at an empty alley... it isn't empty. Zombie fishermen cast lines that reel you in. **Kaan joins after the bridge boss (L20, proposed):** a misunderstanding (he thinks Arda is infected), then a team-up. | *The Bride* (L15): a zombie wedding party in a Karaköy café. *Big Fisherman* (L20). |
 | C. Eminönü & Sirkeci | H05–H06 (21–30) | Spice clouds as hazards (pepper = stun). Kaan has to put down his zombified boat captain. First emotional beat. Sirkeci ends the slice at L30. | *The Captain* (L25): anchor chain sweep. *The Ticket Man* (L30, slice end). |
 | D. Grand Bazaar & Beyazıt | H07–H08 (31–40) | Maze levels. Humans looting the gold shops. First hint that people are the next threat. | *The Carpet Golem* (L35). *The Pigeon Man* (L40). |
-| E. Laleli & Aksaray | H10–H11 (46–55) | Mannequins everywhere (are they zombies?). First night level. **Campfire:** Arda admits his crush on Mila. Kaan teases him, then goes quiet. *(Triangle seed.)* | *The Wholesaler* (L45). *Dolmuş Driver* (L50). |
+| E. Topkapı Sarayı & Haliç–Balat | H10–H11 (46–55) | Dusk at the palace gate and the tour queue (D-060), then Balat's colour houses into night. **Campfire at Fatma Nine's Garage**, Kaan's grandmother's garage in Balat (owner story call; to be rewritten by owner). Carried over until then: Arda admits his crush on Mila. Kaan teases him, then goes quiet. *(Triangle seed.)* | *The Docent* (L50). *The Antiquarian* (L55). |
 | F. Kumkapı & Yenikapı | H09 and H12 (41–45, 56–60) | Fish market, then the underground Marmaray station with flashlight-only levels. | *Fish Porter* (L55). *The Evening Crowd* (L60): a station-wide horde. |
 | G. Samatya & Yedikule | H13–H14 (61–70) | Sunrise over the sea. The walk turns along the coast. | *The Grill Man* (L65): the barbecue horde (was "The Picnic"). *Key Keeper* (L70). |
 | H. Kazlıçeşme & Zeytinburnu | H15–H16 (71–80) | The coastal road. A crackling radio mentions "safe zones" and "stay away from the north". | *Dye Foreman* (L75). *Hose Man* (L80). |
@@ -152,14 +152,16 @@ no longer the only threat. People are worse.
 |---|---|---|---|
 | 101–110 | **Ataköy & Bakırköy streets** | Scooter hack (Arda's skill tree unlocks). **Mila joins.** Kaan and Mila bicker instantly. | *The Scrapyard Horde* |
 | 111–120 | **D-100 highway** | The world's biggest parking lot, now full of the dead. First vehicle combat levels. | *The Bendy Bus*: an articulated bus packed with zombies |
-| 121–130 | **Topkapı & the Theodosian Walls** | **First human enemies:** the Kuzgunlar ambush the group and steal their batteries. | *Kuzgun Lieutenant* |
-| 131–140 | **Golden Horn (Haliç) crossing** | Get the batteries back. Mila takes charge; Arda notices Kaan noticing her. | *Reis*: Kuzgunlar leader |
+| 121–130 | **Topkapı Surları** (TR owner check; the land walls, renamed from "Topkapı & the Theodosian Walls") | **First human enemies:** the Kuzgunlar ambush the group and steal their batteries. | *Kuzgun Lieutenant* |
+| 131–140 | **Fener–Eyüp crossing** (TR owner check; renamed from "Golden Horn (Haliç) crossing", so Balat is not used twice) | Get the batteries back. Mila takes charge; Arda notices Kaan noticing her. | *Reis*: Kuzgunlar leader |
 | 141–150 | **Kağıthane** | They save a barefoot girl from a horde. She won't speak. **Ada joins.** Players see *Calm* in action. | *The Swarm* |
 | 151–160 | **Levent & Maslak** | Skyscrapers. *Site Yönetimi* controls a luxury residence and demands "aidat" to let them pass. Mila–Ada friction starts. Bond system expands to three relationships. | *The Security Chief* |
 | 161–170 | **İstinye & Emirgan** | Bosphorus shore. In Emirgan Park, the girl finally says her name: **Ada**. Kaan jokes that it means "island" in Turkish, "which explains a lot". | *The Gardener* |
 | 171–180 | **Yeniköy & Tarabya** | Yalı mansions. Site Yönetimi HQ. Satire peaks: a zombie apocalypse and they're still fining people for parking. | *The Yönetici* (The Manager) |
 | 181–190 | **Sarıyer** | Dede's house: empty. **Dad's Letter #2**: they drove to İzmir (radio says it's safe). Left behind: upgrade pack, toolbox and **Dede's boxy 80s sedan**. Warning: *"There's a facility in the forest. If you see people in grey uniforms, run."* Ada's hands start shaking. | *The Fish Market* |
 | 191–200 | **Zekeriyaköy forest** | **Mila's parents are alive.** First reunion in the game, a deliberate emotional payoff. Her mom, a doctor, treats Ada's wound and goes pale at the blood work. That night, grey-uniformed **Kuzey Güvenlik** sweep the forest with drones. They're hunting someone. Mila's parents stay to hold the house; Mila chooses the group. | *First contact: Kuzey Güvenlik squad* |
+
+*Crossing label (owner, 2026-11-13): "Fener–Eyüp" names the L131–140 crossing only. Hoods 27–28 (Haliç başı and the Kağıthane edge) stay as they are.*
 
 **Cliffhanger (L200):** Mila's mom pulls Arda aside: *"That girl isn't infected. She's
 something else. Keep her close and keep your eyes open."* Cut to Ada, watching them.

@@ -23,12 +23,17 @@ const leaf = (x, y, a, col) => `<path transform="rotate(${a} ${f(x)} ${f(y)})" d
 function strings(o) {
   const span = 14.4, y0 = -1.5, sag = 0.9, n = o.n || 16, r = rng(o.seed || 1), cols = o.cols;
   let body = '', glows = [];
-  if (o.style === 'bunting') {
+  if (o.style === 'bunting' || o.style === 'flags') {   // flags = bunting with tour-group flags added below
     for (let i = 0; i < n; i++) {
       const a = wireAt(span, y0, sag, i / n), b = wireAt(span, y0, sag, (i + 1) / n), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2 + 0.34;
       body += poly([[a[0] + 0.03, a[1]], [b[0] - 0.03, b[1]], [mx, my]], cols[i % cols.length], { lw: 0.022 }) + line(a[0] + 0.1, a[1] + 0.06, mx - 0.02, my - 0.08, COOL, 0.02, { ink: 0 }).replace('/>', ' stroke-opacity="0.35"/>');
     }
     body = wirePath(span, y0, sag) + body;
+    if (o.style === 'flags') for (let i = 2; i < n; i += 4) {   // D-060 tour-group flags on short poles, between the lamps
+      const p = wireAt(span, y0, sag, i / n);
+      body += line(p[0], p[1], p[0], p[1] + 0.5, '#6A5A2A', 0.03) + poly([[p[0], p[1] + 0.03], [p[0] + 0.5, p[1] + 0.1], [p[0] + 0.5, p[1] + 0.3], [p[0], p[1] + 0.33]], o.flag || '#B5453A', { lw: 0.022 }) +
+        line(p[0] + 0.08, p[1] + 0.17, p[0] + 0.42, p[1] + 0.17, '#F4EBDD', 0.04);
+    }
     for (let i = 0; i <= n; i += 4) { const p = wireAt(span, y0, sag, i / n); body += rect(p[0] - 0.04, p[1] + 0.02, 0.08, 0.11, '#C9A227', { lw: 0.018 }); glows.push([p[0], p[1] + 0.1, 0.35, '#FFD98A']); }
   } else {
     body = wirePath(span, y0, sag);
@@ -69,7 +74,15 @@ function laundry(o) {
   [-1, 1].forEach(sd => { body += line(sd * span / 2, 0, sd * span / 2, -h, INK, 0.1) + line(sd * span / 2 - 0.01, 0, sd * span / 2 - 0.01, -h, '#6B6E78', 0.045); });
   body += `<path d="M${f(-span / 2)} ${f(-h)}Q0 ${f(-h + sag * 2)} ${f(span / 2)} ${f(-h)}" fill="none" stroke="${INK}" stroke-width="0.04" stroke-linecap="round"/>`;
   items.forEach((it, i) => { const q = (i + 0.5) / items.length, p = wireAt(span, -h, sag * 2, q); body += cloth(it[0], p[0], p[1], it[1], o.shade || COOL); });
-  return rig([-span / 2 - 0.3, -h - 0.1, span / 2 + 0.3, 0.1], body, { alpha: 0.85 });
+  const glows = [];
+  let bb = [-span / 2 - 0.3, -h - 0.1, span / 2 + 0.3, 0.1];
+  if (o.festoon) {   // D-060 café festoon: a bulb wire across the lane above the washing (its own wire, so it never tangles with the clothes)
+    const fs = 14.4, fy = -3.3, fsag = 0.7, cols = ['#FFE2A8', '#FFB45A', '#FFD98A'];
+    body += wirePath(fs, fy, fsag);
+    for (let i = 0; i <= 12; i++) { const p = wireAt(fs, fy, fsag, i / 12); body += bulb(p[0], p[1] + 0.02, cols[i % cols.length]); glows.push([p[0], p[1] + 0.16, 0.5, '#FFB45A']); }
+    bb = [-fs / 2 - 0.2, fy - 0.1, fs / 2 + 0.2, 0.1];
+  }
+  return rig(bb, body, { alpha: 0.85, glows });
 }
 
 // Woven kilim hanging from the vault: diamond pattern, fringe along the bottom edge.
@@ -89,17 +102,26 @@ const lantern = (x, y, len) => line(x, y, x, y + len, '#6A5A2A', 0.03) + path(`M
   line(x, y + len + 0.1, x, y + len + 0.4, '#8A6A1A', 0.02) + path(`M${f(x - 0.13)} ${f(y + len + 0.4)}L${f(x)} ${f(y + len + 0.5)}L${f(x + 0.13)} ${f(y + len + 0.4)}Z`, '#C9A227', { lw: 0.02 });
 
 // The bazaar vault: a stone arch band with a blue underside, brass lanterns and kilims. span 12, rise 2.6 as the procedural vault.
+// Wall torch on an iron bracket under the arch (D-060 Zindanlar). The flame is drawn here; its glow is added at runtime.
+const torch = (x, y) => line(x, y, x, y + 0.22, '#3A3A3A', 0.05) + path(`M${f(x - 0.09)} ${f(y + 0.1)}L${f(x)} ${f(y + 0.25)}L${f(x + 0.09)} ${f(y + 0.1)}Z`, '#5A4A3A', { lw: 0.02 }) +
+  path(`M${f(x - 0.07)} ${f(y - 0.02)}Q${f(x - 0.1)} ${f(y - 0.16)} ${f(x)} ${f(y - 0.3)}Q${f(x + 0.1)} ${f(y - 0.14)} ${f(x + 0.07)} ${f(y - 0.02)}Z`, '#FFB347', { lw: 0.02 }) +
+  ell(x, y - 0.12, 0.035, 0.07, '#FFF1C2', { ink: 0 });
+// o.kilims: woven hangings (none for the Zindanlar vault); o.band / o.bandOp: the arch's underside colour; o.torch: torches, not lanterns.
 function vault(o) {
-  const span = 12, h = 2.6, K = o.kilims;
+  const span = 12, h = 2.6, K = o.kilims || [], band = o.band || '#2A7F9F', bandOp = o.bandOp || 0.4;
   const archY = x => -h * Math.sqrt(Math.max(0, 1 - Math.pow(x / (span / 2), 2)));
-  let body = `<path d="M${f(-span / 2)} 0A${span / 2} ${h} 0 0 1 ${f(span / 2)} 0" fill="none" stroke="#2A7F9F" stroke-opacity="0.4" stroke-width="0.36" stroke-linecap="round"/>`;
+  let body = `<path d="M${f(-span / 2)} 0A${span / 2} ${h} 0 0 1 ${f(span / 2)} 0" fill="none" stroke="${band}" stroke-opacity="${bandOp}" stroke-width="0.36" stroke-linecap="round"/>`;
   body += `<path d="M${f(-span / 2)} 0A${span / 2} ${h} 0 0 1 ${f(span / 2)} 0" fill="none" stroke="${INK}" stroke-width="0.12" stroke-linecap="round"/>`;
   body += `<path d="M${f(-span / 2)} -0.04A${span / 2} ${h} 0 0 1 ${f(span / 2)} -0.04" fill="none" stroke="${WARM}" stroke-opacity="0.45" stroke-width="0.04" stroke-linecap="round"/>`;
   for (let i = -2; i <= 2; i++) { const x = i * span / 5, y = archY(x) + 0.06; body += line(x, y - 0.1, x, y + 0.1, INK, 0.06); }
-  [-3.6, -1.2, 1.2, 3.6].forEach((x, i) => { body += kilim(x, archY(x) + 0.12, 0.9, 1.25, K[i % K.length][0], K[i % K.length][1], K[i % K.length][2]); });
+  if (K.length) [-3.6, -1.2, 1.2, 3.6].forEach((x, i) => { body += kilim(x, archY(x) + 0.12, 0.9, 1.25, K[i % K.length][0], K[i % K.length][1], K[i % K.length][2]); });
   const glows = [];
-  for (let i = -2; i <= 2; i++) { const x = i * span / 5, y = archY(x) + 0.1; body += lantern(x, y, 0.35 + (i % 2 ? 0.12 : 0)); glows.push([x, y + 0.7, 1.0, '#FFD98A']); }
-  return rig([-span / 2 - 0.2, -h - 0.2, span / 2 + 0.2, 0.3], body, { glows, alpha: 0.78 });
+  for (let i = -2; i <= 2; i++) {
+    const x = i * span / 5, y = archY(x) + 0.1;
+    if (o.torch) { body += torch(x, y + 0.02); glows.push([x, y - 0.15, 1.0, '#FFB45A']); }
+    else { body += lantern(x, y, 0.35 + (i % 2 ? 0.12 : 0)); glows.push([x, y + 0.7, 1.0, '#FFD98A']); }
+  }
+  return rig([-span / 2 - 0.2, -h - 0.2, span / 2 + 0.2, 0.3], body, { glows, alpha: o.alpha || 0.78 });
 }
 
 // A street tree's canopy reaching in over the lane edge from one side (side -1 left, 1 right): branch, leaf mass in three greens, light gaps.

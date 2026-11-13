@@ -29,7 +29,7 @@ Object.assign(P.DLG.tr, {
   "C90c": [{ t: "Eve git oğlum. Balkonun ışığını açık bıraktım.", ok: 1 }],
   "C90d": [{ t: "Geliyorum anne. Yarın sabah kapındayım. Mont da giyeceğim, söz.", ok: 1 }],
   "C90e": [{ t: "Kahvaltıyı ben hazırlarım. Sen sadece gel.", ok: 1 }],
-  "CMPa": [{ t: "Kapalı bir fırın. Ocakta son ateş. Kıyamette bile en güvenli yer fırın.", ok: 1 }],
+  "CMPa": [{ t: "Duvarda yarım boyalı tabela: Fatma Nine Balık Ekmek. Kaan elini havluya siliyor.", ok: 1 }],
   "CMPb": [{ t: "Kaan... Mila'ya âşık olduğumu biliyorsun, değil mi?", ok: 1 }],
   "CMPc": [{ t: "Kanka herkes biliyor. Güvercinler bile biliyor. Bir tek sen söylemedin.", ok: 1 }],
   "CMPd": [{ t: "Kaan bir süre sustu. Sonra ateşe bir odun attı. Romantik sohbet bu kadar.", ok: 1 }],

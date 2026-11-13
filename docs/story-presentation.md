@@ -145,7 +145,7 @@ Today the bars are decoration. Three options:
 | H03 · 2 | Mom: don't go over the bridge | "Köprüye yaklaşma." (new) |
 | H04 · 4 | Call drops in the fog | "Anne? Kesiliyorsun!" |
 | H06 · 5 | Mom's last clear call (slice end) | "...seni seviyoruz... eve gel..." |
-| H11 · 4 | Text from Mom at the campfire (no signal, so a text): asks about Mila | "Mila nasıl?" (new) |
+| H11 Haliç–Balat · 4 | Text from Mom at the campfire (no signal, so a text): asks about Mila. To be rewritten by owner (D-060 moves the campfire to Fatma Nine's Garage). | "Mila nasıl?" (new; to be rewritten by owner) |
 | H20 · 1 | Mom's voice in Dad's letter (letter, not a call) | Letter #1 |
 
 Calls become rarer after H06 (no signal). Texts and voice notes replace them (§8).
@@ -260,8 +260,8 @@ The table keeps the canon beat from narrative.md and the journey (journey.md §5
 | H07 Kapalıçarşı | 3 panels: shutters, looters' hints | Shopkeeper: "Kapıyı açmayın!" (Don't open the door!) | Text from Mom (short) | Note on the shutter | Voice note: shopkeeper | The Carpet Golem. First human threat hinted. |
 | H08 Beyazıt | 3 panels: pigeons over the square | "Güvercinler..." (The pigeons...) | Mila: "Gelirsen haber ver." (Let me know if you come.) | "Bugün kapalı" sign | Polaroid: students | The Pigeon Man feeds the birds. |
 | H09 Kumkapı | 3 panels: the quay, the last meze | Porter: "Buz, buz!" (Ice, ice!) | No signal | Crates on ice | Voice note: Mom's old song | The Fish Porter. |
-| H10 Laleli | 3 panels: mannequins in the window | Arda: "Bunlar zombi mi?" (Are these zombies?) | Text: Kaan joking | Cartons with a note | Voice note: a hamal | The Wholesaler. "Are they zombies?" |
-| H11 Aksaray | 5 panels: campfire, crush admitted | Arda: "Mila'yı seviyorum." (I like Mila.) | Mom: "Mila nasıl?" (How's Mila?) | Bakery with the oven lit | Polaroid: Arda and Mila (before) | Dolmuş Driver. Triangle seed. Kaan goes quiet. |
+| H10 Topkapı Sarayı (TR owner check, D-060) | 3 panels: to be rewritten by owner (was: mannequins in the window) | to be rewritten by owner (was: Arda: "Bunlar zombi mi?" (Are these zombies?)) | to be rewritten by owner (was: Text: Kaan joking) | to be rewritten by owner (was: Cartons with a note) | to be rewritten by owner (was: Voice note: a hamal) | The Docent. To be rewritten by owner (was: "Are they zombies?", the Laleli beat). |
+| H11 Haliç–Balat (TR owner check, D-060) | 5 panels: campfire at Fatma Nine's Garage, to be rewritten by owner (was: campfire, crush admitted) | to be rewritten by owner (was: Arda: "Mila'yı seviyorum." (I like Mila.)) | to be rewritten by owner (was: Mom: "Mila nasıl?" (How's Mila?)) | to be rewritten by owner (was: Bakery with the oven lit) | to be rewritten by owner (was: Polaroid: Arda and Mila (before)) | The Antiquarian. Triangle seed and Kaan going quiet are carried over until the owner rewrites them. |
 | H12 Yenikapı | 3 panels: the tunnel and the cut | Arda: "Sinyal yok." (No signal.) | Call drops mid-line | Dead phone on the tiles | Voice note: a commuter's message | The Evening Crowd. The line goes dark. |
 | H13 Samatya | 3 panels: the sea at dawn | Radio: "Güvenli bölgeler..." (Safe zones...) | Radio | Abandoned picnic | Polaroid: a picnic | The Grill Man. Safe zones and the north. |
 | H14 Yedikule | 3 panels: walls and gardens | Arda: "Bu duvarlar hep ayakta." (These walls are still standing.) | None | Note on the gate: "Anahtarı bahçıvana verin." | Keys | The Key Keeper. |

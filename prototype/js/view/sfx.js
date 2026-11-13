@@ -10,10 +10,10 @@ P.Sfx = (function () {
   var AMB_SEC = 8, MAX_VOICES = 20, BUSY = 12, FADE = 1.5, AMB_GROUPS = ['street', 'waterfront', 'bazaar', 'wind', 'night'];
   // Journey theme id -> ambience group (journey.js). 'bridge' is the Galata Köprüsü wind bed.
   var GROUP_OF = {
-    istiklal: 'street', galata: 'street', eminonu: 'street', sirkeci: 'street', beyazit: 'street', laleli: 'street',
-    aksaray: 'street', yedikule: 'street', bakirkoy: 'street', zeytinburnu: 'street',
+    istiklal: 'street', galata: 'street', eminonu: 'street', sirkeci: 'street', beyazit: 'street', saray: 'street',
+    yedikule: 'street', bakirkoy: 'street', zeytinburnu: 'street',
     karakoy: 'waterfront', kumkapi: 'waterfront', yenikapi: 'waterfront', samatya: 'waterfront', kazlicesme: 'waterfront',
-    sahil: 'waterfront', marina: 'waterfront', bazaar: 'bazaar', bridge: 'wind', atakoy: 'night'
+    sahil: 'waterfront', marina: 'waterfront', halic: 'waterfront', bazaar: 'bazaar', bridge: 'wind', atakoy: 'night'
   };
   var ctx = null, comp = null, master = null, rev = null, bus = {}, vol = { sfx: 1, ui: 1, voice: 1, ambience: 1 }, mv = 1;
   var cache = {}, last = {}, lastVar = {}, active = [], amb = null, ambWant = null, warmed = false;

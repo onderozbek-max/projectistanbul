@@ -2,7 +2,7 @@
 // marks at the spawn points. The sim decides where things go (js/sim/layouts.js, numbers in js/config-layouts.js).
 // Two entry points: P.LayoutFx.floor runs from istanbul-landmarks.js L.draw (under the street items, so arches and
 // billboards in a zone still show); P.LayoutFx.drawGround is the render hook (render.js, over the street, under decals).
-// Floors take a tint from the hood's theme, so a plaza in Samatya reads differently from one in Laleli.
+// Floors take a tint from the hood's theme, so a plaza in Samatya reads differently from one in Saray.
 // Painters register into P.Props (kinds lx_*); contract as istanbul-props.js: fn(c, X, Y, s, o), s = px per metre.
 P.LayoutFx = (function () {
   var H = P.Props.h, INK = '#14151F', LINE = 'rgba(0,0,0,0.13)';
@@ -125,7 +125,7 @@ P.LayoutFx = (function () {
     H.ln(c, X + w / 2, Y - d / 2, X + w / 2, Y + d / 2, '#D9CBB0', 2);
   }
 
-  // lx_truck: container lorry with a cab at the top of the screen (bloater arena cover, Laleli and Zeytinburnu kits).
+  // lx_truck: container lorry with a cab at the top of the screen (bloater arena cover, Zeytinburnu kit).
   function truck(c, X, Y, s, o) {
     var w = (o.w || 2.2) * s, d = (o.h || 5.0) * s, hg = 0.9 * s;
     H.shadow(c, X, Y, w * 0.62, d * 0.5);

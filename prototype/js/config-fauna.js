@@ -5,8 +5,8 @@
 (function (C) {
   C.birdLook = {
     seagull: ['galata', 'bridge', 'karakoy', 'eminonu', 'sirkeci', 'kumkapi', 'samatya', 'yedikule', 'kazlicesme',
-      'bakirkoysahil', 'atakoysahil', 'atakoy'],
-    pigeon: ['istiklal', 'kapalicarsi', 'beyazit', 'laleli', 'aksaray', 'yenikapi', 'zeytinburnu', 'bakirkoy'],
+      'bakirkoysahil', 'atakoysahil', 'atakoy', 'halic'],
+    pigeon: ['istiklal', 'kapalicarsi', 'beyazit', 'saray', 'yenikapi', 'zeytinburnu', 'bakirkoy'],
   };
   C.fauna = {
     cats: {

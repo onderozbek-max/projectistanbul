@@ -29,7 +29,7 @@ Object.assign(P.DLG.en, {
   "C90c": [{ t: "Go on home, sweetheart. I left the balcony light on for you.", ok: 1 }],
   "C90d": [{ t: "I'm coming, Mom. I'll be at your door tomorrow morning. Wearing a jacket, promise.", ok: 1 }],
   "C90e": [{ t: "Eat something first. Everything else can wait until morning.", ok: 1 }],
-  "CMPa": [{ t: "A closed bakery. One last fire in the oven. Nobody here but us.", ok: 1 }],
+  "CMPa": [{ t: "Fatma Nine Balık Ekmek, half-painted on the wall. Kaan's hands go to his towel.", ok: 1 }],
   "CMPb": [{ t: "Kaan... you know I'm in love with Mila.", ok: 1 }],
   "CMPc": [{ t: "Everyone knows, man. Now you've admitted it.", ok: 1 }],
   "CMPd": [{ t: "Kaan went quiet for a while. Then he threw a log on the fire.", ok: 1 }],

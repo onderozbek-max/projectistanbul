@@ -40,6 +40,11 @@ function cart(c) {
     s += line(0, mid - 0.1, 0, y, INK, 0.04);
     for (let i = 0; i < 8; i++) { const a0 = i * Math.PI / 4, a1 = (i + 1) * Math.PI / 4; s += path(`M0 ${f(y)}L${f(Math.cos(a0) * R)} ${f(y + Math.sin(a0) * R * 0.5)}A${f(R)} ${f(R * 0.5)} 0 0 1 ${f(Math.cos(a1) * R)} ${f(y + Math.sin(a1) * R * 0.5)}Z`, i % 2 ? '#F4EBDD' : c.a, { lw: LW * 0.7 }); }
     top = y - R * 0.5;
+  } else if (c.kind === 'audio') {   // D-060 audio-guide cart: a row of headset cases and a striped canopy on two poles
+    for (let i = 0; i < 4; i++) s += rect(-0.5 + i * 0.27, mid - 0.2, 0.22, 0.2, i % 2 ? c.a : '#2A2C31', { lw: LW * 0.6, rx: 0.03 }) + ell(-0.39 + i * 0.27, mid - 0.24, 0.08, 0.06, '#1E1F25', { lw: LW * 0.5 });
+    s += line(-0.62, yb - 0.2, -0.62, mid - 0.7, INK, 0.035) + line(0.62, yb - 0.2, 0.62, mid - 0.7, INK, 0.035);
+    s += stripes(-0.72, mid - 0.78, 1.44, 0.34, 6, c.a, c.b, true);
+    top = mid - 1.1;
   } else {   // hand cart: stacked cartons and a bag
     for (let i = 0; i < 3; i++) s += box(-0.38 + i * 0.4, mid + 0.08, 0.34, 0.3, 0.2, c.a, c.b, { k: 0.8 }) + line(-0.38 + i * 0.4, mid - 0.4, -0.38 + i * 0.4, mid - 0.15, '#F4EBDD', 0.03, { op: 0.8 });
     s += box(-0.2, mid - 0.2, 0.34, 0.3, 0.2, c.a, c.b, { k: 0.8 }) + ell(0.34, mid - 0.12, 0.17, 0.12, '#CFC6B4', { lw: LW * 0.8 });
@@ -90,6 +95,19 @@ function kiosk(c) {
   return prop('kiosk', w, d, [-w / 2 - 0.1, yt - 0.34, w / 2 + 0.1, yb + 0.06], s, lbl(c, -0.7, yb - hg + 0.74, 1.4, 0.2));
 }
 
+// ---- antique stand (D-060 Haliç): cfg { body, glass, a, b, c, label } ; 1.6 x 1.2. A wooden cabinet with a glass top: a vase, a brass lamp, a clock, a plate ----
+function antique(c) {
+  const w = 1.6, d = 1.2, hg = 0.7, yb = d / 2, yt = yb - d - hg, my = yt + d / 2;
+  let s = ell(0, 0.04, 0.95, 0.5, '#1E1F25', { ink: 0, op: 0.35 }) + box(0, 0, w, d, hg, c.glass || '#B9D3DE', c.body);
+  s += ell(-0.45, my + 0.12, 0.14, 0.08, c.a, { lw: LW * 0.8 }) + rect(-0.5, my - 0.22, 0.1, 0.34, c.a, { lw: LW * 0.7, rx: 0.04 }) + ell(-0.45, my - 0.22, 0.06, 0.03, '#F4EBDD', { lw: LW * 0.5 });
+  s += poly([[0.02, my - 0.04], [0.26, my - 0.04], [0.2, my - 0.26], [0.08, my - 0.26]], '#C9A227', { lw: LW * 0.7 }) + ell(0.14, my + 0.02, 0.1, 0.05, '#8A6A1C', { lw: LW * 0.6 });
+  s += ell(0.5, my - 0.1, 0.11, 0.11, c.b, { lw: LW * 0.8 }) + line(0.5, my - 0.1, 0.5, my - 0.2, INK, 0.02) + line(0.5, my - 0.1, 0.56, my - 0.06, INK, 0.02);
+  s += ell(0.02, my + 0.3, 0.16, 0.08, c.c || '#F4EBDD', { lw: LW * 0.7 }) + ell(0.02, my + 0.29, 0.09, 0.04, c.a, { ink: 0, op: 0.7 });
+  s += line(-0.27, yb - hg + 0.12, -0.27, yb - 0.1, INK, 0.02) + line(0.27, yb - hg + 0.12, 0.27, yb - 0.1, INK, 0.02);
+  s += ell(-0.14, yb - 0.3, 0.035, 0.035, '#C9A227', { lw: LW * 0.5 }) + ell(0.14, yb - 0.3, 0.035, 0.035, '#C9A227', { lw: LW * 0.5 });
+  return prop('antique', w, d, [-w / 2 - 0.05, yt - 0.04, w / 2 + 0.05, yb + 0.06], s, lbl(c, -0.6, yb - hg + 0.08, 1.2, 0.22));
+}
+
 // ---- stall (lx_stall): cfg { body, top, a, b, goods: 'pastry' | 'spice' | 'lokum' | 'books', label } ; 1.8 x 1.6 ----
 function stall(c) {
   const w = 1.8, d = 1.6, hg = 0.85, yb = d / 2, yt = yb - d - hg, cy0 = yt - 0.46;
@@ -106,4 +124,4 @@ function stall(c) {
   return prop('lx_stall', w, d, [-w / 2 - 0.05, cy0 - 0.02, w / 2 + 0.05, yb + 0.06], s, lbl(c, -0.8, yb - hg + 0.1, 1.6, 0.5));
 }
 
-module.exports = { cart, crates, kiosk, stall };
+module.exports = { cart, crates, kiosk, stall, antique };

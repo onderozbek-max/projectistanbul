@@ -228,8 +228,8 @@ Zombies **don't use words**: consonant piles and moans ("Hhhnnrrgh."). The zombi
 | The Carpet Golem (Grand Bazaar) | shopkeeper politeness, "Come, look" | haggling stereotypes |
 | The Pigeon Man (Beyazıt) | bird-chirpy, affectionate | harm to animals |
 | The Fish Porter (Kumkapı) | huge, few words, a worker | mockery |
-| The Wholesaler (Laleli) | fast sales patter, numbers | ethnic trade clichés |
-| The Dolmuş Driver (Aksaray) | shouting, "One more seat, bro!" | a real route or driver slang |
+| The Docent (Topkapı Sarayı, TR owner check; D-060) | to be rewritten by owner (was: fast sales patter, numbers, for The Wholesaler) | to be rewritten by owner (was: ethnic trade clichés) |
+| The Antiquarian (Haliç–Balat, TR owner check; D-060) | to be rewritten by owner (was: shouting, "One more seat, bro!", for The Dolmuş Driver) | to be rewritten by owner (was: a real route or driver slang) |
 | The Evening Crowd (Yenikapı) | not one voice: a chorus; repetition | speaking as one person |
 | The Grill Man (Samatya) | warm host, dangerous hospitality | religious or regional imagery |
 | The Key Keeper (Yedikule) | mysterious, short, "Mine." | legend, religion |

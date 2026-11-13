@@ -33,6 +33,18 @@ P.ArenaArt = (function () {
     t = RASTER[rk] = { w: d.w, h: d.h, cv: cv, k: k, art: true };
     return t;
   };
+  // Stage-keyed art (D-060): an entry 'hood.sN' (N = 1-based stage) replaces that hood's art for that stage only.
+  A.stageId = function (id, s) {
+    var d = P.ArenaArtData, k;
+    if (!d || !s || !P.Themes) return id;
+    k = id + '.s' + (P.Themes.subIndex(s) + 1);
+    return d[k] ? k : id;
+  };
+  // The stage's own tile for a role, or null when the stage has none (the caller then uses the hood tile).
+  A.tileFor = function (id, s, role, k) {
+    var sid = A.stageId(id, s);
+    return sid === id ? null : A.tile(sid, role, k);
+  };
   A.ready = function () { return pending === 0; };
   load();
   return A;

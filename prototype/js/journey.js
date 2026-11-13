@@ -1,7 +1,8 @@
 // Shared journey data (D-027): Arda walks home from İstiklal (Taksim) to Ataköy, 20 neighbourhoods x 5 levels.
 // Pure data, no DOM. Read by sim (level generator), meta map, environment themes and story beats.
 // Array order IS the walk order (v0.8, lane L): Zeytinburnu and Kazlıçeşme are swapped (Kazlıçeşme is the eastern stop,
-// reached first from Yedikule), and Kumkapı sits off the coast after Beyazıt, not after Aksaray (docs/journey.md §2).
+// reached first from Yedikule), and Kumkapı sits off the coast after Beyazıt (docs/journey.md §2). D-060: Topkapı Sarayı
+// (saray) and Haliç–Balat (halic) take the L46–55 slots that Laleli and Aksaray held; the hood indices are unchanged.
 // enemies: behaviour types the hood introduces/uses. skins: zombie outfit variants (sprites.js).
 // theme: visual archetype for render-world/istanbul (F). km: distance walked when the hood is cleared.
 // vehicles: what actually moves or waits in the hood (tram = T1 stop or the İstiklal nostalgic tram, ferry = pier, marmaray =
@@ -47,14 +48,14 @@ P.Journey = {
       enemies: ['walker', 'runner', 'bloater', 'spitter'], skins: ['waiter', 'fisher', 'musician'], boss: 'bloater',
       kit: ['lx_boat', 'crates', 'tables', 'bollard'], layouts: ['chicane', 'waterfront', 'market', 'plaza', 'arena'], centre: 'cart:1',
       vehicles: ['boat'], hack: ['atm', 'cell'] },
-    { id: 'laleli', name: 'Laleli', district: 'Fatih', km: 7.8, theme: 'laleli', map: [0.39, 0.44],
-      enemies: ['walker', 'runner', 'brute', 'crawler'], skins: ['shopper', 'hamal', 'shopkeeper'], boss: 'kasapBoss',
-      kit: ['crates', 'cart', 'lx_truck', 'bin'], layouts: ['street', 'market', 'chicane', 'plaza', 'arena'], centre: 'rack',
-      vehicles: ['tram', 'dolmus'], hack: ['atm', 'traffic', 'car', 'tram'] },
-    { id: 'aksaray', name: 'Aksaray', district: 'Fatih', km: 8.6, theme: 'aksaray', map: [0.35, 0.45],
-      enemies: ['walker', 'runner', 'brute', 'bloater', 'spitter'], skins: ['commuter', 'driver', 'worker'], boss: 'brute',
-      kit: ['dolmus', 'taxi', 'barrier', 'bollard'], layouts: ['plaza', 'market', 'street', 'chicane', 'arena'], centre: 'shelter',
-      vehicles: ['tram', 'dolmus', 'taxi'], hack: ['atm', 'traffic', 'car', 'tram'] },
+    { id: 'saray', name: 'Topkapı Sarayı', district: 'Fatih', km: 7.8, theme: 'saray', map: [0.39, 0.44],
+      enemies: ['walker', 'runner', 'brute', 'crawler'], skins: ['conductor', 'tourist', 'vendor', 'student', 'shopper', 'granny'], boss: 'tourGuide',
+      kit: ['barrier', 'kiosk', 'cart', 'bench', 'tree', 'lx_stall'], layouts: ['plaza', 'street', 'chicane', 'market', 'arena'], centre: 'gate',
+      vehicles: ['tram'], hack: ['atm', 'traffic', 'tram'] },
+    { id: 'halic', name: 'Haliç–Balat', district: 'Fatih', km: 8.6, theme: 'halic', map: [0.35, 0.45],
+      enemies: ['walker', 'runner', 'brute', 'bloater', 'spitter'], skins: ['halici', 'shopkeeper', 'fisher', 'teyze', 'sahaf', 'barista'], boss: 'antiquarian',
+      kit: ['tables', 'planter', 'crates', 'cart', 'antique'], layouts: ['waterfront', 'street', 'market', 'plaza', 'arena'], centre: 'tea',
+      vehicles: ['boat'], hack: ['atm', 'cell', 'shutter'] },
     { id: 'yenikapi', name: 'Yenikapı', district: 'Fatih', km: 9.5, theme: 'yenikapi', map: [0.32, 0.53],
       enemies: ['walker', 'runner', 'crawler', 'brute', 'bloater'], skins: ['commuter', 'worker', 'conductor'], boss: 'taksici',
       kit: ['barrier', 'bench', 'bin', 'bollard'], layouts: ['street', 'plaza', 'chicane', 'market', 'arena'], centre: 'gate',

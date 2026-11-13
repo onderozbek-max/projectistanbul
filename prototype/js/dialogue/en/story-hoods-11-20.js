@@ -1,14 +1,14 @@
 // English voice lines (class C). Native script, written from the beat in beats-*.js; never translated from Turkish.
 // Group: story-hoods-11-20. beatId -> [{ t, j (joke), spk (only when it differs from the beat) }]. No logic.
 Object.assign(P.DLG.en, {
-  "H11b": [{ t: "Get in before the door shuts, buddy!", ok: 1 }],
-  "H11i1a": [{ t: "Aksaray. The minibuses are stuck on the road, headlights still on.", ok: 1 }],
-  "H11i2a": [{ t: "A horn... A minibus is coming. I'm not getting on this time. Promise.", ok: 1 }],
-  "H11i3a": [{ t: "The Dolmuş Driver's at the wheel. Door open, dark inside. 'Hop in, buddy.'", ok: 1 }],
-  "H11p1": [{ t: "The minibus headlights are still on. Like lane markers.", ok: 1 }],
-  "H11p2": [{ t: "Don't get on an open minibus. We don't know who's inside.", ok: 1 }],
-  "H11p3": [{ t: "We're passing the pide bakery. The smell of hot bread.", ok: 1 }],
-  "H11p4": [{ t: "Bread smell... like Usta's grill. One for me too.", ok: 1 }],
+  "H11b": [{ t: "That vase was three hundred years old. Now it's three hundred pieces.", ok: 1 }],
+  "H11i1a": [{ t: "Haliç–Balat. The Horn's gone navy, and the houses haven't gotten the message.", ok: 1 }],
+  "H11i2a": [{ t: "Antique shops. Rotary phones in the window, all dead. Like mine, basically.", j: 1, ok: 1 }],
+  "H11i3a": [{ t: "The garage is open a crack, and someone's still up.", ok: 1 }],
+  "H11p1": [{ t: "The Horn's calm. Nobody left to take a selfie. Oh, teenagers.", ok: 1 }],
+  "H11p2": [{ t: "Sorry, laundry line. Sorry, balcony. Sorry, pink house. Keep moving, big guy.", ok: 1 }],
+  "H11p3": [{ t: "Everything on this lane is either antique or overpriced. I'm the third option.", j: 1, ok: 1 }],
+  "H11p4": [{ t: "The sign's still half-done. I can hear her from here: 'Finish it, Kaan.'", ok: 1 }],
   "H12b": [{ t: "Hurry! The train's leaving!", ok: 1 }],
   "H12i1a": [{ t: "Yenikapı. The metro tunnels. Light only from the flashlight.", ok: 1 }],
   "H12i2a": [{ t: "Last message, from yesterday: 'Come home. We're waiting for you.'", ok: 1 }],

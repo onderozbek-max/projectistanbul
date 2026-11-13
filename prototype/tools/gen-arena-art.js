@@ -27,6 +27,7 @@ const TILES = {
 Object.assign(TILES, require('./arena-ground/hoods.js'));   // the other 17 hoods
 
 const dir = path.join(ROOT, 'art', 'arenas'); fs.mkdirSync(dir, { recursive: true });
+fs.readdirSync(dir).filter(n => n.endsWith('.svg')).forEach(n => fs.unlinkSync(path.join(dir, n)));   // stale review copies (renamed hoods)
 const data = {};
 Object.keys(TILES).forEach(id => Object.keys(TILES[id]).forEach(role => {
   const svg = TILES[id][role], m = svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);

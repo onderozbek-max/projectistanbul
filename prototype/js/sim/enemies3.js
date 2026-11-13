@@ -130,9 +130,10 @@ P.Enemies3 = {};
     s.events.push({ type: 'binDrop', x: b.x, y: b.y, r: T.r, crate: b.kind === 'crate' });
   }
 
-  // Thrown cleaver (kasapBoss): a visual blade from the boss to the spot, flying for the telegraph time.
-  E3.launchBlade = function (s, x0, y0, x1, y1, dur) {
-    state(s).blades.push({ x0: x0, y0: y0, x1: x1, y1: y1, dur: dur, t: 0 });
+  // Thrown object (boss throw): a visual flight from the boss to the spot for the telegraph time. kind = the boss type
+  // (kasapBoss: cleaver; tourGuide: audio guide; antiquarian: vase). The view picks the sprite from it.
+  E3.launchBlade = function (s, x0, y0, x1, y1, dur, kind) {
+    state(s).blades.push({ x0: x0, y0: y0, x1: x1, y1: y1, dur: dur, t: 0, kind: kind || 'kasapBoss' });
   };
 
   // Telegraph resolution for the boss swings and smashes (bosses.js). Returns true when handled here.

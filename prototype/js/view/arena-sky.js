@@ -30,8 +30,15 @@ P.ArenaSky = (function () {
 
   A.ready = function () { return pending === 0; };
   A.has = function (id) { return !!(P.ArenaSkyData && P.ArenaSkyData.hoods[id]); };
+  // D-060: a 'hood.sN' list (N = 1-based stage) replaces the hood's list on that stage only.
+  function stageId(id, s) {
+    var h = P.ArenaSkyData && P.ArenaSkyData.hoods, k;
+    if (!h || !s || !P.Themes) return id;
+    k = id + '.s' + (P.Themes.subIndex(s) + 1);
+    return h[k] ? k : id;
+  }
   A.draw = function (R, s, th, y0, y1) {
-    var list = P.ArenaSkyData && P.ArenaSkyData.hoods[th.id], shapes = P.ArenaSkyData && P.ArenaSkyData.shapes, c = R.ctx, u = R.ppm, cy = R.cam.y,
+    var list = P.ArenaSkyData && P.ArenaSkyData.hoods[stageId(th.id, s)], shapes = P.ArenaSkyData && P.ArenaSkyData.shapes, c = R.ctx, u = R.ppm, cy = R.cam.y,
       hpx = 9.5 * u, lo, hi, i, y, side, kind, d, k;
     if (!list) return;
     lo = Math.floor((cy - (R.H / 2 + hpx) / (K * u)) / SPACING); hi = Math.ceil((cy + (R.H / 2) / (K * u)) / SPACING);

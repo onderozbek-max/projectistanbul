@@ -116,6 +116,17 @@ function barrier(c) {
   return prop('barrier', w, d, [-w / 2 - 0.05, yt - 0.04, w / 2 + 0.05, yb + 0.1], s);
 }
 
+// ---- stanchion (queue barrier: posts and a rope, D-060 Topkapı): cfg { post, cap, rope } ; 3.0 x 0.6 like the config 'barrier' footprint ----
+function stanchion(c) {
+  const hw = 1.45, top = -0.8, xs = [-hw, 0, hw];
+  let s = ell(0, 0.04, 1.6, 0.22, '#1E1F25', { ink: 0, op: 0.35 });
+  xs.forEach(x => { s += drum(x, 0.1, 0.06, 0.035, 0.9, c.cap || '#C9A227', c.post || '#2A2C31'); });
+  const rope = `M${f(-hw)} ${f(top + 0.02)}Q${f(-hw / 2)} ${f(top + 0.32)} 0 ${f(top + 0.02)}Q${f(hw / 2)} ${f(top + 0.32)} ${f(hw)} ${f(top + 0.02)}`;
+  s += `<path d="${rope}" fill="none" stroke="${c.rope || '#B5453A'}" stroke-width="0.07" stroke-linecap="round"/>`;
+  s += `<path d="${rope}" fill="none" stroke="#F4EBDD" stroke-opacity="0.35" stroke-width="0.02" stroke-linecap="round"/>`;
+  return prop('barrier', 3.0, 0.6, [-hw - 0.15, top - 0.1, hw + 0.15, 0.2], s);
+}
+
 // ---- tree: cfg { kind: 'plane' | 'palm', leaf: [a, b], trunk } ; footprint 0.8 x 0.8, canopy overhangs ----
 function tree(c) {
   const r = rng(c.seed || 3);
@@ -132,4 +143,4 @@ function tree(c) {
   return prop('tree', 0.8, 0.8, [-1.05, -1.75, 1.05, 0.2], s);
 }
 
-module.exports = { tables, bench, bin, planter, bollard, barrier, tree };
+module.exports = { tables, bench, bin, planter, bollard, barrier, stanchion, tree };
