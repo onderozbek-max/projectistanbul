@@ -6,7 +6,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const { loadP, ROOT } = require('./lib-load.js');
 const P = loadP();
-['js/view/events-fx.js', 'js/view/perk-mark.js'].forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
+['js/view/hints-config.js', 'js/view/consumables-icons.js', 'js/view/consumables-zone.js', 'js/view/events-fx.js', 'js/view/perk-mark.js'].forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const DT = 1 / 60;
 const problems = [];
 const check = (cond, msg) => { if (!cond) problems.push(msg); };

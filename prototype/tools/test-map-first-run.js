@@ -165,7 +165,8 @@ async function runScenario(sc, chromeArgs) {
     return { read, errors, bootErrors, shotOk };
   } finally {
     proc.kill();
-    fs.rmSync(dir, { recursive: true, force: true });
+    await sleep(300);
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
   }
 }
 
@@ -270,7 +271,8 @@ async function debugExportCheck(base) {
     c.close();
   } finally {
     proc.kill();
-    fs.rmSync(dir, { recursive: true, force: true });
+    await sleep(300);
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 8, retryDelay: 250 });
   }
 }
 
