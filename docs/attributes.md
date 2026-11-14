@@ -244,7 +244,7 @@ Cooldown dips at L75 because a gear slot switches item there (the slot picks its
 | Attribute | Gear | Mastery | Mods (A) | Passives and evolutions | Notes |
 |---|---|---|---|---|---|
 | STR | Gloves (might) | Knife, Cleaver, Sledgehammer | Knife arc and slam forks | Work Gloves (+12% might). Knockback stacks with the gloves but is capped. | Melee build |
-| PACE | Shoes (speed) | Chain, Cyclone | Dash (Kaçış) forks | Running Shoes (+10% speed). Cap the total. | Kite build |
+| PACE | Shoes (speed) | Chain, Cyclone | Dash (Depar) forks | Running Shoes (+10% speed). Cap the total. | Kite build |
 | AGG | Gloves (crit) | Nail Gun, Nail Storm | Frenzy length | Nazar Charm (crit) | Frenzy build |
 | INT | Backpack (pickup, luck) | None (hacks are the build) | None | Magnet (XP vacuum) should also pull ATM coins (assumption: coins are pickups) | Hack build |
 | CHA | Jacket (HP) | None (people first) | None | First Aid Kit (heal) fits the simit deal | Friends build |

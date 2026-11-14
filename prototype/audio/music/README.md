@@ -2,7 +2,7 @@
 
 Eight tracks, one per id that `js/view/music.js` plays. The owner's Suno tracks replace the procedural placeholders under the same names. The briefs, the Suno prompts and the drop folder are in `prototype/audio/music-suno/README.md`. The conversion tool is `prototype/tools/prepare-music.js`.
 
-> **Current files are placeholders.** The MP3s here are procedural, synthesised by `prototype/tools/render-music.js` (no samples, 128 kbps). They are not tracked in git yet. Their lengths are the old placeholder lengths (60 to 120 s loops, 68.6 s run tracks, 24 s one-shots). When a Suno take is dropped in and `prepare-music.js` runs, the placeholder is copied once to `prototype/audio/music-procedural/` and replaced.
+> **Current files are the owner's Suno tracks, prepared.** `prototype/tools/prepare-music.js` wrote the eight MP3s here from the Suno drop folder (192 kbps, exact game lengths, tagged `istanbul prepare-music`). They are tracked in git. The old procedural placeholders were backed up once to `prototype/audio/music-procedural/` (not tracked; also in git history).
 > **Do not re-run `render-music.js` once the owner's files are here:** it overwrites them without a backup.
 
 ## 1. Files
@@ -37,7 +37,7 @@ Put the files in `prototype/audio/music/`, lower-case names. A missing file is s
 ## 4. Known limits
 
 - The player uses HTMLAudioElement only, so it works over `file://`. Some browsers may leave a short gap at a loop point. If that is audible on a device, it is a player change and needs a decision.
-- Until both run tracks are delivered, the run pair is out of step (placeholder 68.6 s against 180 s). `prepare-music.js` prints this as a note.
+- Both run tracks (`run_calm`, `run_intense`) are delivered at 180 s each. Keep them the same length when a take is replaced.
 
 ## 5. Tools
 

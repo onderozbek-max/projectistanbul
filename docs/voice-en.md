@@ -35,6 +35,8 @@ The joke is the **situation**, not the wordplay: a scared kid hiding his fear be
 4. **Never punch down.** No regional, ethnic, religious or political targets; no body-shaming or poverty jokes. The ezan is ambient only (D-035). No real state actors,
    parties, people, brands or clubs. No earthquake talk. No child zombies. Animals are never harmed. Rating 16+.
 5. End on the funny word. Don't explain the joke after it.
+6. Arda does not force jokes. A joke must be actually funny when he makes one (owner, 2026-11-09; recorded 2026-11-14).
+7. Owner exceptions to item 4 (question box, 2026-11-10): see docs/voice-tr.md section 1.2, item 7.
 
 ---
 

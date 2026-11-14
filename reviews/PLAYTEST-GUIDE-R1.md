@@ -1,5 +1,7 @@
 # Playtest guide (R1 prototype)
 
+> **Owner rule (2026-11-11; recorded 2026-11-14):** say how to test in one step. Do not send the owner to nested files for a simple question; decide the point yourself.
+
 ## Run it on your phone (same Wi-Fi)
 1. On the Mac: `cd prototype && python3 -m http.server 8765 --bind 0.0.0.0`
 2. On the phone (Safari): `http://<your-Mac-IP>:8765` (find the IP with `ipconfig getifaddr en0`).

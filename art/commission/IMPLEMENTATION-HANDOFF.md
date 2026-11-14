@@ -1,3 +1,5 @@
+> **2026-11-14 note:** Importer now exists: prototype/tools/prepare-art.js (art/commission/IMPORTER.md); runtime behind ?art=raster. Statements below that the importer is absent are out of date.
+
 # Project Istanbul art implementation handoff
 
 This handoff covers the Ink & Tea assets produced for Chapter 1, Taksim to Ataköy. The game is a portrait, one-thumb, iOS-first survivor game. The browser prototype contains the full 100-level journey. The Godot checkout has a smaller implementation scope and currently defaults to its benchmark scene.

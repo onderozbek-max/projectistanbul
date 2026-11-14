@@ -12,7 +12,7 @@
 
 | ID | Name | HP | Armor | Move (m/s) | Signature weapon | Tag-in move | Ultimate | Available |
 |---|---|---|---|---|---|---|---|---|
-| `hero_arda` | Arda | 100 | 0 | 3.2 | Döner Knife (`wpn_knife`) | **Kaçış (dash):** 3.2 m in 0.16 s, 0.3 s i-frames, 3.5 s cooldown (`skill_dash`, D-031) | **Evil-Eye Burst (Nazar Patlaması):** 2 s burst, 60 dmg ring, push 2.5 m; charged by kills and elites (`skill_ult`, D-031) | Slice (start) |
+| `hero_arda` | Arda | 100 | 0 | 3.2 | Döner Knife (`wpn_knife`) | **Depar (dash):** 3.2 m in 0.16 s, 0.3 s i-frames, 3.5 s cooldown (`skill_dash`, D-031) | **Evil-Eye Burst (Nazar Patlaması):** 2 s burst, 60 dmg ring, push 2.5 m; charged by kills and elites (`skill_ult`, D-031) | Slice (start) |
 | `hero_kaan` | Kaan | 180 | 2 | 2.6 | Anchor | **Mini Slam:** r 1.5 m, 25 dmg, knockback 1 m | **Ground Slam:** r 3.5 m, 80 dmg, stun 1 s, knockback 2 m | Slice (L30) |
 | `hero_mila` | Mila | 70 | 0 | 4.2 | Twin Batons | **Dash:** 3 m through enemies, 15 dmg | **Sprint Blitz:** 3 rapid dashes (35 dmg each), leaves a 40% slow trail for 3 s | Chapter 2 |
 | `hero_ada` | Ada | 80 | 0 | 3.2 | Slingshot | **Calm Pulse:** r 3 m, slow 40% for 2 s | **Calm Field:** r 5 m, slow 60% for 4 s + volley of 12 bolts (20 dmg each) | Chapter 2 |
@@ -301,7 +301,7 @@ Rule: each weapon has one evolution. It needs the weapon at L5 and the passive o
 
 | ID | Name (EN / TR) | Input | Effect (config) | Notes |
 |---|---|---|---|---|
-| `skill_dash` | Dash / Kaçış | Swipe flick (40 px in 200 ms) or double-tap (280 ms). Space on desktop | 3.2 m in 0.16 s, i-frames 0.3 s, cooldown 3.5 s | A near miss ("KIL PAYI!") slows time to 0.25 for 0.25 s, once per dash. |
+| `skill_dash` | Dash / Depar | Swipe flick (40 px in 200 ms) or double-tap (280 ms). Space on desktop | 3.2 m in 0.16 s, i-frames 0.3 s, cooldown 3.5 s | A near miss ("KIL PAYI!") slows time to 0.25 for 0.25 s, once per dash. |
 | `skill_ult` | Evil-Eye Burst / Nazar Patlaması | Ult button (auto-fires if the setting is on) | 2.0 s burst, 60 dmg ring, push 2.5 m. Weapons ×1.5 power, cooldowns ×0.6 | Charge: +0.004 per kill, +0.03 per elite (250 kills). |
 | `skill_frenzy` | Frenzy / Çılgınlık ("ÇILGINLIK!") | Automatic | 6 s, weapon attack speed +40% | Trigger: 60 kills with gaps ≤ 1.5 s. 50 proposed (weapons §8.2). |
 

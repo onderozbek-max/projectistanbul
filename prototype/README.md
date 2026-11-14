@@ -1,3 +1,7 @@
+> Current state and handoff: docs/handoff-codex.md (2026-11-14).
+> The version notes below end at v0.9;
+> later work is logged in reviews/REVIEW-R1.md.
+
 # prototype/: Playable browser prototype: the walk home, İstiklal → Ataköy (v0.8)
 
 > **v0.9 (2026-11-09), animation pass:** a view-only game-feel layer (`js/view/feel.js`, numbers in `js/config-feel.js`). Struck enemies

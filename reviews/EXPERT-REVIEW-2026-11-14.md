@@ -8,7 +8,7 @@ in `docs/product.md` section 17 as proposed until he accepts them.
 
 The project has a strong engineering spine (a deterministic sim with golden traces, config-driven numbers, native-language dialogue, guardrail checks, an
 art and audio pipeline the owner can feed himself) and a lot of content. But it has been **optimising breadth on top of unmeasured foundations**. In 7 days
-and 108 commits, **not one frame-time or memory number has been taken on an iPhone**, the game is "fun" only by the account of one player (the owner, who
+and 97 commits, **not one frame-time or memory number has been taken on an iPhone**, the game is "fun" only by the account of one player (the owner, who
 last called it boring and samey) and a bot, and the "prototype" has quietly become the real game (43k lines of JS) while the Godot build it was meant to
 inform sits frozen at M0. The next month should be about **ground truth, convergence and the first 15 minutes**, not more systems.
 
@@ -16,15 +16,15 @@ inform sits frozen at M0. The next month should be about **ground truth, converg
 
 | Fact | Number |
 |---|---|
-| Prototype JS | 254 files, 43,375 lines (view 23.0k, sim 8.0k, dialogue 4.3k, meta 3.4k), 254 `<script>` tags, no bundler, one global namespace |
+| Prototype JS | 254 files, 43,569 lines (view 23.1k, sim 8.0k, dialogue 4.4k, meta 3.4k), 254 `<script>` tags, no bundler, one global namespace |
 | Tests | 36 Node test files (9.3k lines), full run about 20 min, 5 Chrome tests flake under load, **no CI** |
-| Docs | 108,550 words in `docs/`; `reviews/REVIEW-R1.md` 2,037 lines; 27 files in `reviews/` |
-| Git | 108 commits since 2026-11-08; branch `r1/t2-art-direction` 48 commits ahead of `main` (main last moved 2026-11-10); no PR |
+| Docs | 108,568 words in `docs/`; `reviews/REVIEW-R1.md` 2,037 lines; 27 files in `reviews/` |
+| Git | 97 commits since 2026-11-08 on HEAD (`git log --since=2026-11-08`); branch `r1/t2-art-direction` 50 commits ahead of local `main` and 77 ahead of `origin/main` (local main last moved 2026-11-10); PR state not checked (`gh` is not logged in) |
 | Device data | **None.** Godot M0-T4 device runs "pending (owner)" since 2026-11-08; the prototype has never been profiled on an iPhone |
-| Raster art | Characters decode to about 85 MB (budget 64 MB). The hero source is 320 px tall; on screen he is about 39 CSS px (117 device px at 3x), so atlases are about 2.7x too large per side, about 7x in memory |
-| Balance | Bot: Normal about 4.1 min a level (target 5 to 5.5), about 2,000 kills a level (design assumed 500). Human data: one session, one full level (4.3 min, 1,902 kills) |
-| Rule breaks | Over 600 lines: `view/sfx-bank2.js` 678, `view/istanbul-props2.js` 627, `view/sfx-bank.js` 609; `view/screens.js` 597 |
-| Open questions | `reviews/QUESTIONS.md` has three items open since 2026-11-08 (doc conflicts: simit heal 25 vs 30, door y, "Second Wind" defined twice, hit-stop ms) |
+| Raster art | Characters decode to about 85 MB (budget 64 MB). The hero atlas frame is 320 px tall (source 383 px). On screen he is about 40 to 48 CSS px (390 / camera width of 12 or 10 m, times `spriteScale.hero` 1.22). The world canvas caps DPR at 2 (`config.js` `maxDpr`), so that is about 79 to 95 backing-store px. The atlas is about 3.4 to 4 times too large per side, about 11 to 16 times in area (an earlier draft said 2.7x and 7x, using 3x DPR, which the canvas never uses) |
+| Balance | Bot: Normal about 4.1 min a level (target 5 to 5.5), about 2,000 kills a level (design assumed 500). Human data: one owner telemetry file (107 events, 2 sessions), one full level won (H01-L2, 258.5 s = 4.3 min, 1,902 kills) |
+| Rule breaks | Over 600 lines: `view/sfx-bank2.js` 678, `view/istanbul-props2.js` 627, `view/sfx-bank.js` 609; tools `gen-art-prompts-world.js` 1,080, `gen-art-prompts-characters.js` 894, `prepare-art.js` 780, `lib-art-image.js` 699; test `test-arsenal.js` 601. `view/screens.js` is at 597 |
+| Open questions | `reviews/QUESTIONS.md` has three items open since 2026-11-08: the 12 prototype decisions, two L1 barks over the 40-character limit, and doc conflicts (simit heal 25 vs 30, door y, "Second Wind" defined twice, hit-stop ms) |
 
 ## 3. What is good: keep it
 
@@ -73,7 +73,7 @@ them silently (`test-perks-world` broke when `events-fx.js` started calling `Con
 fast tier (2 minutes or less) on every commit and the full tier on merge, in GitHub Actions (ask first: it adds a service); one shared loader that reads
 `index.html` order instead of hand lists; behaviour tests over grep tests for new work.
 
-**M4. Branch and release hygiene.** One branch named for T2 carries T4, T5 and the art work, 48 commits, unmerged, so `main` is four days stale.
+**M4. Branch and release hygiene.** One branch named for T2 carries T4, T5 and the art work, 50 commits ahead of local `main` (77 ahead of `origin/main`), unmerged, so `main` is four days stale.
 *Action:* full suite, a PR, merge with the owner's OK. From then on one task means one branch and one PR.
 
 **M5. Prototype architecture under strain.** 254 global script tags with load-order coupling. Features are layered by interception (wrapping another file's
@@ -94,7 +94,7 @@ the HUD HP float, objective chips over the results title, the map tab row overfl
 
 ### Minor
 
-- `objectives-hud.js drawMarkers` reads `R.cam` before the first frame in a story run (throws).
+- `objectives-hud.js` `drawMarkers` (line 77) calls `P.Render.toScreen`, which reads `R.cam` (`render.js:18`) before the first `R.frame` sets it (`render.js:214`), so a story run can throw. Read from the code; not reproduced.
 - Asset licensing: every ChatGPT, Suno and AI-SFX asset needs a complete `art/PROVENANCE.csv` row (tool, plan tier, date, prompt file). Check commercial terms for each tool at the plan tier used **before any public build**. Raw sources exist only on one Mac: back them up.
 - Raster gaps: skin outfits (fisher, musician, hamal) lost under raster; bosses shrink on attack and hurt frames; the regenerate list in REVIEW-R1 part 20.
 - Telemetry has no session or retention events (needed for a D1 proxy).

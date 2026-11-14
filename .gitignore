@@ -39,3 +39,6 @@ reviews/dialogue/work/
 
 # Playwright MCP scratch (page snapshots)
 .playwright-mcp/
+
+# prepare-music.js backup of the old procedural tracks (also in git history)
+prototype/audio/music-procedural/

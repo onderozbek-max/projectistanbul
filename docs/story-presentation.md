@@ -116,6 +116,8 @@ smiling, sad, determined, sick, surprised). Busts come from workstream B (`P.Por
 
 ## 5. Mom's calls as a phone UI
 
+> **Gameplay effect (recorded 2026-11-14 from the owner's message of 2026-11-08, 22:44 UTC).** The owner was asked whether Mom's call should change gameplay. He replied: "not sure what you mean but i preapprove your suggestion." The suggestion text is not in the chat log, so the gameplay effect is not defined here. Open: restate the suggestion to the owner and log the decision in docs/product.md section 17.
+
 ### 5.1 The UI
 
 - A **phone panel** slides down from the top 25% of the screen. It shows Mom's bust (mood: worried, then calm), call timer, and **signal bars** (3 → 0).
@@ -316,6 +318,6 @@ are the two cliffhanger beats in the slice and at the end of Chapter 1. Chapter 
 | 12.2 | Bust art (8 moods per character) | B owns it. Start with Arda and Mom. Kaan at H04. |
 | 12.3 | Signal bars: option A, B or C (§5.2) | A for Ch1. |
 | 12.4 | Bark cooldown 12 s (DS says 20 s) | Yes. Update DS §9.3. |
-| 12.5 | Voice acting for busts | Owner. Narrative open Q4. Start with key lines only. |
+| 12.5 | Voice acting for busts | Owner. Narrative open Q4. Start with key lines only. Owner (2026-11-13, recorded 2026-11-14): yes to voice-over, if he first gets the text to review. |
 | 12.6 | Message log and unread dot | Yes. Needed for the owner's P0-9. |
 | 12.7 | Polaroids and voice notes (20 + hidden) | Proposed. Art and VO cost. |

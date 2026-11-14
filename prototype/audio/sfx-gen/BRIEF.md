@@ -1,5 +1,7 @@
 # Sound effects brief: the first 45 cues to generate
 
+> **Owner status (2026-11-14; recorded here).** The owner made the sound files himself with an AI sound tool. The tool is not named in the chat log. The files are in prototype/audio/sfx-gen/ (the game copies are in ready/). The uiTap cue was rejected and is still synthesized in the game (docs/handoff-codex.md section 5).
+
 For the owner. This is the list of sound effects to make with an AI sound tool, one row per game cue, in the order to do them. The drop-folder rules, file names and tool settings are in `README.md` in this folder. Music stays Suno (D-062; `prototype/audio/music-suno/README.md`).
 
 **How to read the table.** *When it plays* says where the cue sounds and how often (from the code, not measured): *constant* means many per second in a crowd fight, *frequent* several times a minute, *occasional* a few times a level, *rare* once per encounter or less. *Gap ms* is the shortest time between two starts of the same cue in the game, and *at once* is how many can overlap, so the sound must hold up when it is repeated that fast. *Target s* is the length to generate (the tool trims silence and fades the tail). *Takes* is how many files to make: `<cue>.<ext>` for take 1, `<cue>_2.<ext>` to `<cue>_4.<ext>` for the others. Generate 4 to 6 takes of each prompt and keep the best ones (see README, "Picking takes").

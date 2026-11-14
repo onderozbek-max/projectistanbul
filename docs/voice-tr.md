@@ -33,6 +33,8 @@ Komik olan **durumdur**, kelime oyunu değil: korkmuş bir çocuk, korkusunu kü
 3. Olay örgüsü, olgular ve beat'ler değişmez. Mahalle bilgileri olduğu gibi kabul edilir (D-048). Yerler akla yatkın olmalı (Samatya'da tramvay yok).
 4. **Aşağılamak yok.** Bölge, etnik köken, din, siyaset, vücut, yoksulluk, engel yok. Ezan yalnızca ortam sesidir (D-035). Gerçek devlet kurumu, parti, kişi, marka, takım yok. Deprem yok. Çocuk zombi yok. Hayvan zarar görmez.
 5. Esprinin **son kelimesi** komik kelime olsun. Cümleyi esprinin üstüne bitir, sonra açıklama ekleme.
+6. Arda does not force jokes. A joke must be actually funny when he makes one (owner, 2026-11-09; recorded 2026-11-14).
+7. **Owner exceptions to item 4 (question box, 2026-11-10; recorded 2026-11-14).** The owner chose to keep real people, brands and religion words in the rewrites (for example Kılıçdar, Ekrem başkan, İlhan Şeşen, Kadir İnanır, Karadenizli, Pikaçu, Wolverine, Skyrim, Mario Kart, Allahım, Vallahi) and accepts the risk. He kept the BK.self pool as a deliberate exception (23 of 24 lines turned into riddles; 6 are over the 60-character limit, all are jokes). Two sexual riddles stay as a deliberate exception (D-052). The lint list in prototype/tools/dialogue-banned.json still flags some of these words. It needs an exception list (not done here).
 
 ---
 
