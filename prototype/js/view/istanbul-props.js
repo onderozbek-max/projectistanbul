@@ -397,9 +397,10 @@ P.Props = (function () {
     var block = role === 'solid' || role === 'breakable', dress = role === 'dressing';
     blockOn = block; dressOn = dress;
     if (dress) { c.save(); c.transform(DRESS.scale, 0, 0, DRESS.squash, X * (1 - DRESS.scale), Y * (1 - DRESS.squash)); }   // flatter and smaller about the footprint centre
-    var galata = o.theme === 'galata' && P.GalataProps && P.GalataProps.draw(R, kind, x, y, { v: o.v });
+    var raster = !!(P.ArtRasterItems && P.ArtRasterItems.block(R, kind, x, y, o));   // D-066: raster art under ?art=raster (false when off or not ready)
+    var galata = !raster && o.theme === 'galata' && P.GalataProps && P.GalataProps.draw(R, kind, x, y, { v: o.v });
     var fallback = kind === 'tavlatable' ? 'tables' : kind;
-    if (!galata && !(o.theme && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, fallback, o))) (REG[fallback] || REG.crate)(c, X, Y, s, o);   // R1-T3: authored art for the hood's kit, else the procedural painter
+    if (!raster && !galata && !(o.theme && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, fallback, o))) (REG[fallback] || REG.crate)(c, X, Y, s, o);   // R1-T3: authored art for the hood's kit, else the procedural painter
     if (block) c.drawImage(markCanvas(kind, role, o.w * s, o.h * s), X - o.w * s / 2 - 1, Y - o.h * s / 2 - 1);   // blocks always carry a footprint (roleOf)
     if (dress) c.restore();
     blockOn = pb; dressOn = pd;

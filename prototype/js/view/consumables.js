@@ -69,7 +69,7 @@ P.Consumables = (function () {
     var c = R.ctx, t = s.runT || 0, motion = !reduceMotion(), u = R.ppm, items;
     s.drops.forEach(function (d, i) { var k = KIND[d.kind]; if (k) drawDrop(c, R, s, CLASS[k], d, i, t, motion); });
     items = P.Objectives && P.Objectives.items ? P.Objectives.items(s) : [];
-    items.forEach(function (it, i) { if (OBJ[it.kind] && !it.done) drawAt(c, CLASS[OBJ[it.kind]], R.X(it.x), R.Y(it.y), i + 7, t, motion, u); });
+    items.forEach(function (it, i) { if (OBJ[it.kind] && !it.done) drawAt(c, CLASS[OBJ[it.kind]], R.X(it.x), R.Y(it.y), i + 7, t, motion, u, it.kind); });
     drawBursts(c, R, t, motion);
     drawFloats(c, R, t, motion);
   };
@@ -86,11 +86,11 @@ P.Consumables = (function () {
       c.strokeStyle = 'rgba(' + cls.rgb + ',0.5)'; c.lineWidth = 0.12 * u; c.lineCap = 'round';
       c.beginPath(); c.moveTo(tx, ty); c.lineTo(X, Y - lift * u); c.stroke();
     }
-    drawAt(c, cls, X, Y - lift * u, i, t, motion, u);
+    drawAt(c, cls, X, Y - lift * u, i, t, motion, u, d.kind);
   }
 
   // One consumable: glow disc, ink-edged ring, icon. Radius never below consumables.minRPx (28 px across).
-  function drawAt(c, cls, X, Y, i, t, motion, u) {
+  function drawAt(c, cls, X, Y, i, t, motion, u, kind) {
     var r = Math.max(C.minRPx, C.glowM * u), ic = Math.max(C.iconMinPx, C.iconM * u), bob = motion ? Math.sin(TAU * C.bobHz * t + i) * C.bobM * u : 0;
     var pulse = motion && !reduceFlash() ? 1 + C.pulseAmp * Math.sin(TAU * C.pulseHz * t + i) : 1, g;
     g = c.createRadialGradient(X, Y, 0, X, Y, r);
@@ -100,7 +100,8 @@ P.Consumables = (function () {
     c.fillStyle = g; c.beginPath(); c.arc(X, Y, r, 0, TAU); c.fill();
     c.beginPath(); c.arc(X, Y, r * 0.9, 0, TAU); c.lineWidth = 3; c.strokeStyle = INK; c.stroke();
     c.beginPath(); c.arc(X, Y, r * 0.9, 0, TAU); c.lineWidth = 2; c.strokeStyle = 'rgba(' + cls.rgb + ',0.95)'; c.stroke();
-    P.ConsumablesIcons.draw(c, cls.icon, X, Y + bob, ic, cls.fill, INK);
+    if (!(kind && P.ArtRasterItems && P.ArtRasterItems.pickup(c, kind, X, Y + bob, 2 * ic)))   // D-066: raster icon in the same ring (ic is a radius)
+      P.ConsumablesIcons.draw(c, cls.icon, X, Y + bob, ic, cls.fill, INK);
   }
 
   function drawBursts(c, R, t, motion) {

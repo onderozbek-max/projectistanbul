@@ -46,7 +46,7 @@ P.Decor = (function () {
         var h = hash(y * 3.1 + side * 7.7);
         if (h < 0.3) return;
         var kind = KINDS[Math.floor(hash(y + side * 13) * KINDS.length)];
-        P.Props.draw(kind, R, side * 5.5, y + 3, { k: Math.floor(h * 6), h: h });
+        P.Props.draw(kind, R, side * 5.5, y + 3, { k: Math.floor(h * 6), h: h, rt: 'istiklal' });   // rt: the hood, for raster art (D-066)
       });
     });
     pigeons(R, s, y0, y1);
@@ -193,7 +193,7 @@ P.Decor = (function () {
       if (hash(seed + y * 3.1 + sd * 7.7) < 1 - mix.keep) return;
       var kind = pick(mix.w, hash(seed + y * 5.3 + sd * 2.1)), x = sd * (BIG[kind] ? 6.2 : 5.3 + hash(y * 2.3 + sd));
       if (covered && (kind === 'gull' || kind === 'pigeon')) return;   // no birds under a roof
-      var yy = y + hash(y * 4.7 + sd) * 2.5, o = { k: Math.floor(hash(y * 9.1 + sd) * 4) };
+      var yy = y + hash(y * 4.7 + sd) * 2.5, o = { k: Math.floor(hash(y * 9.1 + sd) * 4), rt: th.id };   // rt: the hood, for raster art (D-066)
       if (kind === 'cat' || kind === 'catbox') o.alert = Math.hypot(h.x - x, h.y - yy) < 2.2;
       if (kind === 'pigeon') o.fly = flyFor(seed + ':' + y + ':' + sd, x, yy, s);
       if (th.id === 'bridge' && s.levelIndex === 16 && kind === 'rods' && P.BridgeProps && P.BridgeProps.hasRail()) return;

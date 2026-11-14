@@ -91,6 +91,7 @@ P.Render = (function () {
         c.strokeStyle = 'rgba(' + (pk.col[d.kind] || pk.col.simit) + ',0.45)'; c.lineWidth = 0.1 * u; c.lineCap = 'round';
         c.beginPath(); c.moveTo(tx, ty); c.lineTo(X, Y); c.stroke();
       }
+      if (d.kind === 'xp' && P.ArtRasterItems && P.ArtRasterItems.xp(c, X, Y, d.value, u)) return;   // D-066: raster gem (its glint is in the art)
       if (d.kind === 'xp') {
         c.fillStyle = 'rgba(91,209,110,0.25)'; c.beginPath(); c.arc(X, Y, 0.22 * u, 0, Math.PI * 2); c.fill();
         c.fillStyle = '#7CF08E'; c.strokeStyle = '#14151F'; c.lineWidth = 1.5;
@@ -143,6 +144,7 @@ P.Render = (function () {
     var c = R.ctx, u = R.ppm;
     P.Fx.parts.forEach(function (p) {
       var a = Math.min(1, p.t / p.T * 3);
+      if (P.ArtRasterItems && P.ArtRasterItems.fxPart(R, p, a)) return;   // D-066: raster blood splat (art-raster-items.js)
       if (p.kind === 'splat') {
         c.fillStyle = 'rgba(' + P.goreRGB(0) + ',' + (0.6 * a) + ')';
         var X = R.X(p.x), Y = R.Y(p.y);
@@ -160,6 +162,7 @@ P.Render = (function () {
     F.parts.forEach(function (p, pi) {
       if (k > 1 && PART_OPTIONAL[p.kind] && pi % k) return;
       var a = p.t / p.T;
+      if ((p.kind === 'shard' || p.kind === 'dust') && P.ArtRasterItems && P.ArtRasterItems.fxPart(R, p, a)) return;   // D-066: raster chips and puffs
       if (p.kind === 'corpse') P.Sprites.corpse(R, p);
       else if (p.kind === 'gib') circle(p.x, p.y, 0.07, 'rgba(' + P.goreRGB(1) + ',' + a + ')', '#14151F', 1);
       else if (p.kind === 'blood') circle(p.x, p.y, 0.05, 'rgba(' + P.goreRGB(2) + ',' + a + ')');

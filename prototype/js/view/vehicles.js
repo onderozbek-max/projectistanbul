@@ -112,12 +112,15 @@ P.Vehicles = (function () {
   }
 
   // Live parts: the pantograph (rocks on its springs; still under Reduce motion), a contact flash, and the head lamp glow.
-  function live(R, x, yF, L, w, o) {
+  // art: the raster tram carries its own pantograph, so the live one is not stroked (the contact flash and the lamp still are).
+  function live(R, x, yF, L, w, o, art) {
     var c = R.ctx, u = R.ppm, t = o.t || 0, sway = o.sway || 0, cx = R.X(x) + sway, px, py, flick, a;
     px = cx + (rm() ? 0 : Math.sin(t * (o.speed ? 38 : 1.3)) * (o.speed ? 1.6 : 0.8)); py = R.Y(yF - L * 0.35);
-    c.strokeStyle = INK; c.lineWidth = 2.4; c.beginPath(); c.moveTo(px - 0.35 * u, py + 0.3 * u); c.lineTo(px, py - 0.05 * u); c.lineTo(px + 0.35 * u, py + 0.3 * u); c.stroke();
-    c.strokeStyle = '#7D848F'; c.lineWidth = 1.2; c.stroke();
-    c.strokeStyle = INK; c.lineWidth = 3.2; c.beginPath(); c.moveTo(px - 0.5 * u, py - 0.05 * u); c.lineTo(px + 0.5 * u, py - 0.05 * u); c.stroke();
+    if (!art) {
+      c.strokeStyle = INK; c.lineWidth = 2.4; c.beginPath(); c.moveTo(px - 0.35 * u, py + 0.3 * u); c.lineTo(px, py - 0.05 * u); c.lineTo(px + 0.35 * u, py + 0.3 * u); c.stroke();
+      c.strokeStyle = '#7D848F'; c.lineWidth = 1.2; c.stroke();
+      c.strokeStyle = INK; c.lineWidth = 3.2; c.beginPath(); c.moveTo(px - 0.5 * u, py - 0.05 * u); c.lineTo(px + 0.5 * u, py - 0.05 * u); c.stroke();
+    }
     flick = Math.sin(t * 2.1) * Math.sin(t * 5.3 + 1);                                             // contact flash now and then
     c.globalCompositeOperation = 'lighter';
     if (!rm() && (o.speed || flick > 0.82)) { a = o.speed ? 0.8 : (flick - 0.82) * 5; glow(c, px, py - 0.05 * u, 0.5 * u, '170,225,255', a); }
@@ -128,10 +131,13 @@ P.Vehicles = (function () {
   // A tram car from yR (rear, the lower edge on screen) to yF (front, the upper edge), centred on x, w wide.
   // o: { t (s), sway (px), speed (0..1), lamp 'r,g,b' }. Always opaque (see the header).
   V.drawCar = function (R, x, yR, yF, w, o) {
-    var c = R.ctx, k = bucket(R.ppm), L = yF - yR, cv = bodyCanvas(w, L, k), s = R.ppm / k, sway = (o && o.sway) || 0;
+    var c = R.ctx, L = yF - yR, sway = (o && o.sway) || 0, art = !!(P.ArtRasterItems && P.ArtRasterItems.tram(R, x, yR, yF, w, sway)), k, cv, s;
     c.save(); c.globalAlpha = 1;
-    c.drawImage(cv, R.X(x - w / 2 - PAD) + sway, R.Y(yF + PAD), cv.width * s, cv.height * s);
-    live(R, x, yF, L, w, o || {});
+    if (!art) {   // raster off, or not ready: the code-painted body (the raster tram draws in P.ArtRasterItems.tram)
+      k = bucket(R.ppm); cv = bodyCanvas(w, L, k); s = R.ppm / k;
+      c.drawImage(cv, R.X(x - w / 2 - PAD) + sway, R.Y(yF + PAD), cv.width * s, cv.height * s);
+    }
+    live(R, x, yF, L, w, o || {}, art);
     c.restore();
   };
   // The same car as a landmark painter: fills a w x h metre canvas (top = front), used by istanbul-landmarks tramP.

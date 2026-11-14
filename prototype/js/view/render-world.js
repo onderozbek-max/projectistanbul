@@ -47,28 +47,34 @@ P.RenderWorld = (function () {
     return t || null;
   }
 
+  // Raster world (?art=raster, D-066; art-raster-world.js): a placement {t, x0, x1, ox, sx} for a slot, or null (flag off or not ready).
+  function rasterPlace(R, s, slot, sd) { return P.ArtRasterWorld ? P.ArtRasterWorld.place(R, s, slot, sd) : null; }
+
   W.drawGround = function (R, s, y0, y1) {
     ambience(s);
     if (!isL1(s)) { genGround(R, s, y0, y1); return; }
     var c = R.ctx, lv = L(), cor = lv.corridor, i;
     var ya = Math.max(0, y0), yb = Math.min(cor.yMax + 4, y1);
-    var artG = artTile(R, 'istiklal', 'ground'), artW = artTile(R, 'istiklal', 'walk'), artR = artTile(R, 'common', 'rails');
+    var rg = rasterPlace(R, s, 'road'), artG = rg ? rg.t : artTile(R, 'istiklal', 'ground'), artW = artTile(R, 'istiklal', 'walk'), artR = artTile(R, 'common', 'rails');
     if (P.ArenaEvolve) artG = P.ArenaEvolve.ground(R, P.Themes.get('istiklal'), s, artG) || artG;   // arena evolve: this level's treated tile
-    if (artG) fillTile(R, artG, cor.xMin, cor.xMax, ya, yb, 0, 1);
+    if (artG) fillTile(R, artG, cor.xMin, cor.xMax, ya, yb, rg ? rg.ox : 0, 1);
     else {
       var pat = cobblePattern(R);
       if (pat.setTransform && window.DOMMatrix) pat.setTransform(new DOMMatrix().translate(R.X(0), R.Y(0)).scale(2 * R.ppm / cobble.T));
       c.fillStyle = pat; c.fillRect(R.X(cor.xMin), R.Y(yb), (cor.xMax - cor.xMin) * R.ppm, (yb - ya) * R.ppm);
     }
     rect(R, -1.6, ya, 1.6, yb, 'rgba(20,21,31,0.10)');
-    if (artR) fillTile(R, artR, -1.2, 1.2, ya, yb, -1.2, 1);
+    var rr = rasterPlace(R, s, 'rails');
+    if (rr) fillTile(R, rr.t, rr.x0, rr.x1, ya, yb, rr.ox, rr.sx);
+    else if (artR) fillTile(R, artR, -1.2, 1.2, ya, yb, -1.2, 1);
     else lv.rails.forEach(function (rx) {
       c.strokeStyle = '#3E4148'; c.lineWidth = Math.max(3, 0.12 * R.ppm); c.beginPath(); c.moveTo(R.X(rx), R.Y(ya)); c.lineTo(R.X(rx), R.Y(yb)); c.stroke();
       c.strokeStyle = '#B9BEC6'; c.lineWidth = Math.max(1, 0.04 * R.ppm); c.stroke();
     });
     [-1, 1].forEach(function (sd) {
-      var a0 = sd > 0 ? 4.6 : -7, a1 = sd > 0 ? 7 : -4.6;
-      if (artW) fillTile(R, artW, sd * 4.6, sd * 7, ya, yb, sd * 4.6, sd);
+      var a0 = sd > 0 ? 4.6 : -7, a1 = sd > 0 ? 7 : -4.6, rw = rasterPlace(R, s, 'walk', sd);
+      if (rw) fillTile(R, rw.t, rw.x0, rw.x1, ya, yb, rw.ox, rw.sx);
+      else if (artW) fillTile(R, artW, sd * 4.6, sd * 7, ya, yb, sd * 4.6, sd);
       else {
         rect(R, a0, ya, a1, yb, '#4B4A50');
         c.strokeStyle = 'rgba(20,21,31,0.55)'; c.lineWidth = 1;
@@ -92,7 +98,7 @@ P.RenderWorld = (function () {
         c.fillStyle = hv > 0.93 ? '#C0392B' : '#E8E1D2'; c.fillRect(-0.12 * R.ppm, -0.08 * R.ppm, 0.24 * R.ppm, 0.16 * R.ppm); c.restore();
       }
     }
-    for (i = -1; i <= 1; i += 2) drawFacade(R, i, y0, y1);
+    for (i = -1; i <= 1; i += 2) drawFacade(R, i, y0, y1, s);
     P.World.doors().forEach(function (d) { if (d.y > y0 - 2 && d.y < y1 + 2) drawDoor(R, d); });
     drawShutter(R, s);
     P.Landmarks.draw(R, s, y0, y1);
@@ -135,8 +141,22 @@ P.RenderWorld = (function () {
   };
 
   var AWN = [['#C0392B', '#F4EBDD'], ['#1B4965', '#F4EBDD'], ['#2E7D4F', '#F4EBDD'], ['#E9A23B', '#3A2A1E'], ['#7A4F8C', '#F4EBDD']];
-  function drawFacade(R, side, y0, y1) {
-    var c = R.ctx, u = R.ppm, x0 = side > 0 ? 7 : -9.6, x1 = side > 0 ? 9.6 : -7, ys = Math.max(-0.2, y0), ye = Math.min(232, y1);
+  function drawFacade(R, side, y0, y1, s) {
+    var c = R.ctx, u = R.ppm, x0 = side > 0 ? 7 : -9.6, x1 = side > 0 ? 9.6 : -7, ys = Math.max(-0.2, y0), ye = Math.min(232, y1), rf = rasterPlace(R, s, 'facade', side);
+    if (rf) fillTile(R, rf.t, rf.x0, rf.x1, ys, ye, rf.ox, rf.sx);   // raster front (art-raster-world.js); the code rows below are the fallback
+    else facadeRows(R, side, x0, x1, ys, ye, u);
+    c.font = 'italic 800 ' + Math.round(0.5 * u) + 'px "CM Bangers", Bangers, Impact, sans-serif';
+    SHOPS.forEach(function (sh) {
+      if (sh.side !== side || sh.y < y0 - 4 || sh.y > y1 + 4) return;
+      c.save(); c.translate(R.X(side > 0 ? 8.75 : -8.75), R.Y(sh.y)); c.rotate(side > 0 ? Math.PI / 2 : -Math.PI / 2);
+      var w = c.measureText(sh.name).width + 14;
+      c.fillStyle = '#14151F'; c.fillRect(-w / 2, -0.38 * u, w, 0.76 * u);
+      c.fillStyle = '#FFD166'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(sh.name, 0, 0); c.restore();
+    });
+  }
+  // The code-drawn front of one side (the fallback): a base rect and one awning row per storey-6 m block, with the shop windows.
+  function facadeRows(R, side, x0, x1, ys, ye, u) {
+    var c = R.ctx;
     rect(R, x0, ys, x1, ye, '#4A3E3A');
     for (var y = Math.max(6, Math.floor(ys / 6) * 6); y < ye; y += 6) {
       var h = hash(y * side + 3), aw = AWN[Math.floor(h * AWN.length)];
@@ -152,14 +172,6 @@ P.RenderWorld = (function () {
       c.strokeRect(R.X(side > 0 ? 6.4 : -7), R.Y(y + 5.68), 0.6 * u, 5.28 * u);
       rect(R, side > 0 ? 6.25 : -6.4, y + 0.4, side > 0 ? 6.4 : -6.25, y + 5.68, 'rgba(0,0,0,0.25)');
     }
-    c.font = 'italic 800 ' + Math.round(0.5 * u) + 'px "CM Bangers", Bangers, Impact, sans-serif';
-    SHOPS.forEach(function (sh) {
-      if (sh.side !== side || sh.y < y0 - 4 || sh.y > y1 + 4) return;
-      c.save(); c.translate(R.X(side > 0 ? 8.75 : -8.75), R.Y(sh.y)); c.rotate(side > 0 ? Math.PI / 2 : -Math.PI / 2);
-      var w = c.measureText(sh.name).width + 14;
-      c.fillStyle = '#14151F'; c.fillRect(-w / 2, -0.38 * u, w, 0.76 * u);
-      c.fillStyle = '#FFD166'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(sh.name, 0, 0); c.restore();
-    });
   }
 
   function drawDoor(R, d) {
@@ -288,27 +300,33 @@ P.RenderWorld = (function () {
     R.ctx.fillStyle = col; R.ctx.fillRect(R.X(Math.min(x0, x1)), R.Y(y1), Math.abs(x1 - x0) * R.ppm, (y1 - y0) * R.ppm);
   }
   function genGround(R, s, y0, y1) {
-    var th = themeOf(s), ya = y0 - 1, yb = y1 + 1, g = pattern(R, th, 'ground', s), w = pattern(R, th, 'walk', s);
+    var th = themeOf(s), ya = y0 - 1, yb = y1 + 1, rg = rasterPlace(R, s, 'road'), g = rg ? rg.t : pattern(R, th, 'ground', s), w = pattern(R, th, 'walk', s);
     if (P.ArenaEvolve) g = P.ArenaEvolve.ground(R, th, s, g) || g;   // arena evolve: mirrored, tinted and worn for this hood-level
     var wet = P.Themes.subOf(th, P.Themes.subIndex(s)).wet;   // D-060: the sub-row 'wet' flag (zeytinburnu stage 2) adds the lane-edge water
-    if (g) fillTile(R, g, -4.6, 4.6, ya, yb, 0, 1);
+    if (g) fillTile(R, g, -4.6, 4.6, ya, yb, rg ? rg.ox : 0, 1);
     [-1, 1].forEach(function (sd) {
-      if (w) fillTile(R, w, sd * 4.6, sd * 7, ya, yb, sd * 4.6, sd);
-      sideGround(R, th, sd, ya, yb);
+      var rw = rasterPlace(R, s, 'walk', sd);
+      if (rw) fillTile(R, rw.t, rw.x0, rw.x1, ya, yb, rw.ox, rw.sx);
+      else if (w) fillTile(R, w, sd * 4.6, sd * 7, ya, yb, sd * 4.6, sd);
+      sideGround(R, th, sd, ya, yb, s);
       if (wet && sd > 0) laneWater(R, th, ya, yb);
       kerb(R, sd, ya, yb, th);
     });
     if (P.ArenaSky) P.ArenaSky.draw(R, s, th, ya, yb);   // R1-T3: distant landmarks at the edges, slower than the street
-    if (th.tracks) tramRails(R, ya, yb);
+    if (th.tracks) tramRails(R, ya, yb, s);
     P.Landmarks.draw(R, s, y0, y1);
   }
-  function sideGround(R, th, sd, ya, yb) {
-    var kind = sd > 0 ? th.R : th.L, t = pattern(R, th, sd > 0 ? 'R' : 'L');
+  function sideGround(R, th, sd, ya, yb, s) {
+    var kind = sd > 0 ? th.R : th.L, t = pattern(R, th, sd > 0 ? 'R' : 'L'), rf, rl;
     if (kind === 'water') return water(R, th, sd, ya, yb);
     if (kind === 'facade') {
-      if (t) fillTile(R, t, sd * 6.2, sd * 9.6, ya, yb, sd * 6.2, sd);
+      rf = rasterPlace(R, s, 'facade', sd);
+      if (rf) fillTile(R, rf.t, rf.x0, rf.x1, ya, yb, rf.ox, rf.sx);
+      else if (t) fillTile(R, t, sd * 6.2, sd * 9.6, ya, yb, sd * 6.2, sd);
       return darkFill(R, sd * 9.6, sd * 16, ya, yb, '#2A2C31');
     }
+    rl = kind === 'grass' ? rasterPlace(R, s, 'lawn', sd) : null;
+    if (rl) return fillTile(R, rl.t, rl.x0, rl.x1, ya, yb, rl.ox, rl.sx);
     if (t) fillTile(R, t, sd * 7, sd * (7 + t.w), ya, yb, sd * 7, sd);
     darkFill(R, sd * (7 + (t ? t.w : 0)), sd * 16, ya, yb, kind === 'grass' ? '#3F4A36' : '#2A2C31');
   }
@@ -353,9 +371,9 @@ P.RenderWorld = (function () {
       for (var py = Math.ceil(ya / 1.2) * 1.2; py < yb; py += 1.2) c.fillRect(rx - 0.04 * u, R.Y(py) - 0.5 * u, 0.08 * u, 0.5 * u);
     }
   }
-  function tramRails(R, ya, yb) {
-    var c = R.ctx, u = R.ppm;
-    var art = artTile(R, 'common', 'rails');
+  function tramRails(R, ya, yb, s) {
+    var c = R.ctx, u = R.ppm, rr = rasterPlace(R, s, 'rails'), art = rr ? null : artTile(R, 'common', 'rails');
+    if (rr) { fillTile(R, rr.t, rr.x0, rr.x1, ya, yb, rr.ox, rr.sx); return; }
     if (art) { fillTile(R, art, -1.2, 1.2, ya, yb, -1.2, 1); return; }
     [-0.7, 0.7].forEach(function (rx) {
       c.strokeStyle = '#3E4148'; c.lineWidth = Math.max(3, 0.12 * u); c.beginPath(); c.moveTo(R.X(rx), R.Y(ya)); c.lineTo(R.X(rx), R.Y(yb)); c.stroke();

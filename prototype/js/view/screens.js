@@ -15,10 +15,16 @@ P.Screens = (function () {
   // The share of Jeton that survives a give-up or a quit (config: rewards.loseKeep), as a whole percent.
   S.keepPct = function () { return Math.round(P.CFG.rewards.loseKeep * 100); };
 
-  function iconBox(item, cls) {
-    var d = document.createElement('div');
+  // The item's icon in box d: the raster icon when it is decoded (D-066), else the code icon (art-raster-items.js iconInto retries).
+  function artIcon(d, item, lv, px) {
+    if (P.ArtRasterItems) P.ArtRasterItems.iconInto(d, item, lv, px);
+    else d.innerHTML = P.Icons.svg(item, px);
+  }
+  // lv: a weapon card shows its tier art at that level (D-066, raster on); the slots and the other cards show the clean icon.
+  function iconBox(item, cls, lv) {
+    var d = document.createElement('div'), px = cls === 'icon' ? 40 : 30;
     d.className = cls + ' kind-' + (P.Progression.isWeapon(item) ? 'w' : (item === 'simit' || item === 'jeton') ? 'f' : 'p');
-    d.innerHTML = P.Icons.svg(item, cls === 'icon' ? 40 : 30);
+    artIcon(d, item, lv, px);
     return d;
   }
 
@@ -256,7 +262,7 @@ P.Screens = (function () {
     var kind = c.id[0], b = document.createElement('button'), face = mk('div', 'card-face'), body = mk('div', 'card-body'), l1 = mk('div', 'card-l1');
     b.className = 'card kind-' + kind + (scripted && i === 0 ? ' highlight' : '') + (c.fork ? ' fork' : '') + (c.evo ? ' evo' : '');
     b.style.animationDelay = P.UIMotion.stagger(i) + 'ms';
-    face.appendChild(iconBox(c.item, 'icon'));
+    face.appendChild(iconBox(c.item, 'icon', c.next));
     var badge = cardBadge(c, kind); if (badge) face.appendChild(badge);
     l1.appendChild(mk('span', 'name', P.t('item.' + c.item)));
     if (kind !== 'f') l1.appendChild(pips(c.next - 1, c.next));
@@ -295,7 +301,7 @@ P.Screens = (function () {
     var h = s.hero, add = function (item, lv) {
       var d = document.createElement('div'); d.className = 'slot' + (item ? ' filled' : '');
       if (item) {
-        d.classList.add(P.Progression.isWeapon(item) ? 'kind-w' : 'kind-p'); d.innerHTML = P.Icons.svg(item, 28);
+        d.classList.add(P.Progression.isWeapon(item) ? 'kind-w' : 'kind-p'); artIcon(d, item, 0, 28);
         d.title = P.t('item.' + item);
         var sm = document.createElement('small'); sm.textContent = lv; d.appendChild(sm);
         var tags = slotTags(s, item); if (tags) d.appendChild(tags);
