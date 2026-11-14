@@ -42,8 +42,8 @@ zombie-overrun Istanbul. Portrait, one-thumb, Godot 4, **iOS first** (Android la
 
 ## Hard rules
 Both builds:
-- **Files ≤ 600 lines** (prefer ≤ 300). Functions ≤ ~40 lines. One concern per file. Files over the limit today: `docs/handoff-codex.md` section 3.
-- **Localization:** no hardcoded user-facing strings; use keys. Turkish casing goes through the text utility.
+- **Files ≤ 600 lines** (prefer ≤ 300). Functions ≤ ~40 lines. One concern per file. The files already over the limit are listed in `docs/handoff-codex.md` section 3 ("Rules of the prototype").
+- **Localization:** no hardcoded user-facing strings; use keys. Turkish casing goes through `P.upper` (`prototype/js/strings.js`), never `toUpperCase()`.
 - **Guardrails** (narrative.md, *Writer Guardrails*): no real state actors, earthquake
   imagery, religion/politics as targets, or real brands/club crests. No flashes over 3 per second.
 - **No secrets** in the repo. No new plugins, dependencies or paid services without asking.
