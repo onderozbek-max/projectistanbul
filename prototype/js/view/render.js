@@ -220,6 +220,7 @@ P.Render = (function () {
     if (L1 && y0 < 1) P.RenderWorld.drawRestaurant(R, s);
     P.Decor.drawStreet(R, s, y0, y1);
     hook(P.LayoutFx, 'drawGround', s);           // lane B: layout zone floors (plaza, market, bridge), over the street, under decals
+    if (P.BridgeProps) P.BridgeProps.drawFishing(R, s, y0, y1);
     hook(P.EnvFx, 'drawGround', s);              // lane A: floor decals (puddles, glass, debris), after the floor, before shadows
     hook(P.ArenaEvolve, 'drawGround', s);        // arena evolve: treated ground, rubble, litter and bins (view/arena-evolve-decals.js)
     P.RenderWorld.drawShadows(R, s, y0, y1);      // ground ambient occlusion under carts, canisters and blocks

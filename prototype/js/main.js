@@ -48,7 +48,8 @@
   function newRun(idx, opts) {
     if (idx) { levelIndex = idx; runOpts = opts || {}; }
     var seed = runOpts.seed || (params.get('seed') ? parseInt(params.get('seed'), 10) : (Date.now() % 100000));
-    sim = P.createSim(seed, { levelIndex: levelIndex, loadout: P.Meta ? P.Meta.loadout(runOpts) : null });
+    sim = P.createSim(seed, { levelIndex: levelIndex, loadout: P.Meta ? P.Meta.loadout(runOpts) : null,
+      sarayRaster: !!(P.SarayProps && P.SarayProps.ready()) });
     if (P.Barks && P.Barks.reset) P.Barks.reset(seed);
     P.Fx.reset(sim); P.Tel.setSeed(seed);
     acc = 0; timeScale = 1; slowMo = -1; hitStop = 0; rerolled = false; fxSlow.t = 0; P.HitStop = 0;
@@ -433,6 +434,7 @@
 
   // ---------- wiring ----------
   function on(id, fn) { $(id).addEventListener('click', function (e) { e.stopPropagation(); fn(e); }); }
+  if (P.SarayProps) P.SarayProps.prepare();
   P.Render.init($('game')); P.UI.init(); fit(); window.addEventListener('resize', fit);
   P.Input.init(phone, toLocal); P.Input.onPause = pause;
   if (P.Quality) { P.Quality.onChange(function () { P.Render.resize(scale); }); if (P.Quality.debugFps) P.Quality.showFps(phone); }   // T4 part 12

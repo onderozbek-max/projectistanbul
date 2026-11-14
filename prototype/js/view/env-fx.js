@@ -71,13 +71,22 @@
   F.drawGround = function (R, s) {
     var E = s.env, t = performance.now() / 1000, i, z;
     if (!E) return;
+    var theme = P.RenderWorld.themeOf(s).id;
+    var galata = theme === 'galata' && P.GalataProps, bridge = theme === 'bridge' && P.BridgeProps;
     for (i = 0; i < E.zones.length; i++) {
       z = E.zones[i];
       if (!inView(R, z.y, z.r + 2)) continue;
+      if (z.rec && s.geo.sarayRaster && P.SarayProps.ground(R, s, z.rec.b, true)) continue;
       if (z.kind === 'puddle') puddle(R, z, t);
-      else if (z.kind === 'glass') slick(R, z, 'rgba(200,220,230,A)', 'rgba(235,248,255,A)');
-      else if (z.kind === 'debris') slick(R, z, 'rgba(150,110,70,A)', 'rgba(230,200,150,A)');
-      else if (z.kind === 'foam') foam(R, z, t);
+      else if (z.kind === 'glass') {
+        slick(R, z, 'rgba(200,220,230,A)', 'rgba(235,248,255,A)');
+        if (z.rec && bridge) bridge.drawBroken(R, z);
+      }
+      else if (z.kind === 'debris') {
+        var rubble = z.rec && galata && galata.draw(R, z.rec.kind, z.x, z.y, { broken: true });
+        if (!rubble && z.rec && bridge) rubble = bridge.drawBroken(R, z);
+        if (!rubble) slick(R, z, 'rgba(150,110,70,A)', 'rgba(230,200,150,A)');
+      } else if (z.kind === 'foam') foam(R, z, t);
       else if (z.gas) gasCloud(R, z, t);
     }
   };

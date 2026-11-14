@@ -34,7 +34,7 @@ function levelRng(s, index) {
 }
 
 // ---------- build ----------
-P.Levels.build = function (s, index) {
+P.Levels.build = function (s, index, sarayRaster) {
   var info = P.Journey.level(index), st = P.Levels.stage(index), G0 = P.CFG.level.corridor, C = P.CFG.levels;
   var rng = levelRng(s, index), boss = !!st.boss, pst = P.Levels.paced(index, st);
   var exitY = Math.round(pst.len + rng.range(-6, 6));
@@ -42,6 +42,7 @@ P.Levels.build = function (s, index) {
   var geo = { xMin: G0.xMin, xMax: G0.xMax, length: exitY + 4, exitY: exitY, holdY: holdY,
     holdT: boss ? 0 : pst.holdT, boss: boss, blocks: [], landmarks: [], events: [], zones: [], sub: info.stage,
     kit: info.hood.kit || C.defaultKit };
+  if (sarayRaster && info.hood.id === 'saray') geo.sarayRaster = true;
   s.geo = geo;
   s.diff = P.Levels.difficulty(index);
   s.props = { carts: [], canisters: [], doorOpen: true, shutter: 0, shutterOpen: false, scaffoldDown: false, geo: geo };
@@ -97,7 +98,8 @@ function layBlocks(geo, rng) {
     [-1, 1].forEach(function (side) {
       if (!rng.chance(B.sideChance)) return;
       var kind = geo.kit[rng.int(0, geo.kit.length - 1)];
-      var w = K[kind][0], h = K[kind][1];
+      var size = (geo.sarayRaster && P.CFG.levels.sarayRaster.footprints[kind]) || K[kind];
+      var w = size[0], h = size[1];
       var x = side * (B.sideMin + w / 2 + rng.range(0, B.sideJit)), by = y + rng.range(-B.yJit, B.yJit);
       if (Math.abs(x) + w / 2 > geo.xMax - B.wallEdge) return;
       addBlock(geo, kind, x, by, w, h);

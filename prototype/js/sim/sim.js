@@ -33,7 +33,7 @@ P.createSim = function (seed, opts) {
   s.dir = P.Director.create();
   applyLoadout(s, o.loadout);
   if (idx > 1) {
-    P.Levels.build(s, idx);
+    P.Levels.build(s, idx, o.sarayRaster);
     if (P.Objectives) P.Objectives.attach(s);   // lane P: objective and run modifier (objectives.js)
     if (P.Env) P.Env.place(s, s.levelInfo);     // lane A: cover, canisters, cars, cables, doors (guarded; B may call it too)
   } else {

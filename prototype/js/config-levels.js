@@ -117,9 +117,12 @@
     kinds: {                       // kind -> size [w (x), h (y)] in m (F renders by kind)
       car: [1.9, 4.2], taxi: [1.9, 4.2], dolmus: [2.2, 5.0], bus: [2.6, 9.0], barrier: [3.0, 0.6],
       kiosk: [1.6, 1.6], bench: [0.6, 1.8], bin: [0.6, 0.6], planter: [1.2, 1.2], crates: [1.0, 1.0],
-      tables: [1.2, 1.2], cart: [1.4, 0.9], tree: [0.8, 0.8], bollard: [0.35, 0.35],
+      tables: [1.2, 1.2], tavlatable: [0.9, 0.9], cart: [1.4, 0.9], tree: [0.8, 0.8], bollard: [0.35, 0.35],
       antique: [1.6, 1.2],           // D-060 Haliç–Balat antique stand (art fw 1.6 x fd 1.2); breakable, hp in config-env.js. lx_stall: config-layouts.js
     },
+    // Commissioned Saray footprints (metres across and along) and cover HP for the raster review run.
+    sarayRaster: { footprints: { barrier: [0.3, 0.3], bench: [1.8, 0.6] },
+      cover: { barrier: 20, lx_stall: 30, bench: null } },
     // v0.5 · extra roster types per hood id (added from stage 2), weight = extraShare x segment share.
     hoodExtras: {
       galata: ['screamer'], karakoy: ['hardhat'], bridge: ['screamer'], eminonu: ['hardhat'], kapalicarsi: ['screamer'],

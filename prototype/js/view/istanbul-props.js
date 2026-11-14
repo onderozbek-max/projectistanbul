@@ -20,7 +20,7 @@ P.Props = (function () {
   //   plain              landmarks, overhead rigs, decals and fx: drawn as before.
   // ROLE is by kind; a kind with no entry is dressing. Blocks follow the sim's kit (journey.js) and env kinds (config-env.js).
   var ROLE = {
-    bin: 'breakable', bench: 'breakable', tables: 'breakable', cart: 'breakable', planter: 'breakable', crates: 'breakable',
+    bin: 'breakable', bench: 'breakable', tables: 'breakable', tavlatable: 'breakable', cart: 'breakable', planter: 'breakable', crates: 'breakable',
     crate: 'breakable', kiosk: 'breakable', antique: 'breakable', extinguisher: 'breakable',
     bollard: 'solid', barrier: 'solid', tree: 'solid', car: 'solid', taxi: 'solid', dolmus: 'solid', bus: 'solid',
     lx_pillar: 'solid', lx_stall: 'solid', lx_wall: 'solid', lx_truck: 'solid', lx_boat: 'solid',
@@ -397,7 +397,9 @@ P.Props = (function () {
     var block = role === 'solid' || role === 'breakable', dress = role === 'dressing';
     blockOn = block; dressOn = dress;
     if (dress) { c.save(); c.transform(DRESS.scale, 0, 0, DRESS.squash, X * (1 - DRESS.scale), Y * (1 - DRESS.squash)); }   // flatter and smaller about the footprint centre
-    if (!(o.theme && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, kind, o))) (REG[kind] || REG.crate)(c, X, Y, s, o);   // R1-T3: authored art for the hood's kit, else the procedural painter
+    var galata = o.theme === 'galata' && P.GalataProps && P.GalataProps.draw(R, kind, x, y, { v: o.v });
+    var fallback = kind === 'tavlatable' ? 'tables' : kind;
+    if (!galata && !(o.theme && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, fallback, o))) (REG[fallback] || REG.crate)(c, X, Y, s, o);   // R1-T3: authored art for the hood's kit, else the procedural painter
     if (block) c.drawImage(markCanvas(kind, role, o.w * s, o.h * s), X - o.w * s / 2 - 1, Y - o.h * s / 2 - 1);   // blocks always carry a footprint (roleOf)
     if (dress) c.restore();
     blockOn = pb; dressOn = pd;

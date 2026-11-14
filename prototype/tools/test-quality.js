@@ -140,7 +140,7 @@ function fakeEl() {
   const store = {};
   const queue = [];
   let clock = 1000;
-  const document = { hidden: false, body: fakeEl(), documentElement: fakeEl(), head: fakeEl(), createElement: () => fakeEl(),
+  const document = { hidden: false, currentScript: { src: 'http://test/js/view/x.js' }, body: fakeEl(), documentElement: fakeEl(), head: fakeEl(), createElement: () => fakeEl(),
     getElementById: (id) => (els[id] || (els[id] = fakeEl())), querySelectorAll: () => [], querySelector: () => fakeEl(), addEventListener() {}, removeEventListener() {} };
   const els = { game: { width: 0, height: 0, getContext: () => fakeEl(), style: {} } };
   class Path2D { constructor() {} }
@@ -152,7 +152,7 @@ function fakeEl() {
     localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
     Image: class {}, AudioContext: class {}, webkitAudioContext: class {},
     requestAnimationFrame: (fn) => { queue.push(fn); return queue.length; }, cancelAnimationFrame() {}, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
-    URLSearchParams, location: { search: '?skipintro=1' }, devicePixelRatio: 3, innerWidth: 390, innerHeight: 844, addEventListener() {}, removeEventListener() {},
+    URLSearchParams, URL, location: { search: '?skipintro=1' }, devicePixelRatio: 3, innerWidth: 390, innerHeight: 844, addEventListener() {}, removeEventListener() {},
     };
   ctx.window = ctx; ctx.self = ctx; ctx.globalThis = ctx; ctx.P = {};
   vm.createContext(ctx);

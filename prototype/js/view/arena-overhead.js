@@ -43,14 +43,22 @@ P.ArenaOverhead = (function () {
   }
 
   // Is the player or a telegraph under the screen rectangle? Returns the target alpha factor (1 or FLOOR).
-  function under(R, s, x0, y0, x1, y1) {
+  function under(R, s, x0, y0, x1, y1, elevation) {
     var u = R.ppm, m = 0.15 * u, h = s.hero, hx, hy, hit = false;
-    function box(ax0, ay0, ax1, ay1) { return ax1 > x0 - m && ax0 < x1 + m && ay1 > y0 - m && ay0 < y1 + m; }
-    if (h) { hx = R.X(h.x); hy = R.Y(h.y); hit = box(hx - 0.55 * u, hy - 1.9 * u, hx + 0.55 * u, hy + 0.15 * u); }
+    var lift = (elevation || 0) * u;
+    function box(ax0, ay0, ax1, ay1, dy) {
+      return ax1 > x0 - m && ax0 < x1 + m && ay1 > y0 - m + dy && ay0 < y1 + m + dy;
+    }
+    if (h) {
+      hx = R.X(h.x); hy = R.Y(h.y);
+      hit = box(hx - 0.55 * u, hy - 1.9 * u, hx + 0.55 * u, hy + 0.15 * u, 0) ||
+        (lift > 0 && box(hx - 0.4 * u, hy - 0.4 * u, hx + 0.4 * u, hy + 0.4 * u, lift));
+    }
     [(s.dir && s.dir.telegraphs) || [], s.enemyTele || []].forEach(function (list) {
       list.forEach(function (tg) {
         if (hit || tg.r == null || tg.x == null) return;
-        hit = box(R.X(tg.x) - tg.r * u, R.Y(tg.y) - tg.r * u, R.X(tg.x) + tg.r * u, R.Y(tg.y) + tg.r * u);
+        var x = R.X(tg.x), y = R.Y(tg.y), r = tg.r * u;
+        hit = box(x - r, y - r, x + r, y + r, 0) || (lift > 0 && box(x - r, y - r, x + r, y + r, lift));
       });
     });
     return hit ? FLOOR : 1;
@@ -62,6 +70,9 @@ P.ArenaOverhead = (function () {
     return st.a;
   }
 
+  A.opacity = function (R, s, key, x0, y0, x1, y1, elevation) {
+    return fade(key, under(R, s, x0, y0, x1, y1, elevation));
+  };
   A.ready = function () { return pending === 0; };
   A.has = function (theme, kind) { return !!(P.ArenaOverheadData && P.ArenaOverheadData[theme] && P.ArenaOverheadData[theme][kind]); };
   // D-060: a 'hood.sN' entry (N = 1-based stage) is the hood's art on that stage only.
@@ -82,7 +93,7 @@ P.ArenaOverhead = (function () {
     v = Math.min(set.length - 1, Math.floor(((o && o.v) || 0) * set.length)); key = theme + '|' + kind + '|' + v; d = set[v];
     if (!IMG[key]) return false;
     c = R.ctx; u = R.ppm; X = R.X(x); Y = R.Y(y); x0 = X - d.ax * u; y0 = Y - d.ay * u;
-    a = fade(kind + ':' + Math.round(y * 10), under(R, s, x0, y0, x0 + d.w * u, y0 + d.h * u));
+    a = A.opacity(R, s, kind + ':' + Math.round(y * 10), x0, y0, x0 + d.w * u, y0 + d.h * u);
     k = Math.max(1, Math.round(u * (R.dpr || 1)));
     c.save(); c.globalAlpha = d.alpha * a;
     c.drawImage(raster(key, d, k), x0, y0, d.w * u, d.h * u);

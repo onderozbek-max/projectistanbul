@@ -4,7 +4,7 @@
 (function (C) {
   C.env = {
     // ---- A1 · breakable cover: hp by block kind (levels.js kinds plus the env kinds). Dash contact hits once per dash. ----
-    hp: { bin: 12, bench: 20, crates: 25, tables: 30, kiosk: 40, antique: 40, car: 60, taxi: 60, dolmus: 60, cart: 25, planter: 20,
+    hp: { bin: 12, bench: 20, crates: 25, tables: 30, tavlatable: 30, kiosk: 40, antique: 40, car: 60, taxi: 60, dolmus: 60, cart: 25, planter: 20,
       gascan: 10, extinguisher: 30 },
     dashDmg: 12,
     // Material: glass slicks (bins, kiosks, cars) and wood debris (benches, crates, tables, carts, planters).

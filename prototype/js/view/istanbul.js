@@ -29,7 +29,13 @@ P.Decor = (function () {
   }
 
   D.drawStreet = function (R, s, y0, y1) {
-    if (isGen(s)) { genStreet(R, s, y0, y1); gullShadows(R, s); return; }
+    if (isGen(s)) {
+      genStreet(R, s, y0, y1);
+      if (P.RenderWorld.themeOf(s).id === 'galata') P.GalataProps.street(R, s, y0, y1);
+      if (P.BridgeProps) P.BridgeProps.drawRail(R, s, y0, y1);
+      gullShadows(R, s);
+      return;
+    }
     l1Extras(R, s, y0, y1);
     l1Street(R, s, y0, y1);
   };
@@ -93,7 +99,13 @@ P.Decor = (function () {
   }
 
   D.drawOverhead = function (R, s, y0, y1) {
-    if (isGen(s)) { genOverhead(R, s, y0, y1); gullsDraw(R, s); return; }
+    if (isGen(s)) {
+      genOverhead(R, s, y0, y1);
+      if (P.RenderWorld.themeOf(s).id === 'galata') P.GalataProps.overhead(R, s, y0, y1);
+      if (P.BridgeProps && P.ArenaOverhead) P.BridgeProps.drawLanterns(R, s, y0, y1);
+      gullsDraw(R, s);
+      return;
+    }
     L1Over(R, y0, y1);
     l1Overhead(R, s, y0, y1);
   };
@@ -184,11 +196,13 @@ P.Decor = (function () {
       var yy = y + hash(y * 4.7 + sd) * 2.5, o = { k: Math.floor(hash(y * 9.1 + sd) * 4) };
       if (kind === 'cat' || kind === 'catbox') o.alert = Math.hypot(h.x - x, h.y - yy) < 2.2;
       if (kind === 'pigeon') o.fly = flyFor(seed + ':' + y + ':' + sd, x, yy, s);
+      if (th.id === 'bridge' && s.levelIndex === 16 && kind === 'rods' && P.BridgeProps && P.BridgeProps.hasRail()) return;
       P.Props.draw(kind, R, x, yy, o);
     });
   }
   function genOverhead(R, s, y0, y1) {
     var th = P.RenderWorld.themeOf(s), rig = P.ArenaOverhead ? P.ArenaOverhead.rig(th.id, s, th.overhead) : th.overhead, hp = P.RenderWorld.hoodPos(s), t = performance.now() / 1000;   // D-060: a stage's authored rig may replace 'none'
+    if (P.SarayProps && P.SarayProps.overhead(R, s, y0, y1)) rig = 'none';
     for (var y = Math.ceil(y0 / 12) * 12; y < y1 && rig !== 'none'; y += 12) {
       var ry = rig === 'laundry' ? y + 3 : y;
       if (P.ArenaOverhead && P.ArenaOverhead.draw(R, s, th.id, rig, 0, ry, { v: hash(y * 0.37) })) continue;   // R1-T3: authored rig, fades under the player

@@ -326,6 +326,23 @@ const alive = list => list.filter(e => !e.dead).length;
   check(Math.abs(empty - 1) < 1e-9 && Math.abs(e.xp - 0.5) < 1e-9, 'xp: a crowd of ref size halves gem XP');
 })();
 
+// Galata uses its own backgammon table size and the three breakable props
+// keep their identity after leaving the collision geometry.
+(function () {
+  const s = mk(123, 6), sizes = { tavlatable: [0.9, 0.9], bench: [0.6, 1.8], planter: [1.2, 1.2], bollard: [0.35, 0.35] };
+  Object.entries(sizes).forEach(([kind, [w, h]]) => {
+    const b = s.geo.blocks.find(b => b.kind === kind);
+    check(!!b && Math.abs(b.rc.xMax - b.rc.xMin - w) < 1e-9 &&
+      Math.abs(b.rc.yMax - b.rc.yMin - h) < 1e-9, 'Galata footprint: ' + kind);
+    if (kind === 'bollard') { check(b && !b.rec, 'Galata bollard is solid'); return; }
+    if (!b || !b.rec) { check(false, 'Galata breakable missing: ' + kind); return; }
+    P.Env.hitProp(s, b.rec, b.rec.hp, 'sledge');
+    check(!s.geo.blocks.includes(b) && s.env.zones.some(z => z.kind === 'debris' && z.rec === b.rec),
+      'Galata break removes collision and retains rubble kind: ' + kind);
+  });
+  check(P.CFG.levels.kinds.tables.every(size => size === 1.2), 'generic cafe table footprint');
+})();
+
 // ---------- sim isolation and lint ----------
 (function () {
   var files = ['js/sim/env.js', 'js/sim/env-kinds.js', 'js/sim/env-zones.js', 'js/sim/env-rules.js', 'js/sim/env-portal.js'];

@@ -32,8 +32,8 @@ function breakCover(s, r, tag) {
   var C = P.CFG.env, E = s.env, L = C.loot, glass = C.glassKinds.indexOf(r.kind) >= 0 ? 'glass' : 'debris', drop = 'none';
   var spread = C.tagDebris[tag] || 1;
   r.alive = false; removeBlock(s, r); E.stats.breaks++;
-  if (glass === 'glass') P.EnvZones.add(s, 'glass', r.x, r.y, C.glass.r * spread, C.glass.T, C.glass.slow);
-  else P.EnvZones.add(s, 'debris', r.x, r.y, C.debris.r * spread, C.debris.T, C.debris.slow);
+  if (glass === 'glass') P.EnvZones.add(s, 'glass', r.x, r.y, C.glass.r * spread, C.glass.T, C.glass.slow, r);
+  else P.EnvZones.add(s, 'debris', r.x, r.y, C.debris.r * spread, C.debris.T, C.debris.slow, r);
   if (tag === 'fire') s.zones.push({ kind: 'fire', x: r.x, y: r.y, r: C.burn.r, t: C.burn.T, T: C.burn.T, dps: C.burn.dps });
   if (E.rng.chance(L.simitChance)) { drop = 'simit'; P.Events.drop(s, 'simit', r.x, r.y, P.CFG.drops.simitHeal); }
   else if (E.rng.chance(L.jetonChance)) {

@@ -40,6 +40,7 @@ P.ArenaProps = (function () {
   A.has = function (theme, kind) { return !!(P.ArenaPropsData && P.ArenaPropsData[theme] && P.ArenaPropsData[theme][kind]); };
   A.draw = function (R, x, y, theme, kind, o) {
     var set = P.ArenaPropsData && P.ArenaPropsData[theme] && P.ArenaPropsData[theme][kind], v, key, d, s, X, Y, c, k;
+    if (theme === 'bridge' && P.BridgeProps && P.BridgeProps.drawBlock(R, kind, x, y, o || {})) return true;
     if (!set) return false;
     v = Math.min(set.length - 1, Math.floor(((o && o.v) || 0) * set.length)); key = theme + '|' + kind + '|' + v; d = set[v];
     if (!IMG[key]) return false;

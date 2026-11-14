@@ -18,7 +18,7 @@ P.Journey = {
       vehicles: ['tram'], hack: ['atm', 'traffic', 'cell', 'shutter', 'tram'] },
     { id: 'galata', name: 'Galata', district: 'Beyoğlu', km: 1.8, theme: 'galata', map: [0.64, 0.24],
       enemies: ['walker', 'runner', 'crawler', 'spitter'], skins: ['tourist', 'musician', 'student', 'shopper'], boss: 'brute',
-      kit: ['tables', 'bench', 'planter', 'bollard'], layouts: ['street', 'chicane', 'plaza', 'market', 'arena'], centre: 'tea',
+      kit: ['tavlatable', 'bench', 'planter', 'bollard'], layouts: ['street', 'chicane', 'plaza', 'market', 'arena'], centre: 'tea',
       vehicles: [], hack: ['atm', 'cell'] },
     { id: 'karakoy', name: 'Karaköy', district: 'Beyoğlu', km: 2.6, theme: 'karakoy', map: [0.62, 0.30],
       enemies: ['walker', 'runner', 'spitter', 'bloater'], skins: ['barista', 'fisher', 'worker', 'tourist'], boss: 'brute',
