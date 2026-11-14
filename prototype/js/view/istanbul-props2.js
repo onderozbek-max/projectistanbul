@@ -500,6 +500,48 @@
     P.Consumables.stationSign(c, X, top - 0.32 * s, s, (o && o.state) || 'idle', performance.now() / 1000, !(P.Settings && P.Settings.reduceMotion));
   });
 
+  // ---- kiosk (bufe), R1-T4 part 17: the simit and tea büfe, the heal station of the boat, ferry and bazaar hoods (sim/eczane.js,
+  // variant kiosk). A wood counter with an orange and white striped awning along its front, a simit stack and a steaming tea glass
+  // on the top, and the station sign on a plate above (the awning and tea-glass icon, consumables.js stationSign). o.state as the
+  // eczane: 'usable' (sign glow pulsing at 0.5 Hz or less, the steam drifts; steady under Reduce motion), 'empty' (the simits and the
+  // glass are gone, the awning greys, the sign reads EMPTY) or 'idle'.
+  reg('bufe', function (c, X, Y, s, o) {
+    var st = (o && o.state) || 'idle', empty = st === 'empty', motion = !(P.Settings && P.Settings.reduceMotion), t = performance.now() / 1000;
+    var w = ((o && o.w) || 1.4) * s, d = ((o && o.h) || 1.0) * s, hg = 0.7 * s, yb = Y + d / 2, yt = yb - d - hg, x0 = X - w / 2;
+    var edge = yb - hg, aTop = edge - 0.08 * s, aBot = edge + 0.3 * s, n = 6, sw = w / n, i, k, sx, cA, cB, tt;
+    shadow(c, X, Y, w * 0.6, d * 0.5);
+    box(c, X, Y, w, d, hg, empty ? '#D9D6CC' : '#F4EBDD', empty ? '#8E8B82' : '#8A5A2B');   // counter: cream top, wood front
+    // the awning: n stripes, each with a scalloped lower edge; the outline is ink
+    cA = empty ? '#9C9A93' : '#E8702A'; cB = empty ? '#D5D3CC' : '#FFF4DF';
+    for (i = 0; i < n; i++) {
+      sx = x0 + i * sw;
+      c.fillStyle = i % 2 ? cB : cA;
+      c.fillRect(sx, aTop, sw, aBot - aTop);
+      c.beginPath(); c.ellipse(sx + sw / 2, aBot, sw / 2, 0.1 * s, 0, 0, TAU); c.fill();
+    }
+    c.strokeStyle = INK; c.lineWidth = 1.4;
+    c.beginPath(); c.moveTo(x0, aTop); c.lineTo(x0 + w, aTop); c.stroke();
+    for (i = 0; i < n; i++) { sx = x0 + i * sw; c.beginPath(); c.ellipse(sx + sw / 2, aBot, sw / 2, 0.1 * s, 0, 0, Math.PI); c.stroke(); }
+    if (!empty) {
+      for (i = 0; i < 3; i++) {                                                     // simit stack on the counter, left
+        var px = X - w * 0.24, py = yt + d * 0.62 - i * 0.09 * s;
+        ell(c, px, py, 0.2 * s, 0.1 * s, '#B07A3A', 1.2);
+        ell(c, px, py, 0.07 * s, 0.035 * s, '#F4EBDD', 0);
+      }
+      // the tea glass, right: drawn at twice the props scale (a 0.13 m glass is 5 px tall at phone size, too small to read). Its rim
+      // is 0.13 s x 2 above the saucer. Steam rises from the rim: slow wisps at 0.25 Hz, or one still wisp per glass under Reduce motion.
+      var gx = X + w * 0.24, gy = yt + d * 0.8, rim = gy - 0.26 * s;
+      teaGlass(c, gx, gy, s * 2);
+      for (k = 0; k < 2; k++) {
+        tt = motion ? (t * 0.25 + k / 2) % 1 : 0.35 + 0.3 * k;
+        c.strokeStyle = 'rgba(96,88,80,' + (0.7 * (1 - tt)).toFixed(3) + ')'; c.lineWidth = 1.6;   // warm grey: white steam vanishes on the cream counter
+        c.beginPath(); c.moveTo(gx - 0.03 * s, rim - 0.02 * s);
+        c.quadraticCurveTo(gx + (k ? 0.07 : -0.07) * s, rim - 0.12 * s - tt * 0.1 * s, gx, rim - 0.26 * s - tt * 0.22 * s); c.stroke();
+      }
+    }
+    P.Consumables.stationSign(c, X, yt - 0.32 * s, s, st, t, motion, 'bufe');
+  });
+
   // ---- L1 sidewalk vendors (T4 part 11: moved here from istanbul.js so they share the role grammar; dressing role) ----
   // Top-down and flat. The nazar beads have no pupils (they read as eyes), the shoe-shine stand shows its footrests and brush,
   // and the flower pots are pots with leaves and one bloom each (the old rows of dots read as pickups).

@@ -21,7 +21,13 @@ P.ConsumablesIcons = (function () {
     tram: [{ t: 'rect', x: -0.6, y: -1, w: 1.2, h: 2 }, { t: 'rect', x: -0.4, y: -0.7, w: 0.8, h: 0.4, hole: true }],
     door: [{ t: 'rect', x: -0.5, y: -1, w: 1, h: 2 }, { t: 'circle', x: 0.25, y: 0.1, r: 0.09, hole: true }],
     chevron: [{ t: 'poly', p: [[-1, -0.7], [-0.45, 0], [-1, 0.7], [-0.7, 0.7], [-0.15, 0], [-0.7, -0.7]] },
-      { t: 'poly', p: [[-0.1, -0.7], [0.45, 0], [-0.1, 0.7], [0.15, 0.7], [0.7, 0], [0.15, -0.7]] }]
+      { t: 'poly', p: [[-0.1, -0.7], [0.45, 0], [-0.1, 0.7], [0.15, 0.7], [0.7, 0], [0.15, -0.7]] }],
+    // The kiosk (büfe) heal station (R1-T4 part 17): a scalloped awning over two stripes, and a tea glass on its saucer. The
+    // silhouette is the kiosk's own, so the sign reads as a büfe and not as a pharmacy cross.
+    bufe: [{ t: 'poly', p: [[-0.95, -0.92], [0.95, -0.92], [0.95, -0.2], [0.6, -0.05], [0.3, -0.2], [0, -0.05], [-0.3, -0.2], [-0.6, -0.05], [-0.95, -0.2]] },
+      { t: 'rect', x: -0.5, y: -0.86, w: 0.14, h: 0.6, hole: true }, { t: 'rect', x: 0.1, y: -0.86, w: 0.14, h: 0.6, hole: true },
+      { t: 'poly', p: [[-0.3, 0.1], [0.3, 0.1], [0.2, 0.6], [-0.2, 0.6]] },
+      { t: 'rect', x: -0.42, y: 0.6, w: 0.84, h: 0.14 }]
   };
   I.names = Object.keys(S);
 

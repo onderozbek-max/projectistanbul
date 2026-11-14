@@ -82,11 +82,16 @@ Each hood has five levels, one stage each (stage N = level N of the hood, so `H0
 
 | Stage | Role | Layout | Length (m) | Duration target | Hold | Waves (rule) | Elite windows | Modifier |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Arrival | Route | 170 | 3:00 | 40 s | walker + runner; roster[2] scripted intro at the first 25% | none | dusk |
-| 2 | Open ground | Arena or route | 200 | 3:30 | 50 s | adds roster[2] (40%) | 1 at 45% of the stage | none |
-| 3 | Set piece | Route, ambush on | 230 | 4:00 | 60 s | adds roster[3] when the hood has one | 1 at 60% | night (on about half the hoods) |
-| 4 | Twist | Route, hood twist | 260 | 4:30 | 70 s | full roster | 2 (at 35% and 70%) | fog or horde (one per hood) |
-| 5 | Boss | 100 m approach + boss arena | 160 | 5:00–6:00 | none (arena) | boss + adds (roster[0–1]) every 6 s on intro, then 60% of stage rate | boss mini-elite adds | per hood |
+| 1 | Arrival | Route | 170 → 212.5 | 3:00 | 40 → 50 s | walker + runner; roster[2] scripted intro at the first 25% | none | dusk |
+| 2 | Open ground | Arena or route | 200 → 250 | 3:30 | 50 → 62.5 s | adds roster[2] (40%) | 1 at 45% of the stage | none |
+| 3 | Set piece | Route, ambush on | 230 → 287.5 | 4:00 | 60 → 75 s | adds roster[3] when the hood has one | 1 at 60% | night (on about half the hoods) |
+| 4 | Twist | Route, hood twist | 260 → 325 | 4:30 | 70 → 87.5 s | full roster | 2 (at 35% and 70%) | fog or horde (one per hood) |
+| 5 | Boss | 100 → 125 m approach + boss arena | 160 → 200 | 5:00–6:00 | none (arena) | boss + adds (roster[0–1]) every 6 s on intro, then 60% of stage rate | boss mini-elite adds | per hood |
+
+Arrows show the L1 base → L2+ values. From L2 on, route length, boss approach and gate hold are ×1.25
+(`C.levels.pace`, R1-T4 part 16). Route stages 1 to 4 also drop a free upgrade crate at route segments B and D, and
+brute bosses have 2800 HP (see game-design §7). Duration targets are design goals; the bot's L2–10 mean after this
+package is 4.1 min per level.
 
 Route stages use the exit gate and the hold timer. Arena stages use the timer. Stage 5 uses the
 boss arena. Source numbers: `config-levels.js` (`C.levels.stages`, E2, in progress).
@@ -110,6 +115,21 @@ There is no global cap in code. Route levels stop spawning at 140 alive (config-
 - Each route stage has one twist object or prop from the hood list (section 5).
 - A stage 1 after a boss is a breather. Use 80% of the spawn rate.
 - A level is a full run. In-run level resets to 1 every level (GD §3). Power carries over only through meta.
+
+### 3.4 Replay tiers (R1-T4 part 18)
+
+The walk itself is unchanged. Two replays sit on top of it (GD §8.17):
+
+- **Nightmare, per hood.** Each level can be replayed as Nightmare once its hood is cleared on Normal. The same
+  route with harder numbers and one signature change per hood, through the existing levers: an extra elite
+  mark, a roster type, or a longer gate hold on stages 1–4. The boss arena keeps its layout (its HP and share
+  rise through the numbers). Table of signatures: `config-modes.js` `levels.nightmare.sig`, keyed by hood id.
+  A Nightmare star is a fourth star (clear, no revive, lowest HP at 40% or more).
+- **Night Shift, daily.** One endless run per day on a route picked from the stage 1–4 levels the player has
+  unlocked, rotating by date. The gate stays shut; spawn density ramps with time; the shift ends on death (one
+  revive) or at 12 minutes. The route is always a stage route, never a boss arena.
+
+Levels 1–100 keep their stage counts, boss stages and objectives in both tiers. Nothing in §3.1–3.3 changes.
 
 ---
 
@@ -588,7 +608,8 @@ Sawtooth rule: the boss is the peak. The next stage 1 is the relief (80% spawn r
 
 - One level = one run, 3:00–6:00.
 - One hood = 5 levels = about 20–28 min including the map walk and the comic page.
-- Chapter 1 = about 7–9 h for a first pass, with deaths and replays.
+- Chapter 1 = about 7–9 h for a first pass, with deaths and replays. Bot extrapolation after the P1 pacing package: 6.8 h
+  (100 × the L2–10 mean of 4.1 min; 9-level sample), short of the range. See game-design §7.
 - Map walk after each level (results → map, see weapons-skills and story-presentation) gives
   a pause for the story and a reason to keep going.
 

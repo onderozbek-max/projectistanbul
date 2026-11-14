@@ -384,6 +384,7 @@ P.Combat.simitBonus = function (s) {
 // toward it; the route's drops cannot spend it before the boss, so the intro heal always restores what it says.
 P.Combat.dropHeal = function (s, amount, uncapped) {
   var h = s.hero, before = h.hp;
+  if (s.diff && s.diff.heal !== undefined) amount *= s.diff.heal;   // R1-T4 part 18: Nightmare heals less (1 or unset otherwise)
   if (uncapped) { h.hp = Math.min(h.maxHp, h.hp + amount); return h.hp - before; }
   var cap = s.levelIndex >= P.CFG.levels.rampFrom ? P.CFG.drops.healCap : Infinity;
   var room = Math.max(0, cap - (s.dropHealed || 0));

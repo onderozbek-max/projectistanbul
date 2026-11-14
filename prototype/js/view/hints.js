@@ -3,7 +3,7 @@
 // anything but the sim's public state. A type that has shown (or was tapped away) is stored and never shows again (per store).
 // The presenter (hints-view.js) draws the callout; detectors (hints-detect.js) say what is in view. Tokens: hints-config.js.
 P.Hints = (function () {
-  var H = {}, C = P.CFG.hints, ORDER = ['heal', 'eczane', 'currency', 'objective', 'chest', 'explosive', 'cover', 'link', 'tram', 'door', 'dash', 'call'];
+  var H = {}, C = P.CFG.hints, ORDER = ['heal', 'eczane', 'kiosk', 'currency', 'objective', 'chest', 'explosive', 'cover', 'link', 'tram', 'door', 'dash', 'call'];
   var seen = {}, loaded = false, store = null, queue = [], active = null, nextAt = 0, now = 0, lastSim = null;
   H.ORDER = ORDER;
 

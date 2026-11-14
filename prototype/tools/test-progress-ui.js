@@ -49,7 +49,8 @@ check(at('js/meta/meta-progress.js') > at('js/meta/meta-power.js') && at('js/met
 check(at('js/view/ui-progress.js') > at('js/view/ui-motion.js') && at('js/view/ui-progress.js') < at('js/view/screens.js') && at('js/view/ui-progress.js') > 0,
   'index.html: ui-progress.js after ui-motion.js (countUp, leave) and before screens.js');
 [['js/view/ui.js', 'P.UIProgress.init()'], ['js/view/ui.js', 'P.UIProgress.reset()'], ['js/view/ui.js', 'P.UIProgress.hud(s)'],
- ['js/view/ui.js', 'P.UIProgress.levelUp()'], ['js/view/ui.js', 'P.UIProgress.tick(dt)'], ['js/view/ui.js', "P.t('ui.hud.lv'"],
+ ['js/view/ui.js', 'P.UIProgress.levelUp()'], ['js/view/ui.js', 'P.UIProgress.tick(dt)'], ['js/view/ui.js', "P.t('ui.hud.adr'"],
+ ['js/view/ui.js', "P.t('ui.hud.journey'"], ['js/view/ui.js', "el.lv.setAttribute('aria-label'"],
  ['js/main.js', 'P.UIProgress.queueLevelUp(sim, card)'], ['js/main.js', 'P.Meta.progress().kmShown'], ['js/main.js', 'streak: sim.tally.maxStreak'],
  ['js/view/screens.js', 'P.UIProgress.results(r)'], ['js/view/screens.js', "$('cards-title')"], ['js/view/hood-card.js', 'P.UIProgress.hoodNode(li)'],
  ['js/meta/meta-ui.js', 'P.UIProgress.powerHtml()'], ['js/meta/meta-ui.js', 'P.UIProgress.unlockText('], ['js/meta/meta-ui.js', 'setKm(v.kmShown)'],
@@ -64,7 +65,7 @@ check(!/ui\.hud\.level|ui\.res\.labelHood|ui\.res\.runLevel|ui\.cards\.title/.te
 const allJs = [];
 (function walk(d) { fs.readdirSync(d).forEach(n => { const p = path.join(d, n); if (fs.statSync(p).isDirectory()) walk(p); else if (/\.js$/.test(n)) allJs.push(path.relative(ROOT, p)); }); })(path.join(ROOT, 'js'));
 const liveCode = allJs.map(code).join('\n');
-check(!/'ui\.hud\.level'|'ui\.res\.labelHood'|'ui\.res\.runLevel'|'ui\.cards\.title'|'meta\.level'|'meta\.nextLine'|'İstanbul'/.test(liveCode),
+check(!/'ui\.hud\.level'|'ui\.hud\.lv'|'ui\.res\.labelHood'|'ui\.res\.runLevel'|'ui\.cards\.title'|'meta\.level'|'meta\.nextLine'|'İstanbul'/.test(liveCode),
   'a retired key or the literal "İstanbul" is still used in code');
 const progCode = ['js/view/ui-progress.js', 'js/meta/meta-progress.js', 'js/strings-progress-ui.js', 'js/view/hood-card.js', 'js/meta/meta-ui.js',
   'js/view/screens.js', 'js/view/ui.js'].map(code).join('\n');
@@ -108,10 +109,20 @@ usedKeys.forEach(k => { check(k in TR, `TR has no string for ${k}`); check(k in 
   'res.recap.noPower', 'res.recap.next', 'res.recap.retry', 'hc.next'].forEach(k => check(k in TR && k in EN, `progress string ${k} needs TR and EN`));
 const psrc = read('js/strings-progress-ui.js');
 const trBlock = psrc.slice(psrc.indexOf('Object.assign(P.STR.tr'), psrc.indexOf('Object.assign(P.STR.en'));
-// T4 part 9: the owner approved every TR line in this file, so no "// TR owner check" tag is left here (a new unapproved line
-// would carry one again)
+// T4 part 9 approved every TR line in this file. The Adrenalin rename (the in-run level is no longer "Lv") is the one change
+// since, so exactly its two TR lines carry "// TR owner check" until the owner signs them off; any other tag is a new line
+// that nobody approved.
 const tagged = trBlock.split('\n').filter(l => /TR owner check/.test(l));
-check(tagged.length === 0, 'strings-progress-ui.js: the owner-approved TR lines carry no "TR owner check" tag: ' + tagged.join(' | '));
+const PENDING_TR = ['lvb.title', 'res.recap.reached'];
+check(tagged.length === PENDING_TR.length && PENDING_TR.every(k => tagged.some(l => l.indexOf(`'${k}'`) >= 0)),
+  'strings-progress-ui.js: only the Adrenalin lines (' + PENDING_TR.join(', ') + ') carry "TR owner check": ' + tagged.join(' | '));
+// Every TR line this change added or touched in the other string files carries the tag (the first occurrence is the TR table).
+const OWNER_TAGGED = { 'js/strings.js': ['ui.cards.sub'], 'js/strings-journey.js': ['ui.hud.adr', 'ui.hud.journey'],
+  'js/strings-weapons2.js': ['desc.kolonya', 'desc.lokum'], 'js/strings-progress-ui.js': PENDING_TR };
+Object.keys(OWNER_TAGGED).forEach(f => OWNER_TAGGED[f].forEach(k => {
+  const line = read(f).split('\n').find(l => l.indexOf(`'${k}':`) >= 0) || '';
+  check(/TR owner check/.test(line), `${f}: the TR line for ${k} carries "// TR owner check"`);
+}));
 
 // terms in the tables: a hood is never a chapter or Bölüm; the banner is "LEVEL UP"; no range-style HUD values
 const HOOD_KEY = /^(meta\.district|meta\.hood\.|hc\.)/;
@@ -127,13 +138,22 @@ Object.keys(TR).concat(Object.keys(EN)).forEach(k => {
 // exact readouts, English then Turkish
 const savedLang = P.lang;
 P.lang = 'en';
-check(P.t('ui.hud.lv', { n: 3 }) === 'Lv 3', 'the HUD keeps "Lv N"');
-check(P.t('lvb.title', { n: 5 }) === 'LEVEL UP · Lv 5', 'the level-up banner reads "LEVEL UP · Lv N"');
-check(P.t('ui.res.labelLevel', { n: 12, hood: 'İSTİKLAL' }) === 'LEVEL 12 · İSTİKLAL', 'the results headline reads the journey level');
-check(P.t('res.recap.reached', { n: 7, kills: 30, streak: 4 }).indexOf('Reached Lv 7') === 0, 'the recap says "Reached Lv N" for the in-run level');
-check(P.t('ui.hud.stage', { s: 2, of: 5 }) === '2/5', 'the HUD stage chip reads stage/of');
+check(P.t('ui.hud.adr', { n: 3 }) === 'Adrenaline 3', 'the Adrenalin chip label reads "Adrenaline N" (the in-run level, never "Lv")');
+check(P.t('ui.hud.journey', { n: 7, of: P.Journey.count() }) === 'LEVEL 7/100', 'the journey chip, line 1, reads "LEVEL n/100" (journey level)');
+check(P.t('lvb.title', { n: 5 }) === 'ADRENALINE UP · 5', 'the level-up banner and card title read "ADRENALINE UP · N"');
+// The results headline: the journey index is the hood number and the stage (ui-progress.js V.results), and the hood is the one
+// of the same level. The run on level 12 is stage 2 of Karaköy (hood 3), so the headline reads LEVEL 12 · KARAKÖY.
+check(P.Journey.level(7).hood.name === 'Galata' && P.Journey.level(12).hood.name === 'Karaköy', 'journey levels 7 and 12 are Galata and Karaköy');
+check(code('js/view/ui-progress.js').indexOf('var idx = (r.hoodN - 1) * P.Journey.levelsPerHood + r.stage') >= 0, 'results: the journey index comes from the hood number and the stage');
+const L12 = P.Journey.level(12), idx12 = (L12.hoodIndex + 1 - 1) * P.Journey.levelsPerHood + L12.stage;
+check(idx12 === 12 && P.t('ui.res.labelLevel', { n: idx12, hood: P.upper(L12.hood.name) }) === 'LEVEL 12 · KARAKÖY',
+  'the results headline for level 12 names KARAKÖY (the same level), not İSTİKLAL');
+check(P.t('res.recap.reached', { n: 7, kills: 30, streak: 4 }).indexOf('Reached Adrenaline 7') === 0, 'the recap says "Reached Adrenaline N" for the in-run level');
+check(P.t('ui.hud.stage', { s: 2, of: 5 }) === '2/5', 'the HUD stage string still reads stage/of (the chip no longer shows it)');
 P.lang = 'tr';
-check(P.t('ui.hud.lv', { n: 3 }) === 'Lv 3', 'the Turkish HUD keeps "Lv N"');
+check(P.t('ui.hud.adr', { n: 3 }) === 'Adrenalin 3', 'the Turkish Adrenalin chip label reads "Adrenalin N"');
+check(P.t('ui.hud.journey', { n: 7, of: P.Journey.count() }) === 'BÖLÜM 7/100', 'the Turkish journey chip, line 1, reads "BÖLÜM n/100"');
+check(P.t('lvb.title', { n: 5 }) === 'ADRENALİN YÜKSELDİ · 5', 'the Turkish level-up title reads "ADRENALİN YÜKSELDİ · N"');
 check(P.upper('istiklal') === 'İSTİKLAL', 'P.upper gives Turkish capitals (İ)');
 P.lang = savedLang;
 

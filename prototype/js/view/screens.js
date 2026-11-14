@@ -450,17 +450,21 @@ P.Screens = (function () {
   }
 
   S.showResults = function (r) {
-    $('res-title').textContent = P.t(r.win ? 'ui.res.clear' : 'ui.res.fail');
+    // R1-T4 part 18: Night Shift has its own titles, no stars and no criteria; a Nightmare run has four stars.
+    var ns = r.mode === 'nightshift';
+    $('res-title').textContent = P.t(ns ? (r.win ? 'ui.ns.done' : 'ui.ns.over') : r.win ? 'ui.res.clear' : 'ui.res.fail');
     $('btn-next').classList.toggle('hidden', !r.win || !r.hasNext);
-    var st = $('res-stars'); st.innerHTML = '';
-    [48, 56, 48].forEach(function (sz, i) {
+    var st = $('res-stars'); st.innerHTML = ''; st.classList.toggle('hidden', ns);
+    var sizes = r.stars.length > 3 ? [40, 52, 52, 40] : [48, 56, 48];
+    if (!ns) sizes.forEach(function (sz, i) {
       var sv = star(sz, r.stars[i]); st.appendChild(sv);
       setTimeout(function () { sv.classList.add('in'); }, P.UIMotion.wait('--m-enter') + i * P.UIMotion.wait('--m-beat'));
     });
-    var crit = $('res-criteria'); crit.innerHTML = '';
+    var crit = $('res-criteria'); crit.innerHTML = ''; crit.classList.toggle('hidden', ns);
     // Star goals come from P.Objectives.goals (lane P) when the run passes them; the old three-goal list is the fallback.
-    var goals = r.goals || [{ key: 'ui.res.starClear', on: r.stars[0] }, { key: 'ui.res.starNoRevive', on: r.stars[1] },
+    var goals = ns ? [] : r.goals || [{ key: 'ui.res.starClear', on: r.stars[0] }, { key: 'ui.res.starNoRevive', on: r.stars[1] },
       { key: 'ui.res.starHp', on: r.stars[2], hp: true }];
+    if (!ns && !r.goals && r.stars.length > 3) goals.push({ key: 'res.star4', vars: { n: Math.round(P.CFG.levels.nightmare.fourthHp * 100) }, on: r.stars[3] });
     goals.forEach(function (g, i) {
       var sp = document.createElement(g.on ? 'span' : 's'); sp.textContent = P.t(g.key, g.vars);
       crit.appendChild(sp);
@@ -474,9 +478,10 @@ P.Screens = (function () {
     if (r.win) P.UIMotion.countUp(kv(rw, P.t('ui.res.hurda'), ''), r.hurda, function (v) { return '+' + v; });
     if (r.firstClear) kv(rw, P.t('ui.res.gear'), P.t('ui.res.commonGear'));
     if (P.UIProgress) P.UIProgress.results(r);   // level headline, power strip, run recap and the walk (ui-progress.js)
+    if (P.ModesUI) P.ModesUI.results(r, rw, kv);   // Nightmare and Night Shift rows (view/modes-ui.js)
     var db = $('btn-double'); db.innerHTML = ''; db.appendChild(document.createTextNode(P.t('ui.res.double')));
     var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = P.t('ui.cards.ad') + ' · ' + P.t('ui.res.notInProto'); db.appendChild(tg);
-    db.classList.toggle('hidden', !r.win);
+    db.classList.toggle('hidden', !r.win || ns);
     S.show('scr-results');
   };
 

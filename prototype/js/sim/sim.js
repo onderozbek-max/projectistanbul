@@ -20,6 +20,7 @@ P.createSim = function (seed, opts) {
     kills: 0, jeton: 0, xpPicked: 0, swings: 0, peakAlive: 0,
     reviveUsed: false, secondWindUsed: false, deathCause: null, dinersSpawned: false, pendingChests: 0, chestsOpened: 0,
     levelIndex: idx, levelInfo: P.Journey.level(idx), theme: null,
+    runMode: (o.loadout && o.loadout.mode) || 'normal',   // R1-T4 part 18: 'normal' | 'nightmare' | 'nightshift' (sim/modes.js)
   };
   s.theme = s.levelInfo.hood.theme;
   s.fx = attrFx(o);
@@ -42,6 +43,7 @@ P.createSim = function (seed, opts) {
     });
     s.dinersSpawned = true;
   }
+  if (P.Modes) P.Modes.apply(s);   // R1-T4 part 18: Nightmare multipliers and signature, or the Night Shift endless guard
   if (P.Modifiers && P.Modifiers.applyDaily) P.Modifiers.applyDaily(s);   // AUDIT-7 CR-1: daily modifiers (after the level build)
   if (P.Skills && P.Skills.init) P.Skills.init(s);
   return s;
@@ -127,6 +129,7 @@ P.stepSim = function (s, dt, input) {
   s.tally.distance += s.hero.moved - m0;
   P.Director.step(s, dt);
   if (s.mode !== 'play') return;
+  if (P.Modes) { P.Modes.step(s); if (s.mode !== 'play') return; }   // R1-T4 part 18: min HP tracking, Night Shift time cap
   P.Events.step(s, dt);
   P.Hack.step(s, dt);
   P.Combat.updateEnemies(s, dt);

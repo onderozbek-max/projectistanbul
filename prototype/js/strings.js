@@ -7,7 +7,7 @@ P.STR = {
     'ui.title.proto': 'Prototip v0.3 · Kısım 1 · Seviye 1', 'ui.title.settings': 'Ayarlar',
     'ui.skip': 'Geçmek için basılı tut',
     'ui.hud.hold': 'DAYAN', 'ui.hud.mom': 'Anne', 'ui.hud.pause': 'Duraklat',
-    'ui.cards.choose': 'Bir güç seç', 'ui.cards.sub': 'Lv {n} · oyun durdu',
+    'ui.cards.choose': 'Bir güç seç', 'ui.cards.sub': 'Adrenalin {n} · oyun durdu', // TR owner check
     'ui.cards.new': 'YENİ', 'ui.cards.reroll': 'Yenile · {n} bedava', 'ui.cards.rerollAd': 'Yenile',
     'ui.cards.ad': 'REKLAM', 'ui.cards.build': 'YAPIN · silahlar {w}/6 · pasifler {p}/6',
     'ui.pause.title': 'Duraklatıldı', 'ui.pause.level': 'Seviye 1 · {t}', 'ui.pause.resume': 'Devam et',
@@ -64,7 +64,7 @@ P.STR = {
     'ui.title.proto': 'Prototype v0.3 · Chapter 1 · Level 1', 'ui.title.settings': 'Settings',
     'ui.skip': 'Hold to skip',
     'ui.hud.hold': 'HOLD', 'ui.hud.mom': 'Mom', 'ui.hud.pause': 'Pause',
-    'ui.cards.choose': 'Choose a power', 'ui.cards.sub': 'Lv {n} · game paused',
+    'ui.cards.choose': 'Choose a power', 'ui.cards.sub': 'Adrenaline {n} · game paused',
     'ui.cards.new': 'NEW', 'ui.cards.reroll': 'Reroll · {n} free', 'ui.cards.rerollAd': 'Reroll',
     'ui.cards.ad': 'AD', 'ui.cards.build': 'YOUR BUILD · weapons {w}/6 · passives {p}/6',
     'ui.pause.title': 'Paused', 'ui.pause.level': 'Level 1 · {t}', 'ui.pause.resume': 'Resume',

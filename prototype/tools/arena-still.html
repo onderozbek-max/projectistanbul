@@ -2,6 +2,8 @@
 <meta charset="utf-8">
 <title>Arena still (R1-T3)</title>
 <!-- One arena frame as a PNG. ?hood=0..19 &stage=1..5 &y=metres &blocks=1 &dump=1 (writes <pre id=out>PNG:data...</pre>), &dpr=1|2.
+     Heal stations (R1-T4 part 17): &live=1&secs=0&station=1 frames the level's first station (the eczane or the kiosk) as the sim
+     built it; add &empty=1 for the used state. Usable is the default.
      Built from world-preview.html. Used for before/after screenshots: Chrome --headless=new --dump-dom. -->
 <style>html,body{margin:0;background:#14151F}#game{width:390px;height:844px;display:block}</style>
 <canvas id="game" width="390" height="844"></canvas>
@@ -22,6 +24,7 @@
 <script src="../js/config-weapons2.js"></script>
 <script src="../js/config-weapons3.js"></script>
 <script src="../js/config-env.js"></script>
+<script src="../js/view/hints-config.js"></script>   <!-- P.CFG.consumables: the station glow (R1-T4 part 17) -->
 <script src="../js/config-objectives.js"></script>
 <script src="../js/config-modifiers.js"></script>
 <script src="../js/config-horde.js"></script>
@@ -45,6 +48,8 @@
 <script src="../js/strings-ui2.js"></script>
 <script src="../js/strings-cards.js"></script>
 <script src="../js/strings-horde.js"></script>
+<script src="../js/strings-hints.js"></script>   <!-- consume.empty (EMPTY) and the hint lines -->
+
 <script src="../js/sim/rng.js"></script>
 <script src="../js/sim/world.js"></script>
 <script src="../js/sim/combat.js"></script>
@@ -60,6 +65,8 @@
 <script src="../js/sim/bosses.js"></script>
 <script src="../js/sim/layouts.js"></script>
 <script src="../js/sim/levels.js"></script>
+<script src="../js/sim/eczane.js"></script>   <!-- heal stations (R1-T4 parts 14, 17): P.Levels.build places them -->
+
 <script src="../js/sim/enemies3.js"></script>
 <script src="../js/sim/skins.js"></script>
 <script src="../js/sim/skins-fisher.js"></script>
@@ -130,6 +137,8 @@
 <script src="../js/view/istanbul.js"></script>
 <script src="../js/view/istanbul-props.js"></script>
 <script src="../js/view/istanbul-props2.js"></script>
+<script src="../js/view/consumables-icons.js"></script>   <!-- the station sign and its icons (R1-T4 parts 10, 17) -->
+<script src="../js/view/consumables.js"></script>
 <script src="../js/view/istanbul-props-env.js"></script>
 <script src="../js/view/env-fx.js"></script>
 <script src="../js/view/fauna-art.js"></script>
@@ -236,6 +245,11 @@
     P.Fx.reset(sim); cam = P.Fx.cam;
     for (var i = 0; i < parseFloat(q.get('secs') || '25') * 60; i++) { P.stepSim(sim, 1 / 60, { x: 0, y: 1 }); sim.events.length = 0; }
     Y = sim.hero.y;
+  }
+  if (q.get('station') && sim.eczane) {   // R1-T4 part 17: with &live=1, the hero 3 m below the level's first heal station (the real
+    var st0 = sim.eczane.list[0];         // genProps path, so the state comes from P.Eczane.state); &empty=1 marks it used
+    if (q.get('empty')) st0.used = true;
+    sim.hero.y = Y = st0.b.y - 3;
   }
   if (q.get('noart')) P.ArenaArt.tile = function () { return null; };   // baseline: the baked canvas tiles
   if (q.get('noprops')) P.ArenaProps.draw = function () { return false; };   // baseline: the procedural props

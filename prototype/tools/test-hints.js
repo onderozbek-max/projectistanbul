@@ -27,7 +27,7 @@ function fakeCtx() {
     rec, fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '', globalAlpha: 1, lineCap: '',
     beginPath: noop, closePath: noop, moveTo: noop, lineTo: noop, fill: () => { rec.fills++; }, stroke: noop, save: noop, restore: noop,
     translate: noop, rotate: noop, setTransform: noop, setLineDash: noop, rect: noop, fillRect: () => { rec.rects++; }, strokeRect: noop,
-    ellipse: noop, clearRect: noop,
+    ellipse: noop, clearRect: noop, quadraticCurveTo: noop, bezierCurveTo: noop, clip: noop, transform: noop, drawImage: noop,
     arc: (x, y, r) => { rec.arcs.push(r); },
     fillText: (t) => { rec.texts.push(t); }, strokeText: noop,
     measureText: (t) => ({ width: String(t).length * 8 }),
@@ -72,6 +72,8 @@ function load(opts) {
   R.toScreen = (x, y) => ({ x: R.X(x), y: R.Y(y) });
   ctx.P.Render = R;
   ctx.P.Hints.setStore(o.store === undefined ? memStore() : o.store);
+  // opts.props: the prop painters (istanbul-props.js, istanbul-props2.js), for the kiosk art check (R1-T4 part 17).
+  if (o.props) ['js/view/istanbul-props.js', 'js/view/istanbul-props2.js'].forEach((f) => vm.runInContext(read(f), ctx, { filename: f }));
   return ctx.P;
 }
 
@@ -308,6 +310,58 @@ function P_rate_ok() {
   const sign = (state) => { const c = fakeCtx(); P.Consumables.stationSign(c, 0, 0, 30, state, 1, true); return c.rec; };
   ok(sign('empty').texts.indexOf('BOŞ') >= 0, 'station: the empty state writes its short label (TR)');
   ok(sign('usable').stops.length >= 1 && sign('idle').stops.length === 0 && sign('idle').texts.length === 0, 'station: only the usable state glows, and idle has no label');
+}
+
+// ---------- 12b. the kiosk heal station (R1-T4 part 17): strings, hint order, detector, sign, art ----------
+{
+  const P = load({ store: memStore() });
+  const srcLines = read('js/strings-hints.js').split('\n');
+  const line = (k) => srcLines.find((l) => l.indexOf("'" + k + "':") >= 0) || '';
+  ok(P.STR.tr['hint.eczane'] === 'Eczane: Dokun ve iyileş' && P.STR.en['hint.eczane'] === 'Pharmacy: touch to heal', 'kiosk strings: the eczane hint is the owner-approved TR line and the EN line');
+  ok(line('hint.eczane').indexOf('TR owner check') < 0, 'kiosk strings: the approved eczane TR line drops its owner check');
+  ok(P.STR.tr['hint.kiosk'] === 'Büfe: Dokun ve iyileş' && P.STR.en['hint.kiosk'] === 'Kiosk: touch to heal', 'kiosk strings: the kiosk hint reads Büfe / Kiosk, touch to heal');
+  ok(line('hint.kiosk').indexOf('TR owner check') >= 0, 'kiosk strings: the kiosk TR line carries the owner check');
+  ok(P.Hints.ORDER.indexOf('kiosk') === P.Hints.ORDER.indexOf('eczane') + 1, 'kiosk hint: shown right after the eczane hint in the order');
+  ok(P.CFG.hintKinds.kiosk && P.CFG.hintKinds.kiosk.icon === 'bufe' && P.ConsumablesIcons.names.indexOf('bufe') >= 0, 'kiosk hint: its icon (awning and tea glass) exists');
+  ok(P.CFG.consumables.stationPulseHz > 0 && P.CFG.consumables.stationPulseHz <= 0.5, 'kiosk: the usable glow of a heal station pulses at 0.5 Hz or less');
+  ok(P.ConsumablesIcons.svg('bufe', '#2EBD6B', '#14151F').indexOf('<polygon') >= 0, 'kiosk hint: the icon builds an SVG for the callout');
+  // Detector: an unused station reports its variant as the hint type; a used one reports nothing.
+  const ctxIn = { inView: () => true };
+  const det = (st) => P.HintsDetect.scan(sim({ eczane: { list: [st] } }), ctxIn);
+  const b = { x: 1, y: 2 };
+  ok(det({ variant: 'kiosk', used: false, b: b }).kiosk && !det({ variant: 'kiosk', used: false, b: b }).eczane, 'detect: an unused kiosk is a kiosk hint');
+  ok(det({ variant: 'eczane', used: false, b: b }).eczane && !det({ variant: 'eczane', used: false, b: b }).kiosk, 'detect: an unused pharmacy is an eczane hint');
+  ok(!det({ variant: 'kiosk', used: true, b: b }).kiosk, 'detect: a used kiosk gives no hint');
+  // The sign: a plate with the icon; usable glows, steady under Reduce motion; empty reads EMPTY (TR BOŞ).
+  const signOf = (Q, icon, state, t, motion) => { const c = fakeCtx(); Q.Consumables.stationSign(c, 0, 0, 30, state, t, motion, icon); return c.rec; };
+  ok(signOf(P, 'bufe', 'usable', 0.2, true).stops.join() !== signOf(P, 'bufe', 'usable', 0.9, true).stops.join(), 'kiosk sign: the usable glow pulses with motion on');
+  ok(signOf(P, 'bufe', 'usable', 0.2, false).stops.join() === signOf(P, 'bufe', 'usable', 0.9, false).stops.join(), 'kiosk sign: the usable glow is steady under Reduce motion');
+  ok(signOf(P, 'bufe', 'empty', 0.2, true).texts.indexOf('BOŞ') >= 0 && signOf(P, 'bufe', 'empty', 0.2, true).stops.length === 0, 'kiosk sign: empty is grey with the BOŞ label and no glow');
+  // The art (istanbul-props2.js reg 'bufe'): a registered solid cover that draws in every state, with the bufe icon on its sign.
+  const canvasDoc = { createElement: () => ({ width: 0, height: 0, getContext: () => fakeCtx() }) };
+  const Q = load({ store: memStore(), document: canvasDoc, props: true });
+  ok(Q.Props.has('bufe') && Q.Props.roleOf('bufe', { w: 1.4, h: 1.0 }) === 'solid', 'kiosk art: bufe is a registered solid cover (not breakable)');
+  const drawKiosk = (state) => {
+    const c = fakeCtx(), icons = [];
+    const orig = Q.ConsumablesIcons.draw;
+    Q.ConsumablesIcons.draw = (cc, name, ...rest) => { icons.push(name); return orig(cc, name, ...rest); };
+    try { Q.Props.draw('bufe', { ctx: c, ppm: 32, X: (x) => 100 + x * 32, Y: (y) => 300 - y * 32 }, 0, 0, { w: 1.4, h: 1.0, state: state }); }
+    finally { Q.ConsumablesIcons.draw = orig; }
+    return { c: c, icons: icons };
+  };
+  ['usable', 'empty', 'idle'].forEach((st) => {
+    let r = null, threw = null;
+    try { r = drawKiosk(st); } catch (e) { threw = e.message; }
+    ok(!threw && r && r.c.rec.fills > 0, 'kiosk art: draws in state ' + st + (threw ? ' (' + threw + ')' : ''));
+    ok(r && r.icons.indexOf('bufe') >= 0 && r.icons.indexOf('cross') < 0, 'kiosk art: the sign carries the awning and tea-glass icon, not the cross (' + st + ')');
+  });
+  ok(drawKiosk('empty').c.rec.texts.indexOf('BOŞ') >= 0 && drawKiosk('usable').c.rec.texts.length === 0, 'kiosk art: the empty kiosk reads EMPTY and the usable one reads nothing');
+  const eczIcons = [];
+  const origE = Q.ConsumablesIcons.draw;
+  Q.ConsumablesIcons.draw = (cc, name, ...rest) => { eczIcons.push(name); return origE(cc, name, ...rest); };
+  try { Q.Props.draw('eczane', { ctx: fakeCtx(), ppm: 32, X: (x) => 100 + x * 32, Y: (y) => 300 - y * 32 }, 0, 0, { w: 1.4, h: 1.0, state: 'usable' }); }
+  finally { Q.ConsumablesIcons.draw = origE; }
+  ok(eczIcons.indexOf('cross') >= 0 && eczIcons.indexOf('bufe') < 0, 'eczane art: the pharmacy sign keeps the green cross');
 }
 
 // ---------- 13. story layer (T4 part 15): stacking above the comic pop and call card; a callout that would cover the pop waits ----------

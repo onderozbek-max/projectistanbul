@@ -24,6 +24,7 @@
   C.hintKinds = {
     heal:      { icon: 'cross',   fill: '#2EBD6B' },
     eczane:    { icon: 'cross',   fill: '#2EBD6B' },
+    kiosk:     { icon: 'bufe',    fill: '#2EBD6B' },       // R1-T4 part 17: the simit and tea büfe heal station
     currency:  { icon: 'coin',    fill: '#E9A23B' },
     objective: { icon: 'pin',     fill: '#3D8BFF' },
     chest:     { icon: 'star',    fill: '#FFD166' },
@@ -48,6 +49,7 @@
     bobM: 0.05,                     // bob amplitude (m); off under Reduce motion
     bobHz: 0.5,                     // bob rate (Hz)
     pulseHz: 0.8,                   // glow pulse rate on usable things (Hz); steady under Reduce motion or Reduce flashing
+    stationPulseHz: 0.5,            // the usable glow of a heal station (eczane and kiosk sign), Hz; 0.5 or less (R1-T4 part 17)
     pulseAmp: 0.18,                 // glow alpha swing (around 1)
     burstT: 0.35,                   // use burst ring life (s)
     burstR0M: 0.3,                  // use burst ring: start and end radius (m)

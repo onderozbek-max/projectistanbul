@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="css/comic.css">
 <link rel="stylesheet" href="css/hood.css">
 <link rel="stylesheet" href="css/progress.css">
+<link rel="stylesheet" href="css/modes.css">
 </head>
 <body>
 <main id="stage">
@@ -18,20 +19,22 @@
     <canvas id="game" aria-hidden="true"></canvas>
 
     <!-- In-run HUD (design/lofi/04-run-hud.html, DS 5, 13; AUDIT-7 U1). Two rows and an XP line, about 18% of 844 pt:
-         row 1 = HP, hood, timer, pause; XP line = level, Street Cred, XP, streak; row 2 = objective (the boss bar replaces it
+         row 1 = HP, journey level (BÖLÜM n/100 over the hood, two lines), timer, pause; XP line = Adrenalin (the in-run level,
+         a bolt and a number), Street Cred, XP, streak; row 2 = objective (the boss bar replaces it
          in a boss fight) or the call strip (icon + one line). At 150% text, settings.js (P.applySettings) moves Street Cred
          into row 2 so the streak chip keeps the XP bar at least 120 px wide (T4 part 8). -->
+    <div class="mode-vignette" id="mode-vignette" aria-hidden="true"></div>
     <header id="hud" class="hud hidden">
       <div class="hud-row top">
         <div class="hp">
           <div class="hp-bar"><div class="hp-trail" id="hp-trail"></div><div class="hp-fill" id="hp-fill"></div><div class="hp-ticks"></div><span class="hp-text" id="hp-text">100 / 100</span></div>
         </div>
-        <span class="chip small lvl-chip" id="lvl-chip"></span>
+        <span class="chip lvl-chip" id="lvl-chip"><span class="jl-num" id="jl-num"></span><span class="jl-hood" id="jl-hood"></span><i class="hud-moon hidden" id="hud-moon" role="img"></i></span>
         <span class="chip" id="timer">0:00</span>
         <button class="btn-icon" id="btn-pause" data-i18n-aria="ui.hud.pause"><span class="pause-glyph"></span></button>
       </div>
       <div class="hud-xp">
-        <span class="chip" id="lv">Lv 1</span>
+        <span class="chip adr-chip" id="lv" role="img" aria-label="Adrenalin 1"><svg class="adr-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M13.5 1.5 4 13.5h6.2l-1.6 9 10.4-12.9h-6.3z"/></svg><span id="lv-num">1</span></span>
         <span class="sk-meter" id="sk-meter"><svg class="sk-ico" viewBox="0 0 24 24" aria-hidden="true"><polygon fill="#FFD166" stroke="#14151F" stroke-width="2" points="12,1.5 15,9 23,9 16.5,14 19,22.5 12,17.5 5,22.5 7.5,14 1,9 9,9"/></svg><span class="sk-label" id="sk-label"></span><span class="sk-track"><i id="sk-fill"></i></span></span>
         <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
         <div class="streak hidden" id="streak"><span id="streak-label"></span><span class="streak-bar"><i id="streak-fill"></i></span></div>
@@ -208,6 +211,7 @@
 <script src="js/config.js"></script>
 <script src="js/config-weapons.js"></script>
 <script src="js/config-levels.js"></script>
+<script src="js/config-modes.js"></script>
 <script src="js/config-layouts.js"></script>
 <script src="js/config-enemies3.js"></script>
 <script src="js/config-bosses.js"></script>
@@ -240,6 +244,7 @@
 <script src="js/strings-weapons2.js"></script>
 <script src="js/strings-weapons3.js"></script>
 <script src="js/meta/strings-meta2.js"></script>
+<script src="js/strings-modes.js"></script>
 <script src="js/meta/strings-tree.js"></script>
 <script src="js/strings-feel.js"></script>
 <script src="js/strings-moments.js"></script>
@@ -290,6 +295,7 @@
 <script src="js/sim/horde.js"></script>
 <script src="js/sim/director.js"></script>
 <script src="js/sim/sim.js"></script>
+<script src="js/sim/modes.js"></script>
 <script src="js/view/settings.js"></script>
 <script src="js/view/icons.js"></script>
 <script src="js/view/icons-evo.js"></script>
@@ -366,6 +372,7 @@
 <script src="js/view/layouts-fx.js"></script>
 <script src="js/view/layouts-centre.js"></script>
 <script src="js/view/hood-card.js"></script>
+<script src="js/view/modes-ui.js"></script>
 <script src="js/view/objectives-hud.js"></script>
 <script src="js/view/input.js"></script>
 <script src="js/view/ui.js"></script>
@@ -425,6 +432,8 @@
 <script src="js/meta/meta-power.js"></script>
 <script src="js/meta/meta-progress.js"></script>
 <script src="js/meta/meta-daily.js"></script>
+<script src="js/meta/meta-modes.js"></script>
+<script src="js/meta/meta-nightshift.js"></script>
 <script src="js/meta/meta-collect.js"></script>
 <script src="js/meta/meta-map.js"></script>
 <script src="js/meta/meta-gear.js"></script>

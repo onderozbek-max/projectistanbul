@@ -228,6 +228,7 @@ P.Meta.Map = (function () {
     var hd = M.hood(h), p = xy(h), b = el('button', 'meta-hood' + (h % 2 ? ' is-alt' : ''), world);
     var badge = el('span', 'meta-badge', b), dots = el('span', 'meta-dots', b), name = el('span', 'meta-name', b), k;
     for (k = 0; k < J.levelsPerHood; k++) el('i', '', dots);
+    el('i', 'meta-moon-mk', b).setAttribute('aria-label', P.t('mode.moonAria'));   // R1-T4 part 18: Nightmare moon badge (css/modes.css)
     b.style.left = p.x + 'px'; b.style.top = p.y + 'px';
     b.setAttribute('data-h', h);
     b.setAttribute('aria-label', P.upper(hd.name) + ' · ' + hd.district);
@@ -337,6 +338,7 @@ P.Meta.Map = (function () {
       var st = h < v.done ? 'is-done' : (h === v.done ? 'is-cur' : 'is-locked'), badge = b.firstChild, dots = b.querySelectorAll('.meta-dots i'), k;
       b.classList.remove('is-done', 'is-cur', 'is-locked');
       b.classList.add(st);
+      b.classList.toggle('is-moon', !!(M.Modes && M.Modes.moon(h)));   // Nightmare moon badge (meta-modes.js)
       if (badge.getAttribute('data-s') !== st) {
         badge.setAttribute('data-s', st);
         badge.innerHTML = st === 'is-done' ? CHECK : (st === 'is-locked' ? icon('lock', 18) : String(h + 1));

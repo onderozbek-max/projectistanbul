@@ -312,8 +312,10 @@ P.Meta = P.Meta || {};
     var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
     lo = { gear: gearSum(), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
-      mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), bonds: { kaan: P.Bond.joined(s.stars) ? s.bonds.kaan | 0 : 0 }, bondHpPct: bondAura(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
+      mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), bonds: { kaan: P.Bond.joined(s.stars) ? s.bonds.kaan | 0 : 0 }, bondHpPct: bondAura(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared),
+      mode: o.mode === 'nightmare' || o.mode === 'nightshift' ? o.mode : 'normal' };   // R1-T4 part 18: the sim reads loadout.mode (sim/modes.js)
     if (o.daily) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; lo.daily = true; }
+    if (o.nightshift) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; }
     return lo;
   };
   M.progress = function () {
@@ -339,20 +341,31 @@ P.Meta = P.Meta || {};
   }
   // Daily Coin rush (x1.5 in D.MODS): scales the run's reward. 1 for any other run.
   function dailyCoinMult(r) {
-    if (!r.daily || !P.Modifiers || !P.Modifiers.dailyFold) return 1;
+    if (!(r.daily || r.mode === 'nightshift') || !P.Modifiers || !P.Modifiers.dailyFold) return 1;
     return P.Modifiers.dailyFold(P.Meta.Daily.resolve(r.modifiers)).coinMult;
   }
+  // Night Shift reward: the run's coins in full (a shift is not lost by ending early), plus the day's fixed pay when it is the first run.
+  function nsReward(r, won, pay) {
+    var run = Math.round(num(r.coins));
+    return { won: won, first: false, run: run, clear: 0, starBonus: 0, objective: 0, total: run + (pay ? pay.coins : 0) };
+  }
+  // Mode branches (R1-T4 part 18): 'nightmare' settles through meta-modes.js (its own stars and moon; the normal stars,
+  // unlocks and Kaan bond are untouched), 'nightshift' through meta-nightshift.js (no stars, no unlocks). Normal is unchanged.
   function apply(s, r, now) {
-    var i = M.clampLevel(r.levelIndex), won = !!r.won, prev = s.stars[i] || 0, before = M.snapshot(), bond;
-    var stars = won ? Math.max(1, Math.min(M.CFG.starsMax, Math.round(num(r.stars)))) : 0;
-    var rw = M.rewardFor({ levelIndex: i, won: won, coins: r.coins, objective: !!(r.tally && r.tally.objDone) }, prev, stars), st0 = s.heroes.arda.stats;
-    var st = P.Stats.applyLevel(st0, r.tally, won), day = P.Meta.Daily.dayKey(new Date(now)), ups, news, achieved, daily;
-    var hoodWas = M.hoodCleared(M.level(i).hoodIndex);
-    if (won) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
+    var i = M.clampLevel(r.levelIndex), won = !!r.won, mode = r.mode || 'normal', nm = mode === 'nightmare', ns = mode === 'nightshift';
+    var prev = s.stars[i] || 0, before = M.snapshot(), bond, mdl = null, nsInfo = null, rw, st, ups, news, achieved, daily;
+    var stars = !won || ns ? 0 : Math.max(1, Math.min(nm ? P.CFG.nightmare.starsMax : M.CFG.starsMax, Math.round(num(r.stars))));
+    var st0 = s.heroes.arda.stats, day = P.Meta.Daily.dayKey(new Date(now)), hoodWas = M.hoodCleared(M.level(i).hoodIndex);
+    if (ns) nsInfo = P.Meta.NightShift.settle(s, r, now);
+    if (nm) mdl = P.Meta.Modes.settle(s, i, won, stars);
+    rw = ns ? nsReward(r, won, nsInfo.pay) : M.rewardFor({ levelIndex: i, won: won, coins: r.coins, objective: !!(r.tally && r.tally.objDone) }, nm ? 99 : prev, nm ? 0 : stars);
+    st = P.Stats.applyLevel(st0, r.tally, won);
+    if (nm && mdl.first && st.gains.sc > 0) { var extra = st.gains.sc * (P.CFG.nightmare.cred - 1); st.prog.sc += extra; st.gains.sc += extra; }   // Street Cred x2 on the first Nightmare clear
+    if (won && !nm && !ns) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
     if (!hoodWas && M.hoodCleared(M.level(i).hoodIndex)) s.counters.hoodsCleared += 1;   // AUDIT-7 CR-8: once per hood
-    bond = P.Bond.gain(s.bonds.kaan | 0, { levelIndex: i, won: won, stars: stars, prevStars: prev });
+    bond = nm || ns ? { gain: 0, crossed: [] } : P.Bond.gain(s.bonds.kaan | 0, { levelIndex: i, won: won, stars: stars, prevStars: prev });
     s.bonds.kaan = (s.bonds.kaan | 0) + bond.gain;
-    rw.total = Math.round(coinBonus(s, rw.total) * dailyCoinMult(r));
+    rw.total = Math.round(coinBonus(s, rw.total) * dailyCoinMult(Object.assign({}, r, { mode: mode })) * (nm ? P.CFG.nightmare.coins : 1));
     s.coins += rw.total;
     s.heroes.arda.stats = st.prog;
     if (st.gains.sc > 0) scFlow(st.gains.sc, 'level_end', st.prog.sc);
@@ -366,8 +379,8 @@ P.Meta = P.Meta || {};
     s.lastPlayed = now;
     return { levelIndex: i, won: won, stars: stars, reward: rw, newGear: newGear, before: before, after: M.snapshot(),
       kills: r.kills | 0, statGains: { hero: 'arda', gains: st.gains, before: st0, after: st.prog },
-      masteryUps: ups, collected: news, achieved: achieved, daily: daily,
-      bond: { kaan: { gain: bond.gain, value: s.bonds.kaan | 0, crossed: bond.crossed, joined: i === P.CFG.bond.kaan.joinLevel && won && !prev } } };
+      masteryUps: ups, collected: news, achieved: achieved, daily: daily, mode: mode, nightmare: mdl, nightshift: nsInfo,
+      bond: { kaan: { gain: bond.gain, value: s.bonds.kaan | 0, crossed: bond.crossed, joined: !ns && i === P.CFG.bond.kaan.joinLevel && won && !prev } } };
   }
   // Called by the game after a level. r: {levelIndex, won, stars, coins, kills, timeS, tally, daily, reviveUsed}.
   M.onResults = function (r) {

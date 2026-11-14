@@ -27,6 +27,8 @@ const STINGER_FADE = 0.3;    // stinger fade-out, seconds
 const LUFS = -16;            // integrated loudness target (EBU R128)
 const TRUE_PEAK = -1.5;      // dBTP ceiling, leaves room for MP3 overs (the README asks for -1 dBTP or lower)
 const BITRATE = '192k';
+const MAX_STRETCH = 0.02;    // a loop source up to 2% shorter than loop + XFADE is time-stretched (pitch kept) to fit
+const MAX_PAD = 0.5;         // a stinger source up to 0.5 s shorter than its slot is faded at its own end and padded with silence
 const TAG = 'istanbul prepare-music';
 const EXTS = ['.wav', '.flac', '.m4a', '.mp3'];                // preference order when two files share a slot
 const DEFAULT_SRC = path.join(__dirname, '..', 'audio', 'music-suno');
@@ -67,8 +69,9 @@ function ffprobe(file) {
 const isTool = file => { try { return ffprobe(file).comment.indexOf(TAG) === 0; } catch (e) { return false; } };
 
 // Decodes up to `seconds` of audio to 44.1 kHz stereo float. Returns fewer frames if the file is shorter.
-function decode(file, seconds) {
-  const r = spawnSync('ffmpeg', ['-v', 'error', '-i', file, '-vn', '-map', '0:a:0', '-t', String(seconds),
+function decode(file, seconds, tempo) {
+  const af = tempo && tempo !== 1 ? ['-af', 'atempo=' + tempo.toFixed(6)] : [];
+  const r = spawnSync('ffmpeg', ['-v', 'error', '-i', file, '-vn', '-map', '0:a:0', ...af, '-t', String(seconds),
     '-ac', '2', '-ar', String(SR), '-f', 'f32le', '-c:a', 'pcm_f32le', 'pipe:1'], { maxBuffer: 1 << 30 });
   if (r.error || r.status !== 0) throw new Error('decode failed');
   const b = r.stdout, f = new Float32Array(b.buffer.slice(b.byteOffset, b.byteOffset + b.length - (b.length % 8)));
@@ -168,6 +171,9 @@ function seamCheck(L, R) {
 
 function checkLength(slot, info) {
   const isLoop = slot.kind === 'loop', need = isLoop ? slot.sec + XFADE : slot.sec;
+  const short = need - info.duration;
+  if (short > 0.001 && isLoop && short / need <= MAX_STRETCH) return `no tail: stretched ${(100 * short / info.duration).toFixed(2)}% to fit`;
+  if (short > 0.001 && !isLoop && short <= MAX_PAD) return `${short.toFixed(2)} s short: padded with silence`;
   if (info.duration < need - 0.001) {
     throw new Error(`too short: ${info.duration.toFixed(2)} s, needs ${need.toFixed(2)} s` +
       (isLoop ? ` (${fmt(slot.sec)} loop + ${XFADE} s crossfade tail)` : ` (${fmt(slot.sec)} stinger)`));
@@ -180,12 +186,22 @@ function render(slot, file, info) {
   const isLoop = slot.kind === 'loop', n = Math.round(slot.sec * SR), x = Math.round(XFADE * SR);
   const needSec = isLoop ? slot.sec + XFADE : slot.sec, needN = Math.round(needSec * SR), warn = [];
   const before = loudness(['-i', file]);
-  const dec = decode(file, needSec);
-  if (dec.frames < needN - 44) throw new Error('decoded fewer samples than the file header says');
-  // Up to 1 ms short is padded with silence, so the shapers never read past the end.
+  const shortSec = needSec - info.duration;
+  const tempo = isLoop && shortSec > 0.001 ? info.duration / needSec : 1;
+  const padStinger = !isLoop && shortSec > 0.001;
+  if (tempo !== 1) warn.push(`source has no crossfade tail: stretched ${(100 * (1 / tempo - 1)).toFixed(2)}% so its last ${XFADE} s becomes the tail; listen to the loop point`);
+  if (padStinger) warn.push(`source is ${shortSec.toFixed(2)} s short: faded at its own end, then silence`);
+  const dec = decode(file, needSec, tempo);
+  if (dec.frames < needN - (tempo !== 1 ? 4410 : padStinger ? Math.round(MAX_PAD * SR) + 4410 : 44)) throw new Error('decoded fewer samples than the file header says');
+  // Up to 1 ms short (0.1 s after a stretch) is padded with silence, so the shapers never read past the end.
   const src = { L: new Float32Array(needN), R: new Float32Array(needN) };
-  src.L.set(dec.L.subarray(0, Math.min(dec.frames, needN)));
-  src.R.set(dec.R.subarray(0, Math.min(dec.frames, needN)));
+  const realN = Math.min(dec.frames, needN);
+  src.L.set(dec.L.subarray(0, realN));
+  src.R.set(dec.R.subarray(0, realN));
+  if (padStinger) {
+    const f = Math.round(STINGER_FADE * SR), cut = shapeStinger({ L: src.L, R: src.R }, realN, f);
+    src.L.set(cut.L); src.R.set(cut.R);
+  }
   const shaped = isLoop ? shapeLoop(src, n, x) : shapeStinger(src, n, Math.round(STINGER_FADE * SR));
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'prepare-music-'));
   try {

@@ -4,7 +4,8 @@
 (function () {
   Object.assign(P.STR.tr, {
     'hint.heal': 'Yeşil haç: can verir',               // TR owner check
-    'hint.eczane': 'Eczane: dokununca can verir',       // TR owner check (R1-T4 part 14: the pharmacy heal station)
+    'hint.eczane': 'Eczane: Dokun ve iyileş',           // owner approved (R1-T4 part 14: the pharmacy heal station)
+    'hint.kiosk': 'Büfe: Dokun ve iyileş',              // TR owner check (R1-T4 part 17: the simit and tea kiosk heal station)
     'hint.currency': 'Jeton: topla',                    // TR owner check
     'hint.objective': 'Mavi pin: görev eşyası',         // TR owner check
     'hint.chest': 'Kutu: ödül çıkar',                   // TR owner check
@@ -26,6 +27,7 @@
   Object.assign(P.STR.en, {
     'hint.heal': 'Green cross: heals you',
     'hint.eczane': 'Pharmacy: touch to heal',
+    'hint.kiosk': 'Kiosk: touch to heal',
     'hint.currency': 'Coin: pick it up',
     'hint.objective': 'Blue pin: objective item',
     'hint.chest': 'Chest: grab a reward',

@@ -2,7 +2,10 @@
 // Migrates 'nsi.meta.v2' and 'nsi.meta.v1' without loss and keeps the older keys as backups (never deleted by migration).
 // Shape: { v:3, tree:{learned:{id:1}, respecs:{chapter:n}}, bonds:{kaan, mila, ada}, unlocked, stars, coins, gear, equipped, pending, heroes:{arda:{stats, ult}},
 //   mastery:{weaponId:kills}, counters:{...}, collection:{id:1}, achievements:{id:1},
-//   daily:{day, seed, level, mods, played, won, claimed, ended}, streak:{n, last, best}, flags:{}, lastPlayed }
+//   daily:{day, seed, level, mods, played, won, claimed, ended}, streak:{n, last, best}, flags:{}, lastPlayed,
+//   modes:{nm:{levelIndex:{stars}}, moon:{hoodIndex:1}, title:0|1, ns:{day, dayBest, best, runs, paid, streak}} }
+// modes (R1-T4 part 18) is an additive block inside v3: no version bump, a missing block is the default, and every
+// value is clamped on read, so a damaged block cannot grant anything (test-modes.js covers it).
 P.Meta = P.Meta || {};
 (function (M) {
   var KEY = 'nsi.meta.v3', KEY_V2 = 'nsi.meta.v2', KEY_V1 = 'nsi.meta.v1', VERSION = 3;
@@ -19,7 +22,7 @@ P.Meta = P.Meta || {};
       pending: null, heroes: {}, mastery: {}, counters: {}, collection: {}, achievements: {},
       daily: { day: '', seed: 0, level: 0, mods: [], played: false, won: false, claimed: false },
       streak: { n: 0, last: '', best: 0 }, flags: {}, lastPlayed: 0,
-      tree: P.Tree.newState(), bonds: P.Tree.newBonds() };
+      tree: P.Tree.newState(), bonds: P.Tree.newBonds(), modes: defaultModes() };
     M.Save.HEROES.forEach(function (h) { s.heroes[h] = { stats: P.Stats.newProgress(), ult: 'nazar' }; });
     COUNTERS.forEach(function (c) { s.counters[c] = 0; });
     s.counters.flawless = {};
@@ -75,6 +78,30 @@ P.Meta = P.Meta || {};
     var s = src.streak || {};
     return { n: Math.max(0, Math.round(num(s.n))), last: String(s.last || ''), best: Math.max(0, Math.round(num(s.best))) };
   }
+  function defaultModes() {
+    return { nm: {}, moon: {}, title: 0, ns: { day: '', dayBest: 0, best: 0, runs: 0, paid: '', streak: { n: 0, last: '', best: 0 } } };
+  }
+  // Replay tiers (R1-T4 part 18): Nightmare stars per level (1..starsMax), moon per hood, title, Night Shift record.
+  function normalizeModes(src) {
+    var m = src.modes && typeof src.modes === 'object' ? src.modes : {}, out = defaultModes(), ns = m.ns && typeof m.ns === 'object' ? m.ns : {};
+    var cap = M.CFG && M.CFG.levelCount ? M.CFG.levelCount : 100, hoods = M.CFG && M.CFG.hoodCount ? M.CFG.hoodCount : 20;
+    var nmMax = P.CFG.nightmare ? P.CFG.nightmare.starsMax : 4;
+    Object.keys(m.nm && typeof m.nm === 'object' ? m.nm : {}).forEach(function (k) {
+      var i = Math.round(num(k)), v = Math.round(num(m.nm[k] && m.nm[k].stars));
+      if (i >= 1 && i <= cap && v >= 1) out.nm[i] = { stars: Math.min(nmMax, v) };
+    });
+    // A moon is derived from the Nightmare records (all levels of the hood have stars), so a stored moon flag alone grants
+    // nothing; the title needs its flag and the moons it is earned with (config nightmare.titleAt).
+    for (var h = 0; h < hoods; h++) {
+      var all = true, k;
+      for (k = 1; k <= P.Journey.levelsPerHood; k++) if (!out.nm[h * P.Journey.levelsPerHood + k]) all = false;
+      if (all) out.moon[h] = 1;
+    }
+    out.title = (m.title === 1 || m.title === true) && Object.keys(out.moon).length >= P.CFG.nightmare.titleAt ? 1 : 0;
+    out.ns = { day: String(ns.day || ''), dayBest: Math.max(0, Math.round(num(ns.dayBest))), best: Math.max(0, Math.round(num(ns.best))),
+      runs: Math.max(0, Math.round(num(ns.runs))), paid: String(ns.paid || ''), streak: normalizeStreak({ streak: ns.streak }) };
+    return out;
+  }
   // Sanitize any stored object into a valid v3 save. Unknown fields are dropped; older saves gain the new fields.
   M.Save.normalize = function (raw) {
     var src = raw && typeof raw === 'object' ? raw : {}, out = M.Save.defaults();
@@ -92,6 +119,7 @@ P.Meta = P.Meta || {};
     out.lastPlayed = Math.max(0, num(src.lastPlayed));
     out.tree = P.Tree.normalize(src.tree);
     out.bonds = P.Tree.normalizeBonds(src.bonds);
+    out.modes = normalizeModes(src);
     return out;
   };
   // v1 or v2 -> v3 (and v3 -> v3 pass-through). Returns a new object; `from` records the source version.

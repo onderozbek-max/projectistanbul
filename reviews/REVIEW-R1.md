@@ -1579,6 +1579,212 @@ What the table says, with the noise in mind:
 
 ---
 
+# T4 part 16: pacing package and Adrenaline naming
+
+The owner brief for R1-T4 part 16 has two parts: (A) the in-run level is renamed Adrenalin and the journey level (1 to 100) shows on the HUD; (B) pacing package P1, plus Adrenalin pace tuning with power to make up for the lost cards. Not committed or pushed. Design rules: `docs/game-design.md` §4.5 and §7; stage table `docs/journey.md` §3.1 and timing §6.4; decision D-064 in `docs/product.md`. The §7 P1 note points here.
+
+**A. Naming and HUD.**
+- In-run level: the chip shows a bolt icon and "Adrenalin n" (EN "Adrenaline n", `ui.hud.adr`). "Lv" is gone from the HUD, the level-up banner (`lvb.title`: ADRENALİN YÜKSELDİ · n / ADRENALINE UP · n), the card overlay (`ui.cards.sub`), the results recap (`res.recap.reached`: "Ulaşılan Adrenalin n") and the kolonya description. Item and gear levels keep "Lv" on purpose.
+- Journey level: the top row shows "BÖLÜM n/100 · HOOD" (EN "LEVEL n/100 · HOOD", `ui.hud.journey`).
+- Fit: HUD checked at 390×844 at 100% and 150% text size (chip, bolt, timer, XP bar, objective row; the card overlay wraps). The results screen at 150% was not captured.
+- New TR strings are marked `// TR owner check`: `ui.hud.adr`, `ui.hud.journey`, `lvb.title`, `res.recap.reached`, `ui.cards.sub`, `desc.kolonya`.
+
+**B. Pacing package P1.**
+- Route length, boss approach and gate hold ×1.25 from `levels.rampFrom` on (`C.levels.pace`: routeMul 1.25, holdMul 1.25). Boss approach 100 → 125 m.
+- Brute boss HP 1400 → 2800 (H01, H02, H03, H14, H20 only; taksici keeps its own HP).
+- Adrenalin XP on L2+: round(32 + 11 × level^1.6), was 30 + 5. L1 keeps `xp.l1`.
+- Power for the lost cards: two free upgrade crates per generated route level, dropped at route segments B and D (`levels.pace.crateSeg`, `crateAt` in `js/sim/levels.js`). They are pending chests, so the existing chest flow opens them. The brief said "free card at stage 3"; I read "stage" as the route segment, since in these docs stage means hood level. The lead should confirm.
+- Boss pace beyond brute HP: not changed. Boss HP ×2 and gap ×1.6 on the other bosses was tried and rejected (below).
+
+**Tuning rounds (L2–9, mean of level values).** Shipped config = R4. Lowest level is the lowest per-level clear rate.
+
+| Round | Change | Clear | Lowest level | Deaths/run | First lv-up s | Gap s | Lv-ups | Result |
+|---|---|---|---|---|---|---|---|---|
+| before | pre-P1 | 97.8% | 94% | 0.28 | 9.7 | 18.3 | 10.6 | reference |
+| R1 | route ×1.25, brute HP 2800, old XP | 97.0% | 88% | 0.29 | 9.9 | 20.9 | 11.8 | minutes up, gap still short |
+| R2 | R1 + XP 32 + 11 × level^1.6, one crate at C | 79.9% | 56% | 0.78 | 12.1 | 31.6 | 7.8 | power collapsed; rejected |
+| R3 | R2 with one crate at B | 90.9% | 75% | 0.58 | 12.1 | 30.0 | 8.1 | better, not enough |
+| **R4** | **crates at B and D** | **95.5%** | **88%** | **0.34** | **12.1** | **28.6** | **8.6** | **shipped; every level ≥ 85%** |
+| R5 | XP 32 + 13, three crates | 93.9% | 69% | 0.41 | 12.6 | 29.0 | 8.1 | steeper curve: no gap gain, more deaths; rejected |
+
+R4 reproduces exactly on the shipped config (the bot is deterministic for a fixed config and seed set).
+
+**Bot balance, before → after** (`tools/bot.js --verbose`, paired seeds, 16 seeds per level for L2–10, 8 seeds for boss levels; before = the pre-P1 snapshot). Each cell is before → after.
+
+| Level | Clear | Deaths/run | Median min HP | First lv-up (s) | Gap (s) | Lv-ups (median) | Clear time (min) |
+|---|---|---|---|---|---|---|---|
+| L2 | 94 → 100% | 0.13 → 0.25 | 34 → 19% | 10.6 → 16.6 | 20.6 → 29.7 | 8 → 7 | 2.68 → 3.39 |
+| L3 | 100 → 94% | 0.06 → 0.06 | 35 → 34% | 8.1 → 8.4 | 16.3 → 26.0 | 12 → 10 | 3.28 → 4.13 |
+| L4 | 100 → 94% | 0.13 → 0.38 | 43 → 22% | 11.9 → 15.2 | 20.1 → 31.6 | 12 → 9 | 4.11 → 5.08 |
+| L5 | 94 → 100% | 0.50 → 0.25 | 7 → 30% | 10.6 → 12.0 | 19.0 → 27.4 | 6.5 → 5.5 | 2.31 → 2.83 |
+| L6 | 94 → 94% | 0.50 → 0.25 | 18 → 34% | 11.2 → 12.9 | 15.6 → 24.2 | 7.5 → 6 | 2.26 → 2.83 |
+| L7 | 100 → 100% | 0.13 → 0.38 | 40 → 21% | 8.3 → 11.2 | 16.6 → 26.7 | 11 → 8.5 | 3.13 → 3.88 |
+| L8 | 100 → 94% | 0.38 → 0.56 | 11 → 12% | 10.2 → 12.3 | 20.7 → 33.4 | 8.5 → 8 | 3.16 → 4.01 |
+| L9 | 100 → 88% | 0.38 → 0.63 | 38 → 0% | 6.9 → 7.9 | 17.6 → 29.7 | 19.5 → 14.5 | 5.87 → 7.39 |
+| L10 | 88 → 94% | 0.44 → 0.50 | 18 → 16% | 9.2 → 9.5 | 18.1 → 23.7 | 8 → 7 | 2.47 → 3.00 |
+| **L2–9 mean** | **97.8 → 95.5%** | **0.28 → 0.34** | **28 → 22%** | **9.7 → 12.1** | **18.3 → 28.6** | **10.6 → 8.6** | **3.35 → 4.19** |
+
+L2–10 mean clear time: 3.25 → 4.06 min. Chapter 1 at this speed (100 levels): about 5.4 h before, 6.8 h after; the sample is H01 to H02 only.
+
+**Boss levels, before → after** (18 boss levels L15–L100, 8 seeds each; before = pre-P1 config, after = P1; mean of level values):
+
+| Group | Clear | Deaths/run | Median min HP | Clear time (min) | First lv-up (s) | Gap (s) | Lv-ups |
+|---|---|---|---|---|---|---|---|
+| all 18 | 76.7 → 79.4% | 0.83 → 0.70 | 11.8 → 13.3% | 2.33 → 2.88 | 5.5 → 6.0 | 9.5 → 13.7 | 13.4 → 10.8 |
+| non-brute 15 | 73.6 → 76.9% | 0.86 → 0.74 | 10.6 → 12.9% | 2.34 → 2.83 | 5.4 → 6.0 | 9.6 → 13.3 | 13.4 → 10.6 |
+| brute 3 (L15, L70, L100) | 92.0 → 91.7% | 0.67 → 0.50 | 17.7 → 15.3% | 2.31 → 3.13 | 5.7 → 6.1 | 9.0 → 15.2 | 13.5 → 11.8 |
+
+The first level-up on boss levels is about 6 s: the arena starts with fast kills. The 12 to 15 s target is for L2–9.
+
+**Boss tuning tried and rejected (b2).** Boss HP ×2 and gap ×1.6 on the 15 non-brute bosses, L20 to L95, 8 seeds each, against the same levels before:
+
+| Measure | Before | b2 |
+|---|---|---|
+| Clear | 73.6% | 62.7% |
+| Deaths/run | 0.86 | 1.04 |
+| Median min HP | 10.6% | 3.7% |
+| Clear time (min) | 2.34 | 3.46 |
+| Gap (s) | 9.6 | 15.3 |
+
+It lengthens the boss stage toward the 4 to 5 min target, but costs about 11 points of clear rate. Not shipped.
+
+**Bands.** The full table is in `docs/game-design.md` §7. Met: L2–9 clear (every level ≥ 85%, lowest 88%); first Adrenalin level-up 12.1 s; L4 and L5 deaths in the 0.15 to 0.4 band; boss deaths 0.70 in the 0.3 to 0.7 band; boss clear not regressed. Missed: gap 28.6 s (30 to 40); level-ups 8.6 per 4.2 min, about 10 at 5 min (6 to 9); minutes per level 4.06 (5.0 to 5.5); chapter 1 6.8 h (7 to 9 h); boss stage 2.9 min (4 to 5 min); boss clear 79.4% (80%, short by 0.6 pt); L3 median min HP 34% (45 to 65%, not met before or after); L9 min HP 0%.
+
+**Code.**
+- `prototype/js/config-levels.js`: `C.bosses.brute.hp` 2800; `C.levels.pace`.
+- `prototype/js/config.js`: `xp` block (base 32, mult 11). The L1 curve is unchanged.
+- `prototype/js/sim/levels.js`: `P.Levels.paced`, `crateAt` (called from `doMark` on route segment marks).
+- `prototype/js/view/ui.js`, `prototype/index.html`, `prototype/css/proto.css`: journey chip and Adrenalin chip with the bolt icon.
+- `prototype/js/strings-journey.js`, `strings-progress-ui.js` (the duplicate `lvb.line` key removed; the two lines were identical), `strings.js`, `strings-weapons2.js`.
+- `prototype/tools/test-progress-ui.js`, `prototype/tools/test-ui-motion.js`: new keys and owner-check lists.
+- Docs: `docs/game-design.md` §4.5 and §7; `docs/journey.md` §3.1 and §6.4; `docs/product.md` D-064.
+
+**Tests.**
+- `test-progress-ui`: 602 checks, all pass. `test-ui-motion`: 536 checks, all pass.
+- Owner loop (`/tmp/pace/loop.log`): pass on check-ids, check-hood-keys, check-objective-strings, check-death-causes, check-entrances, test-meta, test-dialogue, test-enemy-behaviors, test-env, test-ceiling, test-feel, test-horde, test-tree, test-ui-motion, test-a11y-canvas, test-anim-flavor, test-progress-ui, test-hints, test-quality. `test-eczane`: FAIL, 3 checks (below).
+- `test-eczane`: 3 fails, all from P1 and in files I did not touch. The placement pins (L3 seeds 1 and 3, L26 seed 1, L6 seed 3) moved with the longer route. The pharmacy and kiosk `stepSim` checks are blocked by a pending crate chest after the teleport. All three pass on the pre-P1 snapshot. The eczane owner needs to drain pending chests after the teleport and update the pins.
+- `test-arsenal --quick`: EXIT 0 (`/tmp/pace/arsenal.log`).
+- L1 byte-identical with the pre-P1 snapshot on 6 seeds (`/tmp/pace/S0` vs `S4`).
+
+**Not verified.**
+- Real-play feel: the Adrenalin pace, and whether two crates per level read as free upgrades to members.
+- Results screen at 150% text size.
+- Turkish strings: the owner check is still open.
+- All balance numbers are bot numbers (kiting bot, 16 seeds per level, 8 for bosses). Per-level noise is about ±12 points at 16 seeds. They are not human rates.
+- Chapter 1 timing is extrapolated from a 9-level sample.
+
+**Owner decisions.**
+(a) Crates: two per route level (segments B and D), not one "free card at stage 3". Keep, or test a single card at stage 3 (not run; one crate at B gave 90.9%)?
+(b) Boss stage: non-brute bosses stay near 2.8 min. Reaching 4 to 5 min needs boss HP ×2 with gap ×1.6, which costs about 11 points of clear rate. Accept the shorter stage, or revisit the target?
+(c) Adrenalin pace: 8.6 level-ups per 4.2 min (about 10 at 5 min, band 6 to 9). Accept, or cut XP further (R5 showed a steeper curve does not help the gap)?
+(d) TR strings marked `// TR owner check`.
+
+---
+
+# T4 part 17: kiosk heal station
+
+The second heal station, for the hoods where a pharmacy does not fit. It is the same module and the same rules as part 14 (`js/sim/eczane.js`): one station per level on L3 to L100, route stages 1 to 4, never a boss stage, healing 30 HP once, outside the drop-heal cap, after a 0.4 s touch with no button. Only the look, the placement band and the RNG stream differ.
+
+**Placement.** A hood gets the pharmacy when it is street-like (no boat or ferry in the hood, and not the covered bazaar). Every other hood gets the kiosk (block kind `bufe`, `env.eczane.variants.kiosk` in `config-env.js`): Karaköy, Galata Köprüsü, Eminönü, Kapalıçarşı, Kumkapı, Haliç–Balat, Yenikapı, Samatya and Ataköy Marina. That is nine hoods; the other eleven get the pharmacy, so all twenty are covered. The bazaar keeps a kiosk on all four route levels. The pharmacy spots are unchanged by this part.
+
+**Look (`js/view/istanbul-props2.js`, `js/view/consumables.js`, `js/view/consumables-icons.js`).** A wood counter with a cream top, an orange and cream striped awning with scalloped edge along its front, a three-ring simit stack on the left of the counter top, and a tea glass on its saucer on the right. The glass is drawn at twice the props scale: at 0.13 m it was about 5 px tall at phone size and did not read. The sign plate carries the awning and tea-glass icon, not the pharmacy cross, so the two stations are told apart by silhouette as well as colour. Usable: the green sign glow pulses at `consumables.stationPulseHz` = 0.5 Hz, and is steady under Reduce motion or Reduce flashing. Empty: the simits and the glass are gone, the awning and counter go grey and the sign reads EMPTY. Steam rises from the glass rim and drifts with motion on. Under Reduce motion there are two still wisps per glass, in warm grey, because white steam vanished on the cream counter.
+
+**Hints (`js/strings-hints.js`, `js/view/hints-config.js`).** `hint.kiosk`: TR `Büfe: Dokun ve iyileş` (`// TR owner check`), EN `Kiosk: touch to heal`. `hint.eczane` is TR `Eczane: Dokun ve iyileş` (owner-approved; its owner-check comment is dropped) and EN `Pharmacy: touch to heal`. The kiosk hint follows the eczane hint in the order (`hints.js`).
+
+**Owner decisions.** (a) The pharmacy TR line is approved. (b) The kiosk TR line `Büfe: Dokun ve iyileş` still needs the owner check.
+
+**Art check.** Stills at 390 x 844 at 2x, through the game's own render path (`tools/arena-still.html`, `&live=1&secs=0&station=1`, plus `&empty=1` for the used state): hood 4 Eminönü (kiosk), hood 5 Sirkeci (pharmacy) and hood 12 Samatya (kiosk), usable and empty. The art was judged at phone size and in the legend sheet: the awning, the simit stack, the glass and the sign read in both states; the green glow is steady under Reduce motion. Two things were fixed on the way: the glass size and the steam colour (above).
+
+**Tool changes (tools only).**
+- `tools/arena-still.html` did not load `sim/eczane.js` or the consumables and string scripts, so it could never show a station. It now loads them (the same scripts as `index.html`, additive), and takes `&station=1` and `&empty=1` as above.
+- `tools/prop-legend.html` has a heal-station section: both variants in both states, role `solid cover` at their `config-env.js` sizes. `?only=stations` shows just that section and `?reduce=1` steadies the glow. The eczane and bufe were drawn as sidewalk dressing before, because they had no size entry; they are now skipped in the dressing loop. The sheet loads `config-env.js`, `hints-config.js`, `strings.js` and `strings-hints.js` (its EMPTY label needs `P.t`).
+
+**Bot comparison** (`node tools/bot.js --levels=3,4,6,7,8,9,11,12,13,14,16,17,18,19 --seeds=12`, with and without `--noeczane`). Both runs started together on the same sim snapshot (17:21, before the Night Shift changes to `sim/levels.js`). Deaths per run, clear rate, and station uses per run, with the detour (A) and without it (B, `--noeczane`; the stations stay and a route touch still heals):
+
+| Level | Deaths/run A | Deaths/run B | Clear A | Clear B | Eczane uses A / B | Kiosk uses A / B |
+|---|---|---|---|---|---|---|
+| L3 | 0.08 | 0.08 | 92% | 92% | 0.33 / 0.08 | – |
+| L4 | 0.25 | 0.33 | 92% | 92% | 0.42 / 0.17 | – |
+| L6 | 0.17 | 0.17 | 100% | 100% | 0.33 / 0.08 | – |
+| L7 | 0.33 | 0.25 | 100% | 100% | 0.33 / 0.08 | – |
+| L8 | 0.50 | 0.58 | 92% | 92% | 0.25 / 0.08 | – |
+| L9 | 0.75 | 0.83 | 92% | 83% | 0.42 / 0.25 | – |
+| L11 | 0.75 | 0.75 | 83% | 83% | – | 0.33 / 0.17 |
+| L12 | 1.33 | 1.33 | 58% | 58% | – | 0.50 / 0.50 |
+| L13 | 1.17 | 1.42 | 67% | 50% | – | 0.50 / 0.42 |
+| L14 | 1.33 | 1.42 | 50% | 50% | – | 0.50 / 0.33 |
+| L16 | 0.75 | 0.83 | 83% | 83% | – | 0.50 / 0.33 |
+| L17 | 1.42 | 1.42 | 42% | 50% | – | 0.58 / 0.33 |
+| L18 | 1.50 | 1.58 | 42% | 42% | – | 0.58 / 0.17 |
+| L19 | 1.67 | 1.75 | 25% | 17% | – | 0.42 / 0.17 |
+
+Reading: no level has more deaths with the detour beyond noise. The largest rise is L7, +0.08 deaths per run (one death in 12 seeds). Most levels have fewer deaths with the detour. The detour is real for both variants: pharmacy uses go from 0.08 to 0.33 per run on L3, and kiosk uses on L11 to L19 are 0.33 to 0.58 with the detour and 0.17 to 0.50 without it (L12 is 0.50 either way, because the route touches it). Clear-rate moves of 8 to 17 points (L13, L17, L19) are within the noise of 12 seeds (one seed is 8 points, and the review's own noise figure is about ±12 points at 16 seeds). The bot numbers are kiting-bot numbers, not human rates.
+
+**Tests.** `test-hints`: 164 checks pass. `test-eczane`: 81 checks passed earlier in this session, before the Night Shift edits, covering the kiosk placement, the state reads and the touch rules. At 17:30 the wider suite fails in files other agents are changing for Night Shift and Nightmare, not in this part: `sim/levels.js:281` calls `P.Modes.spawnMul`, which the test loader does not yet have (`test-env`, `test-eczane`, `test-enemy-behaviors`, `test-horde`, `test-ceiling`, `test-meta`), and `test-progress-ui` reports missing `mode.nm.*` strings. `check-ids`, `test-a11y-canvas`, `test-feel` and `test-hints` pass. Re-run the suite once the modes wiring lands.
+
+---
+
+# T4 part 18: Nightmare and Night Shift
+
+Owner brief: build both replay features now, Nightmare per hood and the Night Shift daily. Not committed or pushed. Design: `docs/game-design.md` §8.17, `docs/journey.md` §3.4, `docs/retention.md` §3.7; decision D-065 in `docs/product.md` (ACCEPTED 2026-11-13).
+
+**Unlock and rewards.** A hood's Nightmare opens when every level of that hood is cleared on Normal. Nightmare: Street Cred ×2 on the first Nightmare clear of a level (the extra is added on top of the normal grant), coins ×1.5 on every Nightmare clear, a moon per hood when all five levels have a Nightmare star, the title Gece Nöbetçisi at three moons. A fourth star: clear, no revive, lowest HP at 40% or more. Night Shift: the first run of each day pays 30 Street Cred and 60 coins, plus 10 coins per streak day (cap 7). Nothing is paid for retries.
+
+**Numbers (config/`config-modes.js`, PROTO).** Nightmare: enemy HP ×(1.05 + 0.004k), damage ×(1.20 + 0.004k), spawn ×(1.00 + 0.002k) capped at 2.4 on the total, drop heal 0.9, boss share 0.6 (normal 0.3), boss HP ×1.3, L1 spawn ×1.10; k = journey index − 1. Signatures: one per hood through existing levers (table in `levels.nightmare.sig`). Night Shift: spawn ramp ×(1 + 0.005 × seconds) capped at ×3.0, 12-minute cap (a win), one revive, score = survival seconds + 0.5 × kills + 10 × Adrenalin level, local best, leaderboard hook `nsi.nightshift.board` (not wired).
+
+**Save decision (owner to confirm).** The `modes` block is additive inside schema v3: no VERSION bump, KEY `nsi.meta.v3` unchanged, a missing block is the default, and every value is clamped on read. The reason is that `tools/test-tree.js` pins VERSION 3. If the owner prefers a bump, the block moves to v4 with a migration.
+
+**Nightmare bot tables.** Kite-generic policy, 12 seeds per level, clear = win with one revive; min HP is the lowest HP fraction of the run (a death counts as 0). Targets: clear 55–75%, median min HP 15–35%.
+
+| round | L5 clear / min HP | L12 | L30 | L50 |
+|---|---|---|---|---|
+| r0 (first multipliers) | 83% / 6% | 25% / 0% | 25% / 0% | 25% / 0% |
+| r1 | 100% / 7% | 42% / 0% | 67% / 0% | 58% / 0% |
+| r2 | 100% / 9% | 50% / 0% | 67% / 0% | 42% / 0% |
+| r3 | 100% / 27% | 50% / 0% | 33% / 0% | 25% / 0% |
+| r4 (shipped) | 100% / 9% | 50% / 0% | 58% / 0% | 25% / 0% |
+| Normal (baseline, same bot) | 100% / 29% | 58% / 0% | 83% / 43% | 92% / 6% |
+
+**Night Shift bot tables.** 16 seeds (day `nsbot-N`, all levels unlocked, one revive). Target: median survival 5–9 minutes with a long tail. Median is the mean of the 8th and 9th of 16 sorted survival times.
+
+| round | ramp perSec / cap | median | runs at the 12-min cap |
+|---|---|---|---|
+| r0 | 0.001 / 1.9 | 12.0 min | 13 / 16 |
+| r1 | 0.0025 / 2.6 | 12.0 min | 11 / 16 |
+| r2 (shipped) | 0.005 / 3.0 | 10.8 min | 8 / 16 |
+| r3 | 0.004 / 2.8 | 12.0 min | 10 / 16 |
+| r4 | 0.007 / 3.5 | 12.0 min | 9 / 16 |
+
+**What is missed.**
+- Nightmare: the clear band is hit only on L30 (58%, r4). L5 is 100%, L12 50%, L50 25%. Median min HP is 0% on L12, L30 and L50 in every round, because most bot runs die on those levels and a death counts as 0. The Normal baseline is already above the clear band on L5, L30 and L50, and on L12 Normal is 58% with 0% min HP. So the L12 target cannot be met without moving Normal, and the bands look set for a different policy. Owner: pick targets for this bot, or change the metric (for example min HP among runs that survive).
+- Night Shift: the long tail is there (8 of 16 reach the cap in r2, and 6 of 16 die between 1 and 4 minutes), but the median is 10.8 min at best. Changing the ramp in five rounds did not bring it under 10 min, so the ramp is not the main lever for this bot. Next levers to test if the target stays: route density or the stage roster on Night Shift stages, or a ramp that flattens after about six minutes.
+
+**Bot changes.** `tools/bot.js` has `--mode=nightmare|nightshift` (targeted edits; another agent also edits this file). The Night Shift summary prints survival quartiles, the cap count and score per seed.
+
+**Hook guards.** The `levels.js` and `director.js` calls into `P.Modes` now check that it is loaded (the same pattern as `sim.js`). Found when `test-horde` and `test-arsenal` failed: their own file lists do not include `modes.js`. With modes absent, the hooks are identity, and the Normal golden traces did not change.
+
+**Tests.** `tools/test-modes.js`: 259 checks pass. It covers the config shape, Nightmare multipliers only in Nightmare, one signature per hood (the route changes), the unlock rule, the rewards and the moon and title, the fourth star, the Night Shift seed, plan and rotation, one paid run per day and the streak, the endless run to the cap, the additive save and damaged values, the golden Normal traces (five levels, fixed input, pinned to the pre-change tree), no clock or settings in the sim, and the wiring (telemetry, ids, string keys, owner-check tags, no `%{` placeholders, no CSS animation). Loop (`check-ids` through `test-modes`, 21 scripts): all exit 0. `test-arsenal --quick`: PASS. Same pass status as the baseline logs (`/tmp/nm/base-*.log`); the only count changes are the new files: `test-quality` 84 → 85 checks, `test-a11y-canvas` 84 → 85 view files (`view/modes-ui.js`).
+
+**Headless UI check.** 390×844, text at 100% and 150%. Text scale was set through `P.Settings.textSize` and `P.applySettings()`; setting `--ui-text` on the root does not work, because `#phone` sets it. Checked: the map (the hood 0 moon), the level sheet toggle, the HUD moon and vignette, the results (four stars, criteria, reward rows), the hood card mode line, and the Tasks Night Shift card. Fixed in this pass: the unselected Nightmare label was cream on cream (invisible), the hood card's mode line had weak contrast, and the fourth-star string used `%{n}`, which rendered as "%40". Screenshots are in `/tmp/nm/ui`.
+
+**Not verified.** The Night Shift in-run HUD; the moon and title rows on results (the Street Cred row was seen); reduce-motion; a real device; the leaderboard (a hook only, by design). The Turkish UI was not checked visually.
+
+**Observed, not changed (pre-existing).**
+- At the default map scroll, the İstiklal (hood 0) badge and its moon sit under the tab row.
+- The HUD HP readout shows a float, "97 / 110.80000000000001" (the +10.8% HP bonus is not rounded).
+- Objective chips ("Bonus missed") overlap the results title on generated levels with lantern objectives (seen on L6 in Nightmare; Normal not checked).
+- At 150% text, the map's top tab row overflows on the right ("MEMORIES" is cut).
+
+**Owner decisions.**
+1. Save: an additive block inside v3 (no bump). Confirm, or move to v4.
+2. Night Shift pays Street Cred. That is power-adjacent, which conflicts with the daily-reward rule (retention §3.6). Keep it, or move the daily pay to coins and cosmetics.
+3. Turkish: the mode names and the seed words are marked `// TR owner check` in `strings-modes.js` (20+ lines).
+4. Bot targets: pick Nightmare and Night Shift targets for this bot (the Normal baseline is already outside the Nightmare bands), or change the metric.
+5. Boss hooks: Nightmare bosses take a 0.6 share and ×1.3 boss HP. Normal boss numbers are unchanged.
+6. The Night Shift median target (5–9 min) is not met (10.8 min at best).
+
+**Resolution (2026-11-14, owner delegated 2 to 5).** The additive `modes` block stays in schema v3. The Night Shift now pays coins only (60 plus the streak chest), with no Street Cred (retention 3.6, D-065). The Turkish lines wait on the owner's table. The Nightmare and Night Shift bot targets (4 and 6) stay open until real telemetry arrives.
+
 # R1-T5 step 1: tree data, save v3 and the Street Cred rule
 
 Owner accepted the recommendations (D-059 now ACCEPTED): Q1 perks only, Q2 one free respec per chapter and never sold, Q3 six branches of four, Q5 Survival Skills stay retired, Q6 Kaan only. Q4 (perk list and TR names) and Q7 (doc conflicts) are still open. Step 1 of `docs/skill-tree.md` section 8.

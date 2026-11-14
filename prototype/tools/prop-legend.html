@@ -4,7 +4,10 @@
 <!-- Review sheet for the legibility grammar in js/view/istanbul-props.js (ROLE table, DRESS, blockMark). Every street prop the
      game draws, twice where a kind can be both: as dressing (a sidewalk slot, flatter, smaller, muted) and as a sim block
      (cover: thick outline, top highlight, hatched top or cracked top). Plus the idle tram from js/view/vehicles.js.
-     Open: prototype/tools/prop-legend.html (no arguments). Screenshot at 390 px wide for the phone check. -->
+     Heal stations (R1-T4 parts 14 and 17: the eczane and the kiosk, block kind bufe) are drawn in both states, usable and empty, in
+     their own section at their config-env.js size. Open: prototype/tools/prop-legend.html (no arguments); add ?reduce=1 for Reduce
+     motion (the usable glow is then steady); ?only=stations shows just the heal-station section. Screenshot at 390 px wide for the
+     phone check. -->
 <style>
   html, body { margin: 0; background: #14151F; color: #F4EBDD; font: 13px/1.35 system-ui, sans-serif; max-width: 100%; overflow-x: hidden; }
   header { padding: 14px 16px 6px; }
@@ -43,10 +46,16 @@ so the difference is visible. Blocks use the sim size from config-levels.js (P.C
 <div id="root"></div>
 <script>window.P = {};
 // settings.js owns the real gore palette (blood on); stubbed here so the sheet loads without the game's settings
-P.goreRGB = function (s) { return ['86,14,20', '120,20,28', '160,24,36'][s || 0]; };</script>
+P.goreRGB = function (s) { return ['86,14,20', '120,20,28', '160,24,36'][s || 0]; };
+// Reduce motion for the station glow and steam (?reduce=1); the real settings.js is not loaded here
+P.Settings = { reduceMotion: /[?&]reduce=1/.test(location.search) };</script>
 <script src="../js/config.js"></script>
 <script src="../js/config-feel.js"></script>
 <script src="../js/config-levels.js"></script>
+<script src="../js/config-env.js"></script>
+<script src="../js/view/hints-config.js"></script>   <!-- P.CFG.consumables (station glow and pulse rate) -->
+<script src="../js/strings.js"></script>          <!-- P.t, for the EMPTY label (TR by default, as in the game) -->
+<script src="../js/strings-hints.js"></script>
 <script src="../js/view/istanbul-props.js"></script>
 <script src="../js/view/istanbul-props2.js"></script>
 <script src="../js/view/istanbul-props-env.js"></script>
@@ -76,14 +85,18 @@ P.goreRGB = function (s) { return ['86,14,20', '120,20,28', '160,24,36'][s || 0]
     draw(cv);
     return d;
   }
+  var ONLY = /[?&]only=stations/.test(location.search);   // ?only=stations: just the heal-station section (for a still)
   function section(title, items) {
+    if (ONLY && title.indexOf('Heal stations') !== 0) return;
     var h = document.createElement('h2'); h.textContent = title; root.appendChild(h);
     var g = document.createElement('div'); g.className = 'grid'; root.appendChild(g);
     items.forEach(function (it) { g.appendChild(it); });
   }
   var kinds = P.Props.kinds().slice().sort();
-  var sidewalk = [], blocks = [], other = [];
+  var sidewalk = [], blocks = [], other = [], stations = [];
+  var STATION_KINDS = ['eczane', 'bufe'];   // heal stations: drawn in their own section below (both states), not as dressing
   kinds.forEach(function (kind) {
+    if (STATION_KINDS.indexOf(kind) >= 0) return;
     var size = (P.CFG.levels && P.CFG.levels.kinds && P.CFG.levels.kinds[kind]) || null;
     var sRole = P.Props.roleOf(kind, {}), bRole = P.Props.roleOf(kind, { w: size ? size[0] : 1, h: size ? size[1] : 1 });
     if (sRole === 'plain' || sRole === 'fauna' || sRole === 'hazard' || sRole === 'dressing' || sRole === 'breakable' || sRole === 'solid') {
@@ -107,5 +120,18 @@ P.goreRGB = function (s) { return ['86,14,20', '120,20,28', '160,24,36'][s || 0]
   section('Vehicles (the tram: opaque, always; see vehicles.js header for the opacity rules)', [tram]);
   section('Sidewalk slots (dressing, fauna, plain, hazard drawn as a sidewalk prop)', sidewalk);
   section('Sim blocks (cover: solid and breakable, the same kinds at their sim size)', blocks);
+  // The heal stations (R1-T4 parts 14, 17): one per variant (sim/eczane.js), each in its usable and its empty state. Sizes from
+  // config-env.js; the same painter and the same stationSign as the game. Drawn 0.65 m low so the whole sign sits in the cell.
+  var EV = P.CFG.env.eczane.variants, WHERE = { eczane: 'street-like hoods (the pharmacy)', kiosk: 'boat, ferry and bazaar hoods (the kiosk)' };
+  Object.keys(EV).forEach(function (name) {
+    var W = EV[name];
+    ['usable', 'empty'].forEach(function (state) {
+      var role = P.Props.roleOf(W.kind, { w: W.w, h: W.h });
+      var draw = function (cv) { var R = frame(cv, 26); P.Props.draw(W.kind, R, 0, -0.65, { w: W.w, h: W.h, k: 0, v: 0.2, alarm: false, state: state }); };
+      var label = (name === W.kind ? name : name + ' (' + W.kind + ')') + ' · ' + state;
+      stations.push(cell(WHERE[name] + ', ' + W.w + ' x ' + W.h + ' m', label, role, draw));
+    });
+  });
+  section('Heal stations (sim blocks: usable glows, empty is grey with EMPTY; ?reduce=1 steadies the glow)', stations);
 })();
 </script>

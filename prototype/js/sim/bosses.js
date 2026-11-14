@@ -28,11 +28,11 @@ P.Bosses.archetype = function (hoodId, type) {
 // Spawn a boss. Intro: the boss stands still for `intro` seconds while the banner plays (bossIntro event).
 P.Bosses.spawn = function (s, type, x, y, o) {
   var arch = P.Bosses.archetype(o.hoodId, type), B = P.CFG.bosses[arch], df = s.diff, hm = 1 + P.CFG.levels.diff.bossHoodMul * o.hoodIdx;
-  var share = P.CFG.levels.diff.bossShare;            // bosses take only part of the route HP and damage growth
+  var share = (df && df.bossShare) || P.CFG.levels.diff.bossShare;   // bosses take only part of the route HP and damage growth (Nightmare: its own share, R1-T4 part 18)
   var e = P.Combat.spawnEnemy(s, B.base || arch, x, y, { state: 'turning', stateT: P.CFG.levels.bossIntro, skin: o.skin, boss: true });
   e.type = arch; e.boss = true; e.nameKey = o.nameKey; e.r = B.radius; e.speed = B.speed; e.kbResist = B.kbResist;
   e.contact = B.contact * (df ? 1 + (df.dmg - 1) * share : 1); e.xp = B.xp;
-  e.hp = B.hp * hm * (df ? 1 + (df.hp - 1) * share : 1); e.maxHp = e.hp;
+  e.hp = B.hp * hm * (df ? 1 + (df.hp - 1) * share : 1) * (df && df.bossHp || 1); e.maxHp = e.hp;   // bossHp: Nightmare boss multiplier (1 otherwise)
   e.armour = B.armour || 1; e.exposed = false; e.phase = 1;
   e.ai = makeAI(e);
   s.events.push({ type: 'bossIntro', nameKey: o.nameKey, boss: arch, x: x, y: y, hood: o.hoodId || null });

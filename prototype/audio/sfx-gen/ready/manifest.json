@@ -1,0 +1,544 @@
+{
+ "tool": "prototype/tools/prepare-sfx.js",
+ "version": 1,
+ "generated": "2026-11-14T03:26:27.119Z",
+ "format": "mp3",
+ "sampleRate": 44100,
+ "channels": 1,
+ "bitrate": "128k",
+ "decodeRate": 48000,
+ "budget": {
+  "cueCapBytes": 15500000,
+  "cueEstimateBytes": 5341440,
+  "bedMaxBytes": 3840000,
+  "bedEstimateBytes": 11500800
+ },
+ "cues": {
+  "bell": [
+   {
+    "file": "bell.mp3",
+    "variant": 0,
+    "seconds": 1,
+    "db": -16,
+    "peak": -3.16,
+    "bytes": 17250,
+    "source": "bell.mp3"
+   }
+  ],
+  "blast": [
+   {
+    "file": "blast.mp3",
+    "variant": 0,
+    "seconds": 0.88,
+    "db": -16,
+    "peak": -8.47,
+    "bytes": 15162,
+    "source": "blast.mp3"
+   }
+  ],
+  "bloaterPop": [
+   {
+    "file": "bloaterPop.mp3",
+    "variant": 0,
+    "seconds": 0.21,
+    "db": -16,
+    "peak": -5.11,
+    "bytes": 4305,
+    "source": "bloaterPop.mp3"
+   }
+  ],
+  "boom": [
+   {
+    "file": "boom.mp3",
+    "variant": 0,
+    "seconds": 0.88,
+    "db": -16,
+    "peak": -7.8,
+    "bytes": 15160,
+    "source": "boom.mp3"
+   }
+  ],
+  "bossDie": [
+   {
+    "file": "bossDie.mp3",
+    "variant": 0,
+    "seconds": 1.36,
+    "db": -14,
+    "peak": -5.72,
+    "bytes": 23105,
+    "source": "bossDie.mp3"
+   }
+  ],
+  "bossIntro": [
+   {
+    "file": "bossIntro.mp3",
+    "variant": 0,
+    "seconds": 1.53,
+    "db": -14,
+    "peak": -8.43,
+    "bytes": 25617,
+    "source": "bossIntro.mp3"
+   }
+  ],
+  "bruteRoar": [
+   {
+    "file": "bruteRoar.mp3",
+    "variant": 0,
+    "seconds": 1,
+    "db": -14,
+    "peak": -5.51,
+    "bytes": 17258,
+    "source": "bruteRoar.mp3"
+   }
+  ],
+  "bruteStomp": [
+   {
+    "file": "bruteStomp.mp3",
+    "variant": 0,
+    "seconds": 0.7,
+    "db": -16,
+    "peak": -8.9,
+    "bytes": 12246,
+    "source": "bruteStomp.mp3"
+   }
+  ],
+  "chestDrop": [
+   {
+    "file": "chestDrop.mp3",
+    "variant": 0,
+    "seconds": 0.35,
+    "db": -16,
+    "peak": -4.63,
+    "bytes": 6811,
+    "source": "chestDrop.mp3"
+   }
+  ],
+  "chestOpen": [
+   {
+    "file": "chestOpen.mp3",
+    "variant": 0,
+    "seconds": 0.72,
+    "db": -16,
+    "peak": -2.87,
+    "bytes": 12662,
+    "source": "chestOpen.mp3"
+   }
+  ],
+  "cleaver": [
+   {
+    "file": "cleaver.mp3",
+    "variant": 0,
+    "seconds": 0.29,
+    "db": -17,
+    "peak": -5.14,
+    "bytes": 5968,
+    "source": "cleaver.mp3"
+   }
+  ],
+  "cluster": [
+   {
+    "file": "cluster.mp3",
+    "variant": 0,
+    "seconds": 0.69,
+    "db": -16,
+    "peak": -4.26,
+    "bytes": 12240,
+    "source": "cluster.mp3"
+   }
+  ],
+  "crit": [
+   {
+    "file": "crit.mp3",
+    "variant": 0,
+    "seconds": 0.13,
+    "db": -17,
+    "peak": -6.61,
+    "bytes": 3454,
+    "source": "crit.mp3"
+   }
+  ],
+  "dash": [
+   {
+    "file": "dash.mp3",
+    "variant": 0,
+    "seconds": 0.48,
+    "db": -16,
+    "peak": -4.05,
+    "bytes": 8891,
+    "source": "dash.mp3"
+   }
+  ],
+  "ferryHorn": [
+   {
+    "file": "ferryHorn.mp3",
+    "variant": 0,
+    "seconds": 1.48,
+    "db": -14,
+    "peak": -5.53,
+    "bytes": 24781,
+    "source": "ferryHorn.mp3"
+   }
+  ],
+  "footstep": [
+   {
+    "file": "footstep.mp3",
+    "variant": 0,
+    "seconds": 0.12,
+    "db": -22,
+    "peak": -6.19,
+    "bytes": 3043,
+    "source": "footstep.mp3"
+   }
+  ],
+  "glass": [
+   {
+    "file": "glass.mp3",
+    "variant": 0,
+    "seconds": 0.39,
+    "db": -16,
+    "peak": -3.27,
+    "bytes": 7639,
+    "source": "glass.mp3"
+   }
+  ],
+  "groan": [
+   {
+    "file": "groan.mp3",
+    "variant": 0,
+    "seconds": 0.8,
+    "db": -18,
+    "peak": -10.09,
+    "bytes": 13907,
+    "source": "groan.mp3"
+   }
+  ],
+  "hammer": [
+   {
+    "file": "hammer.mp3",
+    "variant": 0,
+    "seconds": 0.41,
+    "db": -17,
+    "peak": -7.81,
+    "bytes": 7638,
+    "source": "hammer.mp3"
+   }
+  ],
+  "heal": [
+   {
+    "file": "heal.mp3",
+    "variant": 0,
+    "seconds": 0.7,
+    "db": -22,
+    "peak": -14.15,
+    "bytes": 12230,
+    "source": "heal.mp3"
+   }
+  ],
+  "hit_blade": [
+   {
+    "file": "hit_blade.mp3",
+    "variant": 0,
+    "seconds": 0.47,
+    "db": -17,
+    "peak": -5.74,
+    "bytes": 8480,
+    "source": "hit_blade.mp3"
+   }
+  ],
+  "hit_blunt": [
+   {
+    "file": "hit_blunt.mp3",
+    "variant": 0,
+    "seconds": 0.44,
+    "db": -17.17,
+    "peak": -1.5,
+    "bytes": 8062,
+    "source": "hit_blunt.mp3"
+   }
+  ],
+  "hit_body": [
+   {
+    "file": "hit_body.mp3",
+    "variant": 0,
+    "seconds": 0.16,
+    "db": -17.59,
+    "peak": -1.5,
+    "bytes": 3880,
+    "source": "hit_body.mp3"
+   }
+  ],
+  "hit_chain": [
+   {
+    "file": "hit_chain.mp3",
+    "variant": 0,
+    "seconds": 0.41,
+    "db": -17,
+    "peak": -5.09,
+    "bytes": 7644,
+    "source": "hit_chain.mp3"
+   }
+  ],
+  "hit_pierce": [
+   {
+    "file": "hit_pierce.mp3",
+    "variant": 0,
+    "seconds": 0.28,
+    "db": -17,
+    "peak": -4.67,
+    "bytes": 5556,
+    "source": "hit_pierce.mp3"
+   }
+  ],
+  "hurt": [
+   {
+    "file": "hurt.mp3",
+    "variant": 0,
+    "seconds": 0.48,
+    "db": -18,
+    "peak": -5.75,
+    "bytes": 8890,
+    "source": "hurt.mp3"
+   }
+  ],
+  "level": [
+   {
+    "file": "level.mp3",
+    "variant": 0,
+    "seconds": 0.9,
+    "db": -14,
+    "peak": -4.63,
+    "bytes": 15578,
+    "source": "level.mp3"
+   }
+  ],
+  "levelClear": [
+   {
+    "file": "levelClear.mp3",
+    "variant": 0,
+    "seconds": 1.36,
+    "db": -14,
+    "peak": -3.69,
+    "bytes": 23111,
+    "source": "levelClear.mp3"
+   }
+  ],
+  "levelFail": [
+   {
+    "file": "levelFail.mp3",
+    "variant": 0,
+    "seconds": 1.2,
+    "db": -14,
+    "peak": -2.97,
+    "bytes": 20184,
+    "source": "levelFail.mp3"
+   }
+  ],
+  "lob": [
+   {
+    "file": "lob.mp3",
+    "variant": 0,
+    "seconds": 0.6,
+    "db": -16,
+    "peak": -7.93,
+    "bytes": 10561,
+    "source": "lob.mp3"
+   }
+  ],
+  "molotovBurst": [
+   {
+    "file": "molotovBurst.mp3",
+    "variant": 0,
+    "seconds": 0.81,
+    "db": -16,
+    "peak": -8.32,
+    "bytes": 13922,
+    "source": "molotovBurst.mp3"
+   }
+  ],
+  "nail": [
+   {
+    "file": "nail.mp3",
+    "variant": 0,
+    "seconds": 0.44,
+    "db": -17,
+    "peak": -3.73,
+    "bytes": 8052,
+    "source": "nail.mp3"
+   }
+  ],
+  "nazar": [
+   {
+    "file": "nazar.mp3",
+    "variant": 0,
+    "seconds": 0.44,
+    "db": -16,
+    "peak": -3.61,
+    "bytes": 8475,
+    "source": "nazar.mp3"
+   }
+  ],
+  "rocketBoom": [
+   {
+    "file": "rocketBoom.mp3",
+    "variant": 0,
+    "seconds": 0.84,
+    "db": -16,
+    "peak": -6.92,
+    "bytes": 14754,
+    "source": "rocketBoom.mp3"
+   }
+  ],
+  "shutter": [
+   {
+    "file": "shutter.mp3",
+    "variant": 0,
+    "seconds": 0.88,
+    "db": -16,
+    "peak": -3.41,
+    "bytes": 15166,
+    "source": "shutter.mp3"
+   }
+  ],
+  "snarl": [
+   {
+    "file": "snarl.mp3",
+    "variant": 0,
+    "seconds": 0.68,
+    "db": -18,
+    "peak": -7.8,
+    "bytes": 12235,
+    "source": "snarl.mp3"
+   }
+  ],
+  "spearPin": [
+   {
+    "file": "spearPin.mp3",
+    "variant": 0,
+    "seconds": 0.48,
+    "db": -17,
+    "peak": -5.89,
+    "bytes": 8896,
+    "source": "spearPin.mp3"
+   }
+  ],
+  "spitHit": [
+   {
+    "file": "spitHit.mp3",
+    "variant": 0,
+    "seconds": 0.48,
+    "db": -17,
+    "peak": -3.85,
+    "bytes": 8894,
+    "source": "spitHit.mp3"
+   }
+  ],
+  "splat": [
+   {
+    "file": "splat.mp3",
+    "variant": 0,
+    "seconds": 0.25,
+    "db": -17,
+    "peak": -4.84,
+    "bytes": 5128,
+    "source": "splat.mp3"
+   }
+  ],
+  "stab": [
+   {
+    "file": "stab.mp3",
+    "variant": 0,
+    "seconds": 0.47,
+    "db": -17,
+    "peak": -1.94,
+    "bytes": 8470,
+    "source": "stab.mp3"
+   }
+  ],
+  "swish": [
+   {
+    "file": "swish.mp3",
+    "variant": 0,
+    "seconds": 0.18,
+    "db": -17,
+    "peak": -5.34,
+    "bytes": 3874,
+    "source": "swish.mp3"
+   }
+  ],
+  "uiBack": [
+   {
+    "file": "uiBack.mp3",
+    "variant": 0,
+    "seconds": 0.17,
+    "db": -22,
+    "peak": -5.95,
+    "bytes": 3875,
+    "source": "uiBack.mp3"
+   }
+  ],
+  "uiOpen": [
+   {
+    "file": "uiOpen.mp3",
+    "variant": 0,
+    "seconds": 0.48,
+    "db": -22,
+    "peak": -15.74,
+    "bytes": 8891,
+    "source": "uiOpen.mp3"
+   }
+  ],
+  "zombieDie": [
+   {
+    "file": "zombieDie.mp3",
+    "variant": 0,
+    "seconds": 0.8,
+    "db": -18,
+    "peak": -9.26,
+    "bytes": 13915,
+    "source": "zombieDie.mp3"
+   }
+  ]
+ },
+ "beds": {
+  "bazaar": {
+   "file": "amb_bazaar.mp3",
+   "seconds": 11.98,
+   "rmsDb": -26,
+   "peak": -10.25,
+   "bytes": 192802,
+   "source": "amb_bazaar.mp3"
+  },
+  "night": {
+   "file": "amb_night.mp3",
+   "seconds": 11.98,
+   "rmsDb": -26,
+   "peak": -8.14,
+   "bytes": 192800,
+   "source": "amb_night.mp3"
+  },
+  "street": {
+   "file": "amb_street.mp3",
+   "seconds": 11.98,
+   "rmsDb": -26,
+   "peak": -4.94,
+   "bytes": 192802,
+   "source": "amb_street.mp3"
+  },
+  "waterfront": {
+   "file": "amb_waterfront.mp3",
+   "seconds": 11.98,
+   "rmsDb": -26,
+   "peak": -10.25,
+   "bytes": 192810,
+   "source": "amb_waterfront.mp3"
+  },
+  "wind": {
+   "file": "amb_wind.mp3",
+   "seconds": 11.98,
+   "rmsDb": -26,
+   "peak": -10.78,
+   "bytes": 192798,
+   "source": "amb_wind.mp3"
+  }
+ }
+}

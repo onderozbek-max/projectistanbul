@@ -56,7 +56,7 @@
   // (kasapBoss shape), which extends this table; their hood wiring is bossByHood there and hood.boss in journey.js.
   C.bosses = {
     brute: {                                                             // CC 6 style: charges, stomps, summons
-      hp: 1400, speed: 0.8, contact: 14, radius: 0.9, xp: 80, kbResist: 0.95,
+      hp: 2800, speed: 0.8, contact: 14, radius: 0.9, xp: 80, kbResist: 0.95,           // R1-T4 part 16 (P1): hp 1400 -> 2800 (brute archetype only: H01, H02, H03, H14, H20)
       windup: 0.9, laneLen: 12, laneW: 2.4, chargeSpeed: 9, chargeDmg: 12, chargeKb: 2.0,   // boss-arena pass: chargeDmg 18 -> 12
       stomp: { r: 3.4, dmg: 12, windup: 1.0 }, summon: { n: 4, windup: 0.8, r: 3 },           // stomp dmg 16 -> 12
       gap: 0.8, rageGap: 0.8, pause: 1.2, rageAt: 0.5, rageSpeed: 1.3, rageWindup: 0.6,       // rageGap 0.5 -> 0.8 (enrage cadence)
@@ -78,6 +78,9 @@
   // ---- level generator (journey levels 2..100) ----
   C.levels = {
     rampFrom: 2,                       // R1-T4 part 4: first journey level with the drop-heal cap and the frenzy speed; L1 is unchanged
+    // R1-T4 part 16 (pacing P1): route length (stages len, boss approach) and gate hold (holdT) scale by these from rampFrom on
+    // (P.Levels.paced, sim/levels.js). 1 = the pre-part-16 pace. Stage numbers below stay the base values.
+    pace: { routeMul: 1.25, holdMul: 1.25, crateSeg: ['B', 'D'] },   // crateSeg: route segments (A-D) that each drop a free upgrade crate (null = none)
     // Difficulty per global index k = index-1 (gentle early, steeper late). hp = 1 + lin*k + quad*k^2.
     // R1-T4 part 4: xpLin 0.04 -> 0.05 (XP per kill grows faster with the level index; keeps late boss levels clearable, see the review).
     diff: { hpLin: 0.03, hpQuad: 0.0002, dmgLin: 0.006, spawnLin: 0.005, spawnCap: 2.0, xpLin: 0.05, bossHoodMul: 0.03, bossShare: 0.3 },

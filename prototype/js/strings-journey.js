@@ -5,7 +5,8 @@ Object.assign(P.STR.tr, {
   'ui.pause.quit': 'Haritaya dön', 'ui.res.title': 'Haritaya dön', 'ui.res.next': 'Sonraki bölüm',
   'ui.res.progress': '{km} / {total} km yürüdün',
   'ui.hud.ult': 'Nazar patlaması', 'ui.hud.dash': 'DEPAR', 'ui.hud.dashHint': 'Hızlı kaydır: depar at',
-  'ui.hud.stage': '{s}/{of}', 'ui.hud.lv': 'Lv {n}',
+  'ui.hud.stage': '{s}/{of}', 'ui.hud.adr': 'Adrenalin {n}', // TR owner check
+  'ui.hud.journey': 'BÖLÜM {n}/{of}', // TR owner check: the journey level chip (line 1; the hood name is line 2)
   'boss.intro': 'PATRON', 'boss.rage': 'ÖFKE!',
 });
 Object.assign(P.STR.en, {
@@ -14,7 +15,7 @@ Object.assign(P.STR.en, {
   'ui.pause.quit': 'Back to map', 'ui.res.title': 'Back to map', 'ui.res.next': 'Next level',
   'ui.res.progress': '{km} / {total} km walked',
   'ui.hud.ult': 'Evil-eye burst', 'ui.hud.dash': 'DASH', 'ui.hud.dashHint': 'Quick flick: dash',
-  'ui.hud.stage': '{s}/{of}', 'ui.hud.lv': 'Lv {n}',
+  'ui.hud.stage': '{s}/{of}', 'ui.hud.adr': 'Adrenaline {n}', 'ui.hud.journey': 'LEVEL {n}/{of}',
   'boss.intro': 'BOSS', 'boss.rage': 'RAGE!',
 });
 

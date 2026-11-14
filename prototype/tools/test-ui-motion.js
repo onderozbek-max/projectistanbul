@@ -384,7 +384,8 @@ check(!/kv\(rw, P\.t\('ui\.res\.kills'\)/.test(screensCode) && /kv\(rw, P\.t\('u
 check(!/'ui\.set\.voice'/.test(strings) && !/'ui\.set\.voice'/.test(read('js/strings.js')), 'the Voice label key is gone from both string tables (T4 part 9)');
 check(/'ui\.set\.music': 'Müzik'/.test(strings) && !/TR owner check/.test(strings), 'strings-ui2.js: the owner-approved TR labels (Müzik, Yazı boyutu) carry no "TR owner check" comment');
 const stringsMain = read('js/strings.js');
-check(/'ui\.set\.sound': 'Ses efektleri'/.test(stringsMain) && !/TR owner check/.test(stringsMain), 'strings.js: the owner-approved TR Ses efektleri label carries no "TR owner check" comment');
+// strings.js carries the Adrenalin owner-check lines (ui.cards.sub), so the check is per line: the Ses efektleri line has no tag.
+check(/'ui\.set\.sound': 'Ses efektleri'/.test(stringsMain) && !/'ui\.set\.sound'[^\n]*TR owner check/.test(stringsMain), 'strings.js: the owner-approved TR Ses efektleri label carries no "TR owner check" comment');
 check(/'ui\.set\.sound': 'Sound effects'/.test(stringsMain), 'strings.js: the EN Sound effects label exists');
 // the HUD: at 150% text Street Cred moves to row 2 (settings.js), so the streak chip keeps the XP line and the XP bar room
 const htmlNow = read('index.html');

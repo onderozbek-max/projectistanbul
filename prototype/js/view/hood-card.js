@@ -75,10 +75,13 @@ P.HoodCard = (function () {
     return card;
   }
   // Objective and run condition of the level (lane P). Null on level 1, which has neither.
+  // R1-T4 part 18: the mode of the level on screen (H.show opts.mode). Nightmare adds one line to the plan.
+  var curMode = 'normal';
   function plan(li) {
-    var ob = P.Objectives && P.Objectives.forLevel(li), md = P.Modifiers && P.Modifiers.forLevel(li), box;
-    if (!ob && !md) return null;
+    var ob = P.Objectives && P.Objectives.forLevel(li), md = P.Modifiers && P.Modifiers.forLevel(li), nm = curMode === 'nightmare', box;
+    if (!ob && !md && !nm) return null;
     box = el('div', 'hc-plan');
+    if (nm) box.appendChild(el('div', 'hc-mode', tx('mode.nm.line', { m: tx('mode.nm.name') })));
     if (ob) box.appendChild(el('div', 'hc-obj', tx('hc.obj', { name: tx('obj.' + ob + '.title') })));
     if (md) box.appendChild(el('div', 'hc-mod', tx('hc.mod', { name: tx('hmod.' + md.id + '.name') })));
     return box;
@@ -104,6 +107,7 @@ P.HoodCard = (function () {
   // Show the card for a level. opts.big overrides the default (big at stage 1 only).
   H.show = function (li, opts, onDone) {
     var hood = li.hood, th = P.Themes.get(hood.theme), big = opts && typeof opts.big === 'boolean' ? opts.big : (li.stage || 1) === 1;
+    curMode = opts && opts.mode ? opts.mode : 'normal';
     H.hide();
     var ov = el('div', 'hc-overlay' + (big ? ' hc-big' : ' hc-small') + (still() ? ' hc-still' : ''));
     ov.appendChild(big ? bigCard(li, th, hood) : banner(li, th, hood));

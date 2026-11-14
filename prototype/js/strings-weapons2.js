@@ -14,8 +14,8 @@ Object.assign(P.STR.tr, {
   'desc.cardoor': 'Tehdide doğru kalkar, tükürüğü geri fırlatır, düşmanı iter.', 'desc.cardoor.up': 'Daha geniş kapı, daha güçlü itme.',
   'desc.slingshot': 'Çelik bilyeler sekerek gider. Bir salvoda iki bilye aynı düşmana çarparsa şanslı atış: kritik vuruş.', 'desc.slingshot.up': 'Daha çok bilye, daha çok sekme.',
   'desc.chainsaw': 'Gaza bas, en yakın düşmana kısa bir yay boyunca savur. Vurmazsa motor boğulur ve bekletir.', 'desc.chainsaw.up': 'Daha geniş yay, daha sık diş.',
-  'desc.kolonya': 'Lv atlayınca can yeniler ve yakındaki ateşi söndürür.', 'desc.cay': 'Durunca can yavaşça yenilenir. Hareket edince kesilir.',
-  'desc.lokum': 'Kazandığın XP artar, seviyeler daha hızlı gelir.', 'desc.powerbank': 'Silah ve depar bekleme sürelerini kısaltır.',
+  'desc.kolonya': 'Adrenalin yükselince can yeniler ve yakındaki ateşi söndürür.', 'desc.cay': 'Durunca can yavaşça yenilenir. Hareket edince kesilir.', // TR owner check
+  'desc.lokum': 'Kazandığın XP artar, adrenalin daha hızlı yükselir.', 'desc.powerbank': 'Silah ve depar bekleme sürelerini kısaltır.', // TR owner check
   'desc.kask': 'Büyük darbelerin hasarını düşürür; en fazla yarıya kadar.',
   'ult.convoy': 'Düğün Konvoyu', 'ult.convoy.name': 'Düğün Konvoyu',
   'ult.convoy.desc': 'Üç şeritte arabalar geçer, içindeki her şeye çarpıp yana iter.', 'ult.convoy.hud': 'KONVOY',
@@ -166,8 +166,8 @@ Object.assign(P.STR.en, {
   'desc.cardoor': 'Swings up toward threats, flings spit back and shoves enemies.', 'desc.cardoor.up': 'A wider door, a stronger shove.',
   'desc.slingshot': 'Steel marbles ricochet. Two marbles hitting the same enemy in one volley is a lucky shot: a critical hit.', 'desc.slingshot.up': 'More marbles, more bounces.',
   'desc.chainsaw': 'Rev it and sweep a short arc at the nearest enemy, grinding in ticks. Miss and it stalls; you wait.', 'desc.chainsaw.up': 'A wider arc, more teeth per second.',
-  'desc.kolonya': 'On level-up: heals and puts out nearby fire.', 'desc.cay': 'Regenerates HP while you stand still. Moving stops it.',
-  'desc.lokum': 'More XP from everything. Level-ups come faster.', 'desc.powerbank': 'Shortens weapon and dash cooldowns.',
+  'desc.kolonya': 'On Adrenaline up: heals and puts out nearby fire.', 'desc.cay': 'Regenerates HP while you stand still. Moving stops it.',
+  'desc.lokum': 'More XP from everything. Adrenaline climbs faster.', 'desc.powerbank': 'Shortens weapon and dash cooldowns.',
   'desc.kask': 'Cuts damage from big hits, by up to half.',
   'ult.convoy': 'Wedding Convoy', 'ult.convoy.name': 'Wedding Convoy',
   'ult.convoy.desc': 'Cars drive down three lanes and hit everything in them, pushing it aside.', 'ult.convoy.hud': 'CONVOY',

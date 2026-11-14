@@ -107,18 +107,22 @@ incoming_to_player = max(1, raw - armor) * (1 - player_damage_reduction)
 ### 4.5 XP curve (in-run)
 ```
 xp_to_next(level) = round(5 + 5 * level^1.6)    # L1, hand-built (config.js xp.l1; exponent 1.6 matches xp.exp, audit D-1)
-xp_to_next(level) = round(30 + 5 * level^1.6)   # L2+ generated levels (config.js xp: base 30, mult 5; R1-T4 part 4)
+xp_to_next(level) = round(32 + 11 * level^1.6)   # L2+ generated levels (config.js xp: base 32, mult 11; R1-T4 part 16, was 30 + 5)
 ```
 | Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 | 25 | 30 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | XP to next, L1 | 10 | 20 | 34 | 51 | 71 | 93 | 117 | 144 | 173 | 204 | 386 | 608 | 867 | 1159 |
-| XP to next, L2+ | 35 | 45 | 59 | 76 | 96 | 118 | 142 | 169 | 198 | 229 | 411 | 633 | 892 | 1184 |
+| XP to next, L2+ (part 16) | 43 | 65 | 96 | 133 | 176 | 225 | 279 | 338 | 402 | 470 | 870 | 1360 | 1929 | 2572 |
+| XP to next, L2+ (part 4, before) | 35 | 45 | 59 | 76 | 96 | 118 | 142 | 169 | 198 | 229 | 411 | 633 | 892 | 1184 |
 
-**Pacing targets:** first level-up at **~15 s**; a level-up every **20–30 s** in early levels;
-**6–8 level-ups in L1**, **20–25 in an 8-minute run** at L20+.
-**Measured on L2–5 (headless bot, 32 seeds):** first level-up 8–12 s (median 10.8 s on L2, below the 15 s target: a deliberate
-trade for the L5 boss, see §7 and `reviews/REVIEW-R1.md` T4 part 4); 7 level-ups on L5, 12 on L3–4 (above the 6–8 target).
-Late boss levels (L50, L75, L100) take 15–18 median level-ups and at most 26 in one run.
+**Pacing targets:** first Adrenalin level-up at **~12–15 s**; then a level-up every **30–40 s** (about 6–9 in a normal
+5-minute level, up to 10 on a boss level); **6–8 level-ups in L1**, **20–25 in an 8-minute run** at L20+.
+The in-run level is called **Adrenalin** in the UI (EN "Adrenaline", TR "Adrenalin"); the journey level (1–100) is "Bölüm" / "Level".
+**Measured on L2–9 (headless bot, 16 seeds, part 16 pace):** first level-up 12.1 s pooled (target 12–15 s); the gap between
+level-ups 28.6 s (target 30–40 s: slightly short); 8.6 level-ups per level at about 4.2 min (about 10 at 5 min: above the 6–9 target).
+Before part 16 (part 4): first 9.7 s, gap 18.3 s, 10.6 level-ups per level. Boss levels L15–L100 (8 seeds, 18 levels): 10.8 median
+level-ups (L5 5.5, L10 7.0; late bosses L50–L100 run 11–17: the per-kill XP still rises with the level index, `levels.diff.xpLin`). Late boss levels at part 4
+took 15–18 median level-ups and at most 26 in one run. Full tables: `reviews/REVIEW-R1.md`, T4 part 16.
 
 ### 4.6 Enemy scaling
 ```
@@ -212,11 +216,18 @@ Everything the hero picks up or uses that heals. Numbers: `config.js` (`drops`),
 | **Simit** (drop) | 25 HP (+ the grit.3 bonus) | Shares `drops.healCap` (70 HP per run, from L2). Past the cap it is collected and restores nothing | Kills, simit carts, cover breaks, events | Walk over it |
 | **Boss-arena simit** | 25 HP, once per arena | Outside the cap (`levels.bossHeal.uncapped`); never counts toward it | One pickup 3 m ahead of the hero at the arena intro | Walk over it |
 | **Eczane** (pharmacy station) | 30 HP (`env.eczane.heal`), once per station | Outside the cap; never counts toward it | One per level on L3–L100, route stages 1–4, on the street side of a street-like hood (see below). Never L1–L2, never a boss stage | Touch it and stand for 0.4 s (no button). Then it is empty |
+| **Büfe** (simit and tea kiosk station, R1-T4 part 17) | 30 HP, once per station (the same rule as the eczane) | Outside the cap; never counts toward it | One per level on L3–L100, route stages 1–4, in the nine hoods that are not street-like: boat, ferry and bazaar hoods (see below) | Touch it and stand for 0.4 s (no button). Then it is empty |
 
 Rules for the eczane (R1-T4 part 14, `js/sim/eczane.js`):
 - **Placement.** At most one per level, on the side lane below the hold zone, clear of other blocks and layout zones, and the route stays open. A hood is street-like when it has no boat or ferry and is not the covered bazaar (Kapalıçarşı). Eleven hoods qualify, so 42 levels are eligible; 40 get a station on all eight seeds tested. The same seed gives the same spot.
 - **Heal.** It heals up to max HP. It is used only when the hero is below max HP, so a full-HP hero keeps it for later.
 - **Feedback.** The floater reads `+N HP` for the HP actually restored (grit bonus included). `CAP` appears only when the drop budget stops a drop heal, never for an uncapped pickup. `FULL` at full HP. The station shows a green glow while usable and a grey cross with EMPTY when spent.
+
+Rules for the büfe (R1-T4 part 17, the same module `js/sim/eczane.js`, variant `kiosk` in `env.eczane.variants`):
+- **Placement.** Every hood that is not street-like gets the büfe instead of the pharmacy: Karaköy, Galata Köprüsü, Eminönü, Kapalıçarşı (the covered bazaar), Kumkapı, Haliç–Balat, Yenikapı, Samatya and Ataköy Marina. That is nine hoods, so the two variants together cover all twenty. The büfe has its own placement band and its own RNG stream; the pharmacy's spots are unchanged.
+- **Look.** A wood counter with an orange and white striped awning along its front, a small simit stack and a tea glass on a saucer on the counter top, and a sign plate with the awning and tea-glass icon (not the cross). Block kind `bufe`; it is solid cover, not breakable. The tea glass is drawn at twice the props scale so it reads at phone size; steam rises from its rim and drifts with motion on, and is two still wisps under Reduce motion.
+- **States.** Usable: the sign glows green and pulses at 0.5 Hz or less (`consumables.stationPulseHz`); steady under Reduce motion or Reduce flashing. Empty: the simits and the glass are gone, the awning and counter grey, the sign grey with EMPTY.
+- **Hint.** The first-time callout is `Büfe: Dokun ve iyileş` (TR, owner check pending) and `Kiosk: touch to heal` (EN). The pharmacy's TR line `Eczane: Dokun ve iyileş` is owner-approved.
 
 ---
 
@@ -281,6 +292,31 @@ The owner's 85% floor is below §7 (≥ 95% on L1–4, ≈ 90% on L5). After the
 (L5 at 96 seeds: 89%) and misses it on L2 by one point. Boss levels L10–L100 (16 seeds each): mean clear 72.5% → 80.7%, nine of 19
 at 85–100% (was four), median min HP still 0% on 11 of 19 levels, and a boss stage of about 2:00–3:00 for the bot against the
 journey §3.1 target of 5:00–6:00. Tables and every changed key: `reviews/REVIEW-R1.md`, T4 part 4, "Boss-arena pass".
+
+**Pacing package P1 (R1-T4 part 16).** Route length and gate hold ×1.25 on L2+ (`levels.pace`, read only from `levels.rampFrom`);
+brute boss HP 1400 → 2800 (the brute archetype only: H01, H02, H03, H14, H20; taksici has its own HP); the Adrenalin XP curve
+30 + 5 → 32 + 11 on L2+ (§4.5); two free upgrade crates per generated level, on route segments B and D (`levels.pace.crateSeg`), to
+pay for the slower level-ups. L1 is byte-identical (bot, 6 seeds). Bot, same code, paired seeds: L2–10 at 16 seeds, boss levels at
+8 seeds, before = the part 4 and boss-arena config.
+
+| Measure | Band | Before | After | Status |
+|---|---|---|---|---|
+| Clear, L2–9 (mean of level rates) | ≥ 85% per level | 97.8% | 95.5% (L9 88%) | met (every level ≥ 85%) |
+| Deaths per run, L3 / L4 / L5 | 0.15–0.4 (L3–5) | 0.06 / 0.13 / 0.50 | 0.06 / 0.38 / 0.25 | L4 and L5 in band; L3 low, as before |
+| Median min HP, L3 / L4 / L5 | 45–65% (L3–5) | 35 / 43 / 7% | 34 / 22 / 30% | not met before or after; L4 down 21 points |
+| First Adrenalin level-up, L2–9 (mean of level medians) | 12–15 s | 9.7 s | 12.1 s | met |
+| Gap between level-ups, L2–9 (mean of level medians) | 30–40 s | 18.3 s | 28.6 s | short |
+| Level-ups per level, L2–9 (scaled to a 5-min level) | 6–9 | 10.6 at 3.4 min (about 16) | 8.6 at 4.2 min (about 10) | over the band at 5 min |
+| Bot minutes per level, L2–10 mean | 5.0–5.5 | 3.25 | 4.06 | not met |
+| Chapter 1 at bot speed (100 × the L2–10 mean) | 7–9 h (journey.md) | 5.4 h | 6.8 h | short; extrapolated from a 9-level sample (H01–H02) |
+| Boss clear, 18 boss levels (L15–L100) | ≥ 80%, no regression | 76.7% | 79.4% | short by 0.6 pt, up from before; brute 92% → 92% |
+| Boss deaths per run | 0.3–0.7 | 0.83 | 0.70 | in band on average |
+| Boss stage (mean clear time, 18 boss levels) | 4:00–5:00 | 2.33 min | 2.88 min (non-brute 2.83) | not met |
+
+The non-brute boss stage stays near 2.8 min. A tuning run (b2: boss HP ×2 and gap ×1.6 on the 15 non-brute bosses, L20–L95, 8 seeds
+each) lifted their mean clear time from 2.3 to 3.5 min, but their clear rate fell from 73.6% to 62.7% and deaths per run rose from 0.86 to
+1.04. Not shipped. Open: late boss levels (L50–L100) still run a median of 10–15 level-ups; L9 (H02-L4) min HP is 0% on the bot. Tables
+and runs: `reviews/REVIEW-R1.md`, T4 part 16.
 
 **Eczane heal station (R1-T4 part 14).** One pharmacy on each street-side route level from L3 (stages 1 to 4; never a boss stage, never a waterside or bazaar hood). Touch it below full HP for 0.4 s and it heals 30 HP once, outside the simit cap. On the kiting bot's detour it is used 0.25 to 0.56 times a run on the ten levels that have one. Deaths per run fall on L3, L8 and L26 to L29. Other moves sit inside the ±12-point noise, except L6 (median min HP +21 points). L5 and L10 are unchanged, and L11 to L25 get no station by rule. Numbers, placement rule and owner decisions: `reviews/REVIEW-R1.md`, T4 part 14.
 
@@ -438,6 +474,50 @@ Enemy HP stays on the E2 curve; new enemy types and affixes carry the late diffi
 - Street Cred feels scarce but never blocks: each attribute can reach its next rank in each
   district without spending money.
 - Sink/faucet ratio per currency reviewed weekly in soft launch (business-plan.md §8).
+
+### 8.17 Replay tiers: Nightmare and the Night Shift (R1-T4 part 18, PROTO numbers)
+Two replay features for players who have finished the walk once. Neither changes a Normal run: every hook is the
+identity when the run mode is `normal`. Code: `js/sim/modes.js` (sim), `js/config-modes.js` (numbers), `js/meta/meta-modes.js`
+and `js/meta/meta-nightshift.js` (rewards, plan, streak). Tests: `tools/test-modes.js`.
+
+**Nightmare (Kâbus), per hood.** Same levels, same route, harder.
+- *Unlock:* a hood's Nightmare opens when **every level of that hood is cleared on Normal** (any stars). The level
+  sheet shows a Normal / Nightmare toggle (48 px); locked hoods show the hint and no toggle action.
+- *Difficulty:* enemy HP x(1.05 + 0.004k), enemy damage x(1.20 + 0.004k), spawn density x(1.00 + 0.002k) capped at
+  x2.4 on the total, where k = journey index − 1. Drop heals x0.9. A boss takes 60% of the multiplier share (normal
+  30%) plus an extra x1.3 boss HP on boss stages. L1 (scripted) spawn x1.10. Applied on top of the normal curve, not
+  instead of it.
+- *One signature per hood* (through existing levers only, `config-modes.js` `levels.nightmare.sig`): an extra elite
+  at a fraction of each stage 1–4 route (istiklal 0.5, bridge 0.8, beyazit 0.3, yenikapi 0.65, kazlicesme 0.45,
+  bakirkoysahil 0.55), a roster type added to the stage roster (galata/kumkapi hardhat, eminonu parkur,
+  kapalicarsi kasap, halic/atakoysahil zehirli, samatya/zeytinburnu screamer), or a longer gate hold on stages 1–4
+  (karakoy x1.30, sirkeci x1.25, saray x1.30, yedikule x1.20, bakirkoy x1.30, atakoy x1.25). The boss arena keeps
+  its own pace.
+- *Stars:* Nightmare has a **fourth star**: clear, no revive, and the lowest HP of the run at or above 40%.
+  Normal stays at three stars.
+- *Rewards (play only):* the first Nightmare clear of a level pays **Street Cred x2** (the extra is added on top
+  of the normal grant); every Nightmare clear pays **coins x1.5**. A **moon badge** appears on the hood card and the
+  map node when all five levels of the hood have a Nightmare star. At **three moons** the optional title
+  **Gece Nöbetçisi** (Night Watch) is granted. No purchases, no timers.
+- *Visual language:* a steady dark-red vignette over the play field (no pulsing, no flashing), a moon mark in the
+  HUD level chip, the hood card line "Mode: Nightmare". All static, reduce-motion safe (`css/modes.css` has no
+  animation).
+
+**Night Shift (Gece Vardiyası), the daily.** One endless run per day, in a rotating hood route.
+- *Seed:* the day key (local calendar date) hashed with FNV-1a and salted, so each day has one route, one seed
+  name (two words from `strings-modes.js`), two daily modifiers (from the daily pool, iron excluded) and the route
+  (a stage 1–4 level from levels 2 up to the furthest unlocked level; no boss arenas). The route rotates over at least 15 different levels in 30 days.
+- *Run:* the gate never opens (the route's last stage is held for the whole shift). Spawn density ramps with run
+  time: x(1 + 0.005 × seconds), capped at x3.0 (PROTO, see calibration in `reviews/REVIEW-R1.md` T4 part 18). One
+  revive. The run ends on death or at **12 minutes**, which is a win ("shift over").
+- *Score:* survival seconds × 1 + kills × 0.5 + Adrenalin level × 10. Shown on the results screen with the day's best
+  and the all-time local best. Local only; `leaderboardHook` `nsi.nightshift.board` is the documented place for a
+  later build to post scores.
+- *Pay and streak:* the first run of each day pays **60 coins** (fixed; no Street Cred, because daily pay is never power). A run on consecutive days
+  extends the day streak, and each streak day adds 10 coins to that day's pay, capped at 7 days. Unlimited retries
+  after the first paid run; retries pay nothing and do not count as streak days.
+- *Entry:* the Tasks hub card "GECE VARDİYASI" / "NIGHT SHIFT" shows the seed name, route, the two rules, the best
+  score today, the streak and the pay line. It does not touch Normal progress, unlocks, bonds or the daily challenge.
 
 ---
 

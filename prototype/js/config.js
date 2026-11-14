@@ -51,7 +51,9 @@ P.CFG = {
   // level-ups are 9-13 on L2-L12 except L9 (21), and 11-29 from L22 to L100: the 8-14 band is still open on the late levels.
   // R1-T4 part 4: generated levels (L2+) use base 30 / mult 5 (first level-up ~11 s, about 8 per L2, 11-12 on L3-4, 7 on L5;
   // reviews/REVIEW-R1.md T4 part 4). The hand-built Level 1 keeps xp.l1 (level-001-istiklal.md section 8). P.xpHand picks the curve.
-  xp: { base: 30, mult: 5, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, crowd: { mul: 1, ref: 40 }, l1: { base: 5, mult: 5, exp: 1.6 } },
+  // R1-T4 part 16 (pacing P1): base 30 / mult 5 -> 32 / 11 (L2+). First Adrenalin level-up about 12 s, then one every ~28-31 s
+  // on the bot; the crates in config-levels.js pace.crateSeg pay for the lost cards. L1 keeps xp.l1 (unchanged).
+  xp: { base: 32, mult: 11, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, crowd: { mul: 1, ref: 40 }, l1: { base: 5, mult: 5, exp: 1.6 } },
   // healCap: HP per run from simit and other drops (combat.js dropHeal), R1-T4 part 4. simitChance stays 0.005: 0.002 cost ~9 points of L5 clear.
   drops: { jetonChance: 0.05, jetonMin: 1, jetonMax: 5, simitChance: 0.005, simitHeal: 25, healCap: 70 }, // CC 8-9
   // V2 Level 1 kit (owner feedback: "ayran, tereyağ, çatal are meaningless"). Every weapon is a distinct verb.

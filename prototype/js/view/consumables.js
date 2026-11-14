@@ -1,5 +1,6 @@
 // Consumables and pickups (T4 part 10, view only): one visual grammar for everything the hero picks up or uses.
-//   heal      green + white cross   simit drop (+25 HP); the eczane station (one use, sim/eczane.js) uses the same cross
+//   heal      green + white cross   simit drop (+25 HP); the eczane station (one use, sim/eczane.js) uses the same cross; the
+//                                    kiosk station (bufe, R1-T4 part 17) keeps the green heal ring with an awning and tea glass icon
 //   power     gold + star           mini chest (Kutu): an upgrade
 //   currency  amber + coin          jeton
 //   objective blue + map pin        collect items of an objective (the crate)
@@ -15,7 +16,7 @@ P.Consumables = (function () {
     currency: { cue: 'coin', rgb: '233,162,59', fill: '#E9A23B', icon: 'coin' },
     objective: { cue: 'pick', rgb: '61,139,255', fill: '#3D8BFF', icon: 'pin' }
   };
-  var KIND = { simit: 'heal', chest: 'power', jeton: 'currency', eczane: 'heal' };   // sim pickup kinds (combat.js updateDrops; sim/eczane.js)
+  var KIND = { simit: 'heal', chest: 'power', jeton: 'currency', eczane: 'heal', bufe: 'heal' };   // sim pickup kinds (combat.js updateDrops; sim/eczane.js)
   var OBJ = { crate: 'objective' };                                    // sim objective item kinds (objectives-kinds.js)
   var bursts = [], floats = [], lastSim = null;
 
@@ -135,19 +136,20 @@ P.Consumables = (function () {
     c.globalAlpha = 1;
   }
 
-  // The sign of the eczane (pharmacy) heal station: a cream plate with a green cross. usable = pulsing green glow;
-  // empty = grey cross and the short EMPTY label; idle = steady green. Reduce motion or Reduce flashing: steady.
-  M.stationSign = function (c, X, Y, s, state, t, motion) {
+  // The sign of a heal station: a cream plate with a green icon. The eczane (pharmacy) uses the green cross; the kiosk (bufe)
+  // passes its awning and tea-glass icon. usable = pulsing green glow at C.stationPulseHz (0.5 Hz or less); empty = grey icon and
+  // the short EMPTY label; idle = steady green. Reduce motion or Reduce flashing: steady.
+  M.stationSign = function (c, X, Y, s, state, t, motion, icon) {
     var w = s * 0.9, h = s * 0.66, usable = state === 'usable', empty = state === 'empty', fill = usable ? '#2EBD6B' : empty ? '#8A8F86' : '#3FA06A', g;
     if (usable) {
-      var pulse = motion && !reduceFlash() ? 1 + C.pulseAmp * Math.sin(TAU * C.pulseHz * t) : 1;
+      var pulse = motion && !reduceFlash() ? 1 + C.pulseAmp * Math.sin(TAU * C.stationPulseHz * t) : 1;
       g = c.createRadialGradient(X, Y, 0, X, Y, w * 0.9);
       g.addColorStop(0, 'rgba(46,189,107,' + (0.5 * pulse).toFixed(3) + ')'); g.addColorStop(1, 'rgba(46,189,107,0)');
       c.fillStyle = g; c.beginPath(); c.arc(X, Y, w * 0.9, 0, TAU); c.fill();
     }
     c.fillStyle = '#FFF4DF'; c.fillRect(X - w / 2, Y - h / 2, w, h);
     c.strokeStyle = INK; c.lineWidth = 2; c.strokeRect(X - w / 2, Y - h / 2, w, h);
-    P.ConsumablesIcons.draw(c, 'cross', X, Y, h * 0.36, fill, INK);
+    P.ConsumablesIcons.draw(c, icon || 'cross', X, Y, h * 0.36, fill, INK);
     if (empty) {
       c.font = '800 ' + Math.round(s * 0.3) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
       c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = INK;

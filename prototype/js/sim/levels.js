@@ -13,6 +13,14 @@ var SEG_IDS = ['A', 'B', 'C', 'D'];
 
 P.Levels.stage = function (index) { return P.CFG.levels.stages[P.Journey.level(index).stage - 1]; };
 
+// R1-T4 part 16 (pacing P1): route length, boss approach and gate hold of a stage, scaled by config levels.pace from
+// journey level rampFrom on. Below rampFrom (L1, hand-built) the stage numbers are returned unchanged.
+P.Levels.paced = function (index, st) {
+  var C = P.CFG.levels, on = index >= C.rampFrom, rm = on ? C.pace.routeMul : 1, hm = on ? C.pace.holdMul : 1;
+  return { len: st.len * rm, approach: st.approach === undefined ? undefined : st.approach * rm,
+    holdT: st.holdT === undefined ? undefined : st.holdT * hm };
+};
+
 // Difficulty multipliers for global index k = index-1: gentle early, steeper late (config diff).
 P.Levels.difficulty = function (index) {
   var k = index - 1, D = P.CFG.levels.diff;
@@ -28,11 +36,11 @@ function levelRng(s, index) {
 // ---------- build ----------
 P.Levels.build = function (s, index) {
   var info = P.Journey.level(index), st = P.Levels.stage(index), G0 = P.CFG.level.corridor, C = P.CFG.levels;
-  var rng = levelRng(s, index), boss = !!st.boss;
-  var exitY = Math.round(st.len + rng.range(-6, 6));
-  var holdY = boss ? st.approach : exitY - C.holdDepth;
+  var rng = levelRng(s, index), boss = !!st.boss, pst = P.Levels.paced(index, st);
+  var exitY = Math.round(pst.len + rng.range(-6, 6));
+  var holdY = boss ? pst.approach : exitY - C.holdDepth;
   var geo = { xMin: G0.xMin, xMax: G0.xMax, length: exitY + 4, exitY: exitY, holdY: holdY,
-    holdT: boss ? 0 : st.holdT, boss: boss, blocks: [], landmarks: [], events: [], zones: [], sub: info.stage,
+    holdT: boss ? 0 : pst.holdT, boss: boss, blocks: [], landmarks: [], events: [], zones: [], sub: info.stage,
     kit: info.hood.kit || C.defaultKit };
   s.geo = geo;
   s.diff = P.Levels.difficulty(index);
@@ -178,6 +186,14 @@ P.Levels.step = function (s, dt) {
   winCheck(s);
 };
 
+// R1-T4 part 16 (pacing P1): one free upgrade crate when the route enters segment pace.crateSeg (config; null = none), from
+// journey level rampFrom on. It opens like a chest (progression.js openChest: one upgrade) and is the compensation for the
+// slower Adrenalin pace (fewer level-up cards). It is not an Adrenalin level-up and does not move s.level or s.xp.
+function crateAt(s, segId) {
+  var C = P.CFG.levels;
+  if (s.levelIndex >= C.rampFrom && [].concat(C.pace.crateSeg || []).indexOf(segId) >= 0) s.pendingChests++;
+}
+
 function processMarks(s) {
   var g = s.gen, h = s.hero;
   while (g.mi < g.marks.length && h.y >= g.marks[g.mi].y) doMark(s, g.marks[g.mi++]);
@@ -185,7 +201,7 @@ function processMarks(s) {
 
 function doMark(s, m) {
   var g = s.gen;
-  if (m.kind === 'seg') { g.seg = m.id; s.events.push({ type: 'segment', id: m.id }); }
+  if (m.kind === 'seg') { g.seg = m.id; s.events.push({ type: 'segment', id: m.id }); crateAt(s, m.id); }
   else if (m.kind === 'mid') { g.midDone = true; s.events.push({ type: 'story', id: g.info.id, when: 'mid' }); }
   else if (m.kind === 'intro') introGroup(s);
   else if (m.kind === 'elite') eliteAt(s);
@@ -202,8 +218,8 @@ function holdStage(s, dt) {
   if (hold.active) {
     hold.t += dt;
     s.props.shutter = Math.min(1, hold.t / G.holdT);
-    if (hold.t >= G.holdT && !s.props.shutterOpen) openGate(s);
-    if (!s.props.shutterOpen && hold.t < G.holdT - P.CFG.levels.holdStopBefore) spawnHold(s, dt);
+    if (hold.t >= G.holdT && !s.props.shutterOpen && !G.endless) openGate(s);   // endless (Night Shift): the gate never opens
+    if (!s.props.shutterOpen && (G.endless || hold.t < G.holdT - P.CFG.levels.holdStopBefore)) spawnHold(s, dt);
   } else if (s.hero.y < G.holdY) spawnRoute(s, dt);
 }
 
@@ -262,6 +278,7 @@ function canAdd(m) { var d = P.CFG.enemies[m.type]; return !(d && d.noAdd); }
 function spawnBudget(s, dt, rate, mix, behind) {
   var g = s.gen, guard = 0;
   rate *= P.Events.spawnMul(s);
+  if (P.Modes) rate *= P.Modes.spawnMul(s);   // R1-T4 part 18: Night Shift ramp (1 in every other mode)
   if (rate <= 0) return;
   if (!g.next) g.next = pickType(s, mix);
   var cost = costOf(g.next);

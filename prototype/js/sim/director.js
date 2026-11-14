@@ -132,7 +132,7 @@ function spawnAt(s, type, opts) {
 }
 
 function runBudget(s, dt, seg, rate, total, pickType, opts) {
-  var d = s.dir, k = P.Modifiers && P.Modifiers.spawnScale ? P.Modifiers.spawnScale(s) : 1;   // daily Horde (1 otherwise)
+  var d = s.dir, k = (P.Modifiers && P.Modifiers.spawnScale ? P.Modifiers.spawnScale(s) : 1) * (P.Modes ? P.Modes.l1Spawn(s) : 1);   // daily Horde; Nightmare L1 (1 otherwise)
   total *= k;
   if (d.spawned[seg] >= total) return;
   d.acc = Math.min(d.acc + rate * k * dt * rhythm(s) * P.Events.spawnMul(s), 3);
@@ -223,6 +223,7 @@ function scripted(s, dt) {
     f.elite1 = true;
     P.Combat.spawnEnemy(s, 'walker', EL.firstX, EL.firstY, { elite: true });
     if (P.Modifiers && P.Modifiers.echoElites) P.Modifiers.echoElites(s, EL.firstX, EL.firstY);   // daily Elite night
+    if (P.Modes) P.Modes.l1Elite(s, EL.firstX, EL.firstY);   // Nightmare: the hood signature 'elite' on L1 (no-op otherwise)
     P.Director.bark(s, 'barkElite');
   }
   if (!d.hold.active && h.y >= L.holdTriggerY) startHold(s);

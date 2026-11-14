@@ -56,7 +56,7 @@
     if (P.Comic) P.Comic.clearPops();
     if (P.Speech) P.Speech.reset();
     P.Tel.log('level_start', { level_type: levelIndex === 1 ? 'route' : 'journey', level_id: sim.levelInfo.id,
-      hero_ids: ['arda'], hero_levels: [1], gear_power: 0 });
+      hero_ids: ['arda'], hero_levels: [1], gear_power: 0, mode: sim.runMode });   // mode: normal | nightmare | nightshift (R1-T4 part 18)
   }
 
   function startGame() {
@@ -89,7 +89,7 @@
   // Neighbourhood postcard (stage 1) or a small sub-location banner (stages 2-5).
   function hoodCard(next) {
     if (!P.HoodCard || params.get('skipintro')) { next(); return; }
-    P.HoodCard.show(sim.levelInfo, { big: sim.levelInfo.stage === 1 }, next);
+    P.HoodCard.show(sim.levelInfo, { big: sim.levelInfo.stage === 1, mode: sim.runMode }, next);
   }
 
   function coldOpenOrPlay() {
@@ -303,22 +303,30 @@
   function endRun(win) {
     var C = P.CFG.rewards, h = sim.hero, L = sim.levelInfo;
     // Star goals (lane P, objectives.js): clear, no revive, objective bonus. A loss earns no stars; the labels stay.
-    var goals = P.Objectives && P.Objectives.goals ? P.Objectives.goals(sim, win).map(function (g) { return Object.assign({}, g, { on: win && g.on }); }) : null;
+    var mode = sim.runMode || 'normal', ns = mode === 'nightshift', score = ns ? P.Modes.nightScore(sim) : 0;
+    var goals = P.Objectives && P.Objectives.goals && !ns ? P.Objectives.goals(sim, win).map(function (g) { return Object.assign({}, g, { on: win && g.on }); }) : null;
     var stars = goals ? goals.map(function (g) { return g.on; }) : win ? [true, !sim.reviveUsed, h.hp / h.maxHp >= 0.5] : [false, false, false];
+    if (mode === 'nightmare') {   // R1-T4 part 18: the fourth star (clear, no revive, lowest HP at or above config fourthHp)
+      var fourth = P.Modes.fourthStar(sim, win, sim.reviveUsed);
+      stars.push(fourth);
+      if (goals) goals.push({ key: 'res.star4', vars: { n: Math.round(P.CFG.levels.nightmare.fourthHp * 100) }, on: fourth, hp: false });
+    }
+    if (ns) stars = [];   // Night Shift has no stars: its results show score and time
     var nStars = stars.filter(Boolean).length, first = win && !P.Settings.l1Cleared && levelIndex === 1;
     var jeton = win ? (C.jetonBase + C.jetonPerLevel * levelIndex) * (first ? C.firstClearMult : 1) + sim.jeton : Math.floor(sim.jeton * C.loseKeep);
     var km = 0;
     if (P.Meta) {
       var pend = P.Meta.onResults({ levelIndex: levelIndex, won: win, stars: nStars, coins: sim.jeton, kills: sim.kills, timeS: sim.runT,
-        tally: sim.tally, reviveUsed: !!sim.reviveUsed, daily: !!runOpts.daily, modifiers: runOpts.modifiers || null, hero: 'arda' });
+        tally: sim.tally, reviveUsed: !!sim.reviveUsed, daily: !!runOpts.daily, modifiers: runOpts.modifiers || null, hero: 'arda',
+        mode: mode, score: score });
       if (pend && pend.reward) { jeton = pend.reward.total; first = pend.reward.first; }
       km = P.Meta.progress().kmShown;   // the walk toward the next hood, partial (saved km is unchanged)
     }
     var r = { win: win, stars: stars, goals: goals, jeton: jeton, hurda: C.hurdaBase * (first ? C.firstClearMult : 1), kills: sim.kills, firstClear: first,
               time: sim.runT, level: sim.level, streak: sim.tally.maxStreak | 0, hpPct: Math.round(h.hp / h.maxHp * 100),
-              hood: L.hood.name, hoodN: L.hoodIndex + 1, stage: L.stage, km: (+km || 0).toFixed(1), hasNext: levelIndex < P.Journey.count(),
-              meta: pend || null };
-    P.Tel.log('level_end', { result: win ? 'win' : 'lose', level_id: L.id, t_s: +sim.runT.toFixed(1), stars: nStars, kills: sim.kills, rewards: { jeton: jeton, hurda: win ? r.hurda : 0 } });
+              hood: L.hood.name, hoodN: L.hoodIndex + 1, stage: L.stage, km: (+km || 0).toFixed(1), hasNext: levelIndex < P.Journey.count() && !ns,
+              mode: mode, score: score, meta: pend || null };
+    P.Tel.log('level_end', { result: win ? 'win' : 'lose', level_id: L.id, t_s: +sim.runT.toFixed(1), stars: nStars, kills: sim.kills, mode: mode, rewards: { jeton: jeton, hurda: win ? r.hurda : 0 } });
     P.Settings.firstRunDone = true; if (win && levelIndex === 1) P.Settings.l1Cleared = true; P.saveSettings();
     state = 'results'; P.UI.showHud(false);
     if (P.Comic) P.Comic.clearPops();
@@ -436,7 +444,11 @@
   on('btn-restart', function () { P.Tel.log('level_end', { result: 'quit', t_s: +sim.runT.toFixed(1) }); newRun(); beginPlay(); });
   on('btn-quit', function () { if (P.Meta) quitToMap(); else toTitle(); });
   on('btn-export', function () { P.Tel.exportJsonl(); });
-  on('btn-next', function () { playG(levelIndex + 1, {}); });
+  // Next level: Nightmare carries on only inside the same hood (meta-modes.js nextMode); otherwise Normal.
+  on('btn-next', function () {
+    var nx = levelIndex + 1, m = P.Meta && P.Meta.Modes ? P.Meta.Modes.nextMode(sim.runMode, levelIndex, nx) : 'normal';
+    playG(nx, m === 'nightmare' ? { mode: m } : {});
+  });
   on('btn-retry', function () { newRun(); beginPlay(); });
   on('btn-to-title', function () { if (P.Meta) openMap(); else toTitle(); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });

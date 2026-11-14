@@ -6,6 +6,7 @@
   var root, coinChip, coinVal, kmTxt, kmFill, nextHead, nextLine, playBtn, bottom, sheet, banner, flyLayer, toastLayer, gearHost;
   var tabsEl = null, panelOpen = null;
   var onPlay = null, opened = false, sheetHood = -1, selLevel = 1, session = 0, busy = false, active = null, announced = false;
+  var selMode = 'normal';   // R1-T4 part 18: the level sheet's mode toggle ('normal' or 'nightmare'); reset when the sheet opens
   var cancels = [], shownCoins = 0;
   var COLOR = { walker: '#8A8F98', runner: '#FF6B3D', crawler: '#5BD16E', spitter: '#3DDCFF', brute: '#B5651D', bloater: '#E040FB', diner: '#FFD166' };
   var GLYPH = {
@@ -180,15 +181,25 @@
     }
     return '<p class="meta-cap">' + t('meta.levels') + '</p><div class="meta-nodes">' + out + '</div>';
   }
+  // Normal / Nightmare toggle (R1-T4 part 18): 48 px buttons. Nightmare is locked until the hood is cleared on Normal.
+  function modeToggle(h) {
+    if (!M.Modes.unlocked(h)) return '<p class="meta-mode-hint">' + t('mode.toggle.hint') + '</p>';
+    var nm = selMode === 'nightmare';
+    return '<div class="meta-modes" role="group" aria-label="' + t('mode.toggle.aria') + '">' +
+      '<button class="meta-mode' + (nm ? '' : ' is-on') + '" data-mode="normal" aria-pressed="' + (nm ? 'false' : 'true') + '">' + t('mode.toggle.normal') + '</button>' +
+      '<button class="meta-mode meta-mode-nm' + (nm ? ' is-on' : '') + '" data-mode="nightmare" aria-pressed="' + (nm ? 'true' : 'false') + '">' +
+      t('mode.toggle.nm') + (M.Modes.moon(h) ? '<i class="meta-moon-mk" aria-hidden="true"></i>' : '') + '</button></div>';
+  }
   function sheetDetail() {
-    var i = selLevel, lv = M.level(i), first = !M.isCleared(i), locked = i > M.unlockedLevel(), k;
+    var i = selLevel, lv = M.level(i), first = !M.isCleared(i), locked = i > M.unlockedLevel(), k, nm = nightmareFor(i);
     var crit = '', reward = t(first ? 'meta.rewardFirst' : 'meta.reward1', { n: M.clearReward(i, first) });
     for (k = 1; k <= M.CFG.starsMax; k++) crit += '<li class="' + (M.starsOf(i) >= k ? 'on' : '') + '">' + t('meta.star' + k) + '</li>';
+    if (nm) crit += '<li class="' + (M.Modes.stars(i) >= 4 ? 'on' : '') + '">' + t('res.star4', { n: Math.round(P.CFG.levels.nightmare.fourthHp * 100) }) + '</li>';
     return '<div class="meta-sh-detail"><div class="meta-sh-lvl">' + t('meta.stage', { n: lv.stage }) +
-      (lv.boss ? ' · ' + t('meta.boss') : '') + '</div><ul class="meta-crit">' + crit + '</ul>' +
+      (lv.boss ? ' · ' + t('meta.boss') : '') + '</div>' + modeToggle(sheetHood) + '<ul class="meta-crit">' + crit + '</ul>' +
       '<p class="meta-reward"><span>' + t('meta.reward') + '</span> ' + reward + '</p>' + P.UIProgress.powerHtml() + '</div>' +
       '<button class="meta-btn meta-play" data-act="play"' + (locked ? ' disabled' : '') + '>' +
-      (locked ? t('meta.locked') : t('meta.playLevel', { L: lv.index })) + '</button>';
+      (locked ? t('meta.locked') : nm ? t('mode.nm.play', { L: lv.index }) : t('meta.playLevel', { L: lv.index })) + '</button>';
   }
   function renderSheet() {
     var hd = M.hood(sheetHood);
@@ -197,7 +208,7 @@
   }
   function openSheet(h) {
     if (busy) { skip(); return; }
-    sheetHood = h; selLevel = defaultLevel(h); sfx('uiOpen');
+    sheetHood = h; selLevel = defaultLevel(h); selMode = 'normal'; sfx('uiOpen');
     renderSheet();
     sheet.classList.add('is-open');
     bottom.classList.add('is-hidden');
@@ -214,18 +225,29 @@
     selLevel = i; sfx('uiTap'); renderSheet();
   }
   function onSheetClick(e) {
-    var b = e.target.closest ? e.target.closest('[data-lv],[data-act]') : null;
+    var b = e.target.closest ? e.target.closest('[data-lv],[data-act],[data-mode]') : null;
     if (!b) return;
     if (b.hasAttribute('data-lv')) pickLevel(Number(b.getAttribute('data-lv')));
+    else if (b.hasAttribute('data-mode')) setMode(b.getAttribute('data-mode'));
     else if (b.getAttribute('data-act') === 'close') closeSheet();
     else if (b.getAttribute('data-act') === 'play') startLevel(selLevel);
+  }
+  function setMode(m) {
+    if (m === 'nightmare' && !M.Modes.unlocked(sheetHood)) { sfx('uiBack'); toast(t('mode.toggle.hint')); return; }
+    if (m === selMode) return;
+    selMode = m; sfx('uiTap'); renderSheet();
+  }
+  // Nightmare applies to a level of the open sheet's hood only (the toggle is per hood).
+  function nightmareFor(i) {
+    return selMode === 'nightmare' && sheetHood >= 0 && M.level(i).hoodIndex === sheetHood && M.Modes.unlocked(sheetHood);
   }
   function startLevel(i) {
     if (busy) { skip(); return; }
     if (i > M.unlockedLevel()) { sfx('uiBack'); toast(t('meta.lockedHint')); return; }
+    var nm = nightmareFor(i);
     sfx('uiTap');
     close();
-    if (typeof onPlay === 'function') onPlay(i);
+    if (typeof onPlay === 'function') onPlay(i, nm ? { mode: 'nightmare' } : undefined);
   }
 
   // ---- Toasts and banner ----
@@ -419,6 +441,14 @@
     Array.prototype.forEach.call(root.querySelectorAll('.meta-welcome'), function (n) { n.parentNode.removeChild(n); });
   }
   // Starts today's daily: the attempt is spent at launch, then the map calls onPlay(level, {daily, modifiers, seed}).
+  // Night Shift entry (the hub's Görevler card): closes the map and plays today's shift (meta-nightshift.js launch).
+  M.openNightShift = function () {
+    var L = M.NightShift.launch(M.Daily.dayKey(new Date()));
+    if (!L) { toast(t('ns.card.closed')); return false; }
+    sfx('uiTap'); close();
+    if (typeof onPlay === 'function') onPlay(L.level, L.opts);
+    return true;
+  };
   M.openDaily = function () {
     var L = M.dailyLaunch ? M.dailyLaunch() : null;
     if (!L) { toast(t('hub.dailyUsed')); return false; }

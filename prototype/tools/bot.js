@@ -9,7 +9,7 @@
 // gear, mastery; see config-power.js). --bare runs the naked hero (no meta) for comparison.
 // Policies: L1 follows a fixed route with kite repulsion; generated levels use a generic policy (corridor centre,
 // kite, dodge lanes/puddles/rings/stomps, pick up drops, link hack terminals when no enemy is close, circle the hold
-// and the boss, push through stalls, walk to a near eczane station when hurt: R1-T4 part 14). Both link hacks (INT) and count events. One revive (as in L1). Exceptions are
+// and the boss, push through stalls, walk to a near heal station (eczane or kiosk) when hurt: R1-T4 parts 14, 17). Both link hacks (INT) and count events. One revive (as in L1). Exceptions are
 // caught and reported as result 'crash'.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -18,10 +18,12 @@ const ROOT = path.join(__dirname, '..');
 // sim as the browser build. A new sim file only needs its script tag (AUDIT-6 F2: this list used to drift).
 // --campaign needs the real meta layer (save, collect, daily), so those three are loaded then, with an in-memory localStorage.
 const CAMPAIGN = process.argv.some(a => a.startsWith('--campaign'));
-const NOT_SIM = CAMPAIGN
+// --mode=nightshift (R1-T4 part 18) needs the daily and save modules for its plan (P.Meta.NightShift), so it loads like a campaign.
+const META_LOADED = CAMPAIGN || process.argv.some(a => a === '--mode=nightshift');
+const NOT_SIM = META_LOADED
   ? /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|tree|bond-ui|arsenal)\.js$/
   : /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|tree|bond-ui|arsenal|collect|daily|save)\.js$/;
-if (CAMPAIGN) {
+if (META_LOADED) {
   const store = {};
   globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
 }
@@ -47,11 +49,13 @@ if (args.base) { P.CFG.levels.hoodExtras = {}; P.CFG.ev.mix = []; P.CFG.ev.flavo
 if (args.nonew) { P.CFG.levels.schedule = []; P.CFG.affix.schedule = []; }
 // --nocap: lift the per-run drop-heal budget (drops.healCap), to compare with the uncapped build.
 if (args.nocap) P.CFG.drops.healCap = Infinity;
-// --noeczane: the bot never detours to an eczane station (R1-T4 part 14). The stations stay in the levels: a route touch still heals.
-// --set=env.eczane.perLevel=0 removes the stations altogether (the pre-part-14 build, for a before/after check).
+// --noeczane: the bot never detours to a heal station, eczane or kiosk (R1-T4 parts 14, 17). The stations stay in the levels: a route touch still heals.
+// --set=env.eczane.perLevel=0 removes the stations altogether (both variants; the pre-part-14 build, for a before/after check).
 const SEEDS = parseInt(args.seeds || '30', 10), POLICY = args.policy || 'kite';
 const PATH = [[-5, -1.5], [-5, 2], [0, 60], [-4, 140], [-4, 165], [-1, 192], [1.5, 206]];
 const MAX_T = 600, DT = 1 / 60, DROP_KINDS = ['xp', 'chest', 'simit', 'jeton'];
+// Run cap by mode (R1-T4 part 18): a Night Shift lasts up to the 12-minute shift (config nightshift.capS); other runs MAX_T.
+const runCap = s => (s && s.runMode === 'nightshift' ? P.CFG.nightshift.capS : MAX_T);
 const HACK_REACH = 7, COUNTED = ['screamStart', 'scream', 'helmetBlock', 'helmetOff', 'hackStart', 'hackNoise', 'hackDone', 'hackFail', 'signalRestored', 'signalLost', 'explode', 'screamCut', 'carQuiet', 'rescueDone', 'lootCaught',
   'kasapWindup', 'kasapSwing', 'parkurLeap', 'parkurLand', 'objDone', 'objFail', 'objPickup', 'idlePack',
   'envBreak', 'envFuse', 'envLeak', 'envChain', 'envExplode', 'envIgnite', 'envArc', 'envShock', 'envPuddle', 'envExtinguish',
@@ -220,7 +224,7 @@ function inBlock(s, p) {
   return s.geo.blocks.some(b => p.x > b.rc.xMin - r && p.x < b.rc.xMax + r && p.y > b.rc.yMin - r && p.y < b.rc.yMax + r);
 }
 
-// Eczane (R1-T4 part 14): a hurt bot walks to an unused station near the route and stands at its lane side until the sim's dwell
+// Heal stations (R1-T4 part 14, the eczane; part 17, the kiosk): a hurt bot walks to an unused station near the route and stands at its lane side until the sim's dwell
 // uses it. Only below env.eczane.bot.hp of max HP, within reach ahead and back, and with no enemy inside threat (the drop gate).
 // Returns the point to walk to, or null.
 function eczaneTarget(s, st, h) {
@@ -288,7 +292,7 @@ function snapshot(s, last) {
 
 function runGen(index, seed, loadout) {
   let s = null, st = null, result = 'timeout', err = null, revived = false, stuck = null;
-  const segT = {}, deaths = [], dmgBy = {}, evBy = {}, arenaDmg = {}, eczUses = [];   // eczUses: HP restored by each eczane use (observer)
+  const segT = {}, deaths = [], dmgBy = {}, evBy = {}, arenaDmg = {}, eczUses = [];   // eczUses: { v, healed } per heal station use (observer)
   let minFrac = 1;   // lowest hero HP fraction over the run (0 while dead); observed only, never read by the sim
   // Boss observers (boss-arena pass): arenaT = the boss intro (the approach is over), bossDieT = the boss's death, minArena =
   // lowest HP fraction from the intro on, arenaDmg = hero damage from the intro on, by cause. Never read by the sim.
@@ -299,7 +303,7 @@ function runGen(index, seed, loadout) {
     s = P.createSim(seed, { levelIndex: index, loadout: loadout || loadoutFor(index) });
     P.startPlay(s);
     st = { ang: 0, best: s.hero.y, bestT: 0, push: 0, side: 1, skip: new Set(), dropT: 0, dropId: null, threat: Infinity, last: null };
-    while (s.runT < MAX_T) {
+    while (s.runT < runCap(s)) {
       while (s.pendingChests > 0) P.Progression.openChest(s, P.Progression.chestReward(s));
       if (s.pendingLevels > 0) { P.Progression.choose(s, pickCard(s, P.Progression.makeOffer(s).cards)); continue; }
       st.last = genInput(s, st);
@@ -319,7 +323,7 @@ function runGen(index, seed, loadout) {
             arenaByT[k] = arenaByT[k] || [0, 0]; arenaByT[k][src === 'adds' ? 1 : 0] += ev.dmg;
           }
         }
-        if (ev.type === 'pickup' && ev.kind === 'eczane') eczUses.push(ev.healed);
+        if (ev.type === 'pickup' && ev.station) eczUses.push({ v: ev.station, healed: ev.healed });
         if (ev.type === 'bossIntro' && arenaT === null) { arenaT = s.runT; arenaHp = Math.max(0, s.hero.hp) / s.hero.maxHp; }
         if (ev.type === 'bossDie' && bossDieT === null) bossDieT = s.runT;
         if (TRACE === seed && /^(boss|brute|summon|heroHit|death|win)/.test(ev.type)) trace(s, ev);
@@ -337,6 +341,7 @@ function runGen(index, seed, loadout) {
   if (result === 'timeout' && s && st) stuck = snapshot(s, st.last);
   const L = s || { runT: 0, kills: 0, levelUps: [], peakAlive: 0, hero: { hp: 0 }, tally: { hacks: 0, events: 0 }, geo: { exitY: 0, holdY: 0 }, dir: { hold: {} }, props: {} };
   return { seed, index, id: P.Journey.level(index).id, result, err, t: L.runT, kills: L.kills, tally: L.tally, levelUps: L.levelUps.length, stuck,
+    mode: (s && s.runMode) || 'normal', score: s && P.Modes ? P.Modes.nightScore(s) : 0,
     lvTimes: L.levelUps.slice(), minFrac, dropHeal: L.dropHealed || 0,
     peak: L.peakAlive, deaths, dmgBy, evBy, segT, hacks: L.tally.hacks, events: L.tally.events,
     arenaT, bossDieT, minArena, arenaDmg, arenaHp, arenaSrc, arenaByT, eczane: eczUses,
@@ -387,8 +392,11 @@ function bossSummary(list, idx) {
 }
 
 // Expected progression at a level (meta power, attributes, gear, mastery). --bare gives the naked hero.
+// --mode=nightmare (R1-T4 part 18): the same expected loadout, in the Nightmare tier. Night Shift runs are planned in runNightShift.
+const MODE = args.mode === 'nightmare' ? 'nightmare' : 'normal';
 function loadoutFor(index) {
-  return args.bare ? null : P.Power.expectedLoadout(index);
+  const lo = args.bare ? null : P.Power.expectedLoadout(index);
+  return MODE === 'normal' ? lo : Object.assign({ gear: {}, stats: {} }, lo || {}, { mode: MODE });
 }
 
 // Generated levels: take evolutions, then weapon upgrades, then passives (medkit first when hurt).
@@ -448,12 +456,15 @@ function runLevels(indices, seeds) {
       `${(c.firstLv ? c.firstLv.toFixed(1) : '-').padStart(11)}  ${String(c.lvls).padStart(4)} (${c.lvMin}-${c.lvMax})`.padEnd(42) +
       `${c.dmgMin.toFixed(1).padStart(7)}  ${String(Math.round(c.dropHeal)).padStart(8)}`);
   });
-  // Eczane (R1-T4 part 14): uses per run (mean) and the HP they restored (mean per run, outside the drop-heal cap).
-  console.log('eczane  uses/run  HP/run  (--noeczane: no bot detour)' + (args.noeczane ? '  [no detour]' : ''));
+  // Heal stations (R1-T4 parts 14, 17): uses per run (mean) and the HP they restored (mean per run, outside the drop-heal cap),
+  // by variant: the eczane (pharmacy, street hoods) and the kiosk (büfe, boat, ferry and bazaar hoods).
+  console.log('stations    eczane uses/run  HP/run   kiosk uses/run  HP/run  (--noeczane: no bot detour)' + (args.noeczane ? '  [no detour]' : ''));
   rows.forEach(r => {
     const l = r.list, n = l.length || 1;
-    const uses = l.reduce((a, x) => a + (x.eczane || []).length, 0) / n, hp = l.reduce((a, x) => a + (x.eczane || []).reduce((b, v) => b + v, 0), 0) / n;
-    console.log(`${String(r.idx).padEnd(6)} ${uses.toFixed(2).padStart(9)}  ${hp.toFixed(1).padStart(6)}`);
+    const use = (v) => ({ uses: l.reduce((a, x) => a + (x.eczane || []).filter(e => e.v === v).length, 0) / n,
+      hp: l.reduce((a, x) => a + (x.eczane || []).filter(e => e.v === v).reduce((b, e) => b + e.healed, 0), 0) / n });
+    const e = use('eczane'), k = use('kiosk');
+    console.log(`${String(r.idx).padEnd(6)} ${e.uses.toFixed(2).padStart(13)}  ${e.hp.toFixed(1).padStart(6)}   ${k.uses.toFixed(2).padStart(14)}  ${k.hp.toFixed(1).padStart(6)}`);
   });
   // Boss table (boss-arena pass): seconds are run time (approach = to the intro, fight = intro to boss death, walk = boss death to the win).
   // Deaths and hero damage are per run (means); damage in the arena is the boss's (by source below) and the adds' (everything else).
@@ -519,9 +530,38 @@ function runCampaign(to) {
   if (args.out) { fs.writeFileSync(args.out, events.map(e => JSON.stringify(e)).join('\n') + '\n'); console.log('wrote ' + events.length + ' events to ' + args.out); }
 }
 
+// ---------- Night Shift (R1-T4 part 18): one endless run per seed, planned by the game (P.Meta.NightShift.plan) ----------
+// Each seed is a synthetic day ('nsbot-<seed>'), so the level, the two rules and the seed name are the ones the game gives
+// that day with --unlocked levels open (default 100). A run ends at the 12-minute cap, or on a second death (one revive).
+function runNightShift(seeds) {
+  const M = P.Meta, unlocked = parseInt(args.unlocked || '100', 10), list = [], from = parseInt(args.from || '1', 10);   // --from: first seed (split a run in parallel)
+  const seedList = args.seed ? [parseInt(args.seed, 10)] : Array.from({ length: seeds }, (_, i) => from + i);
+  seedList.forEach(sd => {
+    const plan = M.NightShift.plan('nsbot-' + sd, unlocked);
+    const base = args.bare ? {} : (P.Power.expectedLoadout(plan.level) || {});
+    const lo = Object.assign({ gear: {}, stats: {} }, base, { mode: 'nightshift', modifiers: M.Daily.resolve(plan.mods), seed: plan.seed });
+    const r = runGen(plan.level, plan.seed, lo);
+    list.push(Object.assign(r, { day: 'nsbot-' + sd, hood: P.Journey.level(plan.level).hood.name, rules: plan.mods.map(m => m.id).join('+') }));
+  });
+  const n = list.length, ts = list.map(r => r.t).sort((a, b) => a - b), sc = list.map(r => r.score).sort((a, b) => a - b);
+  const q = (arr, p) => arr[Math.min(arr.length - 1, Math.floor(p * (arr.length - 1)))];
+  const ends = list.reduce((a, r) => { a[r.result] = (a[r.result] || 0) + 1; return a; }, {});
+  console.log(`night shift, ${n} seeds (day nsbot-N, unlocked ${unlocked}, loadout ${args.bare ? 'bare' : 'expected'}, one revive)`);
+  console.log(`ends: 12-min cap ${ends.win || 0} · death ${ends.lose || 0} · timeout ${ends.timeout || 0} · crash ${ends.crash || 0}`);
+  console.log(`survival: median ${(med(ts) / 60).toFixed(1)} min (target 5-9) · p25 ${(q(ts, 0.25) / 60).toFixed(1)} · p75 ${(q(ts, 0.75) / 60).toFixed(1)} · p90 ${(q(ts, 0.9) / 60).toFixed(1)} · max ${(q(ts, 1) / 60).toFixed(1)} min`);
+  console.log(`score: median ${Math.round(med(sc))} · p10 ${Math.round(q(sc, 0.1))} · p90 ${Math.round(q(sc, 0.9))}`);
+  console.log('seed  day        level  hood                  rules                  survival  deaths  score  minHP');
+  list.forEach(r => console.log(`${String(r.seed).padEnd(5)} ${r.day.padEnd(10)} ${String(r.index).padStart(5)}  ${r.hood.padEnd(21)} ${r.rules.padEnd(22)} ` +
+    `${(r.t / 60).toFixed(1).padStart(6)} min  ${String(r.deaths.length).padStart(6)}  ${String(Math.round(r.score)).padStart(5)}  ${(Math.round(100 * r.minFrac) + '%').padStart(5)}`));
+  list.filter(x => x.result === 'crash').slice(0, 2).forEach(x => console.log(`crash seed ${x.seed}: ${x.err}`));
+  if (args.verbose) list.forEach(r => console.log(JSON.stringify(r)));
+}
+
 // ---------- entry ----------
 if (args.campaign) {
   runCampaign(parseInt(args.campaign, 10) || 30);
+} else if (args.mode === 'nightshift') {
+  runNightShift(parseInt(args.seeds || '16', 10));
 } else if (args.levels || args.level) {
   const indices = args.levels ? String(args.levels).split(',').map(x => parseInt(x, 10)) : [parseInt(args.level, 10)];
   const seeds = parseInt(args.seeds || '8', 10);

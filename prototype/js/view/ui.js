@@ -9,11 +9,12 @@
 // chip shows its cooldown in seconds and a ring when ready (F9).
 P.UI = (function () {
   var U = {}, el = {}, toastT = 0, toastOut = 0, lastHp = -1, lastSub = null, tierT = 0, tierKey = null, lastN = 0, lastLv = 0;
+  var lastAdr = '', lastJl = '';   // the Adrenalin chip's label and the journey chip's first line: written only when they change
   var hudOn = false, overlayUp = false;
   var TIERS = [25, 50, 100, 200];
-  var IDS = ['hud', 'hp-fill', 'hp-trail', 'hp-text', 'timer', 'call', 'call-label', 'call-time', 'bars', 'xp-fill', 'lv',
+  var IDS = ['hud', 'hp-fill', 'hp-trail', 'hp-text', 'timer', 'call', 'call-label', 'call-time', 'bars', 'xp-fill', 'lv', 'lv-num',
     'subs', 'subs-speaker', 'subs-text', 'prompt', 'prompt-text', 'toast', 'skills', 'btn-ult', 'ult-fill', 'dash-chip',
-    'dash-fill', 'dash-sec', 'lvl-chip', 'streak', 'streak-label', 'streak-fill', 'boss-bar', 'boss-fill', 'boss-name'];
+    'dash-fill', 'dash-sec', 'lvl-chip', 'jl-num', 'jl-hood', 'streak', 'streak-label', 'streak-fill', 'boss-bar', 'boss-fill', 'boss-name'];
   U.IDS = IDS;
   U.missing = [];
 
@@ -78,12 +79,15 @@ P.UI = (function () {
     lastHp = h.hp;
     el['hp-text'].textContent = Math.ceil(h.hp) + ' / ' + h.maxHp;
     var hold = s.dir.hold;
-    el.timer.textContent = hold.active && !s.props.shutterOpen
+    el.timer.textContent = hold.active && !s.props.shutterOpen && !(s.geo && s.geo.endless)   // endless (Night Shift): no gate countdown
       ? U.fmt(Math.ceil((hold.T || P.CFG.level.holdTime) - hold.t)) + ' ' + P.t('ui.hud.hold') : U.fmt(s.runT);
-    var L = s.levelInfo;
-    el['lvl-chip'].textContent = L ? P.upper(L.hood.name) + ' ' + P.t('ui.hud.stage', { s: L.stage, of: P.Journey.levelsPerHood }) : '';
+    // Journey chip (A2): line 1 "BÖLÜM 7/100" (the journey level, index 1 to 100), line 2 the hood name of that level.
+    var L = s.levelInfo, jl = L ? P.t('ui.hud.journey', { n: L.index, of: P.Journey.count() }) : '';
+    el['lvl-chip'].classList.toggle('hidden', !L);
+    if (jl !== lastJl) { lastJl = jl; el['jl-num'].textContent = jl; el['jl-hood'].textContent = L ? P.upper(L.hood.name) : ''; }
     updateSkills(s);
     if (P.UIProgress) P.UIProgress.hud(s);
+    if (P.ModesUI) P.ModesUI.hud(s);   // R1-T4 part 18: HUD moon and Nightmare vignette (cached, view only)
     updateStreak(s);
     updateBoss(s);
     var call = s.dir.call;
@@ -95,7 +99,9 @@ P.UI = (function () {
       for (var i = 0; i < bars.length; i++) bars[i].classList.toggle('on', i < call.bars);
     }
     el['xp-fill'].style.width = Math.min(100, s.xp / P.xpNeed(s.level) * 100) + '%';
-    el.lv.textContent = P.t('ui.hud.lv', { n: s.level });
+    // Adrenalin chip (A1, the in-run level): the bolt is SVG in index.html; the label is the aria-label, the number is visible.
+    var adr = P.t('ui.hud.adr', { n: s.level });
+    if (adr !== lastAdr) { lastAdr = adr; el.lv.setAttribute('aria-label', adr); el['lv-num'].textContent = String(s.level); }
     if (lastLv && s.level > lastLv && P.UIProgress) P.UIProgress.levelUp();   // one pop on the XP bar per level-up
     lastLv = s.level;
     updateSubs(s);

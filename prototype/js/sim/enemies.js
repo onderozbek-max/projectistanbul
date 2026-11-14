@@ -8,7 +8,7 @@ function unit(dx, dy) { var d = Math.hypot(dx, dy) || 1; return { x: dx / d, y: 
 function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
 // Bosses take only a share of the route damage growth (config bossShare), like their HP.
 function dmgMul(s, e, base) {
-  var df = s.diff ? (e && e.boss ? 1 + (s.diff.dmg - 1) * P.CFG.levels.diff.bossShare : s.diff.dmg) : 1;
+  var df = s.diff ? (e && e.boss ? 1 + (s.diff.dmg - 1) * (s.diff.bossShare || P.CFG.levels.diff.bossShare) : s.diff.dmg) : 1;   // Nightmare: its own boss share (R1-T4 part 18)
   return base * df * (e && e.elite ? P.CFG.elite.dmgMult : 1);
 }
 

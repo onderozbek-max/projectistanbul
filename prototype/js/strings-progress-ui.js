@@ -3,14 +3,16 @@
 //   Bölüm N / Level N  = journey level, 1 to 100 (the map node). Never a hood, never a chapter.
 //   Aşama N / Stage N  = stage inside a district, 1 to 5 (stage 5 is the boss).
 //   Bölge / District   = the hood (district) number, 1 to 20. The place name of a stage is its sub-location.
-//   Lv N               = in-run level (resets each run) and item level. Level-up banner: "LEVEL UP · Lv N".
+//   Lv N               = item level only (weapon, passive, gear, mod). The in-run level is Adrenalin (EN Adrenaline), so it
+//                        never reads "Lv": the HUD chip, the level-up banner and cards, and the recap say Adrenalin N.
 //   Sokak Kredisi / Street Cred (SK / SC) = the currency from kill milestones; it pays for Street Tree perks.
 // Placeholders are {name}. Loaded after strings-horde.js (P.STR must exist).
 if (P.STR) {
   Object.assign(P.STR.tr, {
-    // The TR strings below are owner-approved (T4 part 9); "Bölüm" is the journey level (see the header note).
+    // The TR strings below are owner-approved (T4 part 9); "Bölüm" is the journey level (see the header note). The two Adrenalin
+    // rename lines (lvb.title, res.recap.reached) are marked for the owner and wait for sign-off.
     'hud.skLabel': 'Sokak Kredisi {n}, sonraki için {k} öldür',
-    'lvb.title': 'SEVİYE ATLA · Lv {n}',
+    'lvb.title': 'ADRENALİN YÜKSELDİ · {n}', // TR owner check
     'lvb.line': 'Seçildi: {name} · Lv {n}',
     'lvb.lineF': 'Seçildi: {name}',
     'prog.powerLabel': 'Gücün',
@@ -23,7 +25,7 @@ if (P.STR) {
     'ui.res.labelLevel': 'BÖLÜM {n} · {hood}',
     'ui.res.walk': 'Yürüyüş',
     'res.recap.head': 'KOŞU ÖZETİ',
-    'res.recap.reached': 'Ulaşılan Lv {n} · {kills} öldürme · en iyi seri {streak}',
+    'res.recap.reached': 'Ulaşılan Adrenalin {n} · {kills} öldürme · en iyi seri {streak}', // TR owner check
     'res.recap.sc': 'Sokak Kredisi',
     'res.recap.scVal': '+{n} · sonraki için {k} öldür',
     'res.recap.power': 'Güç',
@@ -34,7 +36,7 @@ if (P.STR) {
   });
   Object.assign(P.STR.en, {
     'hud.skLabel': 'Street Cred {n}, {k} kills to the next',
-    'lvb.title': 'LEVEL UP · Lv {n}',
+    'lvb.title': 'ADRENALINE UP · {n}',
     'lvb.line': 'Picked: {name} · Lv {n}',
     'lvb.lineF': 'Picked: {name}',
     'prog.powerLabel': 'Your power',
@@ -47,7 +49,7 @@ if (P.STR) {
     'ui.res.labelLevel': 'LEVEL {n} · {hood}',
     'ui.res.walk': 'Walk',
     'res.recap.head': 'RUN RECAP',
-    'res.recap.reached': 'Reached Lv {n} · {kills} kills · best streak {streak}',
+    'res.recap.reached': 'Reached Adrenaline {n} · {kills} kills · best streak {streak}',
     'res.recap.sc': 'Street Cred',
     'res.recap.scVal': '+{n} · {k} kills to next',
     'res.recap.power': 'Power',
