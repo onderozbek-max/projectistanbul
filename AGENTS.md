@@ -4,7 +4,12 @@
 zombie-overrun Istanbul. Portrait, one-thumb, Godot 4, **iOS first** (Android later).
 **Current goal:** the vertical slice (Chapter 1, Levels 1–30). See `docs/prd.md`.
 
+> **ACTIVE BUILD (2026-11-14): the JS prototype in `prototype/`, plan R1 in `docs/execution-plan.md`, not the Godot milestones.**
+> Read `docs/handoff-codex.md` first (state, run and test commands, rules, what exists only on this Mac). The Godot sections below are the
+> long-term target; do not start M0 or touch `game/` unless the owner asks. Prototype tests: `prototype/tools/run-tests.sh`.
+
 ## Read these first, in this order
+0. `docs/handoff-codex.md`: the current state and the traps (the next steps below assume you have read it)
 1. `docs/prd.md`: what to build and how success is measured
 2. `docs/execution-plan.md`: milestones, tasks, review protocol, **your current task**
 3. `docs/architecture.md`: tech stack, layout, patterns, dependency rules, **Godot 3 vs 4 pitfalls**
