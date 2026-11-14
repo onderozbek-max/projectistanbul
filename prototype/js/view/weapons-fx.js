@@ -367,7 +367,7 @@ P.WFx = (function () {
   W.banner = function (c, R, key, t, T, yFrac, col) {
     var k = 1 - t / T, sc = k < 0.15 ? 2.2 - k / 0.15 * 1.2 : 1, al = t < 0.3 ? t / 0.3 : 1;
     c.save(); c.translate(R.W / 2, R.H * yFrac); c.rotate(-0.08); c.scale(sc, sc); c.globalAlpha = al;
-    c.font = 'italic 900 52px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = 'italic 900 52px "CM Bangers", Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.lineWidth = 10; c.strokeStyle = INK; c.strokeText(P.t(key), 0, 0); c.fillStyle = col || '#FFD166'; c.fillText(P.t(key), 0, 0);
     c.restore();
   };

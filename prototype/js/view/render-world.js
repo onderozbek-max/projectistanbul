@@ -151,7 +151,7 @@ P.RenderWorld = (function () {
       c.strokeRect(R.X(side > 0 ? 6.4 : -7), R.Y(y + 5.68), 0.6 * u, 5.28 * u);
       rect(R, side > 0 ? 6.25 : -6.4, y + 0.4, side > 0 ? 6.4 : -6.25, y + 5.68, 'rgba(0,0,0,0.25)');
     }
-    c.font = 'italic 800 ' + Math.round(0.5 * u) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif';
+    c.font = 'italic 800 ' + Math.round(0.5 * u) + 'px "CM Bangers", Bangers, Impact, sans-serif';
     SHOPS.forEach(function (sh) {
       if (sh.side !== side || sh.y < y0 - 4 || sh.y > y1 + 4) return;
       c.save(); c.translate(R.X(side > 0 ? 8.75 : -8.75), R.Y(sh.y)); c.rotate(side > 0 ? Math.PI / 2 : -Math.PI / 2);
@@ -207,7 +207,7 @@ P.RenderWorld = (function () {
     var c = R.ctx;
     rect(R, k.x - 0.28, k.y - 0.43, k.x + 0.28, k.y + 0.43, P.Sprites.propFlashOk(k) ? '#FFFFFF' : '#C0392B', '#14151F', 2);
     rect(R, k.x - 0.12, k.y + 0.43, k.x + 0.12, k.y + 0.6, '#14151F');
-    c.fillStyle = '#14151F'; c.font = 'bold ' + Math.round(0.28 * R.ppm) + 'px system-ui'; c.textAlign = 'center';
+    c.fillStyle = '#14151F'; c.font = 'bold ' + Math.round(0.28 * R.ppm) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center';
     c.fillText(P.lang === 'tr' ? 'TÜP' : 'GAS', R.X(k.x), R.Y(k.y - 0.75));
   }
 

@@ -79,7 +79,7 @@
   reg('plaque', function (c, X, Y, s, o) {
     rc(c, X, Y - 0.8 * s, 0.9 * s, 0.28 * s, '#2B5DA0', 2);
     c.strokeStyle = CREAM; c.lineWidth = 1; c.strokeRect(X - 0.4 * s, Y - 0.8 * s - 0.11 * s, 0.8 * s, 0.22 * s);
-    c.fillStyle = CREAM; c.font = 'bold ' + Math.round(0.14 * s) + 'px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = CREAM; c.font = 'bold ' + Math.round(0.14 * s) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(o.name || '', X, Y - 0.8 * s);
   });
   reg('parkmetre', function (c, X, Y, s) {

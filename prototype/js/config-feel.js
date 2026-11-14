@@ -76,7 +76,7 @@ P.CFG.moments = {
   // 3. Kill streak ladder: when a kill streak (the frenzy window of skills.frenzy) reaches a mark, an ink splash shows the word for it
   //    for `bannerT` s (pops in over `popIn` s, splash radius `splashR` of the screen width), and an ink wipe runs in from both
   //    screen edges (`wipeFrac` of the width each side, `wipeT` s) if a budget slot is free. The word sits at `wordY` of the height.
-  streak: { marks: [10, 25, 50], wipeT: 0.34, wipeFrac: 0.22, wipeJag: 12, wipeA: 0.94, bannerT: 1.1, popIn: 0.12, fadeT: 0.3, splashR: 0.42,
+  streak: { marks: [10, 25, 50], gapT: 25, wipeT: 0.34, wipeFrac: 0.22, wipeJag: 12, wipeA: 0.94, bannerT: 1.1, popIn: 0.12, fadeT: 0.3, splashR: 0.42,
             wordY: 0.36, inkA: 0.92, fontPx: 40, queueT: 0.5 },
   // 4. Crit kill: a halftone burst of gold dots (a `grid` by `grid` lattice, `step` m apart, dot radius up to `dot` m). It holds for
   //    `hold` s (two frames) at radius r0, then grows to r1 and fades over `life` s. One burst at most every `gap` s. Crit kills keep

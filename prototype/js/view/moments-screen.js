@@ -15,7 +15,7 @@ P.MomentsScreen = (function () {
   function ease(v) { v = clamp01(v); return 1 - (1 - v) * (1 - v); }
   function go() { return !P.Fx || !P.Fx.flashGo || P.Fx.flashGo('moment'); }   // the moments pool (T4 part 15)
   function hash1(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
-  function font(px) { return 'italic 900 ' + px + 'px "Avenir Next Condensed", "Arial Narrow", system-ui'; }
+  function font(px) { return 'italic 900 ' + px + 'px "CM Bangers", Bangers, Impact, sans-serif'; }
 
   S.reset = function () {
     S.t = 0; S.tearOn = false; S.tearAge = 0; S.wipe = null; S.word = null; S.pending = null; S.ribbon = null; S.veilA = 0;

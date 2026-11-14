@@ -1,7 +1,8 @@
 /* Hood title card (workstream F, v0.5). Classes are hc-*. Sits inside #phone (390 x 844, position absolute).
    Motion is off when the body/overlay has .hc-still (P.Settings.reduceMotion). */
 .hc-overlay { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
-  font-family: "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif; color: #14151F; }
+  font-family: var(--body); color: #14151F; }
+.hc-name, .hc-banner { font-family: var(--display); }
 .hc-overlay.hc-big { background: rgba(10, 12, 18, 0.62); animation: hc-fade var(--m-enter) var(--m-ease-out) both; }
 .hc-overlay.hc-small { align-items: flex-start; justify-content: stretch; pointer-events: none; padding-top: 56px; box-sizing: border-box; }
 .hc-overlay.hc-still, .hc-overlay.hc-still * { animation: none !important; transition: none !important; }

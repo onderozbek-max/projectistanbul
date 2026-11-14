@@ -128,10 +128,16 @@ const bossHit = (i) => ({ type: 'hit', boss: true, id: i, x: 0, y: 40, dx: 1, dy
   ok(K.low.pulseHz <= 0.5, 'moments: the last-stand pulse is at most 0.5 Hz');
 }
 
-{ // Streak ladder: 25 kills 0.1 s apart mark 10 and 25 only
-  const W = momentsWorld({});
+{ // Streak ladder: 25 kills 0.1 s apart reach marks 10 and 25, but only one word shows inside the gap (gapT, phone playtest)
+  const W = momentsWorld({}), K = W.P.CFG.moments;
   for (let i = 0; i < 25; i++) { W.wait(0.1); W.kill(false); }
-  ok(W.streaks.map((x) => x.n).join(',') === '10,25', 'streak: 25 kills 0.1 s apart mark 10 and 25 only (got ' + W.streaks.map((x) => x.n).join(',') + ')');
+  ok(W.streaks.map((x) => x.n).join(',') === '10', 'streak: 25 kills 0.1 s apart show the first word only, the 25 word waits out the gap (got ' + W.streaks.map((x) => x.n).join(',') + ')');
+  ok(K.streak.gapT >= 20, 'moments: streak words are at least gapT seconds apart (config streak.gapT)');
+  const V = momentsWorld({});
+  for (let i = 0; i < 10; i++) { V.wait(0.1); V.kill(false); }
+  V.wait(K.streak.gapT + 1);
+  for (let i = 0; i < 10; i++) { V.wait(0.1); V.kill(false); }
+  ok(V.streaks.map((x) => x.n).join(',') === '10,10', 'streak: after the gap a new streak shows its word again (got ' + V.streaks.map((x) => x.n).join(',') + ')');
 }
 { // A frenzy restarts the count: 9 kills, a frenzy, then 18 kills give one mark, on the 10th kill after the frenzy (kill 19)
   const W = momentsWorld({});

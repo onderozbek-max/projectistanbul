@@ -6,7 +6,7 @@
 // Voice slider; a saved voiceVol is ignored. Render and input read them; P.applySettings pushes the ones that have a live hook.
 (function () {
   var KEY = 'istanbul_proto_v1';
-  var MUSIC_BASE = 0.7;   // music level 100 = the prototype's default mix (P.Music starts at 0.7)
+  var MUSIC_BASE = 0.5;   // music level 100 = the default mix: -6 dB from the file level, so effects stay clearly above it (phone playtest: music masked the SFX at 0.7)
   var SHAKE_STEPS = [0, 50, 100], TEXT_STEPS = [100, 125, 150];   // shake and text size: DS 4
   // First launch: the phone's language picks the script. Any tr* gives Turkish, anything else gives English (D-051). The result is
   // saved as the player's setting and the Settings control overrides it. ?lang=tr|en overrides for testing and is not saved.
@@ -17,7 +17,7 @@
   var phoneLangs = typeof navigator === 'undefined' ? [] : navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
   var defaults = { lang: P.detectLang(phoneLangs), sound: true, subs: true, reduceMotion: false, dmgNumbers: true, blood: true,
                    firstRunDone: false, l1Cleared: false, coldOpenSeen: false, installId: null,
-                   musicVol: 100, sfxVol: 100, haptics: true, joySide: 'right', shake: 100, reduceFlash: false,
+                   musicVol: 100, sfxVol: 100, haptics: true, joySide: 'any', shake: 100, reduceFlash: false,
                    devTools: false, textSize: 100 };
   var LANGS = ['tr', 'en'];
   var BOOLS = ['sound', 'subs', 'reduceMotion', 'dmgNumbers', 'blood', 'firstRunDone', 'l1Cleared', 'coldOpenSeen',
@@ -47,7 +47,10 @@
   delete P.Settings.voiceVol;
   if (SHAKE_STEPS.indexOf(P.Settings.shake) < 0) P.Settings.shake = defaults.shake;
   if (TEXT_STEPS.indexOf(P.Settings.textSize) < 0) P.Settings.textSize = defaults.textSize;
-  if (P.Settings.joySide !== 'left' && P.Settings.joySide !== 'right') P.Settings.joySide = defaults.joySide;
+  if (P.Settings.joySide !== 'left' && P.Settings.joySide !== 'right' && P.Settings.joySide !== 'any') P.Settings.joySide = defaults.joySide;
+  // The old default was 'right', which silently ignored every touch in the left 45% of the screen (design: the stick spawns anywhere in
+  // the lower 60%). A save made before this migration moves to 'any' once; the choice made afterwards is kept.
+  if (data.joyMig !== 2) { P.Settings.joySide = 'any'; P.Settings.joyMig = 2; }
   P.SettingSteps = { shake: SHAKE_STEPS, text: TEXT_STEPS };   // offered values (screens.js cycles through them)
   P.saveSettings = function () {
     try { localStorage.setItem(KEY, JSON.stringify(P.Settings)); } catch (e) { /* private mode: ignore */ }

@@ -5,7 +5,7 @@
 // Flash rule: each bright start takes a slot from the screen budget (P.Fx.flashGo) or is dropped; the last-stand ring counts each
 // pulse takes one slot per 2 s cycle (or holds high that cycle). Nothing here flickers faster than 3 times a second.
 P.Moments = (function () {
-  var M = { t: 0, shocks: [], streakN: 0, streakAt: -1e9, critAt: -1e9, impactAt: -1e9, lowOn: false, lowCycle: -1, pulse: 0 };
+  var M = { t: 0, shocks: [], streakN: 0, streakAt: -1e9, wordAt: -1e9, critAt: -1e9, impactAt: -1e9, lowOn: false, lowCycle: -1, pulse: 0 };
   var TAU = Math.PI * 2, ghosts = [], ripples = [], crits = [], impacts = [], near = [], nearD = [], star = null;
   function C() { return P.CFG.moments; }
   function rm() { return !!(P.Settings && P.Settings.reduceMotion); }
@@ -29,7 +29,7 @@ P.Moments = (function () {
 
   M.reset = function () {
     var c = C();
-    M.t = 0; M.streakN = 0; M.streakAt = -1e9; M.critAt = -1e9; M.impactAt = -1e9; M.shockAt = -1e9; M.lowOn = false; M.lowCycle = -1; M.lowGranted = false; M.pulse = 0;
+    M.t = 0; M.streakN = 0; M.streakAt = -1e9; M.wordAt = -1e9; M.critAt = -1e9; M.impactAt = -1e9; M.shockAt = -1e9; M.lowOn = false; M.lowCycle = -1; M.lowGranted = false; M.pulse = 0;
     M.starts = { dash: 0, crit: 0, ripple: 0, impact: 0, shock: 0, low: 0 };   // cumulative starts, for the tests (read-only)
     M.shocks = pool(c.shock.max); ghosts = pool(c.dash.ghostN); ripples = pool(c.ripple.max); crits = pool(c.crit.max);
     impacts = pool(c.impact.max);
@@ -56,7 +56,8 @@ P.Moments = (function () {
     var t = s.t || 0, marks = C().streak.marks;
     if (t - M.streakAt > P.CFG.skills.frenzy.window) M.streakN = 0;
     M.streakN++; M.streakAt = t;
-    if (marks.indexOf(M.streakN) >= 0 && screen()) screen().streak(M.streakN);
+    // Phone playtest: the words came too often. At most one streak word per gapT seconds (about a third of the old rate).
+    if (marks.indexOf(M.streakN) >= 0 && t - M.wordAt >= C().streak.gapT && screen()) { M.wordAt = t; screen().streak(M.streakN); }
   }
 
   // Dash: a red and a cyan ghost pair along the dash line, then the screen tear (screen layer, one budget slot).

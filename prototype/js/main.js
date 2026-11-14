@@ -157,7 +157,9 @@
         case 'masteryMove': slow(ev.slowMo || 0.4, 0.25); P.Tel.log('mastery_move', { weapon: ev.weapon }); break;
         case 'modChosen': P.Tel.log('mod_chosen', { weapon: ev.weapon, mod: ev.mod }); break;
         case 'hackDone': P.Tel.log('hack_done', { kind: ev.kind, t_s: +sim.runT.toFixed(1) }); break;
-        case 'evolve': slow(ev.T || 1.6, 0.2); P.Tel.log('evolve', { from: ev.from, to: ev.to }); break;
+        // Evolutions: the spec gives them a camera punch only (design-system 7). The 1.6 s world crawl at 0.2 (sim steps at a fifth
+        // of the rate, the hero included) stays on Level 1 only, so L1 is unchanged; generated levels run at full speed.
+        case 'evolve': if (levelIndex === 1) slow(ev.T || 1.6, 0.2); P.Tel.log('evolve', { from: ev.from, to: ev.to }); break;
         case 'bossIntro': music('boss'); P.Tel.log('boss_intro', { boss: ev.nameKey, t_s: +sim.runT.toFixed(1) }); break;
         case 'bossDie': music('run_calm'); break;
         case 'story': storyBeat(ev.when); break;
@@ -335,7 +337,12 @@
     P.Screens.showResults(r);
   }
 
-  function toTitle() { state = 'title'; P.UI.showHud(false); P.Input.enabled = false; P.Screens.show('scr-title'); music('title'); }
+  // The fallback (guard) lands on the title. A map that is already open is closed first: the map overlay sits above the
+  // title screen, so a half-built map would otherwise hide the fallback.
+  function toTitle() {
+    if (P.Meta && P.Meta.isOpen && P.Meta.isOpen()) P.Meta.close();
+    state = 'title'; P.UI.showHud(false); P.Input.enabled = false; P.Screens.show('scr-title'); music('title');
+  }
   function quitToMap() { P.Tel.log('level_end', { result: 'quit', t_s: +sim.runT.toFixed(1) }); openMap(); }
 
   // ---------- loop ----------

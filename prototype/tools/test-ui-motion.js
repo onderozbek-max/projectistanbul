@@ -411,8 +411,8 @@ function bootSettings(stored) {
 {
   const d = bootSettings('null');
   check(d.S.musicVol === 100 && d.S.sfxVol === 100 && !('voiceVol' in d.S), 'settings (vm): the two volumes default to 100 with no save, and there is no voice volume');
-  check(JSON.stringify(d.pushed.sfx) === JSON.stringify([['sfx', 1], ['ui', 1], ['ambience', 1]]) && Math.abs(d.pushed.music[0] - 0.7) < 1e-9,
-    'settings (vm): at boot the sfx, ui and ambience buses are set to 1 (voice rides the sfx bus) and the music level to 0.7 (the default mix)');
+  check(JSON.stringify(d.pushed.sfx) === JSON.stringify([['sfx', 1], ['ui', 1], ['ambience', 1]]) && Math.abs(d.pushed.music[0] - 0.5) < 1e-9,
+    'settings (vm): at boot the sfx, ui and ambience buses are set to 1 (voice rides the sfx bus) and the music level to 0.5 (the default mix, -6 dB)');
   check(typeof d.saved === 'string' && d.saved.indexOf('"sfxVol":100') >= 0 && d.saved.indexOf('voiceVol') < 0, 'settings (vm): the volumes are saved with the other settings, and no voice value is written');
   const o = bootSettings(JSON.stringify({ musicVol: 25, sfxVol: 55 }));
   check(o.S.musicVol === 30 && o.S.sfxVol === 60, 'settings (vm): saved volumes round to the 10% step (25 to 30, 55 to 60)');

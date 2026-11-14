@@ -5,7 +5,7 @@
 P.Landmarks = (function () {
   var L = {}, CACHE = {}, CACHE_N = 0, PLAN = {};
   var INK = '#14151F', CREAM = '#F4EBDD', GOLD = '#E9A23B', TAU = Math.PI * 2;
-  var FONT = 'italic 900 %Ppx "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif';
+  var FONT = 'italic 900 %Ppx "CM Bangers", Bangers, Impact, sans-serif';
 
   function hs(n) { var x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); }
   function isL1(s) { return !s.levelIndex || s.levelIndex === 1; }

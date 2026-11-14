@@ -144,7 +144,7 @@ P.EventsFx = (function () {
     c.fillStyle = '#2A3445'; c.fillRect(cx - iw * 0.36, iy - ih * 0.12, iw * 0.72, ih * 0.3);
     c.fillStyle = 'rgba(20,21,31,0.72)'; c.beginPath(); c.arc(rx, iy, ir, 0, Math.PI * 2); c.fill();
     c.strokeStyle = 'rgba(255,209,102,0.95)'; c.lineWidth = 3; c.beginPath(); c.arc(rx, iy, ir * 0.82, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); c.stroke();
-    c.fillStyle = '#F4EBDD'; c.font = 'bold ' + Math.round(0.26 * u) + 'px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#F4EBDD'; c.font = 'bold ' + Math.round(0.26 * u) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(H.rush.toFixed(1), rx, iy + 1);
     c.restore();
   }
@@ -156,7 +156,7 @@ P.EventsFx = (function () {
     s.hacks.forEach(function (H) {
       if (H.state === 'done' && H.doneT >= C.hack.fadeT) return;
       var X = R.X(H.x), Y = R.Y(H.y) - C.hack.r * u - 0.4 * u;
-      c.font = Math.round(0.42 * u) + 'px sans-serif'; c.textAlign = 'center'; c.fillStyle = 'rgba(230,240,255,0.95)';
+      c.font = Math.round(0.42 * u) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center'; c.fillStyle = 'rgba(230,240,255,0.95)';
       c.fillText(label('hack.' + H.kind), X, Y);
       if (H.state === 'active') {
         c.fillStyle = 'rgba(20,21,31,0.6)'; c.fillRect(X - 1.2 * u, Y + 0.15 * u, 2.4 * u, 0.2 * u);

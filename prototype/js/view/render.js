@@ -336,7 +336,7 @@ P.RenderOverlay = (function () {
     P.Fx.nums.forEach(function (n) {
       // Pop: the number starts at dmgPop times its size and settles to 1 over dmgPopT seconds of its life (view only).
       var f = 1 - n.t / n.T, size = n.crit ? 24 : 14, el = n.T - n.t, pT = P.CFG.feel.dmgPopT, sc = el < pT ? 1 + (P.CFG.feel.dmgPop - 1) * (1 - el / pT) : 1;
-      c.font = 'italic 900 ' + Math.round(size * sc) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
+      c.font = 'italic 900 ' + Math.round(size * sc) + 'px "CM Bangers", Bangers, Impact, sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = '#14151F';
       c.globalAlpha = n.t < 0.2 ? n.t / 0.2 : 1;
       var X = R.X(n.x), Y = R.Y(n.y + 0.5 + P.CFG.feel.dmgNumberRise * f), txt = String(Math.round(n.val));
@@ -344,7 +344,7 @@ P.RenderOverlay = (function () {
       c.globalAlpha = 1;
     });
     P.Fx.letters.forEach(function (l) {
-      c.font = 'italic 900 38px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.lineWidth = 5;
+      c.font = 'italic 900 38px "CM Bangers", Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.lineWidth = 5;
       c.strokeStyle = '#14151F'; c.fillStyle = '#F4EBDD';
       c.globalAlpha = Math.min(1, l.t / 0.3) * labelAlpha(R, P.Speech ? P.Speech.labelKey(l) : 'letter', l.x, l.y, 150, 44);
       c.strokeText(l.text, R.X(l.x), R.Y(l.y)); c.fillText(l.text, R.X(l.x), R.Y(l.y)); c.globalAlpha = 1;

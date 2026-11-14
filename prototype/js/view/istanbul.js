@@ -107,7 +107,7 @@ P.Decor = (function () {
         c.save(); c.globalAlpha = la;
         c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(R.X(side * 7.05), Y - hh * 0.6); c.lineTo(X - side * w * 0.45, Y - hh * 0.6); c.stroke();
         c.fillStyle = col[0]; c.fillRect(X - w / 2, Y - hh / 2, w, hh); c.strokeRect(X - w / 2, Y - hh / 2, w, hh);
-        c.font = 'italic 900 ' + Math.round(0.26 * u) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.font = 'italic 900 ' + Math.round(0.26 * u) + 'px "CM Bangers", Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
         c.fillStyle = col[1]; c.fillText(txt, X, Y + 1, w - 6);
         c.restore();
       });
@@ -216,7 +216,7 @@ P.Decor = (function () {
       c.globalAlpha = flick * signAlpha('sign' + side + ':' + y, X, Y, w, hh);
       c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.moveTo(R.X(side * 7.05), Y - hh * 0.6); c.lineTo(X - side * w * 0.45, Y - hh * 0.6); c.stroke();
       c.fillStyle = col[0]; c.fillRect(X - w / 2, Y - hh / 2, w, hh); c.strokeRect(X - w / 2, Y - hh / 2, w, hh);
-      c.font = 'italic 900 ' + Math.round(0.26 * u) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.font = 'italic 900 ' + Math.round(0.26 * u) + 'px "CM Bangers", Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
       c.fillStyle = col[1]; c.fillText(txt, X, Y + 1, w - 6);
       c.globalAlpha = 1;
     });

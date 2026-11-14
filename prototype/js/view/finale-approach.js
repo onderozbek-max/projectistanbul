@@ -95,7 +95,7 @@ P.FinaleApproach = (function () {
     // Bakery window (left): warm, with a sign.
     rr(c, P2.sx(-3.9), base - gh + 14, P2.sx(-2.9) - P2.sx(-3.9), gh - 34, '#FFD98A', INK);
     rr(c, P2.sx(-3.9), base - gh + 2, P2.sx(-2.9) - P2.sx(-3.9), 12, '#1F4D3A', INK);
-    c.fillStyle = '#F4EBDD'; c.font = 'bold 9px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#F4EBDD'; c.font = 'bold 9px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(P.lang === 'tr' ? 'FIRIN' : 'BAKERY', P2.sx(-3.4), base - gh + 8);
     // Kapıcı booth, seen through the lobby glass: an empty stool, the keys on the hook, an empty bread basket.
     rr(c, bo0, base - gh + 16, bo1 - bo0, gh - 38, '#D9C3A0', INK);
@@ -120,7 +120,7 @@ P.FinaleApproach = (function () {
     var f = Math.max(0, Math.min(1, (km() - K.kmFrom) / (K.kmTo - K.kmFrom)));
     var x = 14, y = 74, w = W - 28, h = 56;
     rr(c, x, y, w, h, '#F4EBDD', INK);
-    c.fillStyle = INK; c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = '900 17px "Avenir Next Condensed", system-ui, sans-serif';
+    c.fillStyle = INK; c.textAlign = 'left'; c.textBaseline = 'middle'; c.font = '900 17px "CM Bangers", Bangers, Impact, sans-serif';
     c.fillText(P.t('fin.approach.title'), x + 12, y + 16);
     c.textAlign = 'right'; c.fillText(P.t('fin.approach.km', { a: fmt(km(), lang), b: fmt(K.kmTo, lang) }), x + w - 12, y + 16);
     rr(c, x + 12, y + 36, w - 24, 10, '#D8CBB4', INK);
@@ -131,7 +131,7 @@ P.FinaleApproach = (function () {
     if (hintT <= 0 || arrived) return;
     var a = Math.min(1, hintT / 1.0);
     c.globalAlpha = a; c.fillStyle = 'rgba(20,21,31,0.7)'; c.fillRect(0, H * 0.84, W, 44);
-    c.fillStyle = '#F4EBDD'; c.font = '700 16px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#F4EBDD'; c.font = '700 16px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(P.t('fin.approach.hint'), W / 2, H * 0.84 + 22); c.globalAlpha = 1;
   }
 

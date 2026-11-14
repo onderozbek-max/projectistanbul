@@ -396,7 +396,7 @@ P.Screens = (function () {
     row(P.t('ui.set.dmgNumbers'), toggle('dmgNumbers'));
     row(P.t('ui.set.blood'), toggle('blood'));
     row(P.t('ui.set.haptics'), toggle('haptics'));
-    row(P.t('ui.set.joy'), step('joySide', ['right', 'left'], function (v) { return P.t(v === 'left' ? 'ui.set.joyL' : 'ui.set.joyR'); }));
+    row(P.t('ui.set.joy'), step('joySide', ['any', 'right', 'left'], function (v) { return P.t(v === 'left' ? 'ui.set.joyL' : v === 'right' ? 'ui.set.joyR' : 'ui.set.joyA'); }));
     $('settings-note').textContent = P.t('ui.set.note');
     $('btn-settings-back').onclick = onBack;
     S.show('scr-settings');

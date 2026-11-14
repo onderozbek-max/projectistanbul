@@ -9,11 +9,13 @@
   --weapon: #FF6B3D; --passive: #3DDCFF; --filler: #E9A23B;
   --scrim: rgba(10, 11, 18, .78);
   --safe-top: 59px; --safe-bottom: 34px; --pad: 16px;
-  --display: 'Avenir Next Condensed', 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', system-ui, sans-serif;
-  --body: 'Avenir Next', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  /* AUDIT-7 U: the HUD and the level-up cards use the bundled faces (comic.css @font-face), so TR and EN metrics are fixed. */
-  --hud-display: 'CM Bangers', Bangers, Impact, 'Arial Narrow', sans-serif;
-  --hud-body: 'CM Comic Relief', 'Comic Relief', 'Comic Sans MS', system-ui, sans-serif;
+  /* Type: ONE set for every UI surface (DS 4). The bundled comic faces (comic.css @font-face) are the first entry, so TR and EN
+     metrics and glyphs are the same on every phone. --display and --body are the names the rules use; --hud-* are the same faces.
+     The symbol faces cover the few glyphs the comic faces lack (arrows, check, diamond); the generic family is always last. */
+  --hud-display: 'CM Bangers', Bangers, Impact, 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', sans-serif;
+  --hud-body: 'CM Comic Relief', 'Comic Relief', 'Comic Sans MS', 'Segoe UI Symbol', 'Apple Symbols', 'Noto Sans Symbols 2', sans-serif;
+  --display: var(--hud-display);
+  --body: var(--hud-body);
   --shadow: 0 4px 0 var(--ink);
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -24,7 +26,9 @@ body { font: 500 calc(16px * var(--ui-text, 1))/1.35 var(--body); color: var(--i
   transform-origin: center center; border-radius: 28px; box-shadow: 0 0 0 10px #000, 0 30px 80px rgba(0,0,0,.6); }
 #game { position: absolute; inset: 0; width: 390px; height: 844px; display: block; }
 .hidden { display: none !important; }
+/* Form controls do not inherit font or colour by default (Arial/Helvetica in some browsers); they take the body face. */
 button { font: inherit; color: inherit; cursor: pointer; }
+input, select, textarea { font: inherit; color: inherit; }
 button:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
 
 /* ---------- type ---------- */

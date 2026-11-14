@@ -217,10 +217,10 @@ P.EnemyFx = (function () {
     if (bar < 0.6) return;
     var k = Math.min(1, Math.max(0, (a - 0.2) / 0.3)), sc = 1.35 - 0.35 * k;
     c.save(); c.translate(W / 2, H / 2); c.globalAlpha = k;
-    c.font = 'italic 900 16px "Avenir Next Condensed", "Arial Narrow", system-ui';
+    c.font = 'italic 900 16px "CM Bangers", Bangers, Impact, sans-serif';
     c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 4; c.strokeStyle = '#14151F'; c.fillStyle = '#FFD166';
     c.strokeText(b.label, 0, -34); c.fillText(b.label, 0, -34);
-    c.font = 'italic 900 42px "Avenir Next Condensed", "Arial Narrow", system-ui';
+    c.font = 'italic 900 42px "CM Bangers", Bangers, Impact, sans-serif';
     var fit = Math.min(sc, (W - 40) / Math.max(1, c.measureText(b.name).width));
     c.scale(fit, fit); c.lineWidth = 9; c.strokeText(b.name, 0, 0);
     c.fillStyle = '#F4EBDD'; c.fillText(b.name, 0, 0);

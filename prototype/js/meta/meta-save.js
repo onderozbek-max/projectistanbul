@@ -131,9 +131,14 @@ P.Meta = P.Meta || {};
     s.migratedFrom = from < VERSION ? from : undefined;
     return s;
   };
-  // Storage access. `store` defaults to localStorage (missing in node tests and private mode).
+  // Storage access. `store` defaults to localStorage (missing in node tests and private mode). Reading the property can
+  // itself throw (SecurityError when the browser blocks site data, e.g. iOS Safari with cookies blocked), so it sits inside
+  // a try. Without storage the save lives in memory for the session (load() caches it): the map still opens.
+  function defaultStore() {
+    try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (e) { return null; }
+  }
   M.Save.read = function (store, now) {
-    var st = store || (typeof localStorage !== 'undefined' ? localStorage : null), v3 = null, v2 = null, v1 = null;
+    var st = store || defaultStore(), v3 = null, v2 = null, v1 = null;
     if (!st) return M.Save.defaults();
     try { v3 = JSON.parse(st.getItem(KEY) || 'null'); } catch (e) { v3 = null; }
     if (v3) return M.Save.migrate(v3, now);
@@ -143,11 +148,11 @@ P.Meta = P.Meta || {};
     return M.Save.migrate(v1, now);
   };
   M.Save.write = function (state, store) {
-    var st = store || (typeof localStorage !== 'undefined' ? localStorage : null);
+    var st = store || defaultStore();
     try { if (st) st.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode: keep in memory */ }
   };
   M.Save.wipe = function (store) {
-    var st = store || (typeof localStorage !== 'undefined' ? localStorage : null);
+    var st = store || defaultStore();
     try { if (st) { st.removeItem(KEY); st.removeItem(KEY_V2); st.removeItem(KEY_V1); } } catch (e) { /* ignore */ }
   };
 })(P.Meta);

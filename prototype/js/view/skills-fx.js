@@ -314,12 +314,12 @@ P.SkillsFx = (function () {
       c.globalAlpha = 1;
     }
     c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
-    c.font = 'italic 900 ' + Math.round(H * 0.06) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
+    c.font = 'italic 900 ' + Math.round(H * 0.06) + 'px "CM Bangers", Bangers, Impact, sans-serif';
     c.lineWidth = 8; c.strokeStyle = INK; c.fillStyle = '#FFD166';
     c.strokeText(P.t('evo.title'), cx, H * 0.2); c.fillText(P.t('evo.title'), cx, H * 0.2);
-    c.font = 'italic 900 ' + Math.round(H * 0.045) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
+    c.font = 'italic 900 ' + Math.round(H * 0.045) + 'px "CM Bangers", Bangers, Impact, sans-serif';
     c.lineWidth = 6; c.strokeText(P.t('item.' + e.to), cx, H * 0.66); c.fillStyle = '#FFFFFF'; c.fillText(P.t('item.' + e.to), cx, H * 0.66);
-    c.font = '600 16px system-ui'; c.lineWidth = 3;
+    c.font = '600 16px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.lineWidth = 3;
     var line = P.t('evo.from', { from: P.t('item.' + e.from), to: P.t('item.' + e.to) });
     c.strokeText(line, cx, H * 0.73); c.fillStyle = 'rgba(255,255,255,0.8)'; c.fillText(line, cx, H * 0.73);
     c.restore();

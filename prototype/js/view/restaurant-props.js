@@ -145,7 +145,7 @@ P.RestaurantProps = (function () {
     rect(c, pr, k.x0 + 0.06, k.y0 + 0.16, k.x1 - 0.06, k.y1 - 0.06, 'rgba(61,139,255,' + (0.55 * flick).toFixed(3) + ')');
     rect(c, pr, k.x0 + 0.06, k.y0 + 0.02, k.x1 - 0.06, k.y0 + 0.14, '#C0392B');   // ticker band
     c.fillStyle = '#FFFFFF'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = 'bold ' + Math.max(7, Math.round(pr.s(0.14))) + 'px system-ui, sans-serif';
+    c.font = 'bold ' + Math.max(7, Math.round(pr.s(0.14))) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif';
     c.fillText(lang === 'tr' ? 'SON DAKİKA' : 'BREAKING', pr.X((k.x0 + k.x1) / 2), pr.Y(k.y0 + 0.08));
     c.fillStyle = 'rgba(255,255,255,0.35)';
     c.fillRect(pr.X(k.x0 + 0.14), pr.Y(k.y1 - 0.26), pr.s(k.x1 - k.x0 - 0.28), pr.s(0.05));
@@ -159,9 +159,9 @@ P.RestaurantProps = (function () {
     var rowH = (k.y1 - k.y0) / (rows.length + 0.6);
     rows.forEach(function (r, i) {
       var yy = k.y1 - rowH * (i + 0.9);
-      c.fillStyle = '#F4EBDD'; c.font = 'bold ' + Math.max(8, Math.round(pr.s(rowH * 0.42))) + 'px system-ui, sans-serif';
+      c.fillStyle = '#F4EBDD'; c.font = 'bold ' + Math.max(8, Math.round(pr.s(rowH * 0.42))) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif';
       c.fillText(r[0], pr.X(k.x0 + 0.12), pr.Y(yy));
-      c.fillStyle = '#E9C27A'; c.font = Math.max(7, Math.round(pr.s(rowH * 0.34))) + 'px system-ui, sans-serif';
+      c.fillStyle = '#E9C27A'; c.font = Math.max(7, Math.round(pr.s(rowH * 0.34))) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif';
       c.fillText(r[1], pr.X(k.x0 + 0.12) + pr.s(0.95), pr.Y(yy));
     });
   };

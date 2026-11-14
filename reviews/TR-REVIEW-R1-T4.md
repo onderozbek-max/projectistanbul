@@ -81,3 +81,12 @@ Owner decided (2026-11-14): "Gece" takes the possessive noun, so it reads "Gece 
 | # | Key | Current Turkish | English |
 |---|---|---|---|
 | 45 | hint.kiosk | Büfe: Dokun ve iyileş | Kiosk: touch to heal |
+
+## F. Added after the phone playtest (2026-11-14)
+
+| # | Key | Current Turkish | English | Where |
+|---|---|---|---|---|
+| 46 | mo.streak25 | VAHŞET! | SMASH! | kill-streak word at 25 kills (was KIRIM, your suggestion) |
+| 47 | mo.streak10 | DEVAM! | KEEP IT UP! | kill-streak word at 10 kills |
+| 48 | mo.streak50 | EFSANE! | LEGEND! | kill-streak word at 50 kills |
+| 49 | ui.set.joyA | Her yer | Anywhere | Settings, joystick side (new default) |

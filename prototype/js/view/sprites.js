@@ -341,7 +341,7 @@ P.Sprites = (function () {
       arms: 'panic', still: false, seed: (v.x * 0.37) % 4, mot: { gait: 'walk', strideK: 1.4, liftK: 1.3, sway: 0.02 }, hook: EN.accent });
     drawFigure(c, X, Y, u, v.drift >= 0 ? 1 : -1, rc, { phase: v.walk * 4.5, flash: 0 }, 0);
     if (v.scream > 0) {
-      c.font = 'italic 900 ' + Math.round(0.5 * u) + 'px ' + 'system-ui'; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = INK; c.fillStyle = '#FFD166';
+      c.font = 'italic 900 ' + Math.round(0.5 * u) + 'px "CM Bangers", Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = INK; c.fillStyle = '#FFD166';
       c.strokeText('!', X + 0.25 * u, Y - 1.35 * u); c.fillText('!', X + 0.25 * u, Y - 1.35 * u);
     }
   };

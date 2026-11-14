@@ -34,7 +34,7 @@ P.ConsumablesZone = (function () {
     }
     P.ConsumablesIcons.draw(c, 'link', X, Y, ir, ph === 'paused' ? '#C8D0D8' : '#7CC7FF', INK);
     if (ph === 'paused') {
-      c.font = '800 ' + Math.round(r * 0.22) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
+      c.font = '800 ' + Math.round(r * 0.22) + 'px "CM Bangers", Bangers, Impact, sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = INK;
       c.strokeText(P.t('zone.paused'), X, Y + r + 10); c.fillStyle = '#E6F0FF'; c.fillText(P.t('zone.paused'), X, Y + r + 10);
     }

@@ -250,6 +250,27 @@ async function runtimeTests() {
     ok(sb.P.SfxGen.has('splat') && !sb.P.SfxGen.has('bell'), 'k. has() reports covered cues only');
     ok(sb.P.SfxGen.has('hit') === false, 'k. has("hit") is false with no hit kind');
   }
+  // l. ambience changes while the beds are still decoding: one bed plays, the one for the last theme, and no stale bed starts
+  {
+    const beds = { street: { file: 'amb_street.mp3', seconds: 9.5, rmsDb: -26, peak: -10, bytes: 1, source: 'x' },
+                   waterfront: { file: 'amb_waterfront.mp3', seconds: 9.5, rmsDb: -26, peak: -10, bytes: 1, source: 'x' } };
+    const sb = load({ manifest: manifestOf({ splat: [entry('splat.mp3', 0, 0.3, -18, -4)] }, beds) });
+    await flush(sb.st);
+    sb.P.Sfx.play('splat', 0, {}); tick(sb.st);
+    const before = sb.st.starts.length;
+    sb.P.Sfx.ambience('istiklal');                 // street, decoding
+    sb.P.Sfx.ambience(null);                       // stopped before it arrives
+    sb.P.Sfx.ambience('istiklal');                 // street again, same request
+    sb.P.Sfx.unlock();                             // a second Start: must not add a bed
+    sb.P.Sfx.ambience('karakoy');                  // waterfront, decoding
+    sb.P.Sfx.ambience('istiklal');                 // back to street
+    await flush(sb.st, 60);
+    const loops = sb.st.starts.slice(before).filter(x => x.loop);
+    ok(loops.length === 1, `l. a burst of theme changes starts exactly one bed (started ${loops.length})`);
+    ok(loops.length === 1 && loops[0].buf.file === 'amb_street.mp3', 'l. the one bed is the street bed for the last theme');
+    sb.P.Sfx.ambience('istiklal'); await flush(sb.st, 10);
+    ok(sb.st.starts.slice(before).filter(x => x.loop).length === 1, 'l. the same theme again starts no second bed');
+  }
 }
 
 // ---- 3. the tool, on synthetic files in the OS temp folder

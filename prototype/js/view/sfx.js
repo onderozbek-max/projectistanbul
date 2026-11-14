@@ -2,7 +2,7 @@
 // sfx-bank2.js (lazily on first use; variant 0 of every cue is warmed in small steps after unlock). play() only starts
 // buffer sources. Unknown cue names are a silent no-op.
 // API: play(name, minGapMs, {pan, vol, rate, voice, kind, variant}) | unlock() | ambience(themeId|group|null)
-//      | setVolume(bus, v) with bus sfx|ui|voice|ambience|music|master | duck(sec) | stopAll() | has(name)
+//      | setVolume(bus, v) with bus sfx|ui|voice|ambience|music|master | duck(sec) | stopAll() | has(name) | mixInput()
 // Mix: voice limits (per cue, global, priority), rate limits for impact cues (more than N starts per 100 ms are
 // dropped, rapid repeats rise slightly in pitch), a ducking pass when a boss or comic-speech cue plays (ambience
 // -6 dB, music via P.Music.duckFor, mid-priority SFX -3 dB), and a master limiter (DynamicsCompressor, ratio 12).
@@ -260,6 +260,9 @@ P.Sfx = (function () {
       if (ctx) bus[cat].gain.setTargetAtTime(CATS[cat] * (cat === 'ambience' && duckOn ? DUCK_AMB : 1) * v, ctx.currentTime, 0.02);
     },
     stopAll: function () { if (ctx) active.slice().forEach(stopVoice); },
+    // The master limiter's input. music.js routes its tracks here, so one limiter sits over music and effects (iOS
+    // ignores element volume, so music gains are Web Audio gains, see music.js).
+    mixInput: function () { return ensure() ? comp : null; },
     has: function (name) { return !!R && R.has(name); }
   };
 })();

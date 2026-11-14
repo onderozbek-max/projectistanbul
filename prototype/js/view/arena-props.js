@@ -4,7 +4,7 @@
 // o.v (0..1) picks the variant. Sign text is written at runtime from a P.t key (the SVG holds no words). View only; the sim never reads this.
 P.ArenaProps = (function () {
   var A = {}, IMG = {}, RASTER = {}, pending = 0;
-  var FONT = 'italic 900 {px}px "Avenir Next Condensed", "Arial Narrow", system-ui';
+  var FONT = 'italic 900 {px}px "CM Bangers", Bangers, Impact, sans-serif';
 
   function load() {
     var data = P.ArenaPropsData || {};

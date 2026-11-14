@@ -35,7 +35,7 @@ P.Meta.Map = (function () {
   var W = 960, H = 1700, VW = 390, VH = 844;
   var COL = { land: '#2A2B3D', asia: '#20233A', water: '#1E5577', sea0: '#1B4965', sea1: '#0B2436', block: '#3A3C52',
     blockD: '#1A1C2A', ink: '#14151F', paper: '#F4EBDD', stone: '#8A8F98', gold: '#E9A23B' };
-  var FAMILY = "'Avenir Next Condensed', 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif";
+  var FAMILY = '"CM Bangers", Bangers, Impact, sans-serif';
   var CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5 L10 17.5 L19 7" fill="none" stroke="#14151F" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var FACE = '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#F4EBDD" stroke="#14151F" stroke-width="3"/>' +
     '<path d="M9 45 Q11 30 24 29 Q37 30 39 45 Z" fill="#1B4965" stroke="#14151F" stroke-width="2.5" stroke-linejoin="round"/>' +

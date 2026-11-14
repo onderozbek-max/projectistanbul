@@ -6,7 +6,8 @@ Object.assign(P.STR.tr, {
   // "Ses efektleri" (the Sound effects label) is in strings.js. The Voice slider was removed in T4 part 9; its key went with it.
   'ui.set.music': 'Müzik',
   'ui.set.haptics': 'Titreşim', 'ui.set.joy': 'Joystick yönü',
-  'ui.set.joyL': 'Sol', 'ui.set.joyR': 'Sağ', 'ui.set.shake': 'Ekran sarsıntısı',
+  'ui.set.joyL': 'Sol', 'ui.set.joyR': 'Sağ', 'ui.set.joyA': 'Her yer',
+  'ui.set.shake': 'Ekran sarsıntısı',
   'ui.set.textSize': 'Yazı boyutu',
   'ui.set.reduceFlash': 'Yanıp sönme azalt', 'ui.set.note': 'Bu ayarlar yalnızca görüntüyü ve dokunmayı etkiler; oyunu değiştirmez.',
   'ui.down.tipGeneric': 'İpucu: Durma. Hareket et, sonra vur.',
@@ -27,7 +28,7 @@ Object.assign(P.STR.en, {
   'ui.boot.fail': 'Could not load. Try again.',
   'ui.set.music': 'Music',
   'ui.set.haptics': 'Haptics', 'ui.set.joy': 'Joystick side',
-  'ui.set.joyL': 'Left', 'ui.set.joyR': 'Right', 'ui.set.shake': 'Screen shake',
+  'ui.set.joyL': 'Left', 'ui.set.joyR': 'Right', 'ui.set.joyA': 'Anywhere', 'ui.set.shake': 'Screen shake',
   'ui.set.textSize': 'Text size',
   'ui.set.reduceFlash': 'Reduce flashing', 'ui.set.note': 'These settings change the view and touch only; they never change the game.',
   'ui.down.tipGeneric': 'Tip: keep moving, then strike.',

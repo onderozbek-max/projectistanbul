@@ -119,7 +119,7 @@ P.Consumables = (function () {
   // Floating amount: the damage-number style (italic 900, night-ink outline) with the class icon beside it.
   function drawFloats(c, R, t, motion) {
     var i, f, a, k, alpha, X, Y, w, x0;
-    c.font = 'italic 900 ' + C.floatPx + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
+    c.font = 'italic 900 ' + C.floatPx + 'px "CM Bangers", Bangers, Impact, sans-serif';
     c.textAlign = 'left'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = INK;
     for (i = floats.length - 1; i >= 0; i--) {
       f = floats[i]; a = t - f.t0;
@@ -151,7 +151,7 @@ P.Consumables = (function () {
     c.strokeStyle = INK; c.lineWidth = 2; c.strokeRect(X - w / 2, Y - h / 2, w, h);
     P.ConsumablesIcons.draw(c, icon || 'cross', X, Y, h * 0.36, fill, INK);
     if (empty) {
-      c.font = '800 ' + Math.round(s * 0.3) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
+      c.font = '800 ' + Math.round(s * 0.3) + 'px "CM Bangers", Bangers, Impact, sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = INK;
       c.strokeText(P.t('consume.empty'), X, Y + h / 2 + s * 0.22); c.fillStyle = '#FFF4DF'; c.fillText(P.t('consume.empty'), X, Y + h / 2 + s * 0.22);
     }

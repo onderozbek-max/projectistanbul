@@ -130,11 +130,17 @@
   }
   // Journey complete (every hood done): there is no next level, so the card says so and the play button is hidden.
   // The line and the button never disagree (AUDIT-6 F8).
+  // Next-up line: the shared unlock wording (ui-progress.js) with the level written as the HUD journey chip does,
+  // "BÖLÜM 1/100 · İSTİKLAL · Taksim Girişi". Falls back to the shared line when its level prefix is not there.
+  function nextText(info) {
+    var lvl = t('prog.levelN', { n: info.index }), line = P.UIProgress.unlockText(info);
+    return line.indexOf(lvl) === 0 ? t('ui.hud.journey', { n: info.index, of: J.count() }) + line.slice(lvl.length) : line;
+  }
   function renderBottom(v) {
     var lv = M.level(M.currentLevel()), done = v.done >= J.hoods.length;
     setKm(v.kmShown);
     nextHead.textContent = t(done ? 'meta.doneHead' : 'meta.next');
-    nextLine.textContent = done ? t('meta.allDone') : P.UIProgress.unlockText(P.Progress.levelInfo(lv.index));
+    nextLine.textContent = done ? t('meta.allDone') : nextText(P.Progress.levelInfo(lv.index));
     playBtn.classList.toggle('hidden', done);
     if (!done) playBtn.textContent = t('meta.playLevel', { L: lv.index });
   }
@@ -411,6 +417,15 @@
     if (p && p.statGains && M.Attr) M.Attr.sequence(p, function () { playToasts(p); });
     else playToasts(p);
   }
+  // A failing optional step (map music and the open sound, pending result, welcome-back) is logged as boot_error and skipped,
+  // so it cannot leave the map half-built. The base state is drawn before those steps: badges, camera, km and next-up card
+  // are always in place.
+  function optional(where, fn) {
+    try { return fn(); } catch (e) {
+      if (P.UI && P.UI.bootError) P.UI.bootError(where, e && e.message ? e.message : e);
+      return null;
+    }
+  }
   function open(cb) {
     if (typeof cb === 'function') onPlay = cb;
     ensureRoot();
@@ -419,9 +434,12 @@
     opened = true; sheetHood = -1; panelOpen = null;
     sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden'); tabsEl.classList.remove('is-hidden');
     toastLayer.innerHTML = '';
-    music('map'); sfx('uiOpen');
     Map.show();
-    var p = M.takePending(), w = M.Hub ? M.Hub.welcomeInfo() : null;
+    var v = M.snapshot();
+    renderAll(v); Map.focusHood(v.cur, 0.42, true);
+    optional('map.audio', function () { music('map'); sfx('uiOpen'); });
+    var p = optional('map.pending', M.takePending);
+    var w = optional('map.welcome', function () { return M.Hub ? M.Hub.welcomeInfo() : null; });
     if (w) { M.Hub.welcome(root, w, function () { afterWelcome(p); }); return; }
     afterWelcome(p);
   }

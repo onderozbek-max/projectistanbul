@@ -2,8 +2,8 @@
    Every class is prefixed meta-; colours are local custom properties so nothing leans on proto classes. */
 .meta-root {
   --m-ink: #14151F; --m-paper: #F4EBDD; --m-gold: #E9A23B; --m-red: #D7263D; --m-cyan: #3DDCFF; --m-stone: #8A8F98;
-  --m-display: 'Avenir Next Condensed', 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', system-ui, sans-serif;
-  --m-body: 'Avenir Next', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --m-display: var(--hud-display);   /* the shared comic faces (proto.css), not system stacks */
+  --m-body: var(--hud-body);
   position: absolute; inset: 0; z-index: 100; overflow: hidden; color: var(--m-ink); font: 500 calc(15px * var(--ui-text, 1))/1.3 var(--m-body);
   -webkit-user-select: none; user-select: none;
 }

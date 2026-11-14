@@ -71,7 +71,7 @@ P.HintsView = (function () {
   function css() {
     return '#hint-callout{position:absolute;left:0;top:0;z-index:' + Z + ';display:flex;align-items:center;gap:6px;box-sizing:border-box;' +
       'max-width:' + MAXW + 'px;padding:5px 12px 5px 6px;border:2px solid ' + INK + ';border-radius:16px;background:#FFF4DF;color:' + INK + ';' +
-      'font:800 calc(14px * var(--ui-text,1))/1.15 "Avenir Next Condensed","Arial Narrow",system-ui;opacity:0;pointer-events:none;' +
+      'font:800 calc(14px * var(--ui-text,1))/1.15 var(--display);opacity:0;pointer-events:none;' +
       'transition:opacity ' + fadeMs + 'ms linear}' +
       '#hint-callout .hint-ico{flex:0 0 auto;width:' + C.iconPx + 'px;height:' + C.iconPx + 'px}' +
       '#hint-callout .hint-ico svg{display:block;width:100%;height:100%}' +
@@ -89,7 +89,9 @@ P.HintsView = (function () {
     st = document.createElement('style'); st.id = 'hint-css'; st.textContent = css(); document.head.appendChild(st);
     root = document.createElement('div'); root.id = 'hint-callout'; root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'polite');
     root.innerHTML = '<span class="hint-ico"></span><span class="hint-txt"></span>';
-    root.addEventListener('pointerdown', function (e) { e.stopPropagation(); if (P.Hints) P.Hints.skip(); });
+    // A tap skips the callout but does not stop the touch: it still reaches #phone, so a thumb that lands on the pill can still
+    // start the stick (before, the pill swallowed the touch and the hero did not move).
+    root.addEventListener('pointerdown', function () { if (P.Hints) P.Hints.skip(); });
     arrow = document.createElement('div'); arrow.id = 'hint-arrow'; arrow.setAttribute('aria-hidden', 'true');
     phone.appendChild(arrow); phone.appendChild(root);
     return root;
