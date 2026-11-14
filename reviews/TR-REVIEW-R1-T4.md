@@ -64,7 +64,7 @@ The name is one adjective plus one noun from the day's seed, so every pair has t
 |---|---|
 | Noun | Liman, Kepenk, Sokak, Vapur, Çarşı, Köprü, Fener, Kapı |
 
-Check pairs like "Son Kepenk" (fine) and "Gece Kapı" (suggest Gece Kapısı: tell me if nouns should carry the possessive "-sı/-si" for all).
+Owner decided (2026-11-14): "Gece" takes the possessive noun, so it reads "Gece Kapısı" (Gece Limanı, Gece Kepeği, Gece Sokağı, Gece Vapuru, Gece Çarşısı, Gece Köprüsü, Gece Feneri). The other adjectives keep the bare noun. Row 28 stays "bölgeyi" (owner confirmed).
 
 ## D. Adrenalin and the journey chip
 

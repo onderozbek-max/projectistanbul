@@ -259,9 +259,14 @@ section('wiring: telemetry, ids, strings, css', () => {
   const used = new Set();
   ['js/meta/meta-modes.js', 'js/meta/meta-nightshift.js', 'js/view/modes-ui.js', 'js/meta/meta-hub.js', 'js/meta/meta-ui.js', 'js/view/hood-card.js', 'js/view/screens.js', 'js/meta/meta-map.js'].forEach(f => {
     const src = read(f);
-    (src.match(/'(mode\.|ns\.|res\.nm\.|res\.ns\.|res\.star4|toast\.moon|toast\.title|ui\.ns\.)[a-zA-Z0-9.]*'/g) || []).forEach(k => { if (!/\.[an]$/.test(k.slice(1, -1))) used.add(k.slice(1, -1)); });
+    (src.match(/'(mode\.|ns\.|res\.nm\.|res\.ns\.|res\.star4|toast\.moon|toast\.title|ui\.ns\.)[a-zA-Z0-9.]*'/g) || []).forEach(k => { if (!/\.[anp]$/.test(k.slice(1, -1))) used.add(k.slice(1, -1)); });
   });
-  for (let a = 0; a < 8; a++) { used.add('ns.name.a' + a); used.add('ns.name.n' + a); }
+  for (let a = 0; a < 8; a++) { used.add('ns.name.a' + a); used.add('ns.name.n' + a); used.add('ns.name.p' + a); }
+  used.add('ns.name.poss');
+  { const nm = { a: 4, n: 7 }, tt = lang => k => (P.STR[lang][k] !== undefined ? P.STR[lang][k] : P.STR.en[k]);
+    ok(P.Meta.NightShift.seedName(nm, tt('tr')) === 'Gece Kapısı', 'TR: Gece takes the possessive noun (Gece Kapısı)');
+    ok(P.Meta.NightShift.seedName({ a: 0, n: 7 }, tt('tr')) === 'Sessiz Kapı', 'TR: other adjectives keep the bare noun (Sessiz Kapı)');
+    ok(P.Meta.NightShift.seedName(nm, tt('en')) === 'Night Gate', 'EN: no possessive form (Night Gate)'); }
   used.forEach(k => ok(tr[k] !== undefined && en[k] !== undefined, 'string ' + k + ' exists in TR and EN'));
   ok(read('js/strings-modes.js').split('\n').filter(l => /^  '/.test(l) && /TR owner check/.test(l)).length >= 20, 'the Turkish mode names and seed words carry the owner-check tag');
   ok(!/%\{/.test(read('js/strings-modes.js')), 'placeholders use the P.t syntax {name}, not %{name} (the % would render literally)');

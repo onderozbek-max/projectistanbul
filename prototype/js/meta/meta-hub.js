@@ -94,7 +94,7 @@ P.Meta = P.Meta || {};
   function nightShiftCard(parent) {
     var c = M.NightShift.card(today()), p = c.plan, NS = P.CFG.nightshift, box = el('section', 'meta-hub-card meta-ns', parent);
     el('div', 'meta-hub-head', box).textContent = t('ns.card.head');
-    el('div', 'meta-ns-seed', box).textContent = t('ns.card.seed', { name: t('ns.name.a' + p.name.a) + ' ' + t('ns.name.n' + p.name.n) });
+    el('div', 'meta-ns-seed', box).textContent = t('ns.card.seed', { name: M.NightShift.seedName(p.name, t) });
     el('div', 'meta-ns-rota', box).textContent = p.level ? t('ns.card.rota', { hood: M.level(p.level).hood.name }) : '';
     el('div', 'meta-hub-head', box).textContent = t('ns.card.mods');
     p.mods.forEach(function (m) {

@@ -47,6 +47,9 @@ Object.assign(P.STR.tr, {
   'ns.name.a4': 'Gece', 'ns.name.a5': 'Soğuk', 'ns.name.a6': 'Uzun', 'ns.name.a7': 'Sisli', // TR owner check
   'ns.name.n0': 'Liman', 'ns.name.n1': 'Kepenk', 'ns.name.n2': 'Sokak', 'ns.name.n3': 'Vapur', // TR owner check
   'ns.name.n4': 'Çarşı', 'ns.name.n5': 'Köprü', 'ns.name.n6': 'Fener', 'ns.name.n7': 'Kapı', // TR owner check
+  // "Gece" is a noun, so the compound takes the possessive noun (Gece Kapısı). poss lists the adjective indexes that do; p<i> is the possessive noun.
+  'ns.name.poss': '4', 'ns.name.p0': 'Limanı', 'ns.name.p1': 'Kepeği', 'ns.name.p2': 'Sokağı', 'ns.name.p3': 'Vapuru', // TR owner check
+  'ns.name.p4': 'Çarşısı', 'ns.name.p5': 'Köprüsü', 'ns.name.p6': 'Feneri', 'ns.name.p7': 'Kapısı', // TR owner check
 });
 Object.assign(P.STR.en, {
   'mode.nm.name': 'Nightmare',
@@ -94,4 +97,6 @@ Object.assign(P.STR.en, {
   'ns.name.a4': 'Night', 'ns.name.a5': 'Cold', 'ns.name.a6': 'Long', 'ns.name.a7': 'Foggy',
   'ns.name.n0': 'Harbour', 'ns.name.n1': 'Shutter', 'ns.name.n2': 'Street', 'ns.name.n3': 'Ferry',
   'ns.name.n4': 'Bazaar', 'ns.name.n5': 'Bridge', 'ns.name.n6': 'Lantern', 'ns.name.n7': 'Gate',
+  'ns.name.poss': '-', 'ns.name.p0': 'Harbour', 'ns.name.p1': 'Shutter', 'ns.name.p2': 'Street', 'ns.name.p3': 'Ferry',
+  'ns.name.p4': 'Bazaar', 'ns.name.p5': 'Bridge', 'ns.name.p6': 'Lantern', 'ns.name.p7': 'Gate',
 });
