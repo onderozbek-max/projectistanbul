@@ -1,5 +1,8 @@
 # Art commission brief (R1, D-066 proposed)
 
+> **Update 2026-11-14:** the owner chose **ChatGPT as the artist for all assets**. The working plan, prompts and checklists are in `art/commission/chatgpt/`
+> (start with its `README.md`). The tables below (sections 2 and 5) stay as the technical spec; sections 1 and 4 are superseded by the ChatGPT route.
+
 For the owner. This is the art version of `prototype/audio/sfx-gen/BRIEF.md`: what to get, from where, with which prompts, and where to put the files.
 Nothing here is built yet: I write the importer (`tools/prepare-art.js`) and the raster sprite loader when the first files land.
 
