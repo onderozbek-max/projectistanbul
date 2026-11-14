@@ -1,0 +1,9 @@
+# Raw generated or commissioned sources stay local. The importer writes the committed files (art/commission/ready/).
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.psd
+*.zip
+!.gitignore
+!README.md
