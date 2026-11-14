@@ -1,4 +1,5 @@
-// First-run map regression (owner bug, iPhone Safari: "the map screen seemed to be broken"). Two parts:
+// First-run map regression (owner bug, iPhone Safari: "the map screen seemed to be broken"). Three parts (part 3 is the
+// ?debug=1 telemetry export on the settings screen and the pause menu, see debugExportCheck):
 //  1. Node, no DOM: the fresh save and the map-card strings in TR and EN; the save with localStorage blocked (SecurityError).
 //  2. Headless Chrome over CDP (skipped with a note when Chrome is not found): a fresh profile taps the title Start with
 //     ?map=1 (the review shortcut) at 390x844 and 448x969, in TR and EN. The map must show the Istiklal node, the next-up card
@@ -196,6 +197,83 @@ function checkScenario(sc, out) {
   if (ph && bt) check(bt.b <= ph.b + 1 && bt.t >= ph.t, tag + 'next-up card is cut by the phone (bottom ' + Math.round(bt.b) + ' > ' + Math.round(ph.b) + ')');
 }
 
+// ---- Part 3: the team telemetry export (?debug=1, owner report "I don't see the telemetry button") at 390x844. With debug on
+// the button is on the settings screen (reached from the title gear) and on the pause menu of a level (the map has no pause
+// menu); each is visible, inside the viewport, not covered, at least 44 px, and a tap downloads the JSONL. Without debug the
+// settings button stays hidden.
+const VISIBLE = id => `JSON.stringify((function () {
+  var e = document.getElementById('${id}'); if (!e) return null;
+  var b = e.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + b.height / 2, hit = document.elementFromPoint(x, y);
+  return { hidden: e.classList.contains('hidden') || getComputedStyle(e).display === 'none', w: b.width, h: b.height, x: x, y: y,
+    inside: b.left >= 0 && b.top >= 0 && b.right <= innerWidth && b.bottom <= innerHeight, hit: !!hit && (hit === e || e.contains(hit)) };
+})())`;
+const TAP_TARGET = `JSON.stringify((function () { var e = document.querySelector('.meta-play'); if (!e) return null;
+  var b = e.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; })())`;
+async function tapAt(c, x, y) {
+  await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] }); await sleep(60);
+  await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
+function exportCheck(tag, p) {
+  check(p && !p.hidden, tag + 'telemetry button is hidden');
+  check(p && p.inside, tag + 'telemetry button is outside the viewport: ' + JSON.stringify(p));
+  check(p && p.hit, tag + 'telemetry button is covered by another element at its centre');
+  check(p && p.w >= 44 && p.h >= 44, tag + 'telemetry button is under 44 px: ' + (p && p.w) + 'x' + (p && p.h));
+}
+async function debugExportCheck(base) {
+  const port = await freePort();
+  const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'debug-export-'));
+  const proc = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--no-first-run',
+    '--no-default-browser-check', '--disable-gpu', '--window-size=500,1000', 'about:blank'], { stdio: 'ignore' });
+  try {
+    let wsUrl = null;
+    for (let i = 0; i < 150 && !wsUrl; i++) {
+      try { const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); const pg = list.find(x => x.type === 'page'); if (pg) wsUrl = pg.webSocketDebuggerUrl; } catch (e) { /* not up yet */ }
+      if (!wsUrl) await sleep(100);
+    }
+    if (!wsUrl) throw new Error('Chrome did not start');
+    const c = cdpClient(wsUrl); await c.ready;
+    const errors = [];
+    c.on(m => { if (m.method === 'Runtime.exceptionThrown') { const d = m.params.exceptionDetails; errors.push(((d.exception && d.exception.description) || d.text).split('\n')[0]); } });
+    await c.send('Runtime.enable'); await c.send('Page.enable');
+    await c.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+    await c.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    await c.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__exports = 0; (function () { var o = URL.createObjectURL; URL.createObjectURL = function (b) { window.__exports++; return o.call(URL, b); }; })();' });
+    const evalV = async expr => (await c.send('Runtime.evaluate', { expression: expr, returnByValue: true })).result.value;
+    const tapId = async id => { const p = JSON.parse(await evalV(VISIBLE(id))); await tapAt(c, p.x, p.y); await sleep(400); };
+    // Debug on: title gear -> settings shows the export; a tap downloads.
+    await c.send('Page.navigate', { url: `${base}/index.html?lang=en&debug=1&map=1` }); await sleep(2000);
+    await tapId('btn-title-settings'); await sleep(700);
+    exportCheck('[debug settings] ', JSON.parse(await evalV(VISIBLE('btn-settings-export'))));
+    await tapId('btn-settings-export'); await sleep(300);
+    check((await evalV('window.__exports')) === 1, '[debug settings] tap did not download the JSONL');
+    await tapId('btn-settings-back'); await sleep(500);
+    // Debug on: start, the map (map=1), play the first level, pause; the pause menu shows the export and a tap downloads.
+    await tapId('btn-start'); await sleep(1500);
+    for (let i = 0; i < 80; i++) {
+      const st = await evalV('P.debug && P.debug.state');
+      if (st === 'play') break;
+      if (st === 'map') { const t = JSON.parse(await evalV(TAP_TARGET)); if (t) await tapAt(c, t.x, t.y); }
+      else if (st === 'cold' || st === 'story' || st === 'dying') await tapAt(c, 195, 400);
+      await sleep(500);
+    }
+    await tapId('btn-pause'); await sleep(1000);
+    check((await evalV('P.debug && P.debug.state')) === 'paused', '[debug pause] the level did not pause');
+    exportCheck('[debug pause] ', JSON.parse(await evalV(VISIBLE('btn-export'))));
+    await tapId('btn-export'); await sleep(300);
+    check((await evalV('window.__exports')) === 2, '[debug pause] tap did not download the JSONL');
+    // Debug off (control): the settings export stays hidden.
+    await c.send('Page.navigate', { url: `${base}/index.html?lang=en&map=1` }); await sleep(2000);
+    await tapId('btn-title-settings'); await sleep(700);
+    check(JSON.parse(await evalV(VISIBLE('btn-settings-export'))).hidden === true, '[no debug] settings export is shown without ?debug=1');
+    check(errors.length === 0, 'debug export: thrown errors: ' + errors.join(' | '));
+    console.log('  debug export: pause and settings checked at 390x844');
+    c.close();
+  } finally {
+    proc.kill();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 async function partBrowser() {
   if (typeof WebSocket === 'undefined') { console.log('browser part: SKIPPED (no WebSocket in this Node)'); return; }
   if (!fs.existsSync(CHROME)) { console.log('browser part: SKIPPED (Chrome not found at ' + CHROME + '; set CHROME_BIN)'); return; }
@@ -208,6 +286,7 @@ async function partBrowser() {
       if (sc.id === 'tr-390') check(out.shotOk, 'screenshot was not written');
       console.log('  ' + sc.id + ': ' + JSON.stringify(out.read.next || out.read.screens) + ' | play "' + (out.read.play || '') + '"');
     }
+    await debugExportCheck(base);
   } finally { srv.close(); }
 }
 

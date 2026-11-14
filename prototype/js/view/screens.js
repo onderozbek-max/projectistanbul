@@ -398,6 +398,7 @@ P.Screens = (function () {
     row(P.t('ui.set.haptics'), toggle('haptics'));
     row(P.t('ui.set.joy'), step('joySide', ['any', 'right', 'left'], function (v) { return P.t(v === 'left' ? 'ui.set.joyL' : v === 'right' ? 'ui.set.joyR' : 'ui.set.joyA'); }));
     $('settings-note').textContent = P.t('ui.set.note');
+    $('btn-settings-export').classList.toggle('hidden', !S.devTools());   // team export (?debug=1): the map has no pause menu
     $('btn-settings-back').onclick = onBack;
     S.show('scr-settings');
   };

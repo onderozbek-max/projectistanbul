@@ -451,6 +451,7 @@
   on('btn-restart', function () { P.Tel.log('level_end', { result: 'quit', t_s: +sim.runT.toFixed(1) }); newRun(); beginPlay(); });
   on('btn-quit', function () { if (P.Meta) quitToMap(); else toTitle(); });
   on('btn-export', function () { P.Tel.exportJsonl(); });
+  on('btn-settings-export', function () { P.Tel.exportJsonl(); });
   // Next level: Nightmare carries on only inside the same hood (meta-modes.js nextMode); otherwise Normal.
   on('btn-next', function () {
     var nx = levelIndex + 1, m = P.Meta && P.Meta.Modes ? P.Meta.Modes.nextMode(sim.runMode, levelIndex, nx) : 'normal';
