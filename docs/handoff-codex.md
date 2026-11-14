@@ -4,6 +4,8 @@ Written 2026-11-14 by the previous implementation agent (Wibey Desktop, Claude) 
 the current state, the traps, the owner's working rules, and what is only on this Mac. If something here and a doc disagree, the doc wins (AGENTS.md rule),
 then tell the owner.
 
+**Next:** read `reviews/EXPERT-REVIEW-2026-11-14.md` (audit and roadmap). Its Phase 0 replaces the "Next build steps" in section 5 below.
+
 ## 1. What is active (read this before AGENTS.md's Godot parts)
 
 - **The active build is the JS prototype in `prototype/`** (plain JS, no build step). `docs/execution-plan.md` section R1 ("Prototype Revision") is the live plan.
