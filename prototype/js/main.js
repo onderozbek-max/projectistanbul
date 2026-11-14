@@ -435,6 +435,7 @@
   // ---------- wiring ----------
   function on(id, fn) { $(id).addEventListener('click', function (e) { e.stopPropagation(); fn(e); }); }
   if (P.SarayProps) P.SarayProps.prepare();
+  if (P.ArtRaster) P.ArtRaster.prepare();   // ?art=raster only: starts the manifest fetch; atlases load on first use
   P.Render.init($('game')); P.UI.init(); fit(); window.addEventListener('resize', fit);
   P.Input.init(phone, toLocal); P.Input.onPause = pause;
   if (P.Quality) { P.Quality.onChange(function () { P.Render.resize(scale); }); if (P.Quality.debugFps) P.Quality.showFps(phone); }   // T4 part 12

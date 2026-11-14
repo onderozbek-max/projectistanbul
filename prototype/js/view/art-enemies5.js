@@ -76,7 +76,7 @@
     var c = Rd.ctx, u = Rd.ppm, f = rec.dx >= 0 ? 1 : -1, X = Rd.X(rec.x), Y = Rd.Y(rec.y - 0.2);
     var fade = clamp01((a - (rec.dur - POSE.fade)) / POSE.fade), k = 0.5 + 0.5 * fade, x = extraOf(rec.pose, a, f, rec.etype), st = collapseOf(a);
     var alpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
-    var p = { x: rec.x, y: rec.y, dx: rec.dx, dy: rec.dy, etype: rec.etype, variant: rec.variant, skin: rec.skin, fling: false, t: 0, T: 1,
+    var p = { x: rec.x, y: rec.y, dx: rec.dx, dy: rec.dy, etype: rec.etype, variant: rec.variant, skin: rec.skin, id: rec.id, fling: false, t: 0, T: 1,
       pose: rec.pose, fall: st.fall, alpha: alpha };
     shadowOf(Rd, rec, X, Y, u, st.shadow * alpha);
     if (x.char && charredBody(Rd, p, fade, x, st, f, X, Y, u)) return;

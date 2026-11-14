@@ -59,8 +59,9 @@
     if (sc < 1) c.globalAlpha = sc;
     c.translate(X + sway - f * back, Y - hop); c.rotate(rot); c.scale(sc * sw, sc * sq); c.translate(-X, -Y);
     if (tw) { var nk = Y - 0.9 * uf; c.translate(X, nk); c.rotate(tw); c.translate(-X, -nk); }
-    if (def.scooter) scooter(c, X, Y, uf, f, e);
-    if (def.car) taxiCar(c, Rd, e, X, Y, uf);
+    var composite = !!(P.ArtRasterChars && P.ArtRasterChars.covers(e));   // the raster courier and taxi frames already carry their vehicle
+    if (def.scooter && !composite) scooter(c, X, Y, uf, f, e);
+    if (def.car && !composite) taxiCar(c, Rd, e, X, Y, uf);
     prevEnemy(Rd, e, hero);
     if (def.broom) broom(c, X, Y, uf, f, wl);
     if (e.exposed) weakSpot(c, e, X, Y, uf, def);

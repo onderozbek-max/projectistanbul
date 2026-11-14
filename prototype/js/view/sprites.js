@@ -190,6 +190,7 @@ P.Sprites = (function () {
   // Arda: the hero. Red hoodie, quiff, earbuds, warm rim glow, ground halo. Same params as person().
   S.hero = function (c, X, Y, o) {
     var O = CH.outfit('hero'), f = o.face === -1 ? -1 : 1;
+    if (P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.hero(c, X, Y, o, f, { halo: 'rgba(255,214,150,0.32)', skin: o.skin || '#E0AC80', shirt: o.shirt || O.col })) return;
     var rc = buildRc({ tag: 'hero', oid: 'hero', bname: 'hero', B: CH.body('hero'), O: O, skin: o.skin || '#E0AC80',
       shirt: o.shirt || O.col, pants: o.pants || O.pants, hair: o.hair || O.hc, shoe: O.shoe, face: CH.heroFace, arms: 'run',
       still: !!o.still, seed: (X * 0.013) % 4, back: !!o.back, lean: o.lean || 0.03, live: { front: o.arms === 'knife' || !!o.noArms, back: !!o.backHand || !!o.noArms },
@@ -286,7 +287,8 @@ P.Sprites = (function () {
     var o = { flash: e.flash, phase: (e.walk || 0) * 5.5 + (e.id || 0) * P.CFG.feel2.walk.phaseStep, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
       outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000),
       spring: P.Feel ? P.Feel.hurt(e) : null, stopped: P.Feel ? P.Feel.stopped(e) : false };
-    drawFigure(c, X, Y, uf, f, rc, o, performance.now());
+    // Raster art (?art=raster, view only): the atlas figure replaces the rig's body; the crown and the boss mark below stay.
+    if (!(P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.enemy(c, e, o, X, Y, uf, f))) drawFigure(c, X, Y, uf, f, rc, o, performance.now());
     if (e.elite) eliteMarks(c, X, Y, uf, e);
     if (e.boss) bossMark(c, X, Y, uf);
     if (e.burn && e.burn.length) {
@@ -361,6 +363,7 @@ P.Sprites = (function () {
     // p.fall (0..1) and p.alpha, when given, override the timing here: the death collapse (art-enemies5.js) drives them itself.
     if (p.fall !== undefined) fall = p.fall;
     c.save(); c.globalAlpha = p.alpha !== undefined ? p.alpha : (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4);
+    if (P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.corpse(c, p, fall, f, X, Y, u, def.scale)) { c.restore(); return; }   // raster: owns its transform
     if (p.fling) {
       var el = k * p.T, zz = Math.max(0, 6 * el - 10 * el * el);
       X += p.dx * el * 0.25 * u; Y -= zz * u;

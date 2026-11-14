@@ -14,7 +14,7 @@ P.EnemiesFx2 = (function () {
   // ---------- kills: corpse record (owned, 6 s) and death FX per pose ----------
   F2.onKill = function (s, ev) {
     var etype = ev.enemy || 'walker', pose = P.ArtDeath.poseFor(ev.src), key = keyOf(ev.x, ev.y, etype);
-    var rec = { key: key, x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: etype, variant: ev.variant || 0, skin: ev.skin,
+    var rec = { key: key, x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: etype, variant: ev.variant || 0, skin: ev.skin, id: ev.id,
       pose: pose, t0: s.t, dur: POSE.life };
     F2.corpses.push(rec); F2.keys[key] = true;
     while (F2.corpses.length > POSE.cap) { var old = F2.corpses.shift(); delete F2.keys[old.key]; }

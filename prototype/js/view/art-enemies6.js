@@ -17,7 +17,7 @@
   P.Sprites.enemy = function (Rd, e, hero) {
     if (e.type === 'marti') { if (P.Fauna && P.Fauna.thiefLook() === 'pigeon') drawPigeon(Rd, e); else drawMarti(Rd, e); return; }
     prevEnemy(Rd, e, hero);
-    if (e.type === 'cayci') trayOver(Rd, e);
+    if (e.type === 'cayci' && !(P.ArtRasterChars && P.ArtRasterChars.covers(e))) trayOver(Rd, e);   // the raster cayci carries its own tray
     if (e.skinBeh === 'fisher') rodOver(Rd, e);
     else if (e.skinBeh === 'musician') noteOver(Rd, e);
     else if (e.skinBeh === 'hamal') crateOver(Rd, e);
@@ -32,6 +32,7 @@
     c.globalAlpha = 0.22; c.fillStyle = INK;
     c.beginPath(); c.ellipse(X, G, uf * 0.36, uf * 0.11, 0, 0, TAU); c.fill();
     c.globalAlpha = 1;
+    if (P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.flier(c, X, Y, uf, f, flap)) { carryDrop(c, X, Y, uf, f, e); c.restore(); return; }   // raster gull
     wing(c, X, Y, uf, f, flap, '#8E9BAA');                       // far wing, darker
     c.fillStyle = '#F3F5F7'; c.strokeStyle = INK; c.lineWidth = Math.max(1, uf * 0.05);
     c.beginPath(); c.ellipse(X, Y, uf * 0.36, uf * 0.19, 0, 0, TAU); c.fill(); c.stroke();
@@ -41,10 +42,13 @@
     c.lineTo(X + f * uf * 0.46, Y - uf * 0.02); c.closePath(); c.fill(); c.stroke();
     c.fillStyle = INK; c.beginPath(); c.arc(X + f * uf * 0.38, Y - uf * 0.15, uf * 0.03, 0, TAU); c.fill();
     wing(c, X, Y, uf, f, flap, '#B7C3CF');                       // near wing, with black tips
-    if (e.ai && e.ai.carry > 0) {                                // the stolen drop, gold, in the beak
-      c.fillStyle = '#FFC93C'; c.beginPath(); c.arc(X + f * uf * 0.7, Y + uf * 0.05, uf * 0.09, 0, TAU); c.fill();
-    }
+    carryDrop(c, X, Y, uf, f, e);
     c.restore();
+  }
+  // The stolen drop, gold, in the beak (both the code gull and the raster gull).
+  function carryDrop(c, X, Y, uf, f, e) {
+    if (!(e.ai && e.ai.carry > 0)) return;
+    c.fillStyle = '#FFC93C'; c.beginPath(); c.arc(X + f * uf * 0.7, Y + uf * 0.05, uf * 0.09, 0, TAU); c.fill();
   }
   // Pigeon look of the same thief (inland hoods, owner answer 1): grey-blue, a small head, an iridescent neck patch and a fan
   // tail. Same flight, dive and carry as the seagull. Palette: P.FaunaArt.BIRDS.pigeon (view/fauna-art.js).
