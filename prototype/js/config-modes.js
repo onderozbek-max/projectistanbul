@@ -6,12 +6,12 @@
   // Each stat multiplier = base + lin x k (k = journey index - 1), on top of the normal difficulty (levels.js diff).
   // Applied to s.diff in js/sim/modes.js; the horde director follows s.diff.spawn like the daily modifiers do.
   C.levels.nightmare = {
-    hp:    { base: 1.05, lin: 0.004 },           // PROTO enemy hp multiplier (bosses follow it through s.diff.hp, see bossShare)
-    dmg:   { base: 1.20, lin: 0.004 },           // PROTO enemy damage multiplier
+    hp:    { base: 1.05, lin: 0.002 },           // PROTO enemy hp multiplier (bosses follow it through s.diff.hp, see bossShare)
+    dmg:   { base: 1.20, lin: 0.002 },           // PROTO enemy damage multiplier
     spawn: { base: 1.00, lin: 0.002, cap: 2.4 }, // PROTO spawn density multiplier (cap on the total, not on the base)
     heal:  0.9,                                  // PROTO drop-heal multiplier (combat.js dropHeal reads s.diff.heal)
-    bossShare: 0.6,                              // PROTO share of the multipliers a boss takes (normal levels.diff.bossShare 0.3; bosses.js)
-    bossHp: 1.3,                                 // PROTO extra boss hp multiplier after the share (boss stages only; bosses.js)
+    bossShare: 0.45,                             // PROTO share of the multipliers a boss takes (normal levels.diff.bossShare 0.3; bosses.js)
+    bossHp: 1.15,                                // PROTO extra boss hp multiplier after the share (boss stages only; bosses.js)
     l1Spawn: 1.10,                               // PROTO L1 (istiklal, scripted) spawn multiplier: L1 has no generator
     fourthHp: 0.4,                               // fourth star: clear, no revive, lowest run HP at or above this fraction
     // One signature change per hood, through existing levers. lever: 'elite' (an extra elite at fraction v of each
@@ -54,7 +54,7 @@
   C.nightshift = {
     capS: 720,                    // 12 min: the run ends as a win (shift over) at this run time
     reviveN: 1,                   // revives allowed in one run (the normal revive offer, once)
-    ramp: { perSec: 0.005, cap: 3.0 },  // PROTO spawn density ramp: x(1 + perSec x run seconds), capped (sim/modes.js spawnMul). Bot round r2 (REVIEW T4 part 18)
+    ramp: { perSec: 0.005, cap: 3.0, hpPerSec: 0.002, hpCap: 2.5, dmgPerSec: 0.0007, dmgCap: 1.8 },  // PROTO spawn density ramp: x(1 + perSec x run seconds), capped (sim/modes.js spawnMul). Bot round r2 (REVIEW T4 part 18)
     score: { survive: 1, kill: 0.5, level: 10 },   // score per second alive, per kill, per Adrenalin level
     dayMods: 2,                   // daily modifiers shown on the entry card (the D.MODS pool minus 'iron')
     coins: 60,                    // coins paid by the first run of the day (fixed), plus the streak chest. Coins only: daily pay is never power (retention.md 3.6, D-065)

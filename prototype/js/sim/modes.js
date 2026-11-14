@@ -25,7 +25,7 @@ P.Modes.apply = function (s) {
   if (s.runMode !== 'nightmare' && s.runMode !== 'nightshift') return;
   var base = s.diff || { hp: 1, dmg: 1, spawn: 1, xp: 1 }, G = s.geo, g = s.gen;
   s.minHpFrac = 1;   // lowest hero HP fraction this run (step below); the fourth star reads it
-  if (s.runMode === 'nightshift') { if (G) G.endless = true; s.diff = base; return; }
+  if (s.runMode === 'nightshift') { if (G) G.endless = true; s.nsBase = { hp: base.hp, dmg: base.dmg }; s.diff = Object.assign({}, base); return; }
   s.diff = P.Modes.nightmareDiff(s.levelIndex, base);
   if (!G) { s.diff.spawn = base.spawn; s.sig = signatureOf(s); return; }   // L1: spawn goes through l1Spawn (director)
   s.sig = signatureOf(s);
@@ -70,6 +70,11 @@ P.Modes.step = function (s) {
   if (s.runMode !== 'nightmare' && s.runMode !== 'nightshift') return;
   var h = s.hero, f = h.hp / h.maxHp;
   if (f < s.minHpFrac) s.minHpFrac = f;
+  if (s.runMode === 'nightshift' && s.nsBase) {   // enemy hp and damage ramp with run time too (spawn density alone left easy levels unkillable)
+    var R = P.CFG.nightshift.ramp;
+    s.diff.hp = s.nsBase.hp * Math.min(R.hpCap, 1 + R.hpPerSec * s.runT);
+    s.diff.dmg = s.nsBase.dmg * Math.min(R.dmgCap, 1 + R.dmgPerSec * s.runT);
+  }
   if (s.runMode === 'nightshift' && s.mode === 'play' && s.runT >= P.CFG.nightshift.capS) {
     s.mode = 'won';
     s.nsEnd = 'clock';

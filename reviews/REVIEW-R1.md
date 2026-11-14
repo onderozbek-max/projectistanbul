@@ -1783,6 +1783,8 @@ Owner brief: build both replay features now, Nightmare per hood and the Night Sh
 5. Boss hooks: Nightmare bosses take a 0.6 share and ×1.3 boss HP. Normal boss numbers are unchanged.
 6. The Night Shift median target (5–9 min) is not met (10.8 min at best).
 
+**Retune (2026-11-14, owner: no need to wait for telemetry).** Night Shift: the spawn ramp alone left easy levels unkillable and the median swung between 10 and 12 minutes. The ramp now also scales enemy HP (x(1 + 0.002 s), cap 2.5) and damage (x(1 + 0.0007 s), cap 1.8). Bot, 16 seeds: median survival 6.5 min (target 5 to 9), 5 of 16 reach the cap, p25 1.5 min. The median still flips between about 4 and 7 minutes with small changes, because the runs split into early deaths and cap runs; treat 5 to 9 as a band, not a point. Nightmare: the depth terms were too steep (L50 clear 25%, Normal 92%), so hp and damage lin are 0.002, boss share 0.45 and boss HP x1.15. Bot, 24 seeds: clear L12 42%, L30 46%, L50 42% (Normal 58, 83, 92). The old 55 to 75% clear and 15 to 35% min HP bands do not fit this bot (Normal itself misses them), so the Nightmare target is now a bot clear of 35 to 55% with the Normal baseline above it, and min HP is read on cleared runs only. 12 seeds swing 15 points either way, so use 24 or more.
+
 **Resolution (2026-11-14, owner delegated 2 to 5).** The additive `modes` block stays in schema v3. The Night Shift now pays coins only (60 plus the streak chest), with no Street Cred (retention 3.6, D-065). The Turkish lines wait on the owner's table. The Nightmare and Night Shift bot targets (4 and 6) stay open until real telemetry arrives.
 
 # R1-T5 step 1: tree data, save v3 and the Street Cred rule

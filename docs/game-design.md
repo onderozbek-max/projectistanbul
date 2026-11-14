@@ -483,9 +483,9 @@ and `js/meta/meta-nightshift.js` (rewards, plan, streak). Tests: `tools/test-mod
 **Nightmare (Kâbus), per hood.** Same levels, same route, harder.
 - *Unlock:* a hood's Nightmare opens when **every level of that hood is cleared on Normal** (any stars). The level
   sheet shows a Normal / Nightmare toggle (48 px); locked hoods show the hint and no toggle action.
-- *Difficulty:* enemy HP x(1.05 + 0.004k), enemy damage x(1.20 + 0.004k), spawn density x(1.00 + 0.002k) capped at
-  x2.4 on the total, where k = journey index − 1. Drop heals x0.9. A boss takes 60% of the multiplier share (normal
-  30%) plus an extra x1.3 boss HP on boss stages. L1 (scripted) spawn x1.10. Applied on top of the normal curve, not
+- *Difficulty:* enemy HP x(1.05 + 0.002k), enemy damage x(1.20 + 0.002k), spawn density x(1.00 + 0.002k) capped at
+  x2.4 on the total, where k = journey index − 1. Drop heals x0.9. A boss takes 45% of the multiplier share (normal
+  30%) plus an extra x1.15 boss HP on boss stages. L1 (scripted) spawn x1.10. Applied on top of the normal curve, not
   instead of it.
 - *One signature per hood* (through existing levers only, `config-modes.js` `levels.nightmare.sig`): an extra elite
   at a fraction of each stage 1–4 route (istiklal 0.5, bridge 0.8, beyazit 0.3, yenikapi 0.65, kazlicesme 0.45,
@@ -508,7 +508,7 @@ and `js/meta/meta-nightshift.js` (rewards, plan, streak). Tests: `tools/test-mod
   name (two words from `strings-modes.js`), two daily modifiers (from the daily pool, iron excluded) and the route
   (a stage 1–4 level from levels 2 up to the furthest unlocked level; no boss arenas). The route rotates over at least 15 different levels in 30 days.
 - *Run:* the gate never opens (the route's last stage is held for the whole shift). Spawn density ramps with run
-  time: x(1 + 0.005 × seconds), capped at x3.0 (PROTO, see calibration in `reviews/REVIEW-R1.md` T4 part 18). One
+  time: x(1 + 0.005 × seconds), capped at x3.0; enemy HP x(1 + 0.002 × seconds) capped at x2.5 and damage x(1 + 0.0007 × seconds) capped at x1.8 (PROTO, see calibration in `reviews/REVIEW-R1.md` T4 part 18). One
   revive. The run ends on death or at **12 minutes**, which is a win ("shift over").
 - *Score:* survival seconds × 1 + kills × 0.5 + Adrenalin level × 10. Shown on the results screen with the day's best
   and the all-time local best. Local only; `leaderboardHook` `nsi.nightshift.board` is the documented place for a
