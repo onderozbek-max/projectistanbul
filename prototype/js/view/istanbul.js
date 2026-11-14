@@ -176,9 +176,10 @@ P.Decor = (function () {
     var th = P.RenderWorld.themeOf(s), seed = s.levelIndex * 131, h = s.hero, covered = !!(P.Indoor && P.Indoor.level(s));
     var props = P.Themes.propsFor(th, P.Themes.subOf(th, P.Themes.subIndex(s)));
     if (!props || !Object.keys(props).length) return;
+    var mix = P.ArenaEvolve ? P.ArenaEvolve.streetMix(s, props) : { w: props, keep: 0.6 };   // arena evolve: this level's weights and density
     for (var y = Math.floor(y0 / SLOT) * SLOT; y < y1; y += SLOT) [-1, 1].forEach(function (sd) {
-      if (hash(seed + y * 3.1 + sd * 7.7) < 0.4) return;
-      var kind = pick(props, hash(seed + y * 5.3 + sd * 2.1)), x = sd * (BIG[kind] ? 6.2 : 5.3 + hash(y * 2.3 + sd));
+      if (hash(seed + y * 3.1 + sd * 7.7) < 1 - mix.keep) return;
+      var kind = pick(mix.w, hash(seed + y * 5.3 + sd * 2.1)), x = sd * (BIG[kind] ? 6.2 : 5.3 + hash(y * 2.3 + sd));
       if (covered && (kind === 'gull' || kind === 'pigeon')) return;   // no birds under a roof
       var yy = y + hash(y * 4.7 + sd) * 2.5, o = { k: Math.floor(hash(y * 9.1 + sd) * 4) };
       if (kind === 'cat' || kind === 'catbox') o.alert = Math.hypot(h.x - x, h.y - yy) < 2.2;

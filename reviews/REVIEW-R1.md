@@ -2013,3 +2013,13 @@ All five steps are built and tested: the data and save (step 1), the 24 perk eff
 - The bot bands for L1 to L30 were checked after step 2 and not rerun since; perks and the bond are not in the bot's expected loadout.
 - Phone checks: frame time and thumb reach of the Yetenekler screen.
 - Proposed text you have not read yet: nothing new in this step (the events have no player text).
+
+# R1-T4 part 19: phone playtest 2 fixes and the no-art variety pass (2026-11-14)
+
+**Telemetry read (owner file, 107 events, 2 sessions).** One full level: H01-L2 won in 258.5 s with 1902 kills and 3 stars, 9 Adrenalin level-ups at 22, 39, 55, 81, 111, 145, 199, 249 and 286 s. Frame p95 17 ms with up to 107 enemies alive; the worst sample was 39 fps and 34 ms. The next level was quit after 3 s, and a later session failed the cart objective at 9.5 s. `level_end` carries no HP or death data yet, so challenge cannot be read from it.
+
+**Fixed.** Music and effects on iPhone (the silent switch muted Web Audio; `navigator.audioSession` playback plus a silent element fallback, any touch retries the unlock, `?fps=1` shows `aud <state>/<session> m:<track>`); the stick spawns anywhere by default; first-run map robust; fonts; streak words (one per 25 s, KIRIM is VAHŞET); telemetry persists across reloads and the export button is also in Settings; `tools/serve.py` stops Safari caching.
+
+**Variety pass (view only, no new art files).** Arena: per-level and per-hood treatment, light drift, accumulating debris and decals, boss grade (`arena-evolve*.js`). Enemies: 16 types with distinct silhouettes and accents, 4 walker outfits, 5 distinct brute bosses (`art-enemy-look.js`, `art-enemy-bosses.js`). Weapons: 5-level tier table, 17 base and 18 evolution silhouettes, per-class impact sparks, hero halo (`weapon-tiers.js`, `weapon-sil*.js`). Tests: `test-arena-evolve`, `test-enemy-silhouettes`, `test-weapon-tiers`.
+
+**Open.** Hoods 6, 10, 11, 13, 15 have floors darker than stone_grey (L* 33 to 40, older than this pass). Arena frame cost is about +1% to +9% p95 in a loaded headless run and is not measured on a device. Colourblind palettes are not implemented in the view, so nothing was checked. Evolution slow-mo is Level 1 only. Boss arms may clip their sprite cell.

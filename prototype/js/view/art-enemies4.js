@@ -23,7 +23,7 @@
     var EF = P.EnemyFx, dx = EF && EF.hitX ? (EF.hitX[e.id] || 0) : 0, at = EF && EF.hitAt ? EF.hitAt[e.id] : undefined;
     if (dx === 0 || at === undefined) return 0;
     var f = clamp01(1 - (EF.nowT - at) / FL.flinchT);
-    return (dx > 0 ? 1 : -1) * FL.flinchLean * f * (e.boss ? 0.35 : 1);
+    return (dx > 0 ? 1 : -1) * FL.flinchLean * f * (e.boss ? 0.35 : 1) * ((P.ArtEnemies.def(e.type).flinchK) || 1);   // per-type stagger (config-enemy-look)
   }
 
   // Scale for the figure: the same unit S.enemy uses (scale, elite, boss).
@@ -46,7 +46,7 @@
     var c = Rd.ctx, u = Rd.ppm, uf = unitOf(Rd, e), X = Rd.X(e.x), Y = Rd.Y(e.y - e.r * 0.6);
     var f = hero.x >= e.x ? 1 : -1, def = EN.def(e.type);
     if (e.state === 'rising' && e.entrance) { drawRising(Rd, e, hero, X, Y, uf, f); return; }
-    var wl = clamp01(e.windup || 0), id = e.id || 0, W = P.CFG.feel2.walk;
+    var wl = clamp01((e.windup || 0) * (def.windupK || 1)), id = e.id || 0, W = P.CFG.feel2.walk;   // windupK: per-type wind-up lean
     // Walking walkers lean toward the hero (a sideways lean reads as a push); cars and scooters keep their own heading.
     var walking = !(P.Feel && P.Feel.stopped(e)) && !def.scooter && !def.car;
     var rot = flinchOf(e) - f * FL.windupLean * wl + (walking ? W.lean * clamp1(hero.x - e.x) : 0);

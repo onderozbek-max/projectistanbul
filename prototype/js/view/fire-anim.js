@@ -168,7 +168,7 @@ P.FireAnim = (function () {
     F.drawHeld = function (R, s) {
       if (F.sim !== s) return;
       var h = s.hero, p = F.pose;
-      if (p.on) { setCtx(R); p.def.held(F, setGeom(F, h, p.ang), kOf(p)); return; }
+      if (p.on) { setCtx(R); var G = setGeom(F, h, p.ang); p.def.held(F, G, kOf(p)); if (P.WTier) P.WTier.heldGlow(F, G, p.id, s); return; }
       if (h.revving > 0) {
         var cs = defOf('chainsaw');
         if (cs && cs.rev) { setCtx(R); cs.rev(F, setGeom(F, h, +h.revAng || 0), revK(h)); }

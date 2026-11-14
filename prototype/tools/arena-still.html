@@ -16,6 +16,7 @@
 <script src="../js/config-bosses.js"></script>
 <script src="../js/config-enemies4.js"></script>
 <script src="../js/config-enemies5.js"></script>
+<script src="../js/config-enemy-look.js"></script>
 <script src="../js/config-fauna.js"></script>
 <script src="../js/config-skins.js"></script>
 <script src="../js/config-stats.js"></script>
@@ -28,6 +29,7 @@
 <script src="../js/config-objectives.js"></script>
 <script src="../js/config-modifiers.js"></script>
 <script src="../js/config-horde.js"></script>
+<script src="../js/config-arena-evolve.js"></script>
 <script src="../js/strings.js"></script>
 <script src="../js/journey.js"></script>
 <script src="../js/strings-weapons.js"></script>
@@ -110,6 +112,8 @@
 <script src="../js/view/art-enemies5.js"></script>
 <script src="../js/view/art-enemies6.js"></script>
 <script src="../js/view/art-bosses.js"></script>
+<script src="../js/view/art-enemy-look.js"></script>
+<script src="../js/view/art-enemy-bosses.js"></script>
 <script src="../js/view/portraits.js"></script>
 <script src="../js/view/weapons-fx.js"></script>
 <script src="../js/view/feel.js"></script>
@@ -139,6 +143,7 @@
 <script src="../js/view/istanbul-props2.js"></script>
 <script src="../js/view/consumables-icons.js"></script>   <!-- the station sign and its icons (R1-T4 parts 10, 17) -->
 <script src="../js/view/consumables.js"></script>
+<script src="../js/view/consumables-zone.js"></script>
 <script src="../js/view/istanbul-props-env.js"></script>
 <script src="../js/view/env-fx.js"></script>
 <script src="../js/view/fauna-art.js"></script>
@@ -151,6 +156,8 @@
 <script src="../js/view/arena-overhead.js"></script>
 <script src="../js/view/arena-sky-data.js"></script>
 <script src="../js/view/arena-sky.js"></script>
+<script src="../js/view/arena-evolve.js"></script>
+<script src="../js/view/arena-evolve-decals.js"></script>
 <script src="../js/view/istanbul-themes.js"></script>
 <script src="../js/view/istanbul-landmarks.js"></script>
 <script src="../js/view/layouts-fx.js"></script>
@@ -239,11 +246,15 @@
   P.Render.init(canvas); P.Render.resize(DPR);
   P.Fx.reset(sim); cam = P.Fx.cam;
   sim.hero.x = 0; sim.hero.y = Y;
+  if (q.get('evo') === '0') P.CFG.arenaEvolve.on = false;   // baseline: the arena before the evolution pass
   if (q.get('live')) {   // a real run: the sim walks the hero up the street for &secs seconds so enemies, weapons and props are on screen
     sim = P.createSim(parseInt(q.get('seed') || '5', 10), { levelIndex: level, loadout: null });
     sim.mode = 'play'; sim.hero.hp = sim.hero.maxHp = 1e9;
     P.Fx.reset(sim); cam = P.Fx.cam;
-    for (var i = 0; i < parseFloat(q.get('secs') || '25') * 60; i++) { P.stepSim(sim, 1 / 60, { x: 0, y: 1 }); sim.events.length = 0; }
+    // &prog=0..1 puts the hero at that share of the route (teleported) and lets the horde and the kills build up with no input.
+    var prog = q.get('prog'), input = prog !== null ? { x: 0, y: 0 } : { x: 0, y: 1 };
+    if (prog !== null) sim.hero.y = Math.max(2, parseFloat(prog) * (sim.geo ? sim.geo.exitY : 230));
+    for (var i = 0; i < parseFloat(q.get('secs') || '25') * 60; i++) { P.stepSim(sim, 1 / 60, input); sim.events.length = 0; }
     Y = sim.hero.y;
   }
   if (q.get('station') && sim.eczane) {   // R1-T4 part 17: with &live=1, the hero 3 m below the level's first heal station (the real

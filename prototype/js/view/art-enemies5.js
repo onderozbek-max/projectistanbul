@@ -34,7 +34,7 @@
       return { dx: f * el * 0.25, dy: -zz * 0.5, rot: f * Math.min(a, 0.6) * 9, char: true };
     }
     // blunt (default): the head snaps back on impact and the body slides a little.
-    var slide = (POSE.slide[etype] !== undefined ? POSE.slide[etype] : POSE.slide.default) * clamp01(a / 0.2);
+    var slide = (POSE.slide[etype] !== undefined ? POSE.slide[etype] : POSE.slide.default) * clamp01(a / 0.2) * ((P.ArtEnemies.def(etype).slideK) || 1);
     return { dx: f * slide, dy: 0, rot: -f * 0.35 * e(-a * 16), char: false };
   }
 

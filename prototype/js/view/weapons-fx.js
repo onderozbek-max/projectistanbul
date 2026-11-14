@@ -18,6 +18,7 @@ P.WFx = (function () {
     W.gunA = 0; W.recoil = 0; W.sinceFire = 9; W.throwT = 0; W.parts = [];
     W.combo = { n: 0, t: 0, best: 0 };
     mods().forEach(function (m) { if (m && m.reset) m.reset(); });
+    if (P.WTier) P.WTier.reset();
   };
 
   W.add = function (p) { if (W.parts.length < MAX_PARTS) W.parts.push(p); };
@@ -37,7 +38,8 @@ P.WFx = (function () {
       case 'canisterThrow': W.throwT = THROW_T; W.throwKind = 'canister'; break;
       case 'flaskThrow': W.throwT = THROW_T; W.throwKind = 'bottle'; break;
       case 'swing': knifeSwing(ev, s); break;
-      case 'hit': hit(ev, s); break;
+      case 'hit': hit(ev, s); if (P.WTier) P.WTier.onHit(ev, s); break;
+      case 'wfire': if (P.WTier) P.WTier.onWfire(ev, s); break;
       case 'blast': blast(ev, s); break;
       case 'kill': comboKill(s); break;
       case 'critKill': P.Feel.hitStop('critKill'); break;
@@ -116,6 +118,7 @@ P.WFx = (function () {
   W.update = function (dt, s) {
     var i, p, c = W.combo;
     if (s) W.sim = s;
+    if (P.WTier) P.WTier.update(dt, s);
     W.recoil = Math.max(0, W.recoil - dt * 7); W.sinceFire += dt;
     W.throwT = Math.max(0, W.throwT - dt);
     c.t = Math.max(0, c.t - dt); if (c.t === 0) c.n = 0;

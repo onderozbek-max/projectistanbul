@@ -53,6 +53,7 @@ P.RenderWorld = (function () {
     var c = R.ctx, lv = L(), cor = lv.corridor, i;
     var ya = Math.max(0, y0), yb = Math.min(cor.yMax + 4, y1);
     var artG = artTile(R, 'istiklal', 'ground'), artW = artTile(R, 'istiklal', 'walk'), artR = artTile(R, 'common', 'rails');
+    if (P.ArenaEvolve) artG = P.ArenaEvolve.ground(R, P.Themes.get('istiklal'), s, artG) || artG;   // arena evolve: this level's treated tile
     if (artG) fillTile(R, artG, cor.xMin, cor.xMax, ya, yb, 0, 1);
     else {
       var pat = cobblePattern(R);
@@ -288,6 +289,7 @@ P.RenderWorld = (function () {
   }
   function genGround(R, s, y0, y1) {
     var th = themeOf(s), ya = y0 - 1, yb = y1 + 1, g = pattern(R, th, 'ground', s), w = pattern(R, th, 'walk', s);
+    if (P.ArenaEvolve) g = P.ArenaEvolve.ground(R, th, s, g) || g;   // arena evolve: mirrored, tinted and worn for this hood-level
     var wet = P.Themes.subOf(th, P.Themes.subIndex(s)).wet;   // D-060: the sub-row 'wet' flag (zeytinburnu stage 2) adds the lane-edge water
     if (g) fillTile(R, g, -4.6, 4.6, ya, yb, 0, 1);
     [-1, 1].forEach(function (sd) {

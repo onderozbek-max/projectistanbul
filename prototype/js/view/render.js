@@ -221,6 +221,7 @@ P.Render = (function () {
     P.Decor.drawStreet(R, s, y0, y1);
     hook(P.LayoutFx, 'drawGround', s);           // lane B: layout zone floors (plaza, market, bridge), over the street, under decals
     hook(P.EnvFx, 'drawGround', s);              // lane A: floor decals (puddles, glass, debris), after the floor, before shadows
+    hook(P.ArenaEvolve, 'drawGround', s);        // arena evolve: treated ground, rubble, litter and bins (view/arena-evolve-decals.js)
     P.RenderWorld.drawShadows(R, s, y0, y1);      // ground ambient occlusion under carts, canisters and blocks
     drawGround();
     drawZonesAndTelegraphs(s);
@@ -270,12 +271,14 @@ P.Render = (function () {
     hook(P.SkillsFx, 'drawOver', s);
     if (L1 && y1 > 222) P.RenderWorld.drawScaffold(R, s);
     P.RenderWorld.drawLights(R, s, y0, y1);
+    hook(P.ArenaEvolve, 'drawLights', s);        // arena evolve: lamp pools that flicker and strengthen with the level
     P.Decor.drawOverhead(R, s, y0, y1);
     if (P.Speech) P.Speech.resolve(R, s);   // every bubble is placed here, after the signs (which fade under them)
     P.RenderOverlay.worldText(R, s);
     hook(P.Barks, 'draw', s);
     c.restore();
     P.RenderOverlay.screen(R, s);
+    hook(P.ArenaEvolve, 'screen', s);            // arena evolve: the level's light drift and the boss grade (screen layer)
     hook(P.ConsumablesZone, 'drawScreen', s);      // T4 part 10: edge arrows for off-screen link terminals
   };
 

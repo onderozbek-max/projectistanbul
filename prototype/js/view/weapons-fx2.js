@@ -147,6 +147,7 @@ P.WFx2 = (function () {
     c.restore();
     if (P.WFx3 && P.WFx3.drawGround) P.WFx3.drawGround(R, s);
     if (P.WFx4 && P.WFx4.drawGround) P.WFx4.drawGround(R, s);
+    if (P.WTier) P.WTier.drawGround(R, s);
   };
 
   function drawZone(c, R, z, u, t) {
@@ -205,6 +206,7 @@ P.WFx2 = (function () {
     flashes.forEach(function (f) { drawFlash(c, R, f, u); });
     sparks.forEach(function (p) { drawSpark(c, R, p, u); });
     c.restore();
+    if (P.WTier) P.WTier.drawAir(R, s);
     if (P.WFx3 && P.WFx3.drawAir) P.WFx3.drawAir(R, s);
     if (P.WFx4 && P.WFx4.drawAir) P.WFx4.drawAir(R, s);
   };

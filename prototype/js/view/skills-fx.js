@@ -135,6 +135,7 @@ P.SkillsFx = (function () {
   // ---------- under the hero: afterimages, frenzy trail, cooldown ring ----------
   F.drawUnder = function (R, s) {
     var c = R.ctx, u = R.ppm, h = s.hero, X = R.X(h.x), Y = R.Y(h.y);
+    if (P.WTier) P.WTier.drawAura(R, s);
     c.save();
     ghosts.forEach(function (g) { drawGhost(c, R, g, u); });
     trail.forEach(function (q, k) {
