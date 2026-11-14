@@ -59,6 +59,9 @@
       hero_ids: ['arda'], hero_levels: [1], gear_power: 0, mode: sim.runMode });   // mode: normal | nightmare | nightshift (R1-T4 part 18)
   }
 
+  // iOS only allows audio to start or resume from a gesture, and an interruption (call, lock, tab switch) suspends the context again: any touch retries.
+  document.addEventListener('pointerdown', function () { if (P.Sfx && P.Sfx.unlock) P.Sfx.unlock(); if (P.Music && P.Music.unlock) P.Music.unlock(); }, { passive: true });
+
   function startGame() {
     P.Sfx.unlock(); if (P.Music) P.Music.unlock();
     var direct = parseInt(params.get('level') || '0', 10);

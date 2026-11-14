@@ -52,6 +52,28 @@ P.Sfx = (function () {
       bus[k] = c.createGain(); bus[k].gain.value = CATS[k] * vol[k]; bus[k].connect(k === 'voice' ? bus.sfx : comp);   // voice (speech blips, groans) sits in the sfx bus: one Sound effects slider (T4 part 9)
     }
   }
+  // iPhone: the ring/silent switch mutes Web Audio but not media elements (phone playtest: with the switch on, the effects and, after
+  // the music moved to Web Audio, the music were silent). Safari 16.4+ has navigator.audioSession: type 'playback' makes Web Audio
+  // ignore the switch. Older iOS: a looping silent <audio> element started from a gesture does the same. Called from unlock().
+  var sess = { type: '-', el: null };
+  function silentWav() {
+    var n = 800, b = new Uint8Array(44 + n), v = new DataView(b.buffer), i, s = '';
+    function w(o, t) { for (var k = 0; k < t.length; k++) b[o + k] = t.charCodeAt(k); }
+    w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
+    for (i = 0; i < n; i++) b[44 + i] = 128;
+    for (i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return 'data:audio/wav;base64,' + btoa(s);
+  }
+  function playbackSession() {
+    try { if (navigator.audioSession) { navigator.audioSession.type = 'playback'; sess.type = String(navigator.audioSession.type); return; } } catch (e) { /* ignore */ }
+    if (sess.el || typeof Audio === 'undefined' || typeof navigator === 'undefined' || !/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent || '')) return;
+    try {
+      var a = new Audio(silentWav()), pr;
+      a.loop = true; a.setAttribute('playsinline', ''); sess.el = a; sess.type = 'silent-el';
+      pr = a.play(); if (pr && pr.catch) pr.catch(function () { sess.el = null; sess.type = '-'; });
+    } catch (e) { sess.el = null; }
+  }
   // Lazily creates the context and graph. Returns null where WebAudio is unavailable.
   function ensure() {
     if (ctx) return ctx;
@@ -238,7 +260,9 @@ P.Sfx = (function () {
   }
   return {
     play: play,
+    audioStatus: function () { return (ctx ? ctx.state : 'noctx') + '/' + sess.type; },
     unlock: function () {
+      playbackSession();
       var c = ensure();
       if (!c) return;
       if (c.state === 'suspended') c.resume();

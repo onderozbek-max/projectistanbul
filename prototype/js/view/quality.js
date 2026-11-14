@@ -62,7 +62,8 @@ P.Quality = (function () {
     hudT = nowMs;
     var fps = lastDt > 0 ? Math.round(1000 / lastDt) : 0, ms = lastDt > 0 ? lastDt.toFixed(1) : '-', txt = fps + ' fps  ' +
       (ema === null ? '-' : ema.toFixed(1)) + ' ms ema  t' + tier + (locked ? ' (locked)' : '') + '  dpr ' + (+dpr || 1).toFixed(2) +
-      '  ' + (canvas ? canvas.width + 'x' + canvas.height : '');
+      '  ' + (canvas ? canvas.width + 'x' + canvas.height : '') +
+      (P.Sfx && P.Sfx.audioStatus ? '  aud ' + P.Sfx.audioStatus() + (P.Music && P.Music.current && P.Music.current() ? ' m:' + P.Music.current() : '') : '');
     if (txt !== hudText) { hudText = txt; hud.textContent = txt; }
     return ms;
   };
