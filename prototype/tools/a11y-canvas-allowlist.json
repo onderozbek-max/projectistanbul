@@ -1,0 +1,25 @@
+{
+  "_about": "Exemptions for tools/test-a11y-canvas.js. Each entry matches a flagged line by file and a substring of the line. Only geometry-only or otherwise justified candidates belong here; a flicker that changes brightness is fixed in code, not listed. Every entry needs a rationale of at least 40 characters, and an entry that matches no candidate fails the test as stale.",
+  "entries": [
+    {
+      "file": "js/view/fire-anim-held2.js",
+      "match": "Math.sin(t * 40) * Math.exp(-t / 0.12)",
+      "why": "Extinguisher recoil wobble at 6.4 Hz, applied only through c.rotate(wob) on the held sprite. It rotates the prop by a fraction of a degree and does not change any colour or alpha; it decays in about 0.3 s."
+    },
+    {
+      "file": "js/view/fire-anim-held2.js",
+      "match": "0.02 * Math.sin(t * 30)",
+      "why": "Comic strain-mark length jitter at 4.8 Hz in the manhole pose (t 0.12 to 0.48 s). The stroke end moves by about 0.02 m (roughly 2 cm) and no colour or alpha changes, so it is position-only motion."
+    },
+    {
+      "file": "js/view/fire-anim-held3.js",
+      "match": "Math.sin(t * 40) * Math.exp(-t / 0.1)",
+      "why": "Foam-storm recoil wobble at 6.4 Hz, applied only through c.rotate(wob) on the held sprite. It is a rotation of a fraction of a degree with no brightness or alpha change, and it decays within about 0.3 s."
+    },
+    {
+      "file": "js/view/fire-anim-held3.js",
+      "match": "0.03 * Math.sin(t * 20 + i)",
+      "why": "Arc-chain link position wobble at 3.2 Hz, about 1 to 2 px on screen. Each link is an outline ellipse that moves in position only; its stroke colour and width are constant, so no luminance flicker is produced."
+    }
+  ]
+}

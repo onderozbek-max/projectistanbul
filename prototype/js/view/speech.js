@@ -77,7 +77,7 @@ P.Speech = (function () {
 
   function offerBanner(b, R) {
     var c = R.ctx, w = 200, h = 64, lbl = P.t(b.key);
-    if (c && c.measureText) { c.save(); c.font = 'italic 900 52px "Avenir Next Condensed", "Arial Narrow", system-ui'; w = c.measureText(lbl).width + 28; c.restore(); }
+    if (c && c.measureText) { c.save(); c.font = 'italic 900 52px "CM Bangers", Bangers, Impact, sans-serif'; w = c.measureText(lbl).width + 28; c.restore(); }
     offers.push({ id: b.id, kind: 'banner', prio: PRIO.banner, w: w, h: h, x: (R.W - w) / 2, y: (b.yFrac || 0.3) * R.H - h / 2,
                   age: b.T - b.t, prev: b.prev,
                   place: function (slot) { b.slot = slot ? (slot.y + h / 2) / R.H : null; b.prev = slot ? slot.n : null; } });
@@ -152,7 +152,7 @@ P.Speech = (function () {
 
   // Plain bubbles (legacy L1 bark, cat '!'): wrap at maxW px, 14 px type, same box as the old world bubbles.
   SP.measurePlain = function (c, text, maxW) {
-    c.font = '600 14px system-ui, sans-serif';
+    c.font = '600 14px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif';
     var words = text.split(' '), lines = [], cur = '', w;
     words.forEach(function (wd) { var t = cur ? cur + ' ' + wd : wd; if (c.measureText(t).width > maxW && cur) { lines.push(cur); cur = wd; } else cur = t; });
     lines.push(cur);
@@ -167,7 +167,7 @@ P.Speech = (function () {
       var bx = Math.max(r.x + 6, Math.min(r.x + r.w - 6, r.tx)), by = r.ty >= r.y + r.h ? r.y + r.h : r.y;
       c.beginPath(); c.moveTo(bx - 6, by); c.lineTo(r.tx, r.ty); c.lineTo(bx + 6, by); c.closePath(); c.fill(); c.stroke();
     }
-    c.fillStyle = '#14151F'; c.textAlign = 'center'; c.textBaseline = 'top'; c.font = '600 14px system-ui, sans-serif';
+    c.fillStyle = '#14151F'; c.textAlign = 'center'; c.textBaseline = 'top'; c.font = '600 14px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif';
     lines.forEach(function (l, i) { c.fillText(l, r.x + r.w / 2, r.y + 6 + i * 18); });
     c.restore();
   };

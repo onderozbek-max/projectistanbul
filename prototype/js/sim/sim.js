@@ -5,6 +5,7 @@
 // cooldownPct}, startWeapon } }. levelIndex 1 is the scripted Istiklal level (unchanged behaviour).
 P.createSim = function (seed, opts) {
   var C = P.CFG, L = C.level, o = opts || {}, idx = Math.max(1, Math.min(P.Journey.count(), o.levelIndex || 1));
+  P.xpHand = idx === 1;   // R1-T4 part 4: L1 keeps its own XP curve (config xp.l1); the run's curve is read by P.xpNeed
   var s = {
     seed: seed, rng: P.makeStreams(seed), t: 0, runT: 0, mode: 'cutscene',
     hero: {
@@ -19,16 +20,20 @@ P.createSim = function (seed, opts) {
     kills: 0, jeton: 0, xpPicked: 0, swings: 0, peakAlive: 0,
     reviveUsed: false, secondWindUsed: false, deathCause: null, dinersSpawned: false, pendingChests: 0, chestsOpened: 0,
     levelIndex: idx, levelInfo: P.Journey.level(idx), theme: null,
+    runMode: (o.loadout && o.loadout.mode) || 'normal',   // R1-T4 part 18: 'normal' | 'nightmare' | 'nightshift' (sim/modes.js)
   };
   s.theme = s.levelInfo.hood.theme;
   s.fx = attrFx(o);
+  s.perk = P.Perks ? P.Perks.set(o.loadout && o.loadout.perks) : {};   // Street Tree perks learned for this run (perks.js)
+  s.pk = {};   // per-run perk state (counters, once-per-run flags); each perk uses its own key, e.g. s.pk.shock
+  if (s.perk['cha.3']) s.rerolls += P.CFG.perks.regular.rerolls;   // Regular (cha.3): extra free card rerolls
   s.tally = P.Tally.create();
   s.loadout = o.loadout || null;
   P.Events.init(s);
   s.dir = P.Director.create();
   applyLoadout(s, o.loadout);
   if (idx > 1) {
-    P.Levels.build(s, idx);
+    P.Levels.build(s, idx, o.sarayRaster);
     if (P.Objectives) P.Objectives.attach(s);   // lane P: objective and run modifier (objectives.js)
     if (P.Env) P.Env.place(s, s.levelInfo);     // lane A: cover, canisters, cars, cables, doors (guarded; B may call it too)
   } else {
@@ -38,6 +43,7 @@ P.createSim = function (seed, opts) {
     });
     s.dinersSpawned = true;
   }
+  if (P.Modes) P.Modes.apply(s);   // R1-T4 part 18: Nightmare multipliers and signature, or the Night Shift endless guard
   if (P.Modifiers && P.Modifiers.applyDaily) P.Modifiers.applyDaily(s);   // AUDIT-7 CR-1: daily modifiers (after the level build)
   if (P.Skills && P.Skills.init) P.Skills.init(s);
   return s;
@@ -50,7 +56,7 @@ P.createSim = function (seed, opts) {
 function applyLoadout(s, ld) {
   var h = s.hero, g = (ld && ld.gear) || {}, C = P.CFG, f = s.fx;
   h.gear = g;
-  h.maxHp = C.hero.maxHp * (1 + (g.maxHpPct || 0) + f.maxHpPct); h.hp = h.maxHp;
+  h.maxHp = C.hero.maxHp * (1 + (g.maxHpPct || 0) + f.maxHpPct + ((ld && ld.bondHpPct) || 0)); h.hp = h.maxHp;   // bondHpPct: Kaan bond 25 aura
   h.baseMight = (g.mightPct || 0) + f.mightPct; h.baseMove = (g.movePct || 0) + f.movePct;
   h.baseCdr = (g.cooldownPct || 0) + f.cooldownPct;
   h.pickupRadius = C.hero.pickupRadius * (1 + (g.pickupPct || 0) + f.pickupPct);
@@ -101,7 +107,7 @@ function stepHero(s, dt, input) {
   if (m > 1) { mx /= m; my /= m; m = 1; }
   h.moving = m > 0.08;
   if (h.moving) {
-    var sp = P.Hero.speed(s) * (1 + (h.baseMove || 0)) * (P.Env ? P.Env.heroMul(s) : 1), ox = h.x, oy = h.y;
+    var sp = P.Hero.speed(s) * (1 + (h.baseMove || 0)) * (P.Env ? P.Env.heroMul(s) : 1) * P.Enemies4.heroMul(s), ox = h.x, oy = h.y;
     h.fx = mx / m; h.fy = my / m;
     h.x += mx * sp * dt; h.y += my * sp * dt;
     P.World.clampHero(s, h);
@@ -109,8 +115,8 @@ function stepHero(s, dt, input) {
   }
   h.invuln = Math.max(0, h.invuln - dt);
   h.sinceHit += dt;
-  var mk = P.CFG.passives.medkit, lv = h.passives.medkit || 0;
-  h.regenOn = lv > 0 && h.sinceHit >= mk.regenDelay && h.hp < h.maxHp;
+  var mk = P.CFG.passives.medkit, lv = h.passives.medkit || 0, delay = s.perk['grit.2'] ? P.CFG.perks.teaBreak.delay : mk.regenDelay;   // Tea Break (grit.2)
+  h.regenOn = lv > 0 && h.sinceHit >= delay && h.hp < h.maxHp;
   if (h.regenOn) h.hp = Math.min(h.maxHp, h.hp + lv * mk.regenPerLevel * dt);
 }
 
@@ -123,6 +129,7 @@ P.stepSim = function (s, dt, input) {
   s.tally.distance += s.hero.moved - m0;
   P.Director.step(s, dt);
   if (s.mode !== 'play') return;
+  if (P.Modes) { P.Modes.step(s); if (s.mode !== 'play') return; }   // R1-T4 part 18: min HP tracking, Night Shift time cap
   P.Events.step(s, dt);
   P.Hack.step(s, dt);
   P.Combat.updateEnemies(s, dt);
@@ -134,6 +141,7 @@ P.stepSim = function (s, dt, input) {
   P.Combat.updateBurnAndZones(s, dt);
   P.Combat.removeDead(s);
   P.Combat.updateDrops(s, dt);
+  if (s.eczane) P.Eczane.step(s, dt);   // R1-T4 part 14: eczane stations (generated levels only)
   s.props.carts.forEach(function (c) { c.flash = Math.max(0, c.flash - dt); });
   s.props.canisters.forEach(function (c) { c.flash = Math.max(0, c.flash - dt); });
 };

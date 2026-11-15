@@ -1,0 +1,31 @@
+/* Replay tiers (R1-T4 part 18): the Nightmare vignette and HUD moon, the map moon badge, the level sheet's Normal /
+   Nightmare toggle, the hood card mode line and the Night Shift card. Everything here is static: no animation (so
+   reduce-motion has nothing to stop), no flashing. Toggle buttons are 48 px tall (tools/test-ui-motion.js). */
+.mode-vignette { position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(ellipse at 50% 46%, rgba(96, 0, 12, 0) 52%, rgba(96, 0, 12, .55) 100%); }
+.mode-vignette.is-on { opacity: 1; }
+
+.hud-moon { display: block; width: 14px; height: 14px; margin-top: 2px; border-radius: 50%; background: #F4EBDD;
+  box-shadow: inset -5px 0 0 0 #7A1020; }
+.hud-moon.hidden { display: none; }
+
+.meta-moon-mk { display: none; position: absolute; right: -6px; top: -8px; width: 16px; height: 16px; border-radius: 50%;
+  background: #F4EBDD; border: 2px solid #14151F; box-shadow: inset -5px 0 0 0 #7A1020; }
+.meta-hood.is-moon .meta-moon-mk { display: block; }
+
+.meta-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+/* The level sheet is cream: unselected is dark ink on a light tint, selected is inverted (contrast was broken when the
+   unselected label used the light text colour of the dark pages). */
+.meta-mode { min-height: 48px; min-width: 48px; padding: 0 12px; border-radius: 12px; border: 3px solid #14151F;
+  background: rgba(20, 21, 31, .07); color: #14151F; font: 800 calc(14px * var(--ui-text, 1))/1 var(--m-body);
+  display: flex; align-items: center; justify-content: center; gap: 6px; }
+.meta-mode.is-on { background: #14151F; color: #F4EBDD; }
+.meta-mode-nm.is-on { background: #7A1020; color: #F4EBDD; }
+.meta-mode .meta-moon-mk { display: inline-block; position: static; width: 12px; height: 12px; border: 0; background: currentColor;
+  box-shadow: inset -4px 0 0 0 rgba(20, 21, 31, .45); }
+.meta-mode-hint { margin: 6px 0; font: 600 calc(12px * var(--ui-text, 1))/1.35 var(--m-body); opacity: .8; }
+
+.hc-mode { font: 900 calc(12px * var(--ui-text, 1))/1.2 var(--m-body); letter-spacing: 1px; color: #7A1020; }
+
+.meta-ns-seed { font: italic 900 calc(18px * var(--ui-text, 1))/1.1 var(--m-display); }
+.meta-ns-rota, .meta-ns-desc, .meta-ns-best, .meta-ns-pay { font: 600 calc(13px * var(--ui-text, 1))/1.35 var(--m-body); }

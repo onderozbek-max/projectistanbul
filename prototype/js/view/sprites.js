@@ -38,7 +38,8 @@ P.Sprites = (function () {
   S.contact = function (c, X, Y, rx, alpha, aspect) {
     if (!(rx > 0) || !(alpha > 0)) return;
     var ry = rx * (aspect === undefined ? P.CFG.view.heroShadow.aspect : aspect);
-    c.save(); c.globalAlpha *= alpha; c.drawImage(contactSprite(), X - rx, Y - ry, 2 * rx, 2 * ry); c.restore();
+    var sk = P.CFG.feel2.shadow;   // one light direction for every figure: the shadow slips down and to the right
+    c.save(); c.globalAlpha *= alpha; c.drawImage(contactSprite(), X - rx + rx * sk.x, Y - ry + ry * sk.y, 2 * rx, 2 * ry); c.restore();
   };
   S.shadow = function (c, X, Y, u, k) { S.contact(c, X, Y, 0.34 * u, 0.32 * (k === undefined ? 1 : k), 0.38); };
   // Coloured base ring at the feet: a dark under-stroke, then the colour, with a faint fill.
@@ -88,11 +89,12 @@ P.Sprites = (function () {
   }
   // Pose: walk frames (8) or breath frames (4) so the cache stays small. Bob and squash amounts come from view.anim.
   function poseOf(rc, o, moving, t) {
-    var A = P.CFG.view.anim, m = rc.mot, p = { gait: 'still', arms: rc.arms || 'idle', lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch,
+    var A = rc.anim || P.CFG.view.anim, m = rc.mot, p = { gait: 'still', arms: rc.arms || 'idle', lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch,
       strideK: m.strideK || 1, liftK: m.liftK || 1, limp: !!m.limp, bob: 0, walk: 0, breath: 0, back: rc.back }, bi, wi;
     if (!moving) {
       bi = Math.floor(t / 260 + rc.seed) % 4; p.breath = bi * TAU / 4; p.bob = -A.bobIdle * (1 + Math.sin(p.breath)) * 0.5;
       if (p.arms === 'swing' || p.arms === 'run' || p.arms === 'pump') p.arms = 'idle';
+      if (p.arms === 'zswing') p.arms = 'reach';                     // a stopped walker holds the reach, it does not swing
       p.key = 'b' + bi;
     } else {
       wi = Math.round((((o.phase || 0) % TAU) + TAU) % TAU / TAU * 8) % 8;
@@ -103,9 +105,15 @@ P.Sprites = (function () {
     }
     return p;
   }
-  function squash(pose, moving, hit) {
-    var A = P.CFG.view.anim;
-    var sy = moving ? 1 - A.squashWalk * Math.abs(Math.sin(pose.walk)) : 1 + 0.008 * Math.sin(pose.breath);
+  // Per-type gait personality (view only): scales of the shared walk and breath amounts (config-enemy-look animK).
+  function animFor(def) {
+    var k = def && def.animK, A = P.CFG.view.anim;
+    if (!k) return A;
+    return { bobWalk: A.bobWalk * (k.bob || 1), bobIdle: A.bobIdle * (k.bob || 1), squashWalk: A.squashWalk * (k.squash || 1),
+      squashIdle: A.squashIdle * (k.squash || 1), stepWidth: A.stepWidth * (k.step || 1), hitSquashX: A.hitSquashX, hitSquashY: A.hitSquashY };
+  }
+  function squash(pose, moving, hit, A) {
+    var sy = moving ? 1 - A.squashWalk * Math.abs(Math.sin(pose.walk)) : 1 + A.squashIdle * Math.sin(pose.breath);
     var sx = moving ? 1 + A.stepWidth * Math.abs(Math.sin(pose.walk)) : 1;
     return { x: sx * (1 + A.hitSquashX * hit), y: sy * (1 - A.hitSquashY * hit) };
   }
@@ -134,10 +142,18 @@ P.Sprites = (function () {
   }
 
   // Draw one figure: cached low layer, live knife, cached head, live back-hand weapon (original z-order).
+  // The solved joints depend only on the recipe and the pose key (walk or breath frame), so they are solved once per pair, and the
+  // low-layer bake key is built once too (T4 part 12: the per-frame string and solve work was most of the crowd's JS).
+  function poseMemo(rc, pose) {
+    var pm = rc.pm || (rc.pm = {}), pe = pm[pose.key];
+    if (!pe) pe = pm[pose.key] = { J: R.solve(rc.B, pose), lk: rc.key + '|L|' + pose.key + '|s' + rc.swell };
+    return pe;
+  }
   function drawFigure(c, X, Y, u, f, rc, o, t) {
-    var U = R.bucket(u * devScale(c)), moving = !rc.still, pose = poseOf(rc, o, moving, t), J = R.solve(rc.B, pose);
-    var refJ = R.solve(rc.B, { lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch, arms: 'idle' });
-    var hit = clamp((o.flash || 0) / P.CFG.feel.hitFlash, 0, 1), sq = squash(pose, moving, hit), ox = (o.recoil || 0) * hit * u, oy = 0;
+    var U = R.bucket(u * devScale(c)), moving = !rc.still && !o.stopped, pose = poseOf(rc, o, moving, t), pe = poseMemo(rc, pose), J = pe.J;
+    var refJ = rc.refJ || (rc.refJ = R.solve(rc.B, { lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch, arms: 'idle' }));
+    var hit = clamp((o.flash || 0) / P.CFG.feel.hitFlash, 0, 1), sq = squash(pose, moving, hit, rc.anim || P.CFG.view.anim), ox = (o.recoil || 0) * hit * u, oy = 0;
+    if (o.spring) { sq.x *= o.spring.x; sq.y *= o.spring.y; sq.r = o.spring.r; ox += o.spring.ox * u; }   // v0.9 hit spring / hero start-stop
     var white = (o.flash || 0) > 0 && !o.noWhite, low, high, dx, dy, ow = o.outline ? P.CFG.view.eliteOutline.units : 0;
     rc.U = U;
     if (rc.custom) {
@@ -147,8 +163,8 @@ P.Sprites = (function () {
       return;
     }
     // Low layer depends on pose and swell; head layer depends on windup (spitter throat) only.
-    low = R.bake(rc.key + '|L|' + pose.key + '|s' + rc.swell, U, R.LOW_BOX, function (g) { bakeGlow(g, rc, U); R.drawLow(g, rc, J, pose); bakeGlow(g, {}, U); });
-    high = R.bake(rc.key + '|H|w' + rc.windup, U, R.HIGH_BOX, function (g) { bakeGlow(g, rc, U); R.drawHigh(g, rc, refJ); bakeGlow(g, {}, U); });
+    low = R.bake(pe.lk, U, R.LOW_BOX, function (g) { bakeGlow(g, rc, U); R.drawLow(g, rc, J, pose); bakeGlow(g, {}, U); });
+    high = R.bake(rc.hk || (rc.hk = rc.key + '|H|w' + rc.windup), U, R.HIGH_BOX, function (g) { bakeGlow(g, rc, U); R.drawHigh(g, rc, refJ); bakeGlow(g, {}, U); });
     dx = J.hd[0] - refJ.hd[0]; dy = J.hd[1] - refJ.hd[1];
     if (o.outline) outlineFigure(c, X, Y, u, f, low, high, sq, ox, oy, dx, dy, o.outline, ow);
     R.blit(c, white ? R.white(low) : low, X, Y, u, f, sq, ox, oy, 0, 0);
@@ -174,23 +190,24 @@ P.Sprites = (function () {
   // Arda: the hero. Red hoodie, quiff, earbuds, warm rim glow, ground halo. Same params as person().
   S.hero = function (c, X, Y, o) {
     var O = CH.outfit('hero'), f = o.face === -1 ? -1 : 1;
+    if (P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.hero(c, X, Y, o, f, { halo: 'rgba(255,214,150,0.32)', skin: o.skin || '#E0AC80', shirt: o.shirt || O.col })) return;
     var rc = buildRc({ tag: 'hero', oid: 'hero', bname: 'hero', B: CH.body('hero'), O: O, skin: o.skin || '#E0AC80',
       shirt: o.shirt || O.col, pants: o.pants || O.pants, hair: o.hair || O.hc, shoe: O.shoe, face: CH.heroFace, arms: 'run',
-      still: !!o.still, seed: (X * 0.013) % 4, back: !!o.back, lean: 0.03, live: { front: o.arms === 'knife' || !!o.noArms, back: !!o.backHand || !!o.noArms },
+      still: !!o.still, seed: (X * 0.013) % 4, back: !!o.back, lean: o.lean || 0.03, live: { front: o.arms === 'knife' || !!o.noArms, back: !!o.backHand || !!o.noArms },
       mot: { gait: 'walk', strideK: 1.35, liftK: 1.2, bob: 0.02 }, halo: 'rgba(255,214,150,0.32)', glow: 'rgba(255,226,170,0.6)', hook: null });
     drawFigure(c, X, Y, o.u, f, rc, o, performance.now());
   };
 
   // Figure draw scale = rig scale x view.spriteScale (G2); collision radii are never read from the view.
   function figUnit(Rd, e) {
-    var V = P.CFG.view, def = EN.def(e.type);
+    var V = P.CFG.view, def = EN.defFor(e);
     return Rd.ppm * def.scale * (V.spriteScale[e.type] || 1) * (e.boss ? 2.2 : 1) * (e.elite ? V.spriteScale.elite : 1);
   }
   // Ground layer for one enemy, drawn under every figure: elite and boss auras, a soft contact shadow sized to the body
   // (G4: alpha 0.22, radius 0.9 x body) and a base ring on spitters and bloaters. Same feet anchor as the figure.
   S.groundEnemy = function (Rd, e) {
     var c = Rd.ctx, u = Rd.ppm, V = P.CFG.view, er = e.r || 0.35, X = Rd.X(e.x), Y = Rd.Y(e.y - er * 0.6);
-    var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1, def = EN.def(e.type), cs = V.contactShadow;
+    var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1, def = EN.defFor(e), cs = V.contactShadow;
     c.save(); c.globalAlpha *= emerge;
     if (e.elite) eliteAura(c, X, Y, u, e);
     if (e.boss) bossAura(c, X, Y, figUnit(Rd, e));
@@ -199,34 +216,79 @@ P.Sprites = (function () {
     if (ring) S.ring(c, X, Y, V.ringRadius * er * u, ring);
     c.restore();
   };
+  // Screen-wide flash budget (design-system 11, WCAG 2.3.1): every white or red flash that starts on screen takes a slot, and no
+  // more than FLASH_HZ (3) starts fit in any rolling 1 s window (a start is dropped from the window exactly 1 s after it). A
+  // per-object gap alone let a crowd flash dozens of times a second together. Two pools share the 3 (T4 part 15):
+  //  - 'hit' (the default): the hero hit, enemy, prop, blast and burst discs, the edge pulse and the low-HP heartbeat. At most
+  //    FLASH_HIT (2) starts in a window, so a crowd of hits always leaves one slot free.
+  //  - 'moment': the signature moments (moments.js, moments-screen.js). One start a second is reserved for them, and a moment
+  //    may also take any free slot.
+  // A hit may not take the last slot while a moment is in the window or pending (asked and refused in the last second). That slot
+  // is the moments' reserve, so a refused moment means a moment started within the last second, unless forced beats (flashForce,
+  // the heartbeat) fill the window. Under Reduce flashing
+  // nothing is granted and nothing is counted.
+  var FLASH_HZ = 3, FLASH_HIT = 2, flashLog = [], momentRefusedAt = -1e9;
+  function trimFlashLog(now) { while (flashLog.length && now - flashLog[0].t >= 1) flashLog.shift(); }
+  function countKind(kind) { var i, n = 0; for (i = 0; i < flashLog.length; i++) if (flashLog[i].kind === kind) n++; return n; }
+  S.flashOk = function (now, kind) {
+    var moment = kind === 'moment';
+    if (P.Settings && P.Settings.reduceFlash) return false;
+    trimFlashLog(now);
+    if (flashLog.length >= FLASH_HZ) { if (moment) momentRefusedAt = now; return false; }
+    if (!moment) {
+      if (countKind('hit') >= FLASH_HIT) return false;
+      if ((countKind('moment') > 0 || now - momentRefusedAt < 1) && flashLog.length >= FLASH_HZ - 1) return false;   // the moments' reserve
+    }
+    flashLog.push({ t: now, kind: moment ? 'moment' : 'hit' });
+    return true;
+  };
+  // A flash that cannot wait (the low-HP heartbeat): always shown, but it counts against the budget as a hit.
+  S.flashForce = function (now) { trimFlashLog(now); flashLog.push({ t: now, kind: 'hit' }); };
+  // Starts in the current window: all of them, or only one kind ('hit' or 'moment').
+  S.flashStarts = function (now, kind) { trimFlashLog(now); return kind ? countKind(kind) : flashLog.length; };
   // Guardrail (no flashes faster than 3 per second): one white hit flash per enemy per feel.enemyFlashGap. A hit that
   // lands during an allowed flash keeps it; a suppressed flash stays suppressed until it ends. Squash plays on every hit.
-  var flashSt = {}, flashCalls = 0;
+  var flashSt = {}, flashCalls = 0, propFlash = typeof WeakMap === 'function' ? new WeakMap() : null;
+  // Same rule for props (carts, canisters, cover): one white flash per object, at most 3 in any 1 s, none under Reduce flashing.
+  S.propFlashOk = function (k) {
+    var now = performance.now() / 1000, st, hit = (k.flash || 0) > 0;
+    if ((P.Settings && P.Settings.reduceFlash) || !propFlash) return false;
+    st = propFlash.get(k);
+    if (!st) { st = { on: false, ok: false, at: -1e9 }; propFlash.set(k, st); }
+    if (!hit) { st.on = false; st.ok = false; }
+    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap && S.flashOk(now); if (st.ok) st.at = now; }
+    return hit && st.ok;
+  };
   function enemyFlashOk(e, now) {
+    if ((P.Settings && P.Settings.reduceFlash)) return false;
     var k = e.id, st = flashSt[k], hit = (e.flash || 0) > 0;
     if (!st) st = flashSt[k] = { on: false, ok: false, at: -1e9, seen: now };
     if (now - st.seen > 0.2) st.on = false;             // not drawn for a while (off screen): the next hit is a new flash
     st.seen = now;
     if (!hit) { st.on = false; st.ok = false; }
-    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap; if (st.ok) st.at = now; }
+    else if (!st.on) { st.on = true; st.ok = now - st.at >= P.CFG.feel.enemyFlashGap && S.flashOk(now); if (st.ok) st.at = now; }
     if (++flashCalls % 600 === 0) Object.keys(flashSt).forEach(function (q) { if (now - flashSt[q].seen > 2) delete flashSt[q]; });
     return hit && st.ok;
   }
+  S.enemyFlashOk = enemyFlashOk;   // exported for tests/test-a11y-canvas.js
   // Enemy at world pos; Rd is P.Render (X/Y/ppm/ctx), or a view with noGround set when render.js already drew the ground.
   // Handles emerge, turning, elite, boss, crawler.
   S.enemy = function (Rd, e, hero) {
     var c = Rd.ctx, u = Rd.ppm, V = P.CFG.view, X = Rd.X(e.x), Y = Rd.Y(e.y - (e.r || 0.35) * 0.6), f = hero.x >= e.x ? 1 : -1;
     var human = e.state === 'dormant' || ((e.civ || e.type === 'diner') && e.state === 'turning');
-    var def = EN.def(e.type), uf = figUnit(Rd, e);
+    var def = EN.defFor(e), uf = figUnit(Rd, e);
     var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1;
     if (!Rd.noGround) S.groundEnemy(Rd, e);
     if (e.state === 'turning') X += (Math.random() - 0.5) * 3;
     c.save();
     if (emerge < 1) { c.globalAlpha = emerge; c.translate(X, Y); c.scale(0.7 + 0.3 * emerge, 0.7 + 0.3 * emerge); c.translate(-X, -Y); }
-    var rc = def.custom ? crawlerRc(e) : zombieRc(e, def, human, f);
-    var o = { flash: e.flash, phase: (e.walk || 0) * 5.5, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
-      outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000) };
-    drawFigure(c, X, Y, uf, f, rc, o, performance.now());
+    var rc = enemyRc(e, def, human);
+    // Walk phase: distance walked (sim e.walk) plus a per-enemy offset, so a crowd that spawned together does not march in step.
+    var o = { flash: e.flash, phase: (e.walk || 0) * 5.5 + (e.id || 0) * P.CFG.feel2.walk.phaseStep, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
+      outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000),
+      spring: P.Feel ? P.Feel.hurt(e) : null, stopped: P.Feel ? P.Feel.stopped(e) : false };
+    // Raster art (?art=raster, view only): the atlas figure replaces the rig's body; the crown and the boss mark below stay.
+    if (!(P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.enemy(c, e, o, X, Y, uf, f))) drawFigure(c, X, Y, uf, f, rc, o, performance.now());
     if (e.elite) eliteMarks(c, X, Y, uf, e);
     if (e.boss) bossMark(c, X, Y, uf);
     if (e.burn && e.burn.length) {
@@ -239,19 +301,21 @@ P.Sprites = (function () {
 
   // Zombie recipe. Outfit from e.skin, else the L1 crowd by variant. Colours are desaturated for zombies.
   function zombieRc(e, def, human, f) {
-    var v = (e.variant | 0) & 7, skinId = e.skin || def.skin || EN.L1[v], O = CH.outfit(skinId), T = human ? function (x) { return x; } : R.tint;
+    var v = (e.variant | 0) & 7, skinId = EN.outfitFor(e, def, v), O = CH.outfit(skinId), T = human ? function (x) { return x; } : R.tint;
     var sc = O.top === 'overall' ? O.base : O.col, windupQ = Math.round(clamp(e.windup || 0, 0, 1) * 3) / 3, swellQ = Math.round(clamp(e.swell || 0, 0, 1) * 4) / 4;
     // Brutes keep dull eyes until the wind-up turns them red.
     var eyeC = def.body === 'brute' && windupQ <= 0 ? '#A8382C' : def.eyes;
     var face = human ? { mouth: 'smile', brow: 'neutral', blush: false } : { eyes: eyeC, glow: eyeC, mouth: 'jaw', brow: def.brow, sockets: true };
     var z = !human;
-    return buildRc({ tag: human ? 'h' : 'z', oid: skinId, bname: def.body, B: EN.body(def.body), O: O,
-      skin: T(SKIN[v & 3]), shirt: T(sc), pants: T(O.pants), hair: T(O.hc || HAIR[v % 5]), shoe: T(O.shoe || '#2A2A2A'),
+    var zrc = buildRc({ tag: human ? 'h' : 'z', oid: skinId, bname: def.body, B: EN.body(def.body), O: O,
+      skin: T(SKIN[v & 3]), shirt: O.keep ? sc : T(sc), pants: O.keep ? O.pants : T(O.pants), hair: T(O.hc || HAIR[v % 5]), shoe: T(O.shoe || '#2A2A2A'),
       face: face, arms: human && e.state === 'turning' ? 'flail' : def.arms, still: human, seed: (e.id || 0) % 4,
       back: !human && e.vy > 0.35, lean: def.lean, hunch: def.hunch, crouch: (def.body === 'brute' ? 0.18 * windupQ : 0),
       windup: windupQ, swell: swellQ, mot: def, hook: EN.accent, bib: def.bib, torn: z && def.torn, wounds: z ? def.wounds || 0 : 0,
       pust: z && def.pust, throat: z && def.throat, eyes: def.eyes,
       glow: e.elite ? ELITE_GLOW : e.boss ? BOSS_GLOW : null, halo: null });
+    zrc.anim = animFor(def);
+    return zrc;
   }
   function crawlerRc(e) {
     var v = (e.variant | 0) & 7, O = CH.outfit(e.skin || EN.L1[v]), T = R.tint, def = EN.def('crawler');
@@ -260,6 +324,22 @@ P.Sprites = (function () {
       still: false, seed: 0, mot: {}, glow: e.elite ? ELITE_GLOW : null });
   }
 
+  // A crowd member's recipe reads only these fields (its type, variant, skin, human or zombie state, wind-up and swell as quantised
+  // here, elite or boss, facing back, and the id-based breath seed), so it is built once per signature and reused each frame.
+  // Keys are exact: two enemies with the same signature get identical pixels.
+  var rcMemo = {}, rcMemoN = 0;
+  function enemyRc(e, def, human) {
+    var wq = Math.round(clamp(e.windup || 0, 0, 1) * 3), sq = Math.round(clamp(e.swell || 0, 0, 1) * 4);
+    var key = e.type + '|' + ((e.variant | 0) & 7) + '|' + EN.lookKey(e, def) + (e.boss ? '|' + (e.nameKey || '') : '') + '|' + (human ? 'h' + (e.state === 'turning' ? 't' : '') : 'z') +
+      '|' + wq + '|' + sq + '|' + (e.elite ? 'e' : '') + (e.boss ? 'b' : '') + '|' + (!human && e.vy > 0.35 ? 'k' : '') + '|' + ((e.id || 0) % 4);
+    var rc = rcMemo[key];
+    if (!rc) {
+      if (rcMemoN > 4000) { rcMemo = {}; rcMemoN = 0; }   // a long run with many skins: start the memo again rather than grow
+      rc = rcMemo[key] = def.custom ? crawlerRc(e) : zombieRc(e, def, human);
+      rcMemoN++;
+    }
+    return rc;
+  }
   // Civilians fleeing: varied living humans, arms up, running. v = {x, y, drift, walk, scream, variant, skin?}.
   // Ground shadow of a civilian (ground layer; the figure view has noGround set, see groundEnemy).
   S.groundCivilian = function (Rd, v) { S.shadow(Rd.ctx, Rd.X(v.x), Rd.Y(v.y), Rd.ppm); };
@@ -271,7 +351,7 @@ P.Sprites = (function () {
       arms: 'panic', still: false, seed: (v.x * 0.37) % 4, mot: { gait: 'walk', strideK: 1.4, liftK: 1.3, sway: 0.02 }, hook: EN.accent });
     drawFigure(c, X, Y, u, v.drift >= 0 ? 1 : -1, rc, { phase: v.walk * 4.5, flash: 0 }, 0);
     if (v.scream > 0) {
-      c.font = 'italic 900 ' + Math.round(0.5 * u) + 'px ' + 'system-ui'; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = INK; c.fillStyle = '#FFD166';
+      c.font = 'italic 900 ' + Math.round(0.5 * u) + 'px "CM Bangers", Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = INK; c.fillStyle = '#FFD166';
       c.strokeText('!', X + 0.25 * u, Y - 1.35 * u); c.fillText('!', X + 0.25 * u, Y - 1.35 * u);
     }
   };
@@ -280,7 +360,10 @@ P.Sprites = (function () {
   S.corpse = function (Rd, p) {
     var c = Rd.ctx, u = Rd.ppm, X = Rd.X(p.x), Y = Rd.Y(p.y - 0.2), k = 1 - p.t / p.T, fall = Math.min(1, k / 0.45), f = p.dx >= 0 ? 1 : -1;
     var def = EN.def(p.etype || 'walker'), v = (p.variant | 0) & 7, O = CH.outfit(p.skin || EN.L1[v]), ch = !!p.fling, rc;
-    c.save(); c.globalAlpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
+    // p.fall (0..1) and p.alpha, when given, override the timing here: the death collapse (art-enemies5.js) drives them itself.
+    if (p.fall !== undefined) fall = p.fall;
+    c.save(); c.globalAlpha = p.alpha !== undefined ? p.alpha : (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4);
+    if (P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.corpse(c, p, fall, f, X, Y, u, def.scale)) { c.restore(); return; }   // raster: owns its transform
     if (p.fling) {
       var el = k * p.T, zz = Math.max(0, 6 * el - 10 * el * el);
       X += p.dx * el * 0.25 * u; Y -= zz * u;

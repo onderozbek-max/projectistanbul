@@ -19,6 +19,15 @@ P.FireAnimFx = P.FireAnimFx || {};
 
   // ---------- Extinguisher (Yangın Tüpü): mist cone from the nozzle, pressure kick in the pose ----------
   X.extinguisher = {
+    fire: function (F, G, k) {                           // pressure burst: a ring and a gust of mist leave the nozzle together
+      var n = G.pt(7, 0, 0.46, -0.02, 0), i, q, p;
+      F.spawn('ring', n.x, n.y, 0.12, 0.16, '236,246,255');
+      for (i = 0; i < F.count(5); i++) {
+        q = G.ang + M.rnd(-0.45, 0.45);
+        p = F.spawn('puff', n.x, n.y, M.rnd(0.25, 0.4), M.rnd(0.06, 0.1), '255,255,255');
+        p.op = 0.7; p.vx = Math.cos(q) * M.rnd(3, 4.5); p.vy = Math.sin(q) * M.rnd(3, 4.5); p.drag = 2.2;
+      }
+    },
     tick: function (F, G, k, dt) {
       var t = k.t, n, i, q, sp, p;
       if (t > 0.02 && t < 0.24) {
@@ -83,6 +92,7 @@ P.FireAnimFx = P.FireAnimFx || {};
   X.torch = {
     fire: function (F, G, k) {
       var n = G.pt(7, 0, 0.42, 0, 0), i, q, p;
+      p = F.spawn('glint', n.x, n.y, 0.1, 0.13, '255,220,150'); p.a = G.ang;   // ignition flare
       for (i = 0; i < F.count(6); i++) {
         q = G.ang + M.rnd(-0.6, 0.6);
         p = F.spawn('spark', n.x, n.y, 0.18, 0, '255,200,90'); p.vx = Math.cos(q) * M.rnd(2, 4); p.vy = Math.sin(q) * M.rnd(2, 4);

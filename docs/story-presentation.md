@@ -55,6 +55,8 @@ message log the player can open at any time. Characters appear as comic busts in
 - **Text is not baked into the art.** Bubbles, SFX lettering and captions are separate layers, in TR and EN (DS §10).
 - **Max 60 words per page** in Turkish (about 45 in English). Turkish runs about 20–30% longer. Design bubbles for Turkish.
 - **Speaker tails** point at the speaker. Max 2 bubbles per panel.
+- **Bubble count per panel can differ by language** (D-051). The panel art, speakers and meaning are fixed; each language fills the
+  bubbles from its own script within the panel's limit.
 - **Panel border:** 6 px night ink on paper (DS §9.1).
 - **Flashes:** none. Cuts are cuts. The dizi triple zoom is the only fast move, and only at cliffhangers (DS §9.2).
 
@@ -114,6 +116,8 @@ smiling, sad, determined, sick, surprised). Busts come from workstream B (`P.Por
 
 ## 5. Mom's calls as a phone UI
 
+> **Gameplay effect (recorded 2026-11-14 from the owner's message of 2026-11-08, 22:44 UTC).** The owner was asked whether Mom's call should change gameplay. He replied: "not sure what you mean but i preapprove your suggestion." The suggestion text is not in the chat log, so the gameplay effect is not defined here. Open: restate the suggestion to the owner and log the decision in docs/product.md section 17.
+
 ### 5.1 The UI
 
 - A **phone panel** slides down from the top 25% of the screen. It shows Mom's bust (mood: worried, then calm), call timer, and **signal bars** (3 → 0).
@@ -143,7 +147,7 @@ Today the bars are decoration. Three options:
 | H03 · 2 | Mom: don't go over the bridge | "Köprüye yaklaşma." (new) |
 | H04 · 4 | Call drops in the fog | "Anne? Kesiliyorsun!" |
 | H06 · 5 | Mom's last clear call (slice end) | "...seni seviyoruz... eve gel..." |
-| H11 · 4 | Text from Mom at the campfire (no signal, so a text): asks about Mila | "Mila nasıl?" (new) |
+| H11 Haliç–Balat · 4 | Text from Mom at the campfire (no signal, so a text): asks about Mila. To be rewritten by owner (D-060 moves the campfire to Fatma Nine's Garage). | "Mila nasıl?" (new; to be rewritten by owner) |
 | H20 · 1 | Mom's voice in Dad's letter (letter, not a call) | Letter #1 |
 
 Calls become rarer after H06 (no signal). Texts and voice notes replace them (§8).
@@ -258,8 +262,8 @@ The table keeps the canon beat from narrative.md and the journey (journey.md §5
 | H07 Kapalıçarşı | 3 panels: shutters, looters' hints | Shopkeeper: "Kapıyı açmayın!" (Don't open the door!) | Text from Mom (short) | Note on the shutter | Voice note: shopkeeper | The Carpet Golem. First human threat hinted. |
 | H08 Beyazıt | 3 panels: pigeons over the square | "Güvercinler..." (The pigeons...) | Mila: "Gelirsen haber ver." (Let me know if you come.) | "Bugün kapalı" sign | Polaroid: students | The Pigeon Man feeds the birds. |
 | H09 Kumkapı | 3 panels: the quay, the last meze | Porter: "Buz, buz!" (Ice, ice!) | No signal | Crates on ice | Voice note: Mom's old song | The Fish Porter. |
-| H10 Laleli | 3 panels: mannequins in the window | Arda: "Bunlar zombi mi?" (Are these zombies?) | Text: Kaan joking | Cartons with a note | Voice note: a hamal | The Wholesaler. "Are they zombies?" |
-| H11 Aksaray | 5 panels: campfire, crush admitted | Arda: "Mila'yı seviyorum." (I like Mila.) | Mom: "Mila nasıl?" (How's Mila?) | Bakery with the oven lit | Polaroid: Arda and Mila (before) | Dolmuş Driver. Triangle seed. Kaan goes quiet. |
+| H10 Topkapı Sarayı (TR owner check, D-060) | 3 panels: to be rewritten by owner (was: mannequins in the window) | to be rewritten by owner (was: Arda: "Bunlar zombi mi?" (Are these zombies?)) | to be rewritten by owner (was: Text: Kaan joking) | to be rewritten by owner (was: Cartons with a note) | to be rewritten by owner (was: Voice note: a hamal) | The Docent. To be rewritten by owner (was: "Are they zombies?", the Laleli beat). |
+| H11 Haliç–Balat (TR owner check, D-060) | 5 panels: campfire at Fatma Nine's Garage, to be rewritten by owner (was: campfire, crush admitted) | to be rewritten by owner (was: Arda: "Mila'yı seviyorum." (I like Mila.)) | to be rewritten by owner (was: Mom: "Mila nasıl?" (How's Mila?)) | to be rewritten by owner (was: Bakery with the oven lit) | to be rewritten by owner (was: Polaroid: Arda and Mila (before)) | The Antiquarian. Triangle seed and Kaan going quiet are carried over until the owner rewrites them. |
 | H12 Yenikapı | 3 panels: the tunnel and the cut | Arda: "Sinyal yok." (No signal.) | Call drops mid-line | Dead phone on the tiles | Voice note: a commuter's message | The Evening Crowd. The line goes dark. |
 | H13 Samatya | 3 panels: the sea at dawn | Radio: "Güvenli bölgeler..." (Safe zones...) | Radio | Abandoned picnic | Polaroid: a picnic | The Grill Man. Safe zones and the north. |
 | H14 Yedikule | 3 panels: walls and gardens | Arda: "Bu duvarlar hep ayakta." (These walls are still standing.) | None | Note on the gate: "Anahtarı bahçıvana verin." | Keys | The Key Keeper. |
@@ -314,6 +318,6 @@ are the two cliffhanger beats in the slice and at the end of Chapter 1. Chapter 
 | 12.2 | Bust art (8 moods per character) | B owns it. Start with Arda and Mom. Kaan at H04. |
 | 12.3 | Signal bars: option A, B or C (§5.2) | A for Ch1. |
 | 12.4 | Bark cooldown 12 s (DS says 20 s) | Yes. Update DS §9.3. |
-| 12.5 | Voice acting for busts | Owner. Narrative open Q4. Start with key lines only. |
+| 12.5 | Voice acting for busts | Owner. Narrative open Q4. Start with key lines only. Owner (2026-11-13, recorded 2026-11-14): yes to voice-over, if he first gets the text to review. |
 | 12.6 | Message log and unread dot | Yes. Needed for the owner's P0-9. |
 | 12.7 | Polaroids and voice notes (20 + hidden) | Proposed. Art and VO cost. |

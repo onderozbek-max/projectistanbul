@@ -4,11 +4,11 @@
 (function (C) {
   C.env = {
     // ---- A1 · breakable cover: hp by block kind (levels.js kinds plus the env kinds). Dash contact hits once per dash. ----
-    hp: { bin: 12, bench: 20, crates: 25, tables: 30, kiosk: 40, car: 60, taxi: 60, dolmus: 60, cart: 25, planter: 20,
+    hp: { bin: 12, bench: 20, crates: 25, tables: 30, tavlatable: 30, kiosk: 40, antique: 40, car: 60, taxi: 60, dolmus: 60, cart: 25, planter: 20,
       gascan: 10, extinguisher: 30 },
     dashDmg: 12,
     // Material: glass slicks (bins, kiosks, cars) and wood debris (benches, crates, tables, carts, planters).
-    glassKinds: ['bin', 'kiosk', 'car', 'taxi', 'dolmus'],
+    glassKinds: ['bin', 'kiosk', 'antique', 'car', 'taxi', 'dolmus'],
     loot: { simitChance: 0.2, jetonChance: 0.5, jetonMin: 6, jetonMax: 12 },   // simit (20%) or jeton on break
     // Solid env props placed by P.Env.place (AABB, side lane only so the centre stays open).
     gas: { every: 26, chance: 0.5, w: 0.7, h: 0.7 },
@@ -55,9 +55,40 @@
     cable: { chance: 0.5, len: 4, reach: 2.2, every: 3.5, telegraph: 0.8, show: 0.4, dmg: 8, stun: 0.35, heroDmg: 8, y0: 0.25, y1: 0.85,
       xMax: 3 },
 
-    // ---- A5 · doors, windows and manholes: telegraph, then 2-4 enemies emerge within 0.6 m of the opening. ----
+    // ---- A5 · doors and windows: telegraph, then 2-4 enemies emerge within 0.6 m of the opening. ----
     portal: { telegraph: 0.6, gap: 0.2, nMin: 2, nMax: 4, ahead: 9, past: 2, behind: 12, maxActive: 2, chance: 0.6, tries: 3,
-      offset: 0.6, manholeJit: 3, runnerShare: 0.3, windowEvery: 2, manholeEvery: 30, manholeX: 1.2, windowDy: 9, yStart: 8, yEnd: 10,
-      doorX: 4.9, windowX: 4.7, manholeStart: 20 },   // inside the 5 m half-width view (AUDIT-6 A5): the telegraph must be seen
+      offset: 0.6, runnerShare: 0.3, windowEvery: 2, windowDy: 9, yStart: 8, yEnd: 10,
+      doorX: 4.9, windowX: 4.7 },   // inside the 5 m half-width view (AUDIT-6 A5): the telegraph must be seen
+
+    // ---- R1-T4 part 14 and part 17 · heal stations (sim/eczane.js). One mechanic, two looks, one set of sim rules. A station heals
+    // `heal` HP once (never above max HP), outside drops.healCap, after a touch of `dwell` s (no button); a touch at full HP does
+    // not spend it. Street-like hoods get the pharmacy (variant eczane); every other hood gets the simit and tea kiosk (variant
+    // kiosk): the boat and ferry hoods and the covered bazaar. So every route stage from `from` has one station, never the boss
+    // stage. The variants only own their look and their placement band and RNG stream. Times in s, distances in m.
+    eczane: {
+      heal: 30,                                       // HP per use (never above max HP)
+      touchR: 0.9,                                    // hero centre this close to the footprint counts as touching (m)
+      dwell: 0.4,                                     // seconds of touch before the station is used
+      from: 3,                                        // first journey level with a station (L1 and L2: tutorial and ramp)
+      stages: [1, 2, 3, 4],                           // route stages only (stage 5 is the boss arena)
+      perLevel: 1,                                    // at most this many per level (0 turns placement off, both variants)
+      tries: 12,                                      // candidate spots per level
+      noVehicles: ['boat', 'ferry'],                  // street-like hoods (the pharmacy): no boat or ferry (journey.js vehicles)
+      notThemes: ['bazaar'],                          // and not the covered bazaar (journey.js theme). Other hoods get the kiosk
+      seedStep: 40503,                                // placement RNG stream: seed ^ variant salt + level index x step
+      // tools/bot.js policy (both variants): below `hp` (fraction of max) the bot walks to an unused station up to `reach` m ahead
+      // and `back` m behind, stands `gap` m off its side, and only when no enemy is within `threat` m (the drop rule's gate).
+      bot: { hp: 0.5, reach: 8, back: 6, gap: 0.3, threat: 1.0 },
+      variants: {
+        // eczane: the pharmacy. Block kind 'eczane' (the view's cream booth with the green cross sign). The footprint is in m.
+        eczane: { kind: 'eczane', w: 1.4, h: 1.0, span: [0.2, 0.7], sideMin: 2.2, sideJit: 0.8, clear: 0.6, edge: 0.5,
+          seedSalt: 0x7C2E1A01 },
+        // kiosk: the simit and tea büfe. Block kind 'bufe' (not 'kiosk': that is the breakable newspaper kiosk, config-env hp).
+        // span: placement band, share of the way up to the hold zone (holdY). sideMin, sideJit: side lane distance and jitter (m).
+        // clear, edge: clearance to other blocks and to the corridor wall (m).
+        kiosk: { kind: 'bufe', w: 1.4, h: 1.0, span: [0.2, 0.7], sideMin: 2.2, sideJit: 0.8, clear: 0.6, edge: 0.5,
+          seedSalt: 0x5B1D3F01 },
+      },
+    },
   };
 })(P.CFG);

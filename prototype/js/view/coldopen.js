@@ -23,7 +23,7 @@ P.ColdOpen = (function () {
 
   function setSub(id) {
     if (!id || !P.Settings.subs) { $('cold-speaker').textContent = ''; $('cold-text').textContent = ''; return; }
-    var l = P.line(id);
+    var l = P.Dialogue.get(id) || { speaker: '', text: '' };
     $('cold-speaker').textContent = l.speaker + ':'; $('cold-text').textContent = l.text;
   }
 
@@ -54,7 +54,7 @@ P.ColdOpen = (function () {
   function comic() {
     var box = $('comic'); box.innerHTML = ''; box.classList.remove('hidden');
     ['rule1', 'rule2', 'rule3'].forEach(function (id, i) {
-      var p = document.createElement('div'); p.textContent = P.line(id).text; box.appendChild(p);
+      var p = document.createElement('div'); p.textContent = P.Dialogue.text(id); box.appendChild(p);
       setTimeout(function () { if (!st) return; p.classList.add('in'); setSub(id); P.Sfx.play('click'); }, i * 2200 + 50);
     });
   }

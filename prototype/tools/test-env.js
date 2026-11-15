@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 // Same module list as bot.js: index.html's sim scripts (view, story and flow files excluded).
-const NOT_SIM = /^js\/(view|story)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|arsenal|collect|daily|save)\.js$/;
+const NOT_SIM = /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|arsenal|collect|daily|save)\.js$/;
 const FILES = [...fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAll(/<script src="([^"]+)"/g)]
   .map(m => m[1]).filter(f => !NOT_SIM.test(f));
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
@@ -324,6 +324,23 @@ const alive = list => list.filter(e => !e.dead).length;
   e.xp = 0; e.enemies = new Array(P.CFG.xp.crowd.ref).fill(null);
   P.Progression.addXp(e, 1);
   check(Math.abs(empty - 1) < 1e-9 && Math.abs(e.xp - 0.5) < 1e-9, 'xp: a crowd of ref size halves gem XP');
+})();
+
+// Galata uses its own backgammon table size and the three breakable props
+// keep their identity after leaving the collision geometry.
+(function () {
+  const s = mk(123, 6), sizes = { tavlatable: [0.9, 0.9], bench: [0.6, 1.8], planter: [1.2, 1.2], bollard: [0.35, 0.35] };
+  Object.entries(sizes).forEach(([kind, [w, h]]) => {
+    const b = s.geo.blocks.find(b => b.kind === kind);
+    check(!!b && Math.abs(b.rc.xMax - b.rc.xMin - w) < 1e-9 &&
+      Math.abs(b.rc.yMax - b.rc.yMin - h) < 1e-9, 'Galata footprint: ' + kind);
+    if (kind === 'bollard') { check(b && !b.rec, 'Galata bollard is solid'); return; }
+    if (!b || !b.rec) { check(false, 'Galata breakable missing: ' + kind); return; }
+    P.Env.hitProp(s, b.rec, b.rec.hp, 'sledge');
+    check(!s.geo.blocks.includes(b) && s.env.zones.some(z => z.kind === 'debris' && z.rec === b.rec),
+      'Galata break removes collision and retains rubble kind: ' + kind);
+  });
+  check(P.CFG.levels.kinds.tables.every(size => size === 1.2), 'generic cafe table footprint');
 })();
 
 // ---------- sim isolation and lint ----------

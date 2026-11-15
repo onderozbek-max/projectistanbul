@@ -6,6 +6,7 @@
   var root, coinChip, coinVal, kmTxt, kmFill, nextHead, nextLine, playBtn, bottom, sheet, banner, flyLayer, toastLayer, gearHost;
   var tabsEl = null, panelOpen = null;
   var onPlay = null, opened = false, sheetHood = -1, selLevel = 1, session = 0, busy = false, active = null, announced = false;
+  var selMode = 'normal';   // R1-T4 part 18: the level sheet's mode toggle ('normal' or 'nightmare'); reset when the sheet opens
   var cancels = [], shownCoins = 0;
   var COLOR = { walker: '#8A8F98', runner: '#FF6B3D', crawler: '#5BD16E', spitter: '#3DDCFF', brute: '#B5651D', bloater: '#E040FB', diner: '#FFD166' };
   var GLYPH = {
@@ -62,7 +63,8 @@
   // v0.5 tab strip under the top bar: Karakter, Silahlar, Görevler, Hatıralar.
   function buildTabs() {
     tabsEl = el('div', 'meta-tabs', root);
-    [['attr', 'tab.attr', function () { showPanel('attr'); }], ['ars', 'tab.ars', function () { showPanel('ars'); }],
+    [['attr', 'tab.attr', function () { showPanel('attr'); }], ['tree', 'tab.tree', function () { showPanel('tree'); }],
+      ['ars', 'tab.ars', function () { showPanel('ars'); }],
       ['daily', 'tab.daily', function () { showPanel('hub', 'daily'); }], ['coll', 'tab.coll', function () { showPanel('hub', 'coll'); }]
     ].forEach(function (d) {
       var b = el('button', 'meta-tab', tabsEl);
@@ -71,20 +73,23 @@
   }
   function buildPanels() {
     if (M.Attr) M.Attr.build(root, { onBack: hidePanel });
+    if (M.TreeUI) M.TreeUI.build(root, { onBack: hidePanel });
     if (M.Arsenal) M.Arsenal.build(root, { onBack: hidePanel });
     if (M.Hub) M.Hub.build(root, { onBack: hidePanel });
   }
-  // Panels replace the map while open. name: 'attr' | 'ars' | 'hub' (hub tab: 'daily' | 'coll').
+  // Panels replace the map while open. name: 'attr' | 'tree' | 'ars' | 'hub' (hub tab: 'daily' | 'coll').
   function showPanel(name, hubTab) {
     sfx('uiOpen'); Map.hide(); bottom.classList.add('is-hidden'); tabsEl.classList.add('is-hidden');
     panelOpen = name;
     if (name === 'attr') M.Attr.show();
+    else if (name === 'tree') M.TreeUI.show();
     else if (name === 'ars') M.Arsenal.show();
     else M.Hub.show(hubTab);
   }
   function hidePanel() {
     if (!panelOpen) return;
     if (M.Attr) M.Attr.hide();
+    if (M.TreeUI) M.TreeUI.hide();
     if (M.Arsenal) M.Arsenal.hide();
     if (M.Hub) M.Hub.hide();
     panelOpen = null; sfx('uiBack');
@@ -125,13 +130,19 @@
   }
   // Journey complete (every hood done): there is no next level, so the card says so and the play button is hidden.
   // The line and the button never disagree (AUDIT-6 F8).
+  // Next-up line: the shared unlock wording (ui-progress.js) with the level written as the HUD journey chip does,
+  // "BÖLÜM 1/100 · İSTİKLAL · Taksim Girişi". Falls back to the shared line when its level prefix is not there.
+  function nextText(info) {
+    var lvl = t('prog.levelN', { n: info.index }), line = P.UIProgress.unlockText(info);
+    return line.indexOf(lvl) === 0 ? t('ui.hud.journey', { n: info.index, of: J.count() }) + line.slice(lvl.length) : line;
+  }
   function renderBottom(v) {
     var lv = M.level(M.currentLevel()), done = v.done >= J.hoods.length;
-    setKm(v.km);
+    setKm(v.kmShown);
     nextHead.textContent = t(done ? 'meta.doneHead' : 'meta.next');
-    nextLine.textContent = done ? t('meta.allDone') : t('meta.nextLine', { hood: P.upper(lv.hood.name), n: lv.stage });
+    nextLine.textContent = done ? t('meta.allDone') : nextText(P.Progress.levelInfo(lv.index));
     playBtn.classList.toggle('hidden', done);
-    if (!done) playBtn.textContent = t('meta.playLevel', { n: lv.stage });
+    if (!done) playBtn.textContent = t('meta.playLevel', { L: lv.index });
   }
   function renderAll(v) {
     renderCoins(v.coins); renderBottom(v); Map.refresh(v);
@@ -171,20 +182,30 @@
       st = i > unl ? 'is-locked' : (M.isCleared(i) ? 'is-done' : 'is-open');
       cls = 'meta-node ' + st + (boss ? ' is-boss' : '') + (i === selLevel ? ' is-sel' : '') + (i === cur ? ' is-cur' : '');
       inner = st === 'is-locked' ? icon('lock', 20) : (boss ? icon('skull', 26) : '<b>' + k + '</b>');
-      out += '<button class="' + cls + '" data-lv="' + i + '" aria-label="' + t('meta.level', { n: k }) + '">' +
+      out += '<button class="' + cls + '" data-lv="' + i + '" aria-label="' + t('meta.stage', { n: k }) + '">' +
         inner + starRow(i, st) + (boss ? '<em>' + t('meta.boss') + '</em>' : '') + '</button>';
     }
     return '<p class="meta-cap">' + t('meta.levels') + '</p><div class="meta-nodes">' + out + '</div>';
   }
+  // Normal / Nightmare toggle (R1-T4 part 18): 48 px buttons. Nightmare is locked until the hood is cleared on Normal.
+  function modeToggle(h) {
+    if (!M.Modes.unlocked(h)) return '<p class="meta-mode-hint">' + t('mode.toggle.hint') + '</p>';
+    var nm = selMode === 'nightmare';
+    return '<div class="meta-modes" role="group" aria-label="' + t('mode.toggle.aria') + '">' +
+      '<button class="meta-mode' + (nm ? '' : ' is-on') + '" data-mode="normal" aria-pressed="' + (nm ? 'false' : 'true') + '">' + t('mode.toggle.normal') + '</button>' +
+      '<button class="meta-mode meta-mode-nm' + (nm ? ' is-on' : '') + '" data-mode="nightmare" aria-pressed="' + (nm ? 'true' : 'false') + '">' +
+      t('mode.toggle.nm') + (M.Modes.moon(h) ? '<i class="meta-moon-mk" aria-hidden="true"></i>' : '') + '</button></div>';
+  }
   function sheetDetail() {
-    var i = selLevel, lv = M.level(i), first = !M.isCleared(i), locked = i > M.unlockedLevel(), k;
+    var i = selLevel, lv = M.level(i), first = !M.isCleared(i), locked = i > M.unlockedLevel(), k, nm = nightmareFor(i);
     var crit = '', reward = t(first ? 'meta.rewardFirst' : 'meta.reward1', { n: M.clearReward(i, first) });
     for (k = 1; k <= M.CFG.starsMax; k++) crit += '<li class="' + (M.starsOf(i) >= k ? 'on' : '') + '">' + t('meta.star' + k) + '</li>';
-    return '<div class="meta-sh-detail"><div class="meta-sh-lvl">' + t('meta.level', { n: lv.stage }) +
-      (lv.boss ? ' · ' + t('meta.boss') : '') + '</div><ul class="meta-crit">' + crit + '</ul>' +
-      '<p class="meta-reward"><span>' + t('meta.reward') + '</span> ' + reward + '</p></div>' +
+    if (nm) crit += '<li class="' + (M.Modes.stars(i) >= 4 ? 'on' : '') + '">' + t('res.star4', { n: Math.round(P.CFG.levels.nightmare.fourthHp * 100) }) + '</li>';
+    return '<div class="meta-sh-detail"><div class="meta-sh-lvl">' + t('meta.stage', { n: lv.stage }) +
+      (lv.boss ? ' · ' + t('meta.boss') : '') + '</div>' + modeToggle(sheetHood) + '<ul class="meta-crit">' + crit + '</ul>' +
+      '<p class="meta-reward"><span>' + t('meta.reward') + '</span> ' + reward + '</p>' + P.UIProgress.powerHtml() + '</div>' +
       '<button class="meta-btn meta-play" data-act="play"' + (locked ? ' disabled' : '') + '>' +
-      (locked ? t('meta.locked') : t('meta.playLevel', { n: lv.stage })) + '</button>';
+      (locked ? t('meta.locked') : nm ? t('mode.nm.play', { L: lv.index }) : t('meta.playLevel', { L: lv.index })) + '</button>';
   }
   function renderSheet() {
     var hd = M.hood(sheetHood);
@@ -193,7 +214,7 @@
   }
   function openSheet(h) {
     if (busy) { skip(); return; }
-    sheetHood = h; selLevel = defaultLevel(h); sfx('uiOpen');
+    sheetHood = h; selLevel = defaultLevel(h); selMode = 'normal'; sfx('uiOpen');
     renderSheet();
     sheet.classList.add('is-open');
     bottom.classList.add('is-hidden');
@@ -206,22 +227,33 @@
     bottom.classList.remove('is-hidden');
   }
   function pickLevel(i) {
-    if (i > M.unlockedLevel()) { sfx('uiBack'); A.kick(sheet, 'is-shake', 400); toast(t('meta.lockedHint')); return; }
+    if (i > M.unlockedLevel()) { sfx('uiBack'); A.kick(sheet, 'is-shake', P.UIMotion.ms('--m-beat')); toast(t('meta.lockedHint')); return; }
     selLevel = i; sfx('uiTap'); renderSheet();
   }
   function onSheetClick(e) {
-    var b = e.target.closest ? e.target.closest('[data-lv],[data-act]') : null;
+    var b = e.target.closest ? e.target.closest('[data-lv],[data-act],[data-mode]') : null;
     if (!b) return;
     if (b.hasAttribute('data-lv')) pickLevel(Number(b.getAttribute('data-lv')));
+    else if (b.hasAttribute('data-mode')) setMode(b.getAttribute('data-mode'));
     else if (b.getAttribute('data-act') === 'close') closeSheet();
     else if (b.getAttribute('data-act') === 'play') startLevel(selLevel);
+  }
+  function setMode(m) {
+    if (m === 'nightmare' && !M.Modes.unlocked(sheetHood)) { sfx('uiBack'); toast(t('mode.toggle.hint')); return; }
+    if (m === selMode) return;
+    selMode = m; sfx('uiTap'); renderSheet();
+  }
+  // Nightmare applies to a level of the open sheet's hood only (the toggle is per hood).
+  function nightmareFor(i) {
+    return selMode === 'nightmare' && sheetHood >= 0 && M.level(i).hoodIndex === sheetHood && M.Modes.unlocked(sheetHood);
   }
   function startLevel(i) {
     if (busy) { skip(); return; }
     if (i > M.unlockedLevel()) { sfx('uiBack'); toast(t('meta.lockedHint')); return; }
+    var nm = nightmareFor(i);
     sfx('uiTap');
     close();
-    if (typeof onPlay === 'function') onPlay(i);
+    if (typeof onPlay === 'function') onPlay(i, nm ? { mode: 'nightmare' } : undefined);
   }
 
   // ---- Toasts and banner ----
@@ -231,7 +263,7 @@
     d.textContent = text;
     setTimeout(function () {
       d.classList.add('is-out');
-      setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 320);
+      setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, P.UIMotion.ms('--m-exit'));
     }, A.dur(2100));
   }
   function showBanner(p) {
@@ -262,10 +294,10 @@
     sfx('mapWalk');
     if (moved) {
       cancels.push(Map.walk(b0.cur, b1.cur, 1400, function () { arrive(p, my); }));
-      cancels.push(tweenKm(b0.km, b1.km, 1400));
+      cancels.push(tweenKm(b0.kmShown, b1.kmShown, 1400));
     } else {
       Map.hop();
-      cancels.push(tweenKm(b0.km, b1.km, 600));
+      cancels.push(tweenKm(b0.kmShown, b1.kmShown, 600));
       schedule(my, 620, function () { arrive(p, my); });
     }
   }
@@ -293,7 +325,7 @@
       shownCoins += per;
       renderCoins(Math.round(shownCoins));
       sfx('coin', 50);
-      A.kick(coinChip, 'is-pop', 300);
+      A.kick(coinChip, 'is-pop', P.UIMotion.ms('--m-pop'));
     }, 'cubic-bezier(.4,0,.6,1)');
   }
   function flyCoins(p, my) {
@@ -312,6 +344,13 @@
       if (b1.done >= n && b0.done < n) toast(t('meta.allDone'));
     }
     (p.newGear || []).forEach(function (id) { toast(t('meta.ret.gear', { item: t('meta.item.' + id) })); });
+    bondToasts(p.bond && p.bond.kaan);
+  }
+  // Kaan's bond after a level: the join, the points earned and any threshold crossed (25: aura, 50: Tackle & Stab).
+  function bondToasts(k) {
+    if (!k || k.gain <= 0) return;
+    toast(t(k.joined ? 'bond.joined' : 'bond.gain', { n: k.gain }));
+    k.crossed.forEach(function (at) { if (at === 25 || at === 50) toast(t('bond.reached', { name: t('bond.t' + at + '.name') })); });
   }
   function cancelAll() {
     cancels.forEach(function (c) { c(); });
@@ -320,7 +359,7 @@
   function finish(p) {
     cancelAll();
     busy = false; active = null;
-    renderCoins(p.after.coins); renderBottom(p.after); setKm(p.after.km);
+    renderCoins(p.after.coins); renderBottom(p.after); setKm(p.after.kmShown);
     Map.refresh(p.after); Map.focusHood(p.after.cur, 0.42, false);
     hideBanner(); flyLayer.innerHTML = '';
     announce(p);
@@ -335,7 +374,7 @@
   function playReturn(p) {
     var my = ++session, b0 = p.before;
     busy = true; active = p; announced = false; flyLayer.innerHTML = '';
-    renderCoins(b0.coins); shownCoins = b0.coins; setKm(b0.km);
+    renderCoins(b0.coins); shownCoins = b0.coins; setKm(b0.kmShown);
     Map.refresh(b0); Map.focusHood(b0.cur, 0.42, true);
     showBanner(p);
     schedule(my, 1250, function () {
@@ -378,6 +417,15 @@
     if (p && p.statGains && M.Attr) M.Attr.sequence(p, function () { playToasts(p); });
     else playToasts(p);
   }
+  // A failing optional step (map music and the open sound, pending result, welcome-back) is logged as boot_error and skipped,
+  // so it cannot leave the map half-built. The base state is drawn before those steps: badges, camera, km and next-up card
+  // are always in place.
+  function optional(where, fn) {
+    try { return fn(); } catch (e) {
+      if (P.UI && P.UI.bootError) P.UI.bootError(where, e && e.message ? e.message : e);
+      return null;
+    }
+  }
   function open(cb) {
     if (typeof cb === 'function') onPlay = cb;
     ensureRoot();
@@ -386,9 +434,12 @@
     opened = true; sheetHood = -1; panelOpen = null;
     sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden'); tabsEl.classList.remove('is-hidden');
     toastLayer.innerHTML = '';
-    music('map'); sfx('uiOpen');
     Map.show();
-    var p = M.takePending(), w = M.Hub ? M.Hub.welcomeInfo() : null;
+    var v = M.snapshot();
+    renderAll(v); Map.focusHood(v.cur, 0.42, true);
+    optional('map.audio', function () { music('map'); sfx('uiOpen'); });
+    var p = optional('map.pending', M.takePending);
+    var w = optional('map.welcome', function () { return M.Hub ? M.Hub.welcomeInfo() : null; });
     if (w) { M.Hub.welcome(root, w, function () { afterWelcome(p); }); return; }
     afterWelcome(p);
   }
@@ -401,12 +452,21 @@
     sheetHood = -1; sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden');
     Map.hide(); Gear.hide();
     if (M.Attr) M.Attr.hide();
+    if (M.TreeUI) M.TreeUI.hide();
     if (M.Arsenal) M.Arsenal.hide();
     if (M.Hub) M.Hub.hide();
     panelOpen = null;
     Array.prototype.forEach.call(root.querySelectorAll('.meta-welcome'), function (n) { n.parentNode.removeChild(n); });
   }
   // Starts today's daily: the attempt is spent at launch, then the map calls onPlay(level, {daily, modifiers, seed}).
+  // Night Shift entry (the hub's Görevler card): closes the map and plays today's shift (meta-nightshift.js launch).
+  M.openNightShift = function () {
+    var L = M.NightShift.launch(M.Daily.dayKey(new Date()));
+    if (!L) { toast(t('ns.card.closed')); return false; }
+    sfx('uiTap'); close();
+    if (typeof onPlay === 'function') onPlay(L.level, L.opts);
+    return true;
+  };
   M.openDaily = function () {
     var L = M.dailyLaunch ? M.dailyLaunch() : null;
     if (!L) { toast(t('hub.dailyUsed')); return false; }

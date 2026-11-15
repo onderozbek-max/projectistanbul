@@ -3,6 +3,7 @@
 > **Status:** v0.1 · 2026-11-08 · Owner: Onder · Decisions: **D-030** (arsenal, Adopted) and **D-031** (skills, Adopted)
 > **Numbers source:** `prototype/js/config-weapons.js` (E1, in progress). Where this doc proposes a change,
 > it says so. The code wins for numbers. This doc wins for intent.
+> **Scope (owner, 2026-11-08; recorded 2026-11-14):** no heavy assault rifles yet. From the owner's message: "i am not saying that we should bring in heavy assault rifles yet".
 > **Related:** [journey.md](journey.md) (unlocks by level) · [content-catalog.md](content-catalog.md) §10 (starting numbers) ·
 > [wow-catalog.md](wow-catalog.md) (spikes and juice) · [design-system.md](design-system.md) §6–§7, §15 (feel and audio rules)
 
@@ -334,7 +335,7 @@ Source: `config-weapons.js` (`C.skills`) and `sim/skills.js` (E1). The names bel
 
 | Skill | Input | Effect | Numbers (E1) | Feel target |
 |---|---|---|---|---|
-| **Dash · Kaçış** (Dash) | Flick (40 px in 200 ms) on the joystick zone, or double-tap (40 px, 280 ms). Space on desktop. | Moves Arda 3.2 m in 0.16 s. | i-frames 0.3 s. Cooldown 3.5 s (Energy −8%). | Input to first movement ≤ 50 ms. Afterimage trail 4 frames at 40 ms apart, alpha 0.5 → 0. |
+| **Dash · Depar** (Dash) | Flick (40 px in 200 ms) on the joystick zone, or double-tap (40 px, 280 ms). Space on desktop. | Moves Arda 3.2 m in 0.16 s. | i-frames 0.3 s. Cooldown 3.5 s (Energy −8%). | Input to first movement ≤ 50 ms. Afterimage trail 4 frames at 40 ms apart, alpha 0.5 → 0. |
 | **Close call · Kıl payı** (near miss) | Automatic | An enemy or telegraph passes within 0.2 m during i-frames. | "KIL PAYI!" and a slow-mo of 0.25 time-scale for 0.25 s. Once per dash. | Off under Reduce motion (show the text only). |
 | **Ultimate · Nazar Patlaması** (Evil-Eye Burst) | Tap the ult button (bottom right). Auto-fire if the Auto-ult setting is on. | 2.0 s burst. 60 dmg in a screen-wide ring (push 2.5 m). Weapons power ×1.5 and cooldowns ×0.6 for 2 s. | Charge: +0.004 per kill (250 kills), +0.03 per elite. Slow-mo 0.25 at activation. | "NAZAR HAZIR!" when ready. Activation has a 0.2 s wind-up (proposal). Camera punch 3%. |
 | **Frenzy · Çılgınlık** (ÇILGINLIK!) | Automatic | 6 s. Weapons attack speed +40%. | Trigger: 60 kills with kill gaps ≤ 1.5 s. | Golden edge glow at ≤ 1 Hz pulse. No flash. |

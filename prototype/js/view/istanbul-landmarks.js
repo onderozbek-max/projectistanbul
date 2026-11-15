@@ -5,7 +5,7 @@
 P.Landmarks = (function () {
   var L = {}, CACHE = {}, CACHE_N = 0, PLAN = {};
   var INK = '#14151F', CREAM = '#F4EBDD', GOLD = '#E9A23B', TAU = Math.PI * 2;
-  var FONT = 'italic 900 %Ppx "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif';
+  var FONT = 'italic 900 %Ppx "CM Bangers", Bangers, Impact, sans-serif';
 
   function hs(n) { var x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); }
   function isL1(s) { return !s.levelIndex || s.levelIndex === 1; }
@@ -138,6 +138,18 @@ P.Landmarks = (function () {
       R_(c, 0, 0, w, h, '#E9DCC4');
       var cols = ['#C0392B', '#1B4965', '#E9A23B', '#2E7D4F', '#7A4F8C'];
       for (var i = 0; i < 12; i++) E_(c, hs(i) * w, hs(i + 7) * h, 0.2 + hs(i + 3) * 0.5, 0.2 + hs(i + 5) * 0.5, cols[i % 5]);
+    },
+    // D-060: narrow painted row houses (Haliç–Balat). One house per colour across the billboard, shutters on each window.
+    painted: function (c, w, h) {
+      var cols = ['#C8553D', '#E3B04B', '#4F8FAE', '#D98BA0'], cw = w / cols.length;
+      for (var i = 0; i < cols.length; i++) {
+        var x0 = i * cw;
+        R_(c, x0, 0, cw, h, cols[i], INK, 0.03);
+        for (var y = 1.0; y + 1.4 < h; y += 2.6) {
+          R_(c, x0 + cw * 0.3, y, cw * 0.4, 1.2, '#2A3445', CREAM, 0.03);
+          R_(c, x0 + cw * 0.12, y, cw * 0.14, 1.2, '#B5651D'); R_(c, x0 + cw * 0.74, y, cw * 0.14, 1.2, '#B5651D');
+        }
+      }
     }
   };
   function facadeP(c, w, h, st) { (FAC[st] || FAC.stone)(c, w, h); }
@@ -188,6 +200,12 @@ P.Landmarks = (function () {
       R_(c, 0.1, h - 2.4, w - 0.2, 1.1, '#6B4A2E', INK, 0.03); R_(c, 0.6, 1.5, 0.05, 1.7, '#C9A46A');
       E_(c, 1.5, 3.4, 0.3, 0.35, '#8A5A34', INK, 0.03);
       c.beginPath(); c.moveTo(1.9, 2.2); c.lineTo(2.6, 2.2); c.lineTo(2.8, 3.4); c.lineTo(1.7, 3.4); c.closePath(); c.fillStyle = '#9E7A4A'; c.fill();
+    },
+    // D-060: souvenir stand (Topkapı Sarayı). Hung postcards and runners, plates on the counter.
+    souvenir: function (c, w, h) {
+      var cols = ['#B5453A', GOLD, '#1B4965', CREAM, '#2E7D4F'];
+      for (var i = 0; i < 5; i++) R_(c, 0.25 + i * 0.55, 1.4 + (i % 2) * 0.4, 0.42, 1.5, cols[i], INK, 0.02);
+      for (var k = 0; k < 3; k++) E_(c, 0.7 + k * 0.9, h - 1.9, 0.3, 0.22, '#E9DCC4', INK, 0.02);
     }
   };
   function stallP(c, w, h, st, t) {
@@ -316,15 +334,16 @@ P.Landmarks = (function () {
     for (var y = 0.5; y < h; y += 0.5) R_(c, 0, y, w, 0.04, '#4E4838');
     for (var cx = 0; cx < w; cx += 0.6) R_(c, cx, 0, 0.3, 0.4, '#7E7460', INK, 0.03);
   }
+  // T4 part 11: the tram is the same drawing as the level-1 tram (vehicles.js paintBox), not a flat red box.
   function tramP(c, w, h) {
+    if (P.Vehicles && P.Vehicles.paintBox) { P.Vehicles.paintBox(c, w, h); return; }
     R_(c, 0, 0, w, h, '#C0392B', INK, 0.06); R_(c, 0.2, 0.5, w - 0.4, h - 1, CREAM, INK, 0.03);
-    for (var y = 1; y < h - 0.5; y += 1.6) R_(c, 0.5, y, w - 1.0, 0.9, '#C0392B');
   }
 
   // Painter families: "family:style" kinds. Kinds without a painter fall back to P.Props (e.g. playground).
   var FAM = { tram: tramP, arch: archP, overpass: overpassP, facade: facadeP, tower: towerP, stall: stallP, park: parkP,
     pier: pierP, board: boardP, crane: craneP, dig: digP, minibus: minibusP, steps: stepsP, wall: wallP };
-  var SIZE = { tram: [1.8, 9], board: [1.6, 2.4], stall: [3.2, 6], park: [4, 8], pier: [4, 8], tower: [4, 10], crane: [3, 10],
+  var SIZE = { tram: [3.2, 13.2], board: [1.6, 2.4], stall: [3.2, 6], park: [4, 8], pier: [4, 8], tower: [4, 10], crane: [3, 10],
     dig: [6, 5], steps: [4, 9], wall: [3.2, 9], minibus: [2.2, 5], facade: [3.1, 9], overpass: [14, 3], arch: [14, 3] };
   function paint(c, kind, w, h, t) {
     var f = kind.split(':'), fn = FAM[f[0]];
@@ -341,7 +360,7 @@ P.Landmarks = (function () {
     var fam = kind.split(':')[0], sz = SIZE[fam] || [3.1, 9], it = { kind: kind, t: t, w: sz[0], h: sz[1], y0: y, side: side || 1 };
     it.prop = !FAM[fam];
     if (fam === 'arch' || fam === 'overpass') it.x0 = -7;
-    else if (fam === 'tram') it.x0 = -0.9;
+    else if (fam === 'tram') it.x0 = -1.6;   // centred on the tracks (3.2 m image, 2.6 m car)
     else if (fam === 'dig') it.x0 = -3;
     else if (fam === 'minibus') it.x0 = side > 0 ? 0.6 : -2.8;
     else if (fam === 'board') it.x0 = side > 0 ? 4.9 : -6.5;
@@ -390,14 +409,12 @@ P.Landmarks = (function () {
     return cv;
   }
   function drawItems(R, items, y0, y1, s) {
-    var c = R.ctx, hero = s.hero || { x: 0, y: -999 };
+    var c = R.ctx;
     items.forEach(function (it) {
       if (it.y0 > y1 + 1 || it.y0 + it.h < y0 - 1) return;
       if (it.prop) { if (P.Props && P.Props.has(it.kind)) P.Props.draw(it.kind, R, it.side * 5.9, it.y0, { k: 0 }); return; }
-      var near = it.kind.indexOf('tram') === 0 && Math.abs(hero.y - (it.y0 + it.h / 2)) < 9 && Math.abs(hero.x) < 3;
-      c.globalAlpha = near ? 0.35 : 1;
+      // Opacity (T4 part 11): a tram is never faded (it is not an overhang); the old 35% fade near Arda is gone.
       c.drawImage(image(it, R), R.X(it.x0), R.Y(it.y0 + it.h), it.w * R.ppm, it.h * R.ppm);
-      c.globalAlpha = 1;
     });
   }
   function washL1(R, y0, y1) {
@@ -419,12 +436,30 @@ P.Landmarks = (function () {
   // Weather for generated levels: rain streaks, brazier fire glow on the sidewalks, fog bands.
   L.weather = function (R, s, y0, y1) {
     if (isL1(s)) return;
-    var sub = P.Themes.subOf(P.RenderWorld.themeOf(s), P.Themes.subIndex(s)), t = performance.now() / 1000;
+    var sub = P.Themes.subOf(P.RenderWorld.themeOf(s), P.Themes.subIndex(s)), t = P.Settings && P.Settings.reduceMotion ? 0 : performance.now() / 1000;   // Reduce motion freezes the weather drift (rain, fog, sheen, fire glow)
     var covered = !!(P.Indoor && P.Indoor.level(s));   // rain and fog stay outside; braziers may burn indoors
     if (sub.wx === 'rain' && !covered) rain(R, y0, y1, t);
     else if (sub.wx === 'fire') fires(R, y0, y1, t);
     else if (sub.wx === 'fog' && !covered) fog(R, y0, y1, t);
+    if (sub.dark) dim(R, y0, y1);      // D-060 Zindanlar: vaulted and unlit
+    if (sub.wet) sheen(R, y0, y1, t);  // D-060 Sahil Rıhtımı: wet paving
   };
+  // Dim wash over the corridor (the same band as the L1 washes).
+  function dim(R, y0, y1) {
+    var c = R.ctx, g = c.createLinearGradient(0, R.Y(y0), 0, R.Y(y1));
+    g.addColorStop(0, 'rgba(8,9,14,0.18)'); g.addColorStop(0.5, 'rgba(8,9,14,0.34)'); g.addColorStop(1, 'rgba(8,9,14,0.18)');
+    c.fillStyle = g; c.fillRect(R.X(-7), R.Y(y1), 14 * R.ppm, (y1 - y0) * R.ppm);
+  }
+  // Light streaks on wet paving: a few short pale strokes that drift with the walk.
+  function sheen(R, y0, y1, t) {
+    var c = R.ctx, span = y1 - y0;
+    c.save(); c.strokeStyle = 'rgba(214,226,236,0.16)'; c.lineWidth = 0.08; c.lineCap = 'round'; c.beginPath();
+    for (var i = 0; i < 9; i++) {
+      var x = -5 + 10 * hs(i * 2.3), y = y0 + ((hs(i * 5.1) * span + t * 0.6) % span);
+      c.moveTo(R.X(x), R.Y(y)); c.lineTo(R.X(x + 0.8), R.Y(y));
+    }
+    c.stroke(); c.restore();
+  }
   function rain(R, y0, y1, t) {
     var c = R.ctx, span = y1 - y0 + 1;
     c.save(); c.strokeStyle = 'rgba(200,220,255,0.35)'; c.lineWidth = 1; c.beginPath();

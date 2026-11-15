@@ -32,7 +32,7 @@ P.Director.complete = function (s, id) {
 
 // ---------- subtitles (phone call) and barks ----------
 P.Director.say = function (s, ids) {
-  ids.forEach(function (id) { if (!P.LINES || P.LINES[id]) s.dir.call.queue.push(id); });
+  ids.forEach(function (id) { s.dir.call.queue.push(id); });
 };
 
 P.Director.bark = function (s, id, who) {
@@ -44,8 +44,8 @@ function updateTalk(s, dt) {
   if (c.active) c.t += dt;
   if (c.sub) { c.sub.t -= dt; if (c.sub.t <= 0) c.sub = null; }
   if (!c.sub && c.queue.length) {
-    var id = c.queue.shift(), line = P.LINES && P.LINES[id], len = line ? line[1].length : 40;
-    c.sub = { id: id, t: Math.min(4.5, Math.max(2.2, len * 0.065)) };
+    var id = c.queue.shift();
+    c.sub = { id: id, t: P.CFG.callDur[id] || P.CFG.callDurDefault };
   }
   b.cd = Math.max(0, b.cd - dt);
   if (b.cur) { b.cur.t -= dt; if (b.cur.t <= 0) b.cur = null; }
@@ -132,7 +132,7 @@ function spawnAt(s, type, opts) {
 }
 
 function runBudget(s, dt, seg, rate, total, pickType, opts) {
-  var d = s.dir, k = P.Modifiers && P.Modifiers.spawnScale ? P.Modifiers.spawnScale(s) : 1;   // daily Horde (1 otherwise)
+  var d = s.dir, k = (P.Modifiers && P.Modifiers.spawnScale ? P.Modifiers.spawnScale(s) : 1) * (P.Modes ? P.Modes.l1Spawn(s) : 1);   // daily Horde; Nightmare L1 (1 otherwise)
   total *= k;
   if (d.spawned[seg] >= total) return;
   d.acc = Math.min(d.acc + rate * k * dt * rhythm(s) * P.Events.spawnMul(s), 3);
@@ -213,7 +213,9 @@ function scripted(s, dt) {
   if (!f.cat && h.y >= L.catTriggerY) {
     f.cat = true;
     d.bubbles.push({ x: L.cat.x, y: L.cat.y, text: '!', t: 1.8 });
-    d.telegraphs.push({ x: L.manhole.x, y: L.manhole.y, r: 0.8, t: 0, T: L.crawlerTelegraph, then: 'crawler' });
+    P.Combat.spawnEnemy(s, 'crawler', L.crawlerFrom.x, L.crawlerFrom.y, {});   // D-058: it crawls in from the cat's side, not from below the ground
+    P.Director.complete(s, 't_cat');
+    s.events.push({ type: 'crawler' });
     s.events.push({ type: 'catHiss' });
   }
   var EL = L.elites;
@@ -221,6 +223,7 @@ function scripted(s, dt) {
     f.elite1 = true;
     P.Combat.spawnEnemy(s, 'walker', EL.firstX, EL.firstY, { elite: true });
     if (P.Modifiers && P.Modifiers.echoElites) P.Modifiers.echoElites(s, EL.firstX, EL.firstY);   // daily Elite night
+    if (P.Modes) P.Modes.l1Elite(s, EL.firstX, EL.firstY);   // Nightmare: the hood signature 'elite' on L1 (no-op otherwise)
     P.Director.bark(s, 'barkElite');
   }
   if (!d.hold.active && h.y >= L.holdTriggerY) startHold(s);
@@ -300,11 +303,7 @@ function updateDecor(s, dt) {
     tg.t += dt;
     if (tg.t < tg.T) continue;
     d.telegraphs.splice(i, 1);
-    if (tg.then === 'crawler') {
-      P.Combat.spawnEnemy(s, 'crawler', tg.x, tg.y, {});
-      P.Director.complete(s, 't_cat');
-      s.events.push({ type: 'crawler' });
-    } else if (P.Enemies && P.Enemies.onTele) P.Enemies.onTele(s, tg);
+    if (P.Enemies && P.Enemies.onTele) P.Enemies.onTele(s, tg);
   }
 }
 P.Director.decor = updateDecor;

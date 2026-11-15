@@ -1,0 +1,9 @@
+# Raw generated or commissioned sources stay local. The importer (prototype/tools/prepare-art.js) writes the committed runtime files to prototype/assets/art/. art/commission/ready/ holds git-ignored intermediates.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.psd
+*.zip
+!.gitignore
+!README.md

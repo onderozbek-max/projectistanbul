@@ -90,7 +90,30 @@ P.Meta = P.Meta || {};
     el('div', 'meta-hub-head', parent).textContent = t('hub.achHead', { a: done, b: list.length });
     list.forEach(function (a) { achRow(a, parent); });
   }
+  // Night Shift entry card (R1-T4 part 18): today's seed name, two rules, best today, the day streak and the start button.
+  function nightShiftCard(parent) {
+    var c = M.NightShift.card(today()), p = c.plan, NS = P.CFG.nightshift, box = el('section', 'meta-hub-card meta-ns', parent);
+    el('div', 'meta-hub-head', box).textContent = t('ns.card.head');
+    el('div', 'meta-ns-seed', box).textContent = t('ns.card.seed', { name: M.NightShift.seedName(p.name, t) });
+    el('div', 'meta-ns-rota', box).textContent = p.level ? t('ns.card.rota', { hood: M.level(p.level).hood.name }) : '';
+    el('div', 'meta-hub-head', box).textContent = t('ns.card.mods');
+    p.mods.forEach(function (m) {
+      var r = el('div', 'meta-daily-mod', box);
+      el('div', 'meta-daily-modname', r).textContent = nameOf('mod.', m.id + '.n');
+      el('div', 'meta-daily-moddesc', r).textContent = t(m.descKey || 'mod.' + m.id + '.d');
+    });
+    el('div', 'meta-ns-desc', box).textContent = t('ns.card.desc');
+    el('div', 'meta-ns-best', box).textContent = c.dayBest ? t('ns.card.best', { n: fmtNum(c.dayBest) }) : t('ns.card.bestNone');
+    el('div', 'meta-daily-streak', box).textContent = t('ns.card.streak', { n: c.streak });
+    if (!c.paid) el('div', 'meta-ns-pay', box).textContent = t('ns.card.pay', { k: NS.coins });
+    var btn = el('button', 'meta-btn meta-play', box), open = !!p.level;
+    btn.textContent = !open ? t('ns.card.closed') : (c.runs ? t('ns.card.again') : t('ns.card.play'));
+    btn.disabled = !open;
+    btn.addEventListener('click', function () { if (open && M.openNightShift) { sfx('uiTap'); M.openNightShift(); } });
+    return box;
+  }
   function renderDaily() {
+    nightShiftCard(body);
     dailyCard(body);
     achievementList(body);
   }
@@ -135,9 +158,9 @@ P.Meta = P.Meta || {};
     });
     body = el('div', 'meta-hub-body', root);
   };
-  Hub.show = function (k) { if (root) { if (k) tab = k; root.classList.remove('meta-hidden'); renderBody(); } };
-  Hub.hide = function () { if (root) root.classList.add('meta-hidden'); };
-  Hub.isOpen = function () { return !!root && !root.classList.contains('meta-hidden'); };
+  Hub.show = function (k) { if (root) { if (k) tab = k; P.UIMotion.panelShow(root); renderBody(); } };
+  Hub.hide = function () { if (root) P.UIMotion.panelHide(root); };   // slides out (ui-motion.js)
+  Hub.isOpen = function () { return !!root && P.UIMotion.panelOpen(root); };
 
   // ---- Welcome-back summary (one overlay, Devam closes) ----
   Hub.welcome = function (host, info, done) {
@@ -154,7 +177,9 @@ P.Meta = P.Meta || {};
   function toast(host, text, done) {
     var n = el('div', 'meta-toast', host); n.textContent = text;
     sfx('star');
-    setTimeout(function () { n.remove(); done(); }, 1500);
+    // 1.5 s in all: the slide-out (css/meta.css .meta-toast.is-out, --m-exit) is the last part of it.
+    var out = P.UIMotion.ms('--m-exit');
+    setTimeout(function () { P.UIMotion.leave(n, 'is-out', function () { n.remove(); done(); }); }, 1500 - out);
   }
   function collectionName(id) {
     var it = M.Collect.catalogue().filter(function (x) { return x.id === id; })[0];
@@ -167,6 +192,8 @@ P.Meta = P.Meta || {};
     (p.achieved || []).forEach(function (a) { lines.push(t('toast.ach', { name: t('ach.' + a.id), n: a.coins })); });
     (p.collected || []).forEach(function (id) { lines.push(t('toast.col', { name: collectionName(id) })); });
     if (p.daily && p.daily.won) lines.push(t('toast.daily', { n: p.daily.streak }));
+    if (p.nightmare && p.nightmare.moon) lines.push(t('toast.moon', { h: P.upper(M.hood(p.nightmare.hood).name) }));
+    if (p.nightmare && p.nightmare.title) lines.push(t('toast.title', { t: t('mode.title') }));
     return lines;
   };
   Hub.toasts = function (host, p, done) {

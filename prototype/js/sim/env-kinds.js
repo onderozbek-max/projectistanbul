@@ -32,8 +32,8 @@ function breakCover(s, r, tag) {
   var C = P.CFG.env, E = s.env, L = C.loot, glass = C.glassKinds.indexOf(r.kind) >= 0 ? 'glass' : 'debris', drop = 'none';
   var spread = C.tagDebris[tag] || 1;
   r.alive = false; removeBlock(s, r); E.stats.breaks++;
-  if (glass === 'glass') P.EnvZones.add(s, 'glass', r.x, r.y, C.glass.r * spread, C.glass.T, C.glass.slow);
-  else P.EnvZones.add(s, 'debris', r.x, r.y, C.debris.r * spread, C.debris.T, C.debris.slow);
+  if (glass === 'glass') P.EnvZones.add(s, 'glass', r.x, r.y, C.glass.r * spread, C.glass.T, C.glass.slow, r);
+  else P.EnvZones.add(s, 'debris', r.x, r.y, C.debris.r * spread, C.debris.T, C.debris.slow, r);
   if (tag === 'fire') s.zones.push({ kind: 'fire', x: r.x, y: r.y, r: C.burn.r, t: C.burn.T, T: C.burn.T, dps: C.burn.dps });
   if (E.rng.chance(L.simitChance)) { drop = 'simit'; P.Events.drop(s, 'simit', r.x, r.y, P.CFG.drops.simitHeal); }
   else if (E.rng.chance(L.jetonChance)) {
@@ -95,6 +95,7 @@ P.Env.blast = function (s, x, y, from) {
     dx = e.x - x; dy = e.y - y; d = Math.hypot(dx, dy) || 1;
     if (d - e.r <= B.r) { P.Combat.damageEnemy(s, e, B.enemyDmg, dx / d, dy / d, B.kb, false, cause); en++; }
   }
+  if (P.Combat.hasPerk(s, 'str.2')) P.Combat.blastShove(s, x, y, B.r);   // Cart Shover (str.2): enemies just outside the blast
   if (Math.hypot(h.x - x, h.y - y) - P.CFG.hero.radius <= B.r) { P.Combat.damageHero(s, B.heroDmg, cause); hitHero = true; }
   P.Env.chainAt(s, x, y, B.r, 'chain', C.fuse.chain);
   for (i = 0; i < E.recs.length; i++) {

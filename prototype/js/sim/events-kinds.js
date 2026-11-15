@@ -50,6 +50,7 @@ EK.loot = {
     ev.x = (rng.chance(0.5) ? -1 : 1) * rng.range(L.xMin, L.xMax);
     ev.y = P.Events.clampY(s, h.y + L.spawnAhead);
     var e = P.Events.spawn(s, ev, 'walker', ev.x, ev.y, { state: 'active' });
+    if (!e) { P.Events.end(s, ev, 'capped'); return; }     // D-056: the field is full, no loot runner this time
     e.hp = L.hp * (s.diff ? s.diff.hp : 1); e.maxHp = e.hp; e.speed = L.speed; e.lootEv = ev.id;
     ev.e = e; ev.T = L.life;
     P.Director.bark(s, 'barkLoot');
@@ -91,10 +92,10 @@ EK.rescue = {
     }
   },
   step: function (s, ev, dt) {
-    var R = cfg('rescue'), h = s.hero;
+    var R = cfg('rescue'), h = s.hero, k = s.perk['cha.1'] ? R.holdT / P.CFG.perks.goodName.holdT : 1;   // Good Name (cha.1)
     ev.left = P.Events.countTagged(s, ev.id);
     ev.in = Math.hypot(h.x - ev.x, h.y - ev.y) <= R.holdR;
-    ev.hold = ev.in && ev.left === 0 ? ev.hold + dt : Math.max(0, ev.hold - dt);
+    ev.hold = ev.in && ev.left === 0 ? ev.hold + dt * k : Math.max(0, ev.hold - dt * k);   // k scales the hold units: the cage arc (events-fx) stays right
     if (ev.hold >= R.holdT) { freed(s, ev); return; }
     if (ev.t >= ev.T) {
       s.events.push({ type: 'civDied', id: ev.id, x: ev.x, y: ev.y });
@@ -106,10 +107,10 @@ EK.rescue = {
 // The gift: jeton and a simit; civHelpPct (charm) raises the jeton and brings a helper for helperT seconds.
 function freed(s, ev) {
   var R = cfg('rescue'), f = s.fx, val = Math.round(R.jeton * (1 + f.coinPct) * (1 + f.civHelpPct));
-  var helper = f.civHelpPct >= R.helperMin;
+  var nb = s.perk['cha.4'], helper = f.civHelpPct >= R.helperMin || !!nb;   // Neighbourhood (cha.4): every rescue brings one
   P.Events.drop(s, 'jeton', ev.x, ev.y, val);
   P.Events.drop(s, 'simit', ev.x + R.simitDx, ev.y, R.heal);
-  if (helper) P.Events.addHelper(s, ev.x, ev.y);
+  if (helper) P.Events.addHelper(s, ev.x, ev.y, f.civHelpPct < R.helperMin && nb ? P.CFG.perks.neighbourhood.helpT : R.helperT);
   s.tally.rescues++;
   s.events.push({ type: 'rescueDone', id: ev.id, x: ev.x, y: ev.y, jeton: val, helper: helper });
   P.Events.end(s, ev, 'freed');
@@ -232,6 +233,7 @@ EK.chest = {
     ev.x = P.Events.clampX(s, rng.range(-C.xRange, C.xRange));
     ev.y = P.Events.clampY(s, h.y + C.ahead);
     ev.guard = P.Events.spawn(s, ev, o.type || 'walker', ev.x, ev.y + C.guardDist, { elite: true });
+    if (!ev.guard) { P.Events.end(s, ev, 'capped'); return; }   // D-056: the field is full, no chest this time
     s.events.push({ type: 'chestGuard', id: ev.id, x: ev.x, y: ev.y, enemy: ev.guard.type });
   },
   step: function () {},

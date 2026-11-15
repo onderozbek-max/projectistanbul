@@ -1,5 +1,5 @@
 // Visuals for level events and hack terminals (v0.5, workstream B). Draws from s.ev.list, s.hacks and sim events.
-// Merges the config strings (C.levelStrings -> P.STR) and call lines (C.levelLines -> P.LINES) at load.
+// Merges the config strings (C.levelStrings -> P.STR) at load.
 P.EventsFx = (function () {
   var EV = {}, C = P.CFG;
   var DANGER = 'rgba(255,77,46,', GOLD = 'rgba(255,209,102,', SIGNAL = 'rgba(124,199,255,', CAGE = 'rgba(181,230,85,';
@@ -8,8 +8,6 @@ P.EventsFx = (function () {
   Object.keys(C.levelStrings || {}).forEach(function (k) {
     P.STR.tr[k] = C.levelStrings[k].tr; P.STR.en[k] = C.levelStrings[k].en;
   });
-  P.LINES = P.LINES || {};
-  Object.keys(C.levelLines || {}).forEach(function (id) { P.LINES[id] = C.levelLines[id]; });
 
   EV.reset = function () {};
   function label(key) { return P.t(key); }
@@ -83,8 +81,8 @@ P.EventsFx = (function () {
 
   // Burning car: a blinking marker whose rate rises as the fuse runs down.
   function drawFuse(R, ev, t) {
-    var c = R.ctx, X = R.X(ev.x), Y = R.Y(ev.y), left = clamp01((ev.T - ev.t) / ev.T), f = 2 + 6 * (1 - left);
-    c.fillStyle = DANGER + (0.4 + 0.5 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 * f))) + ')';
+    var c = R.ctx, X = R.X(ev.x), Y = R.Y(ev.y), left = clamp01((ev.T - ev.t) / ev.T), f = Math.min(3, 2 + 6 * (1 - left)), reduce = !!(P.Settings && P.Settings.reduceFlash);   // blink capped at 3 Hz
+    c.fillStyle = DANGER + (reduce ? 0.7 : 0.4 + 0.5 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 * f))) + ')';   // steady under Reduce flashing
     c.beginPath(); c.arc(X, Y, 0.9 * R.ppm, 0, Math.PI * 2); c.fill();
   }
 
@@ -106,20 +104,51 @@ P.EventsFx = (function () {
 
   // Hack terminal: idle dashed ring, active solid ring with a progress arc, done faded; alarm pulse; tram box.
   function drawHack(R, H, t) {
-    var c = R.ctx, X = R.X(H.x), Y = R.Y(H.y), r = C.hack.r * R.ppm, p = clamp01(H.prog), done = H.state === 'done';
-    var a = done ? 0.25 : H.state === 'active' ? 0.8 : 0.45 + 0.1 * Math.sin(t * 3);
-    c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.fillStyle = SIGNAL + (a * 0.25) + ')'; c.fill();
-    c.setLineDash(H.state === 'active' ? [] : [8, 6]); c.strokeStyle = SIGNAL + a + ')'; c.lineWidth = 2.5;
-    c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-    if (H.state === 'active') {
-      c.lineWidth = 6; c.beginPath(); c.arc(X, Y, r * 0.8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); c.stroke();
-    }
+    var c = R.ctx, X = R.X(H.x), Y = R.Y(H.y), r = C.hack.r * R.ppm;
+    P.ConsumablesZone.draw(R, H, t);   // the ring, the rim that fills, the link icon, PAUSED and the completion pop (T4 part 10)
     if (H.alarm > 0) { c.strokeStyle = DANGER + (0.5 + 0.4 * Math.sin(t * 9)) + ')'; c.lineWidth = 4; c.beginPath(); c.arc(X, Y, r * 1.1, 0, Math.PI * 2); c.stroke(); }
-    if (H.rush > 0) {
-      var T = C.hack.tram;
-      rectWorld(R, H.x - T.w / 2, H.x + T.w / 2, H.y - T.back, H.y + T.len, DANGER + '0.3)');
-    }
+    if (H.rush > 0) tramLane(R, H, t);
   }
+
+  // Tram-box lane (T4 part 11): the telegraph of the tram crush. Only this lane is translucent (the tram itself is opaque, see
+  // vehicles.js). Hazard-stripe edges, a translucent danger fill, chevrons along the travel direction (north, up the screen) that
+  // creep at 0.8 m/s with a 2.4 m step (one cycle every 3 s, under 0.5 Hz; they stop under Reduce motion), a small tram icon at the
+  // entry (south) end and a ring that empties with the rush time left. No tram shape inside the lane (no ghost tram). Timing is the
+  // sim's (H.rush counts down from hack.tram.rushT); nothing here changes it.
+  var LANE = { step: 2.4, speed: 0.8, icon: 0.85 };
+  function tramLane(R, H, t) {
+    var c = R.ctx, T = C.hack.tram, u = R.ppm, len = H.lane || T.len, x0 = H.x - T.w / 2, x1 = H.x + T.w / 2, y0 = H.y - T.back, y1 = H.y + len;
+    var X0 = R.X(x0), X1 = R.X(x1), Yt = R.Y(y1), Yb = R.Y(y0), W = X1 - X0, Hh = Yb - Yt, ew = 0.3 * u, i, sy, off, yy, cx = R.X(H.x);
+    var rm = !!(P.Settings && P.Settings.reduceMotion), frac = clamp01(H.rush / T.rushT);
+    off = rm ? 0 : (t * LANE.speed) % LANE.step;
+    c.save();
+    c.fillStyle = DANGER + '0.22)'; c.fillRect(X0, Yt, W, Hh);                                        // the translucent danger fill
+    c.beginPath(); c.rect(X0, Yt, ew, Hh); c.rect(X1 - ew, Yt, ew, Hh); c.clip();                    // hazard-stripe edges
+    c.fillStyle = 'rgba(255,209,102,0.92)'; c.fillRect(X0, Yt, W, Hh);
+    c.fillStyle = 'rgba(20,21,31,0.9)';
+    for (sy = Yt - W; sy < Yb; sy += 0.6 * u) { c.beginPath(); c.moveTo(X0, sy); c.lineTo(X1, sy + W); c.lineTo(X1, sy + W + 0.3 * u); c.lineTo(X0, sy + 0.3 * u); c.closePath(); c.fill(); }
+    c.restore();
+    c.save();
+    c.strokeStyle = 'rgba(255,240,200,0.8)'; c.lineWidth = Math.max(1.5, 0.12 * u); c.lineCap = 'round'; c.beginPath();   // chevrons, pointing up the lane
+    for (yy = y0 + 0.5 + off; yy < y1 - 0.2; yy += LANE.step) {
+      var py = R.Y(yy), a = 0.36 * u;
+      c.moveTo(cx - a, py + 0.42 * a); c.lineTo(cx, py - 0.42 * a); c.lineTo(cx + a, py + 0.42 * a);
+    }
+    c.stroke();
+    c.strokeStyle = DANGER + '0.9)'; c.lineWidth = 2; c.strokeRect(X0, Yt, W, Hh);                    // lane outline, solid
+    // tram icon at the entry edge, and the countdown ring beside it
+    var iy = R.Y(y0 - LANE.icon), iw = 0.9 * u, ih = 0.42 * u, ir = 0.3 * u, rx = cx + 0.72 * u;
+    c.fillStyle = CREAM_T; c.strokeStyle = INK_T; c.lineWidth = 1.5;
+    c.beginPath(); c.rect(cx - iw / 2, iy - ih / 2, iw, ih); c.fill(); c.stroke();
+    c.fillStyle = '#C0392B'; c.fillRect(cx - iw / 2, iy - ih / 2, iw, ih * 0.3);
+    c.fillStyle = '#2A3445'; c.fillRect(cx - iw * 0.36, iy - ih * 0.12, iw * 0.72, ih * 0.3);
+    c.fillStyle = 'rgba(20,21,31,0.72)'; c.beginPath(); c.arc(rx, iy, ir, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(255,209,102,0.95)'; c.lineWidth = 3; c.beginPath(); c.arc(rx, iy, ir * 0.82, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); c.stroke();
+    c.fillStyle = '#F4EBDD'; c.font = 'bold ' + Math.round(0.26 * u) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(H.rush.toFixed(1), rx, iy + 1);
+    c.restore();
+  }
+  var CREAM_T = '#F4EBDD', INK_T = '#14151F';
 
   // ---------- world air: labels, progress bars, helpers, blackout glow ----------
   EV.drawAir = function (R, s) {
@@ -127,7 +156,7 @@ P.EventsFx = (function () {
     s.hacks.forEach(function (H) {
       if (H.state === 'done' && H.doneT >= C.hack.fadeT) return;
       var X = R.X(H.x), Y = R.Y(H.y) - C.hack.r * u - 0.4 * u;
-      c.font = Math.round(0.42 * u) + 'px sans-serif'; c.textAlign = 'center'; c.fillStyle = 'rgba(230,240,255,0.95)';
+      c.font = Math.round(0.42 * u) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center'; c.fillStyle = 'rgba(230,240,255,0.95)';
       c.fillText(label('hack.' + H.kind), X, Y);
       if (H.state === 'active') {
         c.fillStyle = 'rgba(20,21,31,0.6)'; c.fillRect(X - 1.2 * u, Y + 0.15 * u, 2.4 * u, 0.2 * u);
@@ -153,12 +182,38 @@ P.EventsFx = (function () {
     });
   }
 
-  // Blackout dims the screen (steady, not flashing).
+  // Blackout is a power glitch, not darkness (config-feel.js glitch): the city stays readable, the grid stutters. G is the shared
+  // state read by the screen pass here and by the lamp pools (EV.lightK). Brightness changes at most once per burst.
+  var G = { on: false, dip: 0, burst: false, t: 0, a: 0 };
+  function glitchState(s) {
+    var bo = s.ev && s.ev.list.filter(function (e) { return e.kind === 'blackout' && !e.done; })[0], k, p;
+    if (!bo) { G.on = false; G.dip = 0; G.burst = false; return G; }
+    k = P.CFG.feel2.glitch; p = bo.t % k.period;
+    G.on = true; G.t = bo.t; G.a = clamp01((bo.T - bo.t) / 0.5);
+    G.burst = !(P.Settings && P.Settings.reduceMotion) && p < k.burst;
+    G.dip = G.burst ? Math.sin(Math.PI * p / k.burst) : 0;
+    return G;
+  }
+  function hash1(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+  // Multiplier for lamp and window light pools: 1 normally; during a blackout they hum low and dip once per burst.
+  EV.lightK = function (s) {
+    var g = glitchState(s), k = P.CFG.feel2.glitch;
+    if (!g.on) return 1;
+    if (P.Settings && P.Settings.reduceMotion) return k.lampBase;
+    return 1 - (1 - k.lampBase * (1 - k.lampDip * g.dip)) * g.a;
+  };
   EV.screen = function (R, s) {
-    var bo = s.ev && s.ev.list.filter(function (e) { return e.kind === 'blackout' && !e.done; })[0];
-    if (!bo) return;
-    var a = clamp01((bo.T - bo.t) / 0.5);
-    R.ctx.fillStyle = 'rgba(5,6,12,' + (0.38 * a) + ')'; R.ctx.fillRect(0, 0, R.W, R.H);
+    var g = glitchState(s), k = P.CFG.feel2.glitch, c = R.ctx, cv = c.canvas, kk, step, i, y, h, dx, rm = !!(P.Settings && P.Settings.reduceMotion);
+    if (!g.on) return;
+    c.fillStyle = 'rgba(5,6,12,' + ((rm ? k.steadyDim : k.baseDim + k.dipDim * g.dip) * g.a).toFixed(3) + ')'; c.fillRect(0, 0, R.W, R.H);
+    if (!g.burst || (P.Settings && P.Settings.reduceFlash)) return;   // Reduce flashing: the picture holds still (the dim and lamp dip stay, once per period)
+    kk = cv.width / R.W; step = Math.floor(g.t * k.rate);
+    for (i = 0; i < k.bands; i++) {                       // the picture tears into shifted bands, with a red and a cyan fringe
+      y = hash1(step * 3.1 + i * 7.7) * R.H; h = 8 + hash1(step * 5.3 + i) * 34; dx = (hash1(step * 2.9 + i * 1.3) - 0.5) * 2 * (10 + 16 * g.dip);
+      c.drawImage(cv, 0, y * kk, cv.width, h * kk, dx, y, R.W, h);
+      c.fillStyle = 'rgba(255,50,90,0.16)'; c.fillRect(dx > 0 ? dx - 3 : R.W + dx, y, 3, h);
+      c.fillStyle = 'rgba(60,220,255,0.16)'; c.fillRect(dx > 0 ? dx : R.W + dx - 3, y, 3, h);
+    }
   };
 
   // ---------- events -> letters and cues ----------
@@ -167,7 +222,7 @@ P.EventsFx = (function () {
       case 'eventStart': startLetter(s, ev); break;
       case 'hackStart': sfx('tink', 300, s, ev.x); break;
       case 'hackDone': P.Fx.letter(ev.x, ev.y + 1.2, label('hack.done')); sfx('bell', 0, s, ev.x); break;
-      case 'hackFail': P.Fx.letter(ev.x, ev.y + 1.2, label('hack.lost')); break;
+      case 'hackFail': P.Fx.letter(ev.x, ev.y + 1.2, label(ev.kept ? 'hack.weak' : 'hack.lost')); break;
       case 'signalRestored': P.Fx.letter(s.hero.x, s.hero.y + 2, label('ev.signal')); sfx('bell', 0, s); break;
       case 'signalLost': P.Fx.letter(s.hero.x, s.hero.y + 2, label('hack.lost')); sfx('phoneBuzz', 0, s); break;
       case 'stunWave': sfx('shock', 0, s, ev.x); break;
@@ -187,7 +242,7 @@ P.EventsFx = (function () {
       case 'helperStart': P.Fx.letter(ev.x, ev.y + 1, label('ev.helper')); break;
       case 'helperThrow': sfx('lob', 200, s, ev.x); break;
       case 'defendHeld': sfx('bell', 0, s, ev.x); break;
-      case 'tramRush': P.Fx.letter(ev.x, ev.y0 + 1, label('ev.tram')); sfx('ferryHorn', 0, s, ev.x); break;
+      case 'tramRush': P.Fx.letter(ev.x, ev.y0 + 1, label('ev.tram')); sfx('ferryHorn', 0, s, ev.x); if (P.Vehicles) P.Vehicles.rush(ev); break;
     }
   };
 

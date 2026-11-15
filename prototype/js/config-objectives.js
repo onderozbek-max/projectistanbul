@@ -25,8 +25,8 @@ P.CFG.objectives = {
     kapalicarsi:   ['collect.crate', 'escort', 'hack.gate', 'reach'],              // carpet rolls, shutters
     beyazit:       ['survive.tram', 'collect.crate', 'defend.booster', 'hack.street'], // T1 stop, book crates
     kumkapi:       ['collect.crate', 'escort', 'survive.boat', 'reach'],           // fish crates, fishing boat quay
-    laleli:        ['survive.dolmus', 'collect.crate', 'defend.booster', 'reach'], // minibus stop, wholesale boxes
-    aksaray:       ['survive.tram', 'hack.street', 'escort', 'defend.booster'],    // T1 stop, junction lights
+    saray:         ['survive.tram', 'escort', 'collect.crate', 'reach'],           // Gülhane T1 stop at the gate, a tourist escort, ticket boxes, the gate (stage 4 as the old slot)
+    halic:         ['survive.boat', 'escort', 'collect.crate', 'hack.gate'],       // fishing boats under the quay, grandmother, antique crates, garage shutter
     yenikapi:      ['survive.marmaray', 'hack.signal', 'collect.lamp', 'escort'],  // Marmaray, no signal underground, power cut
     samatya:       ['survive.boat', 'escort', 'defend.booster', 'collect.charcoal'], // fishing boats (no tram), granny, charcoal
     yedikule:      ['reach', 'hack.gate', 'collect.key', 'escort'],                // garden gates, three keys

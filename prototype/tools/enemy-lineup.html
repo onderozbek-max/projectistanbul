@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Enemy lineup (view only)</title>
+<!-- Every enemy type and boss drawn through the real sprite path (P.Sprites.enemy), for review and tools/test-enemy-silhouettes.js.
+     ?mode=sheet  phone scale (10 m across 390 px, about 50 px figures): two walk poses per type, the boss row, and a black
+                  silhouette row at 48 px. Writes <pre id=out>PNG:data:...</pre> for chrome --dump-dom.
+     ?mode=masks  one binary mask per type and walker variant at 48 px (base scale), as JSON in <pre id=out>. Used by the test.
+     Scripts mirror index.html's order for the config and view art files these figures need. -->
+<style>html,body{margin:0;background:#2a2c38}#cv{display:block}</style>
+<canvas id="cv"></canvas>
+<pre id="out" hidden></pre>
+<script>window.P = { Settings: {}, goreRGB: function () { return '60,40,40'; } };</script>
+<script src="../js/config.js"></script>
+<script src="../js/config-weapons.js"></script>
+<script src="../js/config-levels.js"></script>
+<script src="../js/config-layouts.js"></script>
+<script src="../js/config-enemies3.js"></script>
+<script src="../js/config-bosses.js"></script>
+<script src="../js/config-enemies4.js"></script>
+<script src="../js/config-enemies5.js"></script>
+<script src="../js/config-feel.js"></script>
+<script src="../js/config-enemy-look.js"></script>
+<script src="../js/view/art-rig.js"></script>
+<script src="../js/view/art-characters.js"></script>
+<script src="../js/view/art-enemies.js"></script>
+<script src="../js/view/sprites.js"></script>
+<script src="../js/view/art-enemies3.js"></script>
+<script src="../js/view/art-enemies4.js"></script>
+<script src="../js/view/art-enemies5.js"></script>
+<script src="../js/view/art-enemies6.js"></script>
+<script src="../js/view/art-bosses.js"></script>
+<script src="../js/view/art-enemy-look.js"></script>
+<script src="../js/view/art-enemy-bosses.js"></script>
+<script>
+(function () {
+  'use strict';
+  var q = new URLSearchParams(location.search), mode = q.get('mode') || 'sheet';
+  var TYPES = ['walker', 'runner', 'crawler', 'diner', 'kurye', 'copci', 'marti', 'cayci', 'spitter', 'zehirli', 'brute', 'bloater',
+    'screamer', 'hardhat', 'kasap', 'parkur'];
+  var BOSSES = [['brute', 'boss.istiklal'], ['brute', 'boss.galata'], ['brute', 'boss.karakoy'], ['brute', 'boss.yedikule'],
+    ['brute', 'boss.atakoy'], ['taksici', 'boss.eminonu']];
+  var WALK_B = 0.571;               // e.walk for the second pose (walk phase pi, frame 4 of 8)
+  var PHONE_PPM = 39;               // phone scale: 10 m across 390 px, a walker about 50 px tall
+  var SIL_BASE = 48;                // silhouette scale: a scale-1 figure is 48 px tall (type sizes keep their ratio)
+
+  function ssOf(type) { return P.CFG.view.spriteScale[type] || 1; }
+  function scaleOf(type) { return P.ArtEnemies.def(type).scale || 1; }
+  function radiusOf(type) { return P.ArtEnemies.def(type).custom ? 0.42 : 0.35; }
+  // One figure through the real sprite path, feet at (w/2, h - pad). o: {type, id, walk, ppm, w, h, pad, boss, nameKey}.
+  function fig(o) {
+    var cv = document.createElement('canvas'), c, r = radiusOf(o.type);
+    cv.width = o.w; cv.height = o.h; c = cv.getContext('2d');
+    var X0 = o.w / 2, feet = o.h - o.pad;
+    var Rd = { ctx: c, ppm: o.ppm, noGround: true, X: function (x) { return X0 + x * o.ppm; }, Y: function (y) { return feet - y * o.ppm; } };
+    var e = { id: o.id, type: o.type, x: 0, y: r * 0.6, r: r, walk: o.walk || 0, vx: 0, vy: 0, hp: 1, maxHp: 1, variant: o.variant || 0,
+      skin: null, state: 'walk', age: 1, flash: 0, elite: false, boss: !!o.boss, nameKey: o.nameKey || null, windup: 0, swell: 0 };
+    P.Sprites.enemy(Rd, e, { x: 1, y: 0 });
+    return cv;
+  }
+  function silhouette(src) {
+    var cv = document.createElement('canvas'); cv.width = src.width; cv.height = src.height;
+    var c = cv.getContext('2d'); c.drawImage(src, 0, 0); c.globalCompositeOperation = 'source-in';
+    c.fillStyle = '#14151F'; c.fillRect(0, 0, cv.width, cv.height); return cv;
+  }
+  // The first enemy id that lands on each walker variant (view-side hash), so the page shows and the test checks all four.
+  function walkerIds() {
+    var out = [], found = 0, id, v;
+    for (id = 1; found < 4 && id < 1000; id++) { v = P.ArtEnemyLook.variantOf(id); if (out[v] === undefined) { out[v] = id; found++; } }
+    return out;
+  }
+  function emit(payload) {
+    var pre = document.getElementById('out'); pre.hidden = false; pre.textContent = payload;
+    document.body.setAttribute('data-done', '1');
+  }
+
+  if (mode === 'masks') {
+    var items = [];
+    TYPES.forEach(function (t) { if (t !== 'walker') items.push({ key: t, type: t, id: 1 }); });
+    walkerIds().forEach(function (id, v) { items.push({ key: 'walker_v' + v, type: 'walker', id: id }); });
+    BOSSES.forEach(function (b) { items.push({ key: b[1], type: b[0], boss: true, nameKey: b[1], id: 1 }); });
+    var masks = {};
+    items.forEach(function (it) {
+      var ppm = SIL_BASE / (scaleOf(it.type) * ssOf(it.type));
+      var cv = fig({ type: it.type, id: it.id, walk: 0, ppm: ppm, w: 150, h: 170, pad: 8, boss: it.boss, nameKey: it.nameKey });
+      var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, n = cv.width * cv.height, s = [];
+      for (var k = 0; k < n; k++) s.push(d[k * 4 + 3] > 127 ? '1' : '0');
+      masks[it.key] = { w: cv.width, h: cv.height, bits: s.join('') };
+    });
+    var scales = {}, variants = [], id;
+    TYPES.forEach(function (t) { scales[t] = scaleOf(t); });
+    for (id = 1; id <= 400; id++) variants.push(P.ArtEnemyLook.variantOf(id));
+    emit(JSON.stringify({ masks: masks, keys: items.map(function (i) { return i.key; }), scales: scales, variants: variants }));
+    return;
+  }
+
+  // Sheet: row 0 walk pose A, row 1 walk pose B (phone scale), row 2 the 48 px silhouettes, row 3 the walker variants (colour,
+  // then silhouette), row 4 the bosses at phone scale.
+  var CW = 100, RH = 120, BH = 210, BW = 170, dpr = parseFloat(q.get('dpr') || '1');
+  var W = Math.max(TYPES.length * CW, 6 * BW), H = RH * 3 + 160 + BH + 30;
+  var cv = document.getElementById('cv'), g = cv.getContext('2d');
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#7D8B6A'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#EDEDE3'; g.font = '11px sans-serif'; g.textAlign = 'center';
+  TYPES.forEach(function (t, i) {
+    var x0 = i * CW, r = radiusOf(t);
+    g.drawImage(fig({ type: t, id: 1, walk: 0, ppm: PHONE_PPM, w: CW, h: RH, pad: 8, r: r }), x0, 0);
+    g.drawImage(fig({ type: t, id: 1, walk: WALK_B, ppm: PHONE_PPM, w: CW, h: RH, pad: 8, r: r }), x0, RH);
+    var ppm = SIL_BASE / (scaleOf(t) * ssOf(t));
+    g.drawImage(silhouette(fig({ type: t, id: 1, walk: 0, ppm: ppm, w: CW, h: RH, pad: 8, r: r })), x0, RH * 2);
+    g.fillText(t, x0 + CW / 2, RH * 3 + 12);
+  });
+  var y3 = RH * 3 + 26;
+  walkerIds().forEach(function (id, v) {
+    var x0 = v * CW;
+    g.drawImage(fig({ type: 'walker', id: id, walk: 0, ppm: PHONE_PPM, w: CW, h: RH, pad: 8 }), x0, y3);
+    g.drawImage(silhouette(fig({ type: 'walker', id: id, walk: 0, ppm: SIL_BASE / (scaleOf('walker') * ssOf('walker')), w: CW, h: RH, pad: 8 })), x0 + 4 * CW, y3);
+    g.fillText('walker v' + v, x0 + CW / 2, y3 + RH + 12);
+  });
+  var y4 = RH * 3 + 160;
+  BOSSES.forEach(function (b, i) {
+    var x0 = i * BW;
+    g.drawImage(fig({ type: b[0], id: 1, walk: 0, ppm: PHONE_PPM, w: BW, h: BH, pad: 8, boss: true, nameKey: b[1] }), x0, y4);
+    g.fillText(b[1].replace('boss.', ''), x0 + BW / 2, y4 + BH + 12);
+  });
+  emit('PNG:' + cv.toDataURL('image/png'));
+})();
+</script>

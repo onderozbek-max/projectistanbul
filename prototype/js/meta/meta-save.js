@@ -1,15 +1,18 @@
-// Meta save schema v2 (v0.5, workstream C). No DOM: storage is injected for tests.
-// Migrates 'nsi.meta.v1' without loss and keeps the v1 key as a backup (never deleted by migration).
-// Shape: { v:2, unlocked, stars, coins, gear, equipped, pending, heroes:{arda:{stats, ult}},
+// Meta save schema v3 (v0.5 workstream C; v3 adds the Street Tree and bond meters, R1-T5 D-059). No DOM: storage is injected for tests.
+// Migrates 'nsi.meta.v2' and 'nsi.meta.v1' without loss and keeps the older keys as backups (never deleted by migration).
+// Shape: { v:3, tree:{learned:{id:1}, respecs:{chapter:n}}, bonds:{kaan, mila, ada}, unlocked, stars, coins, gear, equipped, pending, heroes:{arda:{stats, ult}},
 //   mastery:{weaponId:kills}, counters:{...}, collection:{id:1}, achievements:{id:1},
-//   daily:{day, seed, level, mods, played, won, claimed, ended}, streak:{n, last, best}, flags:{}, lastPlayed }
+//   daily:{day, seed, level, mods, played, won, claimed, ended}, streak:{n, last, best}, flags:{}, lastPlayed,
+//   modes:{nm:{levelIndex:{stars}}, moon:{hoodIndex:1}, title:0|1, ns:{day, dayBest, best, runs, paid, streak}} }
+// modes (R1-T4 part 18) is an additive block inside v3: no version bump, a missing block is the default, and every
+// value is clamped on read, so a damaged block cannot grant anything (test-modes.js covers it).
 P.Meta = P.Meta || {};
 (function (M) {
-  var KEY = 'nsi.meta.v2', KEY_V1 = 'nsi.meta.v1', VERSION = 2;
+  var KEY = 'nsi.meta.v3', KEY_V2 = 'nsi.meta.v2', KEY_V1 = 'nsi.meta.v1', VERSION = 3;
   var num = function (x) { return Number(x) || 0; };
   var COUNTERS = ['kills', 'hacks', 'rescues', 'bosses', 'wins', 'dashes', 'ults', 'crits', 'maxStreak', 'meters',
     'flawlessTotal', 'hoodsCleared', 'dailies', 'eliteKills'];
-  M.Save = { KEY: KEY, KEY_V1: KEY_V1, VERSION: VERSION, COUNTERS: COUNTERS, HEROES: ['arda'] };
+  M.Save = { KEY: KEY, KEY_V2: KEY_V2, KEY_V1: KEY_V1, VERSION: VERSION, COUNTERS: COUNTERS, HEROES: ['arda'] };
 
   // Fresh save. Level, gear and economy defaults match v1 (see meta-data.js for the numbers).
   M.Save.defaults = function () {
@@ -18,7 +21,8 @@ P.Meta = P.Meta || {};
       equipped: { hoodie: 'hoodie_sweat', gloves: 'gloves_work', sneakers: 'sneak_run', charm: 'charm_nazar' },
       pending: null, heroes: {}, mastery: {}, counters: {}, collection: {}, achievements: {},
       daily: { day: '', seed: 0, level: 0, mods: [], played: false, won: false, claimed: false },
-      streak: { n: 0, last: '', best: 0 }, flags: {}, lastPlayed: 0 };
+      streak: { n: 0, last: '', best: 0 }, flags: {}, lastPlayed: 0,
+      tree: P.Tree.newState(), bonds: P.Tree.newBonds(), modes: defaultModes() };
     M.Save.HEROES.forEach(function (h) { s.heroes[h] = { stats: P.Stats.newProgress(), ult: 'nazar' }; });
     COUNTERS.forEach(function (c) { s.counters[c] = 0; });
     s.counters.flawless = {};
@@ -74,7 +78,31 @@ P.Meta = P.Meta || {};
     var s = src.streak || {};
     return { n: Math.max(0, Math.round(num(s.n))), last: String(s.last || ''), best: Math.max(0, Math.round(num(s.best))) };
   }
-  // Sanitize any stored object into a valid v2 save. Unknown fields are dropped; v1 saves gain the v2 fields.
+  function defaultModes() {
+    return { nm: {}, moon: {}, title: 0, ns: { day: '', dayBest: 0, best: 0, runs: 0, paid: '', streak: { n: 0, last: '', best: 0 } } };
+  }
+  // Replay tiers (R1-T4 part 18): Nightmare stars per level (1..starsMax), moon per hood, title, Night Shift record.
+  function normalizeModes(src) {
+    var m = src.modes && typeof src.modes === 'object' ? src.modes : {}, out = defaultModes(), ns = m.ns && typeof m.ns === 'object' ? m.ns : {};
+    var cap = M.CFG && M.CFG.levelCount ? M.CFG.levelCount : 100, hoods = M.CFG && M.CFG.hoodCount ? M.CFG.hoodCount : 20;
+    var nmMax = P.CFG.nightmare ? P.CFG.nightmare.starsMax : 4;
+    Object.keys(m.nm && typeof m.nm === 'object' ? m.nm : {}).forEach(function (k) {
+      var i = Math.round(num(k)), v = Math.round(num(m.nm[k] && m.nm[k].stars));
+      if (i >= 1 && i <= cap && v >= 1) out.nm[i] = { stars: Math.min(nmMax, v) };
+    });
+    // A moon is derived from the Nightmare records (all levels of the hood have stars), so a stored moon flag alone grants
+    // nothing; the title needs its flag and the moons it is earned with (config nightmare.titleAt).
+    for (var h = 0; h < hoods; h++) {
+      var all = true, k;
+      for (k = 1; k <= P.Journey.levelsPerHood; k++) if (!out.nm[h * P.Journey.levelsPerHood + k]) all = false;
+      if (all) out.moon[h] = 1;
+    }
+    out.title = (m.title === 1 || m.title === true) && Object.keys(out.moon).length >= P.CFG.nightmare.titleAt ? 1 : 0;
+    out.ns = { day: String(ns.day || ''), dayBest: Math.max(0, Math.round(num(ns.dayBest))), best: Math.max(0, Math.round(num(ns.best))),
+      runs: Math.max(0, Math.round(num(ns.runs))), paid: String(ns.paid || ''), streak: normalizeStreak({ streak: ns.streak }) };
+    return out;
+  }
+  // Sanitize any stored object into a valid v3 save. Unknown fields are dropped; older saves gain the new fields.
   M.Save.normalize = function (raw) {
     var src = raw && typeof raw === 'object' ? raw : {}, out = M.Save.defaults();
     normalizeLevels(src, out);
@@ -89,9 +117,12 @@ P.Meta = P.Meta || {};
     out.streak = normalizeStreak(src);
     out.flags = src.flags && typeof src.flags === 'object' ? src.flags : {};
     out.lastPlayed = Math.max(0, num(src.lastPlayed));
+    out.tree = P.Tree.normalize(src.tree);
+    out.bonds = P.Tree.normalizeBonds(src.bonds);
+    out.modes = normalizeModes(src);
     return out;
   };
-  // v1 -> v2 (and v2 -> v2 pass-through). Returns a new object; `from` records the source version.
+  // v1 or v2 -> v3 (and v3 -> v3 pass-through). Returns a new object; `from` records the source version.
   M.Save.migrate = function (raw, now) {
     var from = raw && typeof raw === 'object' && raw.v ? Number(raw.v) || 1 : 1;
     var s = M.Save.normalize(raw);
@@ -100,21 +131,28 @@ P.Meta = P.Meta || {};
     s.migratedFrom = from < VERSION ? from : undefined;
     return s;
   };
-  // Storage access. `store` defaults to localStorage (missing in node tests and private mode).
+  // Storage access. `store` defaults to localStorage (missing in node tests and private mode). Reading the property can
+  // itself throw (SecurityError when the browser blocks site data, e.g. iOS Safari with cookies blocked), so it sits inside
+  // a try. Without storage the save lives in memory for the session (load() caches it): the map still opens.
+  function defaultStore() {
+    try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (e) { return null; }
+  }
   M.Save.read = function (store, now) {
-    var st = store || (typeof localStorage !== 'undefined' ? localStorage : null), v2 = null, v1 = null;
+    var st = store || defaultStore(), v3 = null, v2 = null, v1 = null;
     if (!st) return M.Save.defaults();
-    try { v2 = JSON.parse(st.getItem(KEY) || 'null'); } catch (e) { v2 = null; }
+    try { v3 = JSON.parse(st.getItem(KEY) || 'null'); } catch (e) { v3 = null; }
+    if (v3) return M.Save.migrate(v3, now);
+    try { v2 = JSON.parse(st.getItem(KEY_V2) || 'null'); } catch (e) { v2 = null; }
     if (v2) return M.Save.migrate(v2, now);
     try { v1 = JSON.parse(st.getItem(KEY_V1) || 'null'); } catch (e) { v1 = null; }
     return M.Save.migrate(v1, now);
   };
   M.Save.write = function (state, store) {
-    var st = store || (typeof localStorage !== 'undefined' ? localStorage : null);
+    var st = store || defaultStore();
     try { if (st) st.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode: keep in memory */ }
   };
   M.Save.wipe = function (store) {
-    var st = store || (typeof localStorage !== 'undefined' ? localStorage : null);
-    try { if (st) st.removeItem(KEY); st && st.removeItem(KEY_V1); } catch (e) { /* ignore */ }
+    var st = store || defaultStore();
+    try { if (st) { st.removeItem(KEY); st.removeItem(KEY_V2); st.removeItem(KEY_V1); } } catch (e) { /* ignore */ }
   };
 })(P.Meta);

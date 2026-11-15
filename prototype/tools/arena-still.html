@@ -1,0 +1,294 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Arena still (R1-T3)</title>
+<!-- One arena frame as a PNG. ?hood=0..19 &stage=1..5 &y=metres &blocks=1 &dump=1 (writes <pre id=out>PNG:data...</pre>), &dpr=1|2.
+     Heal stations (R1-T4 part 17): &live=1&secs=0&station=1 frames the level's first station (the eczane or the kiosk) as the sim
+     built it; add &empty=1 for the used state. Usable is the default.
+     Built from world-preview.html. Used for before/after screenshots: Chrome --headless=new --dump-dom. -->
+<style>html,body{margin:0;background:#14151F}#game{width:390px;height:844px;display:block}</style>
+<canvas id="game" width="390" height="844"></canvas>
+<script>window.P = {};</script>
+<script src="../js/config.js"></script>
+<script src="../js/config-weapons.js"></script>
+<script src="../js/config-levels.js"></script>
+<script src="../js/config-layouts.js"></script>
+<script src="../js/config-enemies3.js"></script>
+<script src="../js/config-bosses.js"></script>
+<script src="../js/config-enemies4.js"></script>
+<script src="../js/config-enemies5.js"></script>
+<script src="../js/config-enemy-look.js"></script>
+<script src="../js/config-fauna.js"></script>
+<script src="../js/config-skins.js"></script>
+<script src="../js/config-stats.js"></script>
+<script src="../js/config-power.js"></script>
+<script src="../js/config-feel.js"></script>
+<script src="../js/config-weapons2.js"></script>
+<script src="../js/config-weapons3.js"></script>
+<script src="../js/config-env.js"></script>
+<script src="../js/view/hints-config.js"></script>   <!-- P.CFG.consumables: the station glow (R1-T4 part 17) -->
+<script src="../js/config-objectives.js"></script>
+<script src="../js/config-modifiers.js"></script>
+<script src="../js/config-horde.js"></script>
+<script src="../js/config-arena-evolve.js"></script>
+<script src="../js/strings.js"></script>
+<script src="../js/journey.js"></script>
+<script src="../js/strings-weapons.js"></script>
+<script src="../js/meta/strings-meta.js"></script>
+<script src="../js/story/strings-story.js"></script>
+<script src="../js/strings-journey.js"></script>
+<script src="../js/strings-enemies3.js"></script>
+<script src="../js/strings-enemies4.js"></script>
+<script src="../js/strings-enemies5.js"></script>
+<script src="../js/strings-weapons2.js"></script>
+<script src="../js/strings-weapons3.js"></script>
+<script src="../js/meta/strings-meta2.js"></script>
+<script src="../js/strings-feel.js"></script>
+<script src="../js/strings-moments.js"></script>
+<script src="../js/strings-env.js"></script>
+<script src="../js/strings-signs.js"></script>
+<script src="../js/strings-progress.js"></script>
+<script src="../js/strings-ui2.js"></script>
+<script src="../js/strings-cards.js"></script>
+<script src="../js/strings-horde.js"></script>
+<script src="../js/strings-hints.js"></script>   <!-- consume.empty (EMPTY) and the hint lines -->
+
+<script src="../js/sim/rng.js"></script>
+<script src="../js/sim/world.js"></script>
+<script src="../js/sim/combat.js"></script>
+<script src="../js/sim/weapons.js"></script>
+<script src="../js/sim/weapons2.js"></script>
+<script src="../js/sim/weapons3.js"></script>
+<script src="../js/sim/weapons4.js"></script>
+<script src="../js/sim/weapons5.js"></script>
+<script src="../js/sim/mastery.js"></script>
+<script src="../js/sim/enemies.js"></script>
+<script src="../js/sim/enemies2.js"></script>
+<script src="../js/sim/skills.js"></script>
+<script src="../js/sim/bosses.js"></script>
+<script src="../js/sim/layouts.js"></script>
+<script src="../js/sim/levels.js"></script>
+<script src="../js/sim/eczane.js"></script>   <!-- heal stations (R1-T4 parts 14, 17): P.Levels.build places them -->
+
+<script src="../js/sim/enemies3.js"></script>
+<script src="../js/sim/skins.js"></script>
+<script src="../js/sim/skins-fisher.js"></script>
+<script src="../js/sim/enemies4.js"></script>
+<script src="../js/sim/enemies4-marti.js"></script>
+<script src="../js/sim/enemies4-cayci.js"></script>
+<script src="../js/sim/events.js"></script>
+<script src="../js/sim/events-kinds.js"></script>
+<script src="../js/sim/env.js"></script>
+<script src="../js/sim/env-kinds.js"></script>
+<script src="../js/sim/env-zones.js"></script>
+<script src="../js/sim/env-rules.js"></script>
+<script src="../js/sim/env-portal.js"></script>
+<script src="../js/sim/hack.js"></script>
+<script src="../js/sim/modifiers.js"></script>
+<script src="../js/sim/objectives.js"></script>
+<script src="../js/sim/objectives-kinds.js"></script>
+<script src="../js/sim/progression.js"></script>
+<script src="../js/sim/weapons6.js"></script>
+<script src="../js/sim/horde.js"></script>
+<script src="../js/sim/director.js"></script>
+<script src="../js/sim/sim.js"></script>
+<script src="../js/view/settings.js"></script>
+<script src="../js/view/icons.js"></script>
+<script src="../js/view/icons-evo.js"></script>
+<script src="../js/view/sfx-bank.js"></script>
+<script src="../js/view/sfx-bank2.js"></script>
+<script src="../js/view/sfx.js"></script>
+<script src="../js/view/indoor.js"></script>
+<script src="../js/view/fx.js"></script>
+<script src="../js/view/render.js"></script>
+<script src="../js/view/render-world.js"></script>
+<script src="../js/view/restaurant-props.js"></script>
+<script src="../js/view/restaurant-art.js"></script>
+<script src="../js/view/art-rig.js"></script>
+<script src="../js/view/art-characters.js"></script>
+<script src="../js/view/art-enemies.js"></script>
+<script src="../js/view/sprites.js"></script>
+<script src="../js/view/art-enemies3.js"></script>
+<script src="../js/view/art-enemies4.js"></script>
+<script src="../js/view/art-enemies5.js"></script>
+<script src="../js/view/art-enemies6.js"></script>
+<script src="../js/view/art-bosses.js"></script>
+<script src="../js/view/art-enemy-look.js"></script>
+<script src="../js/view/art-enemy-bosses.js"></script>
+<script src="../js/view/portraits.js"></script>
+<script src="../js/view/weapons-fx.js"></script>
+<script src="../js/view/feel.js"></script>
+<script src="../js/view/moments.js"></script>
+<script src="../js/view/moments-screen.js"></script>
+<script src="../js/view/vehicles.js"></script>
+<script src="../js/view/weapons-fx2.js"></script>
+<script src="../js/view/skills-fx.js"></script>
+<script src="../js/view/weapons-fx3.js"></script>
+<script src="../js/view/enemies-fx.js"></script>
+<script src="../js/view/enemies-fx2.js"></script>
+<script src="../js/view/enemies-fx-w1.js"></script>
+<script src="../js/view/weapons-fx4.js"></script>
+<script src="../js/view/fire-anim-prim.js"></script>
+<script src="../js/view/fire-anim-held.js"></script>
+<script src="../js/view/fire-anim-held2.js"></script>
+<script src="../js/view/fire-anim-fx.js"></script>
+<script src="../js/view/fire-anim-fx2.js"></script>
+<script src="../js/view/fire-anim-held3.js"></script>
+<script src="../js/view/fire-anim-fx3.js"></script>
+<script src="../js/view/fire-anim-held4.js"></script>
+<script src="../js/view/fire-anim-fx4.js"></script>
+<script src="../js/view/fire-anim.js"></script>
+<script src="../js/view/events-fx.js"></script>
+<script src="../js/view/istanbul.js"></script>
+<script src="../js/view/istanbul-props.js"></script>
+<script src="../js/view/istanbul-props2.js"></script>
+<script src="../js/view/consumables-icons.js"></script>   <!-- the station sign and its icons (R1-T4 parts 10, 17) -->
+<script src="../js/view/consumables.js"></script>
+<script src="../js/view/consumables-zone.js"></script>
+<script src="../js/view/istanbul-props-env.js"></script>
+<script src="../js/view/env-fx.js"></script>
+<script src="../js/view/fauna-art.js"></script>
+<script src="../js/view/fauna.js"></script>
+<script src="../js/view/arena-art-data.js"></script>
+<script src="../js/view/arena-art.js"></script>
+<script src="../js/view/arena-props-data.js"></script>
+<script src="../js/view/arena-props.js"></script>
+<script src="../js/view/bridge-props.js"></script>
+<script src="../js/view/arena-overhead-data.js"></script>
+<script src="../js/view/arena-overhead.js"></script>
+<script src="../js/view/arena-sky-data.js"></script>
+<script src="../js/view/arena-sky.js"></script>
+<script src="../js/view/arena-evolve.js"></script>
+<script src="../js/view/arena-evolve-decals.js"></script>
+<script src="../js/view/istanbul-themes.js"></script>
+<script src="../js/view/istanbul-landmarks.js"></script>
+<script src="../js/view/layouts-fx.js"></script>
+<script src="../js/view/layouts-centre.js"></script>
+<script src="../js/view/hood-card.js"></script>
+<script src="../js/view/screens.js"></script>
+<script src="../js/view/coldopen.js"></script>
+<script src="../js/story/strings-finale.js"></script>
+<script src="../js/dialogue/dialogue.js"></script>
+<script src="../js/dialogue/beats-core.js"></script>
+<script src="../js/dialogue/beats-story-hoods.js"></script>
+<script src="../js/dialogue/beats-barks.js"></script>
+<script src="../js/dialogue/batches.js"></script>
+<script src="../js/dialogue/intents.js"></script>
+<script src="../js/dialogue/tr/barks-cards.js"></script>
+<script src="../js/dialogue/tr/barks-combat.js"></script>
+<script src="../js/dialogue/tr/barks-hoods-01-10.js"></script>
+<script src="../js/dialogue/tr/barks-hoods-11-20.js"></script>
+<script src="../js/dialogue/tr/barks-world.js"></script>
+<script src="../js/dialogue/tr/cards-flavour.js"></script>
+<script src="../js/dialogue/tr/core.js"></script>
+<script src="../js/dialogue/tr/finale.js"></script>
+<script src="../js/dialogue/tr/story-hoods-01-10.js"></script>
+<script src="../js/dialogue/tr/story-hoods-11-20.js"></script>
+<script src="../js/dialogue/tr/story-levels.js"></script>
+<script src="../js/dialogue/en/barks-cards.js"></script>
+<script src="../js/dialogue/en/barks-combat.js"></script>
+<script src="../js/dialogue/en/barks-hoods-01-10.js"></script>
+<script src="../js/dialogue/en/barks-hoods-11-20.js"></script>
+<script src="../js/dialogue/en/barks-world.js"></script>
+<script src="../js/dialogue/en/cards-flavour.js"></script>
+<script src="../js/dialogue/en/core.js"></script>
+<script src="../js/dialogue/en/finale.js"></script>
+<script src="../js/dialogue/en/story-hoods-01-10.js"></script>
+<script src="../js/dialogue/en/story-hoods-11-20.js"></script>
+<script src="../js/dialogue/en/story-levels.js"></script>
+<script src="../js/story/story-data.js"></script>
+<script src="../js/story/barks.js"></script>
+<script src="../js/story/finale-data.js"></script>
+<script src="../js/story/finale.js"></script>
+<script src="../js/meta/meta-save.js"></script>
+<script src="../js/meta/meta-data.js"></script>
+<script src="../js/meta/meta-unlocks.js"></script>
+<script src="../js/meta/meta-power.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var hood = parseInt(q.get('hood') || '0', 10), stage = parseInt(q.get('stage') || '1', 10), Y = parseFloat(q.get('y') || '40');
+  var showBlocks = q.get('blocks') !== '0', DPR = parseInt(q.get('dpr') || '2', 10);
+  var BLOCKS = [
+    { kind: 'car', x: -1.3, y: 36, w: 1.8, h: 4.2 }, { kind: 'taxi', x: 1.2, y: 52, w: 1.8, h: 4.3 },
+    { kind: 'dolmus', x: -1.2, y: 70, w: 1.9, h: 4.6 }, { kind: 'bus', x: 1.4, y: 98, w: 2.5, h: 9 },
+    { kind: 'barrier', x: 0, y: 128, w: 2.4, h: 0.6 }, { kind: 'kiosk', x: -2.2, y: 150, w: 1.4, h: 1.1 },
+    { kind: 'bench', x: 2.1, y: 168, w: 1.6, h: 0.5 }, { kind: 'bin', x: -2.4, y: 182, w: 0.5, h: 0.5 },
+    { kind: 'planter', x: 2.4, y: 192, w: 1.2, h: 1.2 }, { kind: 'crates', x: -2.6, y: 202, w: 1.2, h: 1.0 },
+    { kind: 'tables', x: 2.8, y: 212, w: 1.6, h: 1.2 }, { kind: 'cart', x: -1.0, y: 222, w: 1.2, h: 0.8 },
+    { kind: 'tree', x: 0.6, y: 118, w: 1.0, h: 1.0 }, { kind: 'bollard', x: -0.8, y: 86, w: 0.4, h: 0.4 },
+    { kind: 'mystery', x: 1.8, y: 60, w: 1, h: 1 }
+  ];
+  if (q.get('kit')) {   // R1-T3: the hood's street kit (journey.js) laid out in two columns, both variants of each kind; &extra=a,b adds kinds
+    var kitKinds = P.Journey.hoods[hood].kit.concat((q.get('extra') || '').split(',').filter(Boolean)), n = 0;
+    BLOCKS = [];
+    kitKinds.forEach(function (kd) {
+      var sz = P.CFG.levels.kinds[kd] || [1, 1];
+      [0, 0.99].forEach(function (v) { var bx = n % 2 ? 2.2 : -2.2, by = Y - 9 + Math.floor(n / 2) * 3.4; BLOCKS.push({ kind: kd, x: bx, y: by, w: sz[0], h: sz[1], v: v, rc: { xMin: bx - sz[0] / 2, xMax: bx + sz[0] / 2, yMin: by - sz[1] / 2, yMax: by + sz[1] / 2 } }); n++; });
+    });
+    showBlocks = true;
+  }
+  var ui = { exit: { checked: false }, blocks: { checked: showBlocks } };
+  function fakeSim(level) {
+    var li = P.Journey.level(level), theme = li.hood.theme;
+    return {
+      seed: 1, t: 0, runT: 0, mode: 'play', levelIndex: level, levelInfo: li, theme: theme,
+      // geo.sub: stage number (1..5) exercises the sub-location path; the L1 path ignores geo.
+      geo: { xMin: -4.6, xMax: 4.6, length: 230, exitY: 230, holdY: 200, holdT: 56, boss: null, exitOpen: ui.exit.checked,
+        blocks: ui.blocks.checked ? BLOCKS : [], sub: li.stage },
+      hero: { x: 0, y: 0, fx: 0, fy: 1, hp: 100, maxHp: 100, moving: false, invuln: 0, pickupRadius: 1.2, sinceHit: 99,
+        weapons: { knife: 1 }, passives: {}, cds: {}, chainA: 0, swingDir: 1, regenOn: false, hitFlash: 0 },
+      enemies: [], drops: [], projs: [], nails: [], zones: [], events: [], enemyTele: [], enemyShots: [], hacks: [], ev: { list: [], helpers: [] },
+      props: { carts: [], canisters: [], doorOpen: false, shutter: 0, shutterOpen: false, scaffoldDown: false },
+      dir: { civilians: [], telegraphs: [], flags: {}, bubbles: [], barks: { cur: null, queue: [] }, tut: { active: null }, hold: { active: false }, zoomOut: false }
+    };
+  }
+
+  var canvas = document.getElementById('game'), level = hood * 5 + stage, sim = fakeSim(level), cam;
+  P.Render.init(canvas); P.Render.resize(DPR);
+  P.Fx.reset(sim); cam = P.Fx.cam;
+  sim.hero.x = 0; sim.hero.y = Y;
+  if (q.get('evo') === '0') P.CFG.arenaEvolve.on = false;   // baseline: the arena before the evolution pass
+  if (q.get('live')) {   // a real run: the sim walks the hero up the street for &secs seconds so enemies, weapons and props are on screen
+    sim = P.createSim(parseInt(q.get('seed') || '5', 10), { levelIndex: level, loadout: null });
+    sim.mode = 'play'; sim.hero.hp = sim.hero.maxHp = 1e9;
+    P.Fx.reset(sim); cam = P.Fx.cam;
+    // &prog=0..1 puts the hero at that share of the route (teleported) and lets the horde and the kills build up with no input.
+    var prog = q.get('prog'), input = prog !== null ? { x: 0, y: 0 } : { x: 0, y: 1 };
+    if (prog !== null) sim.hero.y = Math.max(2, parseFloat(prog) * (sim.geo ? sim.geo.exitY : 230));
+    for (var i = 0; i < parseFloat(q.get('secs') || '25') * 60; i++) { P.stepSim(sim, 1 / 60, input); sim.events.length = 0; }
+    Y = sim.hero.y;
+  }
+  if (q.get('station') && sim.eczane) {   // R1-T4 part 17: with &live=1, the hero 3 m below the level's first heal station (the real
+    var st0 = sim.eczane.list[0];         // genProps path, so the state comes from P.Eczane.state); &empty=1 marks it used
+    if (q.get('empty')) st0.used = true;
+    sim.hero.y = Y = st0.b.y - 3;
+  }
+  if (q.get('noart')) P.ArenaArt.tile = function () { return null; };   // baseline: the baked canvas tiles
+  if (q.get('noprops')) P.ArenaProps.draw = function () { return false; };   // baseline: the procedural props
+  if (q.get('noover')) P.ArenaOverhead.draw = function () { return false; };   // baseline: the procedural overhead rigs
+  if (q.get('nosky')) P.ArenaSky.draw = function () {};   // baseline: no skyline layer
+  function shoot() {   // &settle=1 renders 14 frames 80 ms apart, so eased effects (the overhead fade under the hero) reach their end state
+    var k = 0, n = q.get('settle') ? 14 : 3;
+    (function step() {
+      cam.y = Y; cam.x = 0; cam.w = P.CFG.view.widthM; cam.ox = 0; cam.oy = 0; cam.rot = 0; cam.zoom = 1; cam.trauma = 0; cam.punchT = 0;
+      P.Render.frame(sim, null);
+      if (++k < n) return q.get('settle') ? setTimeout(step, 80) : step();
+      if (q.get('dump')) { var o = document.createElement('pre'); o.id = 'out'; o.textContent = 'PNG:' + canvas.toDataURL('image/png'); document.body.appendChild(o); }
+    })();
+  }
+  function bench() {   // ?bench=1: render cost per frame (ms) over a live walk; prints BENCH:{median,p95,p99,max,over16,n}
+    var t = [], n = parseInt(q.get('frames') || '240', 10), i, o, s0;
+    for (i = 0; i < 30; i++) { P.stepSim(sim, 1 / 60, { x: 0, y: 1 }); sim.events.length = 0; cam.y = sim.hero.y; P.Render.frame(sim, null); }
+    for (i = 0; i < n; i++) {
+      P.stepSim(sim, 1 / 60, { x: 0, y: 1 }); sim.events.length = 0; cam.y = sim.hero.y; cam.x = 0; cam.w = P.CFG.view.widthM;
+      s0 = performance.now(); P.Render.frame(sim, null); t.push(performance.now() - s0);
+    }
+    t.sort(function (a, b) { return a - b; });
+    o = document.createElement('pre'); o.id = 'out';
+    o.textContent = 'BENCH:' + JSON.stringify({ median: +t[Math.floor(n * 0.5)].toFixed(2), p95: +t[Math.floor(n * 0.95)].toFixed(2), p99: +t[Math.floor(n * 0.99)].toFixed(2), max: +t[n - 1].toFixed(1), over16: t.filter(function (x) { return x > 16.7; }).length, n: n });
+    document.body.appendChild(o);
+  }
+  var tries = 0;
+  (function wait() { if (!(P.ArenaArt.ready() && P.ArenaProps.ready() && P.BridgeProps.ready() && P.ArenaOverhead.ready() && P.ArenaSky.ready()) && tries++ < 100) return setTimeout(wait, 50); setTimeout(q.get('bench') ? bench : shoot, 100); })();
+})();
+</script>

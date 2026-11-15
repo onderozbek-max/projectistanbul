@@ -12,6 +12,10 @@ function sk(s) {
     act: { id: null, t: 0, T: 0, cd: 0, cdT: 0, hits: 0 } });
 }
 
+// Street Tree perks (perks.js): s.perk is the learned set, s.pk the per-run state bag (perk keys, see sim.js).
+function perkOn(s, id) { return !!(s.perk && s.perk[id]); }
+function pkOf(s) { return s.pk || (s.pk = {}); }
+
 P.Skills.init = function (s) {
   var h = s.hero;
   h.dashCd = 0; h.iframes = 0; h.ult = 0; h.dashing = false;
@@ -32,8 +36,8 @@ function onKill(s, S, e) {
   if (s.t - S.lastKillT > K.frenzy.window) S.streak = 0;
   S.streak++;
   S.lastKillT = s.t;
-  if (S.streak >= K.frenzy.threshold && S.frenzyT <= 0) {
-    S.streak = 0; S.frenzyT = K.frenzy.time;
+  if (S.streak >= P.Skills.frenzyThreshold(s) && S.frenzyT <= 0) {
+    S.streak = 0; S.frenzyT = K.frenzy.time; pkOf(s).frenzyAdded = 0;
     s.events.push({ type: 'frenzy', on: true, t: K.frenzy.time });
   }
 }
@@ -56,15 +60,45 @@ function dashMul(s) {
 function tryDash(s, S, input) {
   var h = s.hero, D = P.CFG.skills.dash;
   if (S.dash || h.dashCd > 0 || s.mode !== 'play') return;
-  if (P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s)) return;   // daily "Kaçış yok" (no dash)
+  if (P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s)) return;   // daily "Depar yok" (no dash)
   var dx = input.x || 0, dy = input.y || 0, m = Math.hypot(dx, dy);
   if (m > 0.2) { dx /= m; dy /= m; } else {
     dx = h.fx; dy = h.fy; m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
   }
   S.dash = { dx: dx, dy: dy, t: 0, T: D.time, speed: D.dist / D.time };
   S.nearMissDone = false;
-  h.dashCd = D.cooldown * dashMul(s); h.dashCdMax = h.dashCd; h.iframes = D.iframes; h.dashing = true;
+  h.dashCd = dashCooldown(s); h.dashCdMax = h.dashCd; h.iframes = D.iframes; h.dashing = true;
+  if (perkOn(s, 'pace.1')) perkClearSlow(s);
   s.events.push({ type: 'dash', x: h.x, y: h.y, ax: dx, ay: dy, dist: D.dist, T: D.time });
+}
+
+// pace.4 Dolmus Rider: the first dash of the run (each level is one stage) has no cooldown.
+function dashCooldown(s) {
+  var pk = pkOf(s);
+  if (perkOn(s, 'pace.4') && !pk.dolmus) { pk.dolmus = true; return 0; }
+  return P.CFG.skills.dash.cooldown * dashMul(s);
+}
+
+// pace.1 Quick Feet: a dash clears the hero's slow. The puddle and tea slows that are on now stay off on that wet
+// tile (pk.dryPud, pk.dryTea, see P.Skills.wetSlowOn), so the next step does not put them back.
+function perkClearSlow(s) {
+  var pk = pkOf(s);
+  if (s.env && s.env.heroMul < 1) pk.dryPud = true;
+  if (s.tea && s.tea.slowT > 0) { s.tea.slowT = 0; pk.dryTea = true; }
+}
+
+// pace.2 Slipstream: the dash has passed through slipstream.n distinct enemies. Refund once per dash.
+function perkSlipstream(s, d) {
+  var C = P.CFG.perks.slipstream, h = s.hero, seen = d.seen || (d.seen = {}), i, e;
+  if (d.refunded) return;
+  for (i = 0; i < s.enemies.length; i++) {
+    e = s.enemies[i];
+    if (e.dead || e.state !== 'active') continue;
+    if (Math.hypot(e.x - h.x, e.y - h.y) <= e.r + P.CFG.hero.radius) seen[e.id] = true;
+  }
+  if (Object.keys(seen).length < C.n) return;
+  d.refunded = true;
+  h.dashCd = Math.max(0, (h.dashCd || 0) - C.refund * h.dashCdMax);
 }
 
 function stepDash(s, S, dt) {
@@ -73,6 +107,7 @@ function stepDash(s, S, dt) {
   var adv = Math.min(dt, d.T - (d.t - dt));
   h.x += d.dx * d.speed * adv; h.y += d.dy * d.speed * adv;
   clampHero(s);
+  if (perkOn(s, 'pace.2')) perkSlipstream(s, d);
   if (d.t >= d.T) { S.dash = null; h.dashing = false; }
 }
 
@@ -94,6 +129,7 @@ function nearMiss(s, S) {
 // ---------- Ultimates: loadout.ult (meta), gated by journey level; Nazar is the fallback ----------
 P.Skills.ultId = function (s) {
   var id = (s.loadout && s.loadout.ult) || 'nazar', U = P.CFG.ults[id];
+  if (U && U.bond && !(s.loadout && s.loadout.bonds && (s.loadout.bonds.kaan | 0) >= U.bond)) return 'nazar';   // a bond ult needs its bond
   return U && (U.unlock || 1) <= (s.levelIndex || 1) ? id : 'nazar';
 };
 
@@ -130,7 +166,21 @@ function ultHorn(s, S) {
   s.events.push({ type: 'ult', id: 'horn', x: h.x, y: h.y, r: C.r, T: C.T, slowMo: C.slowMo });
 }
 
-var ULT = { nazar: ultNazar, convoy: ultConvoy, horn: ultHorn };
+// Tackle & Stab (Kaan bond 50): Kaan charges from Arda toward the nearest enemy; the sweep (stepSweeps) shoves and stuns what it
+// touches, then a stab lands where he stops. The direction is fixed at the cast (the nearest active enemy, else straight up).
+function ultTackle(s, S) {
+  var h = s.hero, C = P.CFG.ults.tackle, best = null, bd = 1e9, dx = 0, dy = 1, d;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active') return;
+    d = Math.hypot(e.x - h.x, e.y - h.y);
+    if (d < bd) { bd = d; best = e; }
+  });
+  if (best && bd > 0.01) { dx = (best.x - h.x) / bd; dy = (best.y - h.y) / bd; }
+  S.sweeps.push({ kind: 'tackle', t: 0, T: C.T, x0: h.x, y0: h.y, dx: dx, dy: dy, hit: {}, stabbed: false });
+  s.events.push({ type: 'ult', id: 'tackle', x: h.x, y: h.y, dx: dx, dy: dy, dist: C.dist, T: C.T, r: C.stabR, slowMo: C.slowMo });
+}
+
+var ULT = { nazar: ultNazar, convoy: ultConvoy, horn: ultHorn, tackle: ultTackle };
 
 function tryUlt(s, S) {
   var h = s.hero, U = P.CFG.skills.ult, id;
@@ -165,6 +215,32 @@ function hornWave(s, w, rad) {
   });
 }
 
+// Kaan's charge: the head moves dist metres over T s; whatever it touches is shoved along the charge and stunned (bosses only shoved).
+function tackleHead(s, w) {
+  var C = P.CFG.ults.tackle, p = Math.min(1, w.t / w.T), hx = w.x0 + w.dx * C.dist * p, hy = w.y0 + w.dy * C.dist * p;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active' || w.hit[e.id]) return;
+    if (Math.hypot(e.x - hx, e.y - hy) > C.laneW / 2 + e.r) return;
+    w.hit[e.id] = true;
+    P.Combat.shove(e, w.dx, w.dy, C.push, true);
+    if (!e.boss) P.Status.apply(e, 'stun', C.stun, 1);
+  });
+  return { x: hx, y: hy };
+}
+
+// The stab where Kaan stops: damage and a push away from the landing point for every enemy within stabR.
+function tackleStab(s, w, at) {
+  var C = P.CFG.ults.tackle, n = 0;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.state !== 'active') return;
+    var dx = e.x - at.x, dy = e.y - at.y, d = Math.hypot(dx, dy) || 0.01;
+    if (d > C.stabR + e.r) return;
+    n++;
+    P.Combat.damageEnemy(s, e, C.stabDmg, dx / d, dy / d, C.stabPush, false, 'ult');
+  });
+  s.events.push({ type: 'tackleStab', x: at.x, y: at.y, r: C.stabR, n: n });
+}
+
 function stepSweeps(s, S, dt) {
   var C = P.CFG.ults, i, w, car;
   for (i = S.sweeps.length - 1; i >= 0; i--) {
@@ -173,6 +249,9 @@ function stepSweeps(s, S, dt) {
     if (w.kind === 'convoy') {
       car = w.y0 + Math.min(1, w.t / w.T) * 2 * w.hh;
       C.convoy.lanes.forEach(function (lane) { convoyLane(s, w, w.x0 + lane, car); });
+    } else if (w.kind === 'tackle') {
+      car = tackleHead(s, w);
+      if (w.t >= w.T && !w.stabbed) { w.stabbed = true; tackleStab(s, w, car); }
     } else {
       hornWave(s, w, C.horn.r * Math.min(1, w.t / w.T));
     }
@@ -214,7 +293,10 @@ function regenCay(s, S, input, dt) {
 function tickTimers(s, S, dt) {
   if (S.frenzyT > 0) {
     S.frenzyT -= dt;
-    if (S.frenzyT <= 0) { S.frenzyT = 0; s.events.push({ type: 'frenzy', on: false }); }
+    if (S.frenzyT <= 0) {
+      S.frenzyT = 0; s.events.push({ type: 'frenzy', on: false });
+      if (perkOn(s, 'agg.4')) P.Perks.ring(s, s.hero.x, s.hero.y);   // agg.4 Last Laugh
+    }
   }
   if (S.ultT > 0) S.ultT = Math.max(0, S.ultT - dt);
 }
@@ -243,13 +325,36 @@ P.Skills.powerMul = function (s) { return sk(s).ultT > 0 ? P.CFG.skills.ult.powe
 // Cooldown multiplier for weapons (frenzy attack speed, ultimate haste). Applied in Weapons.cdMult.
 P.Skills.cdScale = function (s) {
   var S = sk(s), k = 1;
-  if (S.frenzyT > 0) k /= 1 + P.CFG.skills.frenzy.attackSpeed;
+  if (S.frenzyT > 0) k /= 1 + (s.levelIndex >= P.CFG.levels.rampFrom ? P.CFG.skills.frenzy.attackSpeed : P.CFG.skills.frenzy.attackSpeedL1);
   if (S.ultT > 0) k *= P.CFG.skills.ult.cdMul;
   return k;
 };
 
 P.Skills.frenzyOn = function (s) { return sk(s).frenzyT > 0; };
 P.Skills.dashing = function (s) { return !!sk(s).dash; };
+
+// Kill streak that starts frenzy: agg.1 Hot Streak lowers it (P.CFG.perks.hotStreak), otherwise the base threshold.
+P.Skills.frenzyThreshold = function (s) {
+  return perkOn(s, 'agg.1') ? P.CFG.perks.hotStreak.threshold : P.CFG.skills.frenzy.threshold;
+};
+
+// agg.2 Blood Rush: adds dt seconds to the ACTIVE frenzy (no-op when frenzy is off). The caller checks the perk and
+// passes the extension and the cap (P.CFG.perks.bloodRush). The total added in one frenzy never exceeds capT.
+P.Skills.extendFrenzy = function (s, dt, capT) {
+  var S = sk(s), pk = pkOf(s), add;
+  if (!(S.frenzyT > 0)) return;
+  add = Math.max(0, Math.min(dt, capT - (pk.frenzyAdded || 0)));
+  S.frenzyT += add;
+  pk.frenzyAdded = (pk.frenzyAdded || 0) + add;
+};
+
+// Wet tiles slow the hero while it stands in one (env-zones heroWet: 'dryPud'; enemies4 frame: 'dryTea'). A dash
+// clears that slow (perkClearSlow) and pace.3 Parkour removes it. The dry flag ends when the hero leaves the tile kind.
+P.Skills.wetSlowOn = function (s, src, inside) {
+  var pk = pkOf(s);
+  if (!inside && pk[src]) pk[src] = false;
+  return inside && !pk[src] && !perkOn(s, 'pace.3');
+};
 
 // Crit chance including the Nazar charm. E2: damageEnemy should roll with this value.
 P.Skills.critChance = function (s) {
@@ -321,7 +426,8 @@ P.Skills.hud = function (s) {
   var S = sk(s), D = P.CFG.skills.dash, a = S.act, noDash = !!(P.Modifiers && P.Modifiers.dashBlocked && P.Modifiers.dashBlocked(s));
   return { dashFrac: noDash ? 0 : Math.max(0, 1 - (s.hero.dashCd || 0) / (s.hero.dashCdMax || D.cooldown)), dashReady: !noDash && !(s.hero.dashCd > 0),
     ult: s.hero.ult || 0, ultReady: (s.hero.ult || 0) >= 1, ultId: P.Skills.ultId(s),
-    frenzy: S.frenzyT > 0, frenzyFrac: S.frenzyT / P.CFG.skills.frenzy.time, streak: S.streak,
+    frenzy: S.frenzyT > 0, frenzyFrac: Math.min(1, S.frenzyT / P.CFG.skills.frenzy.time), threshold: P.Skills.frenzyThreshold(s),
+    streak: S.streak,
     active: { id: P.Skills.activeId(s), on: a.t > 0, onFrac: a.T > 0 ? a.t / a.T : 0,
       ready: a.cd <= 0 && !(a.t > 0), cdFrac: a.cdT > 0 ? 1 - a.cd / a.cdT : 1 } };
 };

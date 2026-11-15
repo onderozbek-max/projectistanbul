@@ -1,0 +1,3 @@
+# Intermediate keyed frames from the art workspace. Regenerate with tools/prepare-art.js; the runtime files are in prototype/assets/art.
+*
+!.gitignore

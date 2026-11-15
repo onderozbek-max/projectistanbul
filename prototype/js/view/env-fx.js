@@ -68,28 +68,26 @@
       ell(c, R.X(z.x + Math.cos(a) * rr), R.Y(z.y + Math.sin(a) * rr * 0.6), 0.2 * u, 0.2 * u, 'rgba(200,230,150,0.3)');
     }
   }
-  function manhole(R, p, t) {
-    var c = R.ctx, u = R.ppm, X = R.X(p.x), Y = R.Y(p.y), glow = p.state === 'open' ? 0.2 + 0.5 * Math.min(1, p.t / p.T) : 0;
-    ell(c, X, Y, 0.5 * u, 0.28 * u, '#2A2C31');
-    c.strokeStyle = '#14151F'; c.lineWidth = 1.2;
-    c.beginPath(); c.moveTo(X - 0.35 * u, Y); c.lineTo(X + 0.35 * u, Y); c.stroke();
-    if (glow) ell(c, X, Y, 0.55 * u, 0.32 * u, 'rgba(255,170,80,' + glow.toFixed(3) + ')');
-  }
-
   F.drawGround = function (R, s) {
     var E = s.env, t = performance.now() / 1000, i, z;
     if (!E) return;
+    var theme = P.RenderWorld.themeOf(s).id;
+    var galata = theme === 'galata' && P.GalataProps, bridge = theme === 'bridge' && P.BridgeProps;
     for (i = 0; i < E.zones.length; i++) {
       z = E.zones[i];
       if (!inView(R, z.y, z.r + 2)) continue;
+      if (z.rec && s.geo.sarayRaster && P.SarayProps.ground(R, s, z.rec.b, true)) continue;
       if (z.kind === 'puddle') puddle(R, z, t);
-      else if (z.kind === 'glass') slick(R, z, 'rgba(200,220,230,A)', 'rgba(235,248,255,A)');
-      else if (z.kind === 'debris') slick(R, z, 'rgba(150,110,70,A)', 'rgba(230,200,150,A)');
-      else if (z.kind === 'foam') foam(R, z, t);
+      else if (z.kind === 'glass') {
+        slick(R, z, 'rgba(200,220,230,A)', 'rgba(235,248,255,A)');
+        if (z.rec && bridge) bridge.drawBroken(R, z);
+      }
+      else if (z.kind === 'debris') {
+        var rubble = z.rec && galata && galata.draw(R, z.rec.kind, z.x, z.y, { broken: true });
+        if (!rubble && z.rec && bridge) rubble = bridge.drawBroken(R, z);
+        if (!rubble) slick(R, z, 'rgba(150,110,70,A)', 'rgba(230,200,150,A)');
+      } else if (z.kind === 'foam') foam(R, z, t);
       else if (z.gas) gasCloud(R, z, t);
-    }
-    for (i = 0; i < E.portals.length; i++) {
-      if (E.portals[i].kind === 'manhole' && inView(R, E.portals[i].y, 2)) manhole(R, E.portals[i], t);
     }
   };
 
@@ -130,7 +128,7 @@
   function openingOverlay(R, p) {
     var c = R.ctx, u = R.ppm, X = R.X(p.x), Y = R.Y(p.y), w = (p.kind === 'door' ? 1.1 : 1.0) * u, h = (p.kind === 'door' ? 2.0 : 0.8) * u;
     var a = p.state === 'open' ? 0.2 + 0.6 * Math.min(1, p.t / p.T) : p.state === 'spill' ? Math.max(0.2, 0.8 - p.t) : 0;
-    if (!a || p.kind === 'manhole') return;
+    if (!a) return;
     c.fillStyle = 'rgba(255,190,90,' + a.toFixed(3) + ')'; c.fillRect(X - w / 2, Y - h / 2, w, h);
     c.strokeStyle = 'rgba(20,21,31,0.8)'; c.lineWidth = 2; c.strokeRect(X - w / 2, Y - h / 2, w, h);
   }
@@ -155,7 +153,7 @@
     }
     for (i = 0; i < E.portals.length; i++) {
       p = E.portals[i];
-      if (p.kind !== 'manhole' && inView(R, p.y, 3)) queue(R, p.y, (function (pp) { return function () { openingOverlay(R, pp); }; })(p), false);
+      if (inView(R, p.y, 3)) queue(R, p.y, (function (pp) { return function () { openingOverlay(R, pp); }; })(p), false);
     }
     hazardCarGlow(R, s);
   };
@@ -199,7 +197,7 @@
   var GAP = { envChain: 120, envArc: 200, envShock: 300, envPortal: 200, envSpawn: 150, envIgnite: 200, envExtinguish: 300 };
   var LABEL = { envChain: 'env.chain', envIgnite: 'env.ignite', envExtinguish: 'env.extinguish' };
 
-  // Env events that get a bark (native pools BK.env.* in strings-barks-tr/en.js). P.Barks.say checks the distance to Arda.
+  // Env events that get a bark (beats BK.env.* in js/dialogue/). P.Barks.say checks the distance to Arda.
   var BARK = { envExplode: 'BK.env.explode', envChain: 'BK.env.chain', envShock: 'BK.env.shock', envSpawn: 'BK.env.door',
     envExtinguish: 'BK.env.extinguish', envFuse: 'BK.env.fuse', envBreak: 'BK.env.break' };
 
@@ -219,7 +217,7 @@
       return;
     }
     if (ev.type === 'envPortal') {
-      P.Fx.letter(ev.x, ev.y + 1.4, P.t(ev.kind === 'door' ? 'env.door' : ev.kind === 'window' ? 'env.window' : 'env.manhole'));
+      P.Fx.letter(ev.x, ev.y + 1.4, P.t(ev.kind === 'door' ? 'env.door' : 'env.window'));
     }
     if (ev.type === 'envShock') P.Fx.letter(ev.x, ev.y + 0.8, P.t('env.live'));
     if (SFX[ev.type]) P.Sfx.play(SFX[ev.type], GAP[ev.type] || 100);

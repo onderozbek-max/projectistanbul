@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <title>B / authored vector: Arda's family flat, evening</title>
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F1D9AE"/><stop offset="1" stop-color="#E5C58F"/>
+    </linearGradient>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1D2340"/><stop offset="1" stop-color="#5B4A7A"/>
+    </linearGradient>
+    <radialGradient id="lamp" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FFD58A" stop-opacity="0.75"/><stop offset="1" stop-color="#FFD58A" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="wobble" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="t"/>
+      <feColorMatrix in="t" type="matrix" values="0 0 0 0 0.08  0 0 0 0 0.08  0 0 0 0 0.12  0 0 0 0.9 -0.38"/>
+    </filter>
+    <filter id="paint" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.014 0.2" numOctaves="3" seed="5" result="t"/>
+      <feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 0.93  0 0 0 0 0.78  0 0 0 0.7 -0.28"/>
+    </filter>
+    <pattern id="paper" width="46" height="46" patternUnits="userSpaceOnUse">
+      <path d="M23 6c6 6 6 12 0 18c-6-6-6-12 0-18ZM0 29c6 6 6 12 0 18c-6-6-6-12 0-18ZM46 29c6 6 6 12 0 18c-6-6-6-12 0-18Z" fill="#C79D5B" opacity="0.35"/>
+    </pattern>
+    <pattern id="rug" width="22" height="22" patternUnits="userSpaceOnUse">
+      <path d="M11 0L22 11L11 22L0 11Z" fill="none" stroke="#F4EBDD" stroke-width="2" opacity="0.7"/>
+    </pattern>
+  </defs>
+
+  <g filter="url(#wobble)">
+    <!-- wall -->
+    <rect width="390" height="600" fill="url(#wall)"/>
+    <rect width="390" height="600" fill="url(#paper)"/>
+    <rect width="390" height="600" filter="url(#paint)" opacity="0.14"/>
+    <!-- tile band -->
+    <g stroke="#14151F" stroke-width="3" stroke-linejoin="round">
+      <rect x="0" y="420" width="390" height="120" fill="#4B86B8"/>
+    </g>
+    <g stroke="#14151F" stroke-width="1.8" opacity="0.7">
+      <path d="M0 450H390M0 480H390M0 510H390"/>
+      <path d="M30 420V450M90 420V450M150 420V450M210 420V450M270 420V450M330 420V450M60 450V480M120 450V480M180 450V480M240 450V480M300 450V480M360 450V480M30 480V510M90 480V510M150 480V510M210 480V510M270 480V510M330 480V510M60 510V540M120 510V540M180 510V540M240 510V540M300 510V540M360 510V540"/>
+    </g>
+    <rect x="0" y="420" width="390" height="40" fill="#9FD0EE" opacity="0.25"/>
+
+    <!-- night window with curtains -->
+    <g stroke="#14151F" stroke-width="4" stroke-linejoin="round">
+      <rect x="226" y="96" width="136" height="172" fill="url(#night)"/>
+      <path d="M294 96V268M226 182H362" fill="none"/>
+      <rect x="216" y="268" width="156" height="12" fill="#CDB68C"/>
+    </g>
+    <g fill="#FFE9A8" opacity="0.9">
+      <circle cx="248" cy="124" r="2"/><circle cx="270" cy="150" r="1.6"/><circle cx="330" cy="120" r="2"/><circle cx="344" cy="154" r="1.6"/>
+    </g>
+    <g stroke="#14151F" stroke-width="3" stroke-linejoin="round">
+      <path d="M232 222H258V268H232Z" fill="#3A3452"/><path d="M262 206H292V268H262Z" fill="#2B2742"/>
+      <path d="M298 214H326V268H298Z" fill="#3A3452"/><path d="M330 192H358V268H330Z" fill="#2B2742"/>
+    </g>
+    <g fill="#FFD36B"><rect x="240" y="232" width="6" height="8"/><rect x="270" y="218" width="6" height="8"/><rect x="306" y="226" width="6" height="8"/><rect x="338" y="206" width="6" height="8"/></g>
+    <g stroke="#14151F" stroke-width="3.5" stroke-linejoin="round">
+      <path d="M204 80C232 96 232 200 212 286H196V80Z" fill="#D7263D"/>
+      <path d="M384 80C356 96 360 200 378 286H394V80Z" fill="#D7263D"/>
+    </g>
+    <path d="M212 96C220 140 220 220 208 280" stroke="#FF6B7D" stroke-width="3" fill="none" opacity="0.7"/>
+    <path d="M212 82H382" stroke="#14151F" stroke-width="5"/>
+
+    <!-- framed photo and Dad's letter -->
+    <g stroke="#14151F" stroke-width="3.5" stroke-linejoin="round">
+      <rect x="40" y="130" width="84" height="104" fill="#8A5A2B"/>
+      <rect x="50" y="140" width="64" height="84" fill="#E9D9B7"/>
+      <circle cx="82" cy="170" r="13" fill="#C9936A"/><path d="M58 224C58 192 106 192 106 224Z" fill="#2F6FA3"/>
+      <rect x="132" y="170" width="44" height="58" fill="#F4EBDD" transform="rotate(-4 154 199)"/>
+    </g>
+    <g stroke="#14151F" stroke-width="2" opacity="0.8" transform="rotate(-4 154 199)"><path d="M140 184H168M140 194H168M140 204H160M140 214H166"/></g>
+    <path d="M154 166V172" stroke="#D7263D" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- worktop and kitchen -->
+    <g stroke="#14151F" stroke-width="3.5" stroke-linejoin="round">
+      <rect x="0" y="392" width="390" height="30" fill="#8A6A44"/>
+      <rect x="0" y="392" width="390" height="10" fill="#B58B58"/>
+      <rect x="0" y="540" width="390" height="60" fill="#6B4A2B"/>
+      <path d="M130 540V600M260 540V600" stroke-width="3"/>
+      <circle cx="120" cy="570" r="4" fill="#E9A23B"/><circle cx="270" cy="570" r="4" fill="#E9A23B"/>
+    </g>
+    <!-- tea set on the worktop -->
+    <g stroke="#14151F" stroke-width="3.2" stroke-linejoin="round">
+      <path d="M40 392L44 352H78L82 392Z" fill="#C9CDD5"/><path d="M44 366H78" stroke-width="1.8"/>
+      <rect x="40" y="342" width="42" height="10" rx="3" fill="#E9A23B"/>
+      <path d="M94 392L98 356H126L130 392Z" fill="#B5651D"/>
+      <path d="M100 366H126" stroke="#F4EBDD" stroke-width="2.4"/>
+      <rect x="98" y="346" width="28" height="10" rx="2" fill="#C9CDD5"/>
+    </g>
+    <path d="M60 330Q54 314 66 304" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+    <path d="M112 334Q106 320 116 310" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" opacity="0.6"/>
+
+    <!-- floor and carpet -->
+    <g stroke="#14151F" stroke-width="3.5" stroke-linejoin="round">
+      <rect x="0" y="600" width="390" height="244" fill="#A47A4A"/>
+      <path d="M0 640H390M0 690H390M0 750H390M0 820H390" stroke-width="2" opacity="0.55" fill="none"/>
+      <path d="M28 660L362 660L384 796L6 796Z" fill="#9E2F3F"/>
+      <path d="M44 674L346 674L364 782L26 782Z" fill="#7D2231" stroke-width="2.5"/>
+      <path d="M44 674L346 674L364 782L26 782Z" fill="url(#rug)" stroke="none"/>
+      <path d="M28 660L362 660L384 796L6 796Z" fill="none"/>
+    </g>
+    <!-- table with two cups -->
+    <g stroke="#14151F" stroke-width="3.5" stroke-linejoin="round">
+      <path d="M96 700L84 772M294 700L306 772" fill="none" stroke-width="5"/>
+      <ellipse cx="195" cy="700" rx="128" ry="26" fill="#D9B17A"/>
+      <ellipse cx="195" cy="696" rx="120" ry="21" fill="#EBCB95" stroke-width="2.4"/>
+      <path d="M146 692L150 676H172L176 692Z" fill="#F4EBDD"/><path d="M176 684C186 682 186 692 176 690" fill="none"/>
+      <path d="M216 696L220 680H242L246 696Z" fill="#F4EBDD"/><path d="M246 688C256 686 256 696 246 694" fill="none"/>
+      <ellipse cx="161" cy="676" rx="11" ry="3" fill="#B5651D" stroke-width="2"/><ellipse cx="231" cy="680" rx="11" ry="3" fill="#B5651D" stroke-width="2"/>
+    </g>
+    <!-- chairs -->
+    <g stroke="#14151F" stroke-width="3.5" stroke-linejoin="round">
+      <path d="M26 650V740M26 690H70V740" fill="none" stroke-width="5"/><rect x="22" y="640" width="52" height="46" fill="#B5651D"/>
+      <path d="M364 650V740M364 690H320V740" fill="none" stroke-width="5"/><rect x="316" y="640" width="52" height="46" fill="#B5651D"/>
+    </g>
+    <!-- shoes by the door rule -->
+    <g stroke="#14151F" stroke-width="3" stroke-linejoin="round">
+      <path d="M12 826C12 810 36 806 54 812L58 826Z" fill="#D7263D"/><path d="M12 826H58" stroke-width="4"/>
+      <path d="M72 826C72 812 92 808 110 814L112 826Z" fill="#F4EBDD"/><path d="M72 826H112" stroke-width="4"/>
+    </g>
+    <!-- toolkit and scooter -->
+    <g stroke="#14151F" stroke-width="3.2" stroke-linejoin="round">
+      <rect x="300" y="790" width="64" height="38" rx="5" fill="#C4572C"/><rect x="318" y="782" width="28" height="10" rx="3" fill="#8A8F98"/>
+      <path d="M314 806H350" stroke-width="2.4"/>
+    </g>
+
+    <!-- lamp glow -->
+    <ellipse cx="190" cy="290" rx="240" ry="230" fill="url(#lamp)"/>
+    <g stroke="#14151F" stroke-width="3.5" stroke-linejoin="round">
+      <path d="M190 0V96" stroke-width="3"/>
+      <path d="M160 140L170 96H210L220 140Z" fill="#E9A23B"/>
+      <circle cx="190" cy="148" r="8" fill="#FFF0C2" stroke-width="2.5"/>
+    </g>
+    <!-- cool shadow edge -->
+    <rect x="0" y="0" width="22" height="600" fill="#3C3F66" opacity="0.22"/>
+  </g>
+  <rect width="390" height="844" filter="url(#grain)" opacity="0.55"/>
+  <rect width="390" height="844" fill="none" stroke="#14151F" stroke-width="6"/>
+</svg>

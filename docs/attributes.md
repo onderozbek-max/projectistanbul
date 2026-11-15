@@ -23,7 +23,7 @@ Attributes are **not** the main source of power. Mods, mastery, gear and hero le
 |---|---|---|---|---|
 | 1 | **Strength** / Güç | STR | Heavy hits, melee, knockback | 6 |
 | 2 | **Pace** / Çeviklik | PACE | Moving, dashing, dodging | 6 |
-| 3 | **Aggression** / Öfke | AGG | Crits, kill streaks, frenzy | 6 |
+| 3 | **Aggression** / Vahşet | AGG | Crits, kill streaks, frenzy | 6 |
 | 4 | **Intelligence** / Zekâ | INT | Hacking tasks (§4). Hacks are the only way to use it. | 6 |
 | 5 | **Charm** / Karizma | CHA | Rescues, civilians, vendors (§5) | 6 |
 | 6 | **Grit** / Dayanıklılık | GRIT | HP, regen, taking hits and surviving | 6 |
@@ -36,7 +36,7 @@ Ranks run **0–10**. The chapter cap limits the max rank:
 | 2 (L101–200) | 8 | Cap rises with chapter progress (business-plan §5.1). |
 | 3 (L201–300) | 10 | Full range. |
 
-Names: TR names are the owner's words. EN names follow the owner's brief. "Aggression" is the EN for Öfke.
+Names: TR names are the owner's words. EN names follow the owner's brief. "Aggression" is the EN for Vahşet (owner, 2026-11-12; was Öfke, which stays the boss rage shout).
 
 ---
 
@@ -244,7 +244,7 @@ Cooldown dips at L75 because a gear slot switches item there (the slot picks its
 | Attribute | Gear | Mastery | Mods (A) | Passives and evolutions | Notes |
 |---|---|---|---|---|---|
 | STR | Gloves (might) | Knife, Cleaver, Sledgehammer | Knife arc and slam forks | Work Gloves (+12% might). Knockback stacks with the gloves but is capped. | Melee build |
-| PACE | Shoes (speed) | Chain, Cyclone | Dash (Kaçış) forks | Running Shoes (+10% speed). Cap the total. | Kite build |
+| PACE | Shoes (speed) | Chain, Cyclone | Dash (Depar) forks | Running Shoes (+10% speed). Cap the total. | Kite build |
 | AGG | Gloves (crit) | Nail Gun, Nail Storm | Frenzy length | Nazar Charm (crit) | Frenzy build |
 | INT | Backpack (pickup, luck) | None (hacks are the build) | None | Magnet (XP vacuum) should also pull ATM coins (assumption: coins are pickups) | Hack build |
 | CHA | Jacket (HP) | None (people first) | None | First Aid Kit (heal) fits the simit deal | Friends build |

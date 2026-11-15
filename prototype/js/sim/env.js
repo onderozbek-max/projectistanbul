@@ -23,9 +23,15 @@ P.Env.isCar = isCar;
 // Can an env rule hit or slow this enemy? Alive and not dormant. Enemies rising from an opening (lane C) count.
 P.Env.foe = function (e) { return !e.dead && e.state !== 'dormant'; };
 
+function coverHp(s, kind) {
+  var overrides = P.CFG.levels.sarayRaster.cover;
+  if (s.geo.sarayRaster && Object.prototype.hasOwnProperty.call(overrides, kind)) return overrides[kind];
+  return P.CFG.env.hp[kind];
+}
+
 // Attach a breakable record to an existing block (levels.js kinds with hp). Cars have a share of bombs.
 function adopt(s, b, kind) {
-  var E = s.env, C = P.CFG.env, hp = C.hp[kind];
+  var E = s.env, C = P.CFG.env, hp = coverHp(s, kind);
   var rec = { env: true, alive: true, kind: kind, b: b, x: b.x, y: b.y, r: Math.min(b.w, b.h) / 2 + C.recPad,
     hp: hp, max: hp, bomb: isCar(kind) && E.rng.chance(C.bombShare), fuseT: 0, fuseMax: 0, fuseVia: null, flash: 0, dashed: null };
   E.recs.push(rec); b.rec = rec;
@@ -44,9 +50,10 @@ function addSolid(s, kind, x, y, w, h) {
   b = { kind: kind, x: x, y: y, w: w, h: h, rc: { xMin: x - w / 2, xMax: x + w / 2, yMin: y - h / 2, yMax: y + h / 2 } };
   G.blocks.push(b);
   if (!P.Env.pathOpen(s)) { G.blocks.pop(); return false; }
-  if (C.hp[kind] !== undefined) adopt(s, b, kind);
+  if (coverHp(s, kind) != null) adopt(s, b, kind);
   return true;
 }
+P.Env.addSolid = addSolid;   // wave 1: the hamal's crate (skins.js) places a solid cover at runtime
 
 function placeSolids(s, kind, S) {
   var E = s.env, G = s.geo, C = P.CFG.env, y, x, side;
@@ -62,7 +69,7 @@ function placeSolids(s, kind, S) {
 P.Env.place = function (s, info) {
   if (!s.geo || s.env) return s.env || null;
   var E = (s.env = newState(s)), C = P.CFG.env;
-  s.geo.blocks.slice().forEach(function (b) { if (C.hp[b.kind] !== undefined) adopt(s, b, b.kind); });
+  s.geo.blocks.slice().forEach(function (b) { if (coverHp(s, b.kind) != null) adopt(s, b, b.kind); });
   placeSolids(s, 'gascan', C.gas);
   placeSolids(s, 'extinguisher', C.extinguisher);
   P.EnvPortal.place(s);

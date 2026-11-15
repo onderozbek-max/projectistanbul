@@ -15,9 +15,10 @@ P.WFx = (function () {
   function mods() { return [P.WFx2, P.WFx3, P.WFx4, P.SkillsFx]; }
 
   W.reset = function () {
-    W.gunA = 0; W.recoil = 0; W.sinceFire = 9; W.throwT = 0; W.parts = []; W.hs = [];
+    W.gunA = 0; W.recoil = 0; W.sinceFire = 9; W.throwT = 0; W.parts = [];
     W.combo = { n: 0, t: 0, best: 0 };
     mods().forEach(function (m) { if (m && m.reset) m.reset(); });
+    if (P.WTier) P.WTier.reset();
   };
 
   W.add = function (p) { if (W.parts.length < MAX_PARTS) W.parts.push(p); };
@@ -27,14 +28,6 @@ P.WFx = (function () {
   W.pan = function (s, x) { return Math.max(-1, Math.min(1, (x - s.hero.x) / (P.CFG.view.widthM / 2))); };
   W.gold = function () { return !!(W.sim && P.Skills.frenzyOn(W.sim)); };
 
-  // Crit feel: at most perSec hit-stops per second, only for heavy weapons or crit kills.
-  W.hitStop = function () {
-    var now = performance.now(), K = P.CFG.skills.crit;
-    W.hs = W.hs.filter(function (t) { return now - t < 1000; });
-    if (W.hs.length >= K.perSec) return;
-    W.hs.push(now);
-    P.HitStop = Math.max(P.HitStop || 0, K.hitStop);
-  };
 
   W.onEvent = function (ev, s) {
     var i, a;
@@ -45,10 +38,11 @@ P.WFx = (function () {
       case 'canisterThrow': W.throwT = THROW_T; W.throwKind = 'canister'; break;
       case 'flaskThrow': W.throwT = THROW_T; W.throwKind = 'bottle'; break;
       case 'swing': knifeSwing(ev, s); break;
-      case 'hit': hit(ev, s); break;
+      case 'hit': hit(ev, s); if (P.WTier) P.WTier.onHit(ev, s); break;
+      case 'wfire': if (P.WTier) P.WTier.onWfire(ev, s); break;
       case 'blast': blast(ev, s); break;
       case 'kill': comboKill(s); break;
-      case 'critKill': W.hitStop(); break;
+      case 'critKill': P.Feel.hitStop('critKill'); break;
       case 'shockwave':
         add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r * 1.3, t: 0.4, T: 0.4, col: '255,209,102' });
         for (i = 0; i < 16; i++) { a = i / 16 * Math.PI * 2; add({ k: 'ray', x: ev.x, y: ev.y, a: a, t: 0.5, T: 0.5 }); }
@@ -87,7 +81,6 @@ P.WFx = (function () {
     var i, heavy = !!HEAVY[ev.src], pn = W.pan(s, ev.x);
     if (ev.crit) {
       add({ k: 'impact', x: ev.x, y: ev.y, t: 0.2, T: 0.2 });
-      if (heavy) W.hitStop();
       P.Sfx.play('crit', 60, { pan: pn });
     }
     if (ev.src === 'knife') add({ k: 'slash', x: ev.x, y: ev.y + 0.5, a: Math.atan2(ev.dy, ev.dx) + Math.PI / 2 + rnd(-0.3, 0.3), t: 0.12, T: 0.12 });
@@ -125,6 +118,7 @@ P.WFx = (function () {
   W.update = function (dt, s) {
     var i, p, c = W.combo;
     if (s) W.sim = s;
+    if (P.WTier) P.WTier.update(dt, s);
     W.recoil = Math.max(0, W.recoil - dt * 7); W.sinceFire += dt;
     W.throwT = Math.max(0, W.throwT - dt);
     c.t = Math.max(0, c.t - dt); if (c.t === 0) c.n = 0;
@@ -166,10 +160,23 @@ P.WFx = (function () {
   W.limbI = limbI;
   W.dot = dot;
 
+  // Aim in screen radians (y down). Aiming up the screen the shot arm's hand would sit in front of the face, so it slides out past
+  // the head, away from the body centre (the back shoulder sits at -f). Ramps smoothly from 17 to 60 degrees above horizontal.
+  W.awayShift = function (aim, f, u) {
+    var a = Math.max(0, Math.min(1, (-Math.sin(aim) - 0.3) / 0.5));
+    return -f * 0.4 * u * a;
+  };
+  // The same ramp tilts the weapon outward (radians to add to the aim), so it leans away from the head instead of standing on it.
+  W.awayTilt = function (aim, f) {
+    var a = Math.max(0, Math.min(1, (-Math.sin(aim) - 0.3) / 0.5));
+    return -f * 0.24 * a;
+  };
+
   function gunArm(c, sh, u, f, skin, sleeve) {
     var aim = W.sinceFire < 1.2 ? -W.gunA : (f > 0 ? 0.35 : Math.PI - 0.35);
     var kick = W.recoil, side = Math.cos(aim) >= 0 ? 1 : -1, ang = aim - side * kick * 0.35;
-    var reach = (0.32 - kick * 0.08) * u, hx = sh.x + Math.cos(ang) * reach, hy = sh.y + Math.sin(ang) * reach;
+    ang += W.awayTilt(ang, f);
+    var reach = (0.32 - kick * 0.08) * u, hx = sh.x + Math.cos(ang) * reach + W.awayShift(ang, f, u), hy = sh.y + Math.sin(ang) * reach;
     limbI(c, sh.x, sh.y, hx, hy, sleeve, 0.09 * u);
     c.save(); c.translate(hx, hy); c.rotate(ang); if (side < 0) c.scale(1, -1);
     c.fillStyle = '#E9A23B'; c.strokeStyle = INK; c.lineWidth = 2;
@@ -274,7 +281,7 @@ P.WFx = (function () {
     s.projs.forEach(function (p) {
       var f = p.t / p.T, x = p.x0 + (p.x1 - p.x0) * f, y = p.y0 + (p.y1 - p.y0) * f, z = 4 * 1.6 * f * (1 - f), tt = performance.now() / 1000;
       c.fillStyle = 'rgba(0,0,0,' + (0.15 + 0.2 * f) + ')'; c.beginPath(); c.ellipse(R.X(x), R.Y(y), 0.2 * u, 0.08 * u, 0, 0, Math.PI * 2); c.fill();
-      var pulse = 0.5 + 0.5 * Math.sin(tt * 30);
+      var pulse = (P.Settings && P.Settings.reduceFlash) ? 0.5 : 0.5 + 0.5 * Math.sin(Math.floor(tt * 3) / 3 * 30);   // colour pulse held to 3 steps a second
       c.setLineDash([6, 5]); c.lineDashOffset = -tt * 30;
       c.strokeStyle = 'rgba(255,' + Math.round(120 + 80 * pulse) + ',60,' + (0.4 + 0.5 * f) + ')'; c.lineWidth = 2.5;
       c.beginPath(); c.arc(R.X(p.x1), R.Y(p.y1), p.lv.blast * u * (1.15 - 0.15 * f), 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
@@ -363,7 +370,7 @@ P.WFx = (function () {
   W.banner = function (c, R, key, t, T, yFrac, col) {
     var k = 1 - t / T, sc = k < 0.15 ? 2.2 - k / 0.15 * 1.2 : 1, al = t < 0.3 ? t / 0.3 : 1;
     c.save(); c.translate(R.W / 2, R.H * yFrac); c.rotate(-0.08); c.scale(sc, sc); c.globalAlpha = al;
-    c.font = 'italic 900 52px "Avenir Next Condensed", "Arial Narrow", system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = 'italic 900 52px "CM Bangers", Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.lineWidth = 10; c.strokeStyle = INK; c.strokeText(P.t(key), 0, 0); c.fillStyle = col || '#FFD166'; c.fillText(P.t(key), 0, 0);
     c.restore();
   };

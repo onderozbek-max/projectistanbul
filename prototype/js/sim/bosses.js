@@ -28,16 +28,26 @@ P.Bosses.archetype = function (hoodId, type) {
 // Spawn a boss. Intro: the boss stands still for `intro` seconds while the banner plays (bossIntro event).
 P.Bosses.spawn = function (s, type, x, y, o) {
   var arch = P.Bosses.archetype(o.hoodId, type), B = P.CFG.bosses[arch], df = s.diff, hm = 1 + P.CFG.levels.diff.bossHoodMul * o.hoodIdx;
-  var share = P.CFG.levels.diff.bossShare;            // bosses take only part of the route HP and damage growth
-  var e = P.Combat.spawnEnemy(s, B.base || arch, x, y, { state: 'turning', stateT: P.CFG.levels.bossIntro, skin: o.skin });
+  var share = (df && df.bossShare) || P.CFG.levels.diff.bossShare;   // bosses take only part of the route HP and damage growth (Nightmare: its own share, R1-T4 part 18)
+  var e = P.Combat.spawnEnemy(s, B.base || arch, x, y, { state: 'turning', stateT: P.CFG.levels.bossIntro, skin: o.skin, boss: true });
   e.type = arch; e.boss = true; e.nameKey = o.nameKey; e.r = B.radius; e.speed = B.speed; e.kbResist = B.kbResist;
   e.contact = B.contact * (df ? 1 + (df.dmg - 1) * share : 1); e.xp = B.xp;
-  e.hp = B.hp * hm * (df ? 1 + (df.hp - 1) * share : 1); e.maxHp = e.hp;
+  e.hp = B.hp * hm * (df ? 1 + (df.hp - 1) * share : 1) * (df && df.bossHp || 1); e.maxHp = e.hp;   // bossHp: Nightmare boss multiplier (1 otherwise)
   e.armour = B.armour || 1; e.exposed = false; e.phase = 1;
   e.ai = makeAI(e);
   s.events.push({ type: 'bossIntro', nameKey: o.nameKey, boss: arch, x: x, y: y, hood: o.hoodId || null });
+  arenaHeal(s);
   return e;
 };
+
+// Boss-arena pass: one simit pickup just ahead of the hero at the intro (levels.bossHeal), so the fight starts after the approach's
+// damage has been partly undone. Generated arenas only (s.gen.arena). With uncapped (config) it is outside drops.healCap (combat.js).
+function arenaHeal(s) {
+  var H = P.CFG.levels.bossHeal, h = s.hero, V = P.CFG.view;
+  if (!H || !(H.value > 0) || !s.gen || !s.gen.arena) return;
+  var x = Math.max(-V.heroClampX, Math.min(V.heroClampX, h.x));
+  s.drops.push({ kind: 'simit', value: H.value, x: x, y: h.y + H.ahead, mag: false, pop: H.pop, uncapped: !!H.uncapped });
+}
 
 function makeAI(e) {
   var B = P.CFG.bosses[e.type];
@@ -131,9 +141,10 @@ function start(s, e, name) {
   } else if (name === 'stomp') {
     a.W = tele(B.stomp.windup);
     addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: B.stomp.r, T: a.W, then: 'stomp', dmg: P.Enemies.dmgOf(s, e, B.stomp.dmg), kb: 2.5 });
-  } else if (name === 'summon') {
-    a.W = tele(B.summon.windup);
-    addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: B.summon.r, T: a.W, then: 'summon', n: B.summon.n, kind2: 'walker', skin: e.skin, col: 'summon' });
+  } else if (name === 'summon' || name === 'rally') {  // rally calls: walkers file in; 'rally' is the Docent's phase 3 call (own def)
+    var CALL = name === 'rally' ? B.rally : B.summon;
+    a.W = tele(CALL.windup);
+    addTele(s, e, { kind: 'ring', x: e.x, y: e.y, r: CALL.r, T: a.W, then: 'summon', n: CALL.n, kind2: 'walker', skin: e.skin, col: 'summon' });
   } else if (name === 'pools') {
     a.W = tele(B.pools.windup);
     for (var i = 0; i < B.pools.n; i++) {
@@ -150,7 +161,7 @@ function start(s, e, name) {
     a.W = tele(B.fan.windup);
     fanTargets(s, e, B.fan).forEach(function (t) {
       addTele(s, e, { kind: 'ring', x: t.x, y: t.y, r: B.fan.r, T: a.W, then: 'glob', src: e, o: B.fan, flight: B.fan.flight,
-        dmg: P.Enemies.dmgOf(s, e, B.fan.dmg), cause: 'spitter', col: 'acid' });
+        dmg: P.Enemies.dmgOf(s, e, B.fan.dmg), cause: e.type, col: 'acid' });
     });
   } else if (name === 'rain') {
     a.W = tele(B.rain.windup);
@@ -168,7 +179,7 @@ function start(s, e, name) {
     a.W = tele(B.throw.windup * a.wm);
     addTele(s, e, { kind: 'ring', x: h.x, y: h.y, r: B.throw.r, T: a.W, then: 'swing', dmg: P.Enemies.dmgOf(s, e, B.throw.dmg),
       kb: 0.6, cause: e.type, col: 'danger' });
-    P.Enemies3.launchBlade(s, e.x, e.y, h.x, h.y, a.W);
+    P.Enemies3.launchBlade(s, e.x, e.y, h.x, h.y, a.W, e.type);   // the boss type keys the flying object's sprite (view only)
     s.events.push({ type: 'bossWindup', id: e.id, x: e.x, y: e.y, boss: e.type });
   } else if (name === 'frenzy') {                      // kasapBoss: four small swings on the hero's area
     a.W = tele(B.frenzy.windup * a.wm);

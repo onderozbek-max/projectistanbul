@@ -2,15 +2,16 @@
 // marks at the spawn points. The sim decides where things go (js/sim/layouts.js, numbers in js/config-layouts.js).
 // Two entry points: P.LayoutFx.floor runs from istanbul-landmarks.js L.draw (under the street items, so arches and
 // billboards in a zone still show); P.LayoutFx.drawGround is the render hook (render.js, over the street, under decals).
-// Floors take a tint from the hood's theme, so a plaza in Samatya reads differently from one in Laleli.
+// Floors take a tint from the hood's theme, so a plaza in Samatya reads differently from one in Saray.
 // Painters register into P.Props (kinds lx_*); contract as istanbul-props.js: fn(c, X, Y, s, o), s = px per metre.
 P.LayoutFx = (function () {
   var H = P.Props.h, INK = '#14151F', LINE = 'rgba(0,0,0,0.13)';
   var FLOOR = { plaza: '#CDBFA6', market: '#B59A78', chicane: '#A39C8F', waterfront: '#B8AD96', bridge: '#8D877C', arena: '#7C7467' };
   var STEP = { plaza: 3, market: 2, chicane: 2.5, waterfront: 6, bridge: 1.5, arena: 4 };
   var AWN = ['#B5401D', '#2E6E8E', '#C9A227', '#2E7D4F'];
+  var ART_WASH = 0.42;                               // share of the zone colour over an authored paving tile
   var TINT = 0.45;                                   // share of the hood's walk colour in a zone floor
-  var MARK = { doorW: 0.9, doorD: 0.4, winW: 1.2, winD: 0.35, manholeR: 0.45 };   // spawn marks (m)
+  var MARK = { doorW: 0.9, doorD: 0.4, winW: 1.2, winD: 0.35 };   // spawn marks (m)
   var cache = {};
 
   function rgb(hex) { var n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -46,21 +47,23 @@ P.LayoutFx = (function () {
     G.zones.forEach(function (z) {
       if (z.y1 < y0 || z.y0 > y1) return;
       var a = Math.max(z.y0, y0), b = Math.min(z.y1, y1), x0 = G.xMin, x1 = G.xMax;
+      var art = P.RenderWorld && P.RenderWorld.artTile ? P.RenderWorld.artTile(R, theme, 'walk') : null;
+      if (art) {   // R1-T3: the hood's authored paving, washed with the zone's own colour so plaza, market and arena stay distinct
+        P.RenderWorld.fillTile(R, art, x0, x1, a, b, 0, 1);
+        c.save(); c.globalAlpha = ART_WASH; c.fillStyle = FLOOR[z.kind] || FLOOR.plaza;
+        c.fillRect(R.X(x0), R.Y(b), (x1 - x0) * R.ppm, (b - a) * R.ppm); c.restore();
+        return;
+      }
       c.fillStyle = floorOf(z.kind, theme);
       c.fillRect(R.X(x0), R.Y(b), (x1 - x0) * R.ppm, (b - a) * R.ppm);
       lines(R, z, a, b, x0, x1);
     });
   }
 
-  // Spawn marks: a door (dark wood with a threshold), a window (pale glass with a sill) and a manhole (iron grate).
+  // Spawn marks: a door (dark wood with a threshold), and a window (pale glass with a sill).
   // Drawn at the facade line the sim published (s.layout.spawns), so the player can see where zombies come from.
   function mark(c, R, p) {
     var X = R.X(p.x), Y = R.Y(p.y), u = R.ppm, w, d;
-    if (p.kind === 'manhole') {
-      c.fillStyle = '#2A2C31'; c.beginPath(); c.arc(X, Y, MARK.manholeR * u, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = '#6E7078'; c.lineWidth = Math.max(1, 0.06 * u); c.stroke();
-      return;
-    }
     w = (p.kind === 'door' ? MARK.doorW : MARK.winW) * u; d = (p.kind === 'door' ? MARK.doorD : MARK.winD) * u;
     if (p.kind === 'door') {
       H.rc(c, X, Y, d, w, '#5A3B25', 1.2);
@@ -122,7 +125,7 @@ P.LayoutFx = (function () {
     H.ln(c, X + w / 2, Y - d / 2, X + w / 2, Y + d / 2, '#D9CBB0', 2);
   }
 
-  // lx_truck: container lorry with a cab at the top of the screen (bloater arena cover, Laleli and Zeytinburnu kits).
+  // lx_truck: container lorry with a cab at the top of the screen (bloater arena cover, Zeytinburnu kit).
   function truck(c, X, Y, s, o) {
     var w = (o.w || 2.2) * s, d = (o.h || 5.0) * s, hg = 0.9 * s;
     H.shadow(c, X, Y, w * 0.62, d * 0.5);

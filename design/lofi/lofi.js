@@ -11,7 +11,7 @@ const SCREENS = [
   ["08-results-win", "Results: win"],
   ["09-results-lose", "Results: lose + revive"],
   ["10-workshop", "Workshop (weapon mastery)"],
-  ["11-skills", "Survival Skills tree"],
+  ["11-skills", "Street Tree (skill tree)"],
   ["12-gear", "Gear + merge"],
   ["13-bazaar", "Grand Bazaar shop"],
   ["14-road-pass", "Road Pass"],

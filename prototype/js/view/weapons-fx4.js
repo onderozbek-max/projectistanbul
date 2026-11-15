@@ -400,7 +400,7 @@ P.WFx4 = (function () {
   // Blowtorch: while the jet ticks, a flame cone from Arda (orange outer, pale core), breathing by 5 percent.
   function flameJet(c, R, s, bo, t) {
     var h = s.hero, rr = bo.range * R.ppm, X = R.X(h.x), Y = R.Y(h.y + 0.2), half = bo.arc * Math.PI / 360, base = -bo.a,
-      k = 1 + 0.05 * Math.sin(t * 30);
+      k = 1 + ((P.Settings && P.Settings.reduceFlash) ? 0 : 0.05 * Math.sin(Math.floor(t * 3) / 3 * 30));   // breathing held to 3 steps a second
     if (bo.done) return;
     c.beginPath(); c.moveTo(X, Y); c.arc(X, Y, rr * k, base - half, base + half); c.closePath();
     c.fillStyle = 'rgba(255,120,30,0.35)'; c.fill();
@@ -493,9 +493,9 @@ P.WFx4 = (function () {
     }
     c.stroke();
   }
-  // Two jagged bolts out from Arda, re-rolled at 12 Hz (seeded by the frame, so no strobing).
+  // Two jagged bolts out from Arda, re-rolled 3 times a second (design-system 11: 12 Hz was a strobe over a storm-sized area); held still under Reduce flashing.
   function bolts(c, X, Y, rr, t) {
-    var fr = Math.floor(t * 12), b, k, a, j;
+    var fr = (P.Settings && P.Settings.reduceFlash) ? 0 : Math.floor(t * 3), b, k, a, j;
     c.strokeStyle = 'rgba(200,240,255,0.9)'; c.lineWidth = 2; c.lineJoin = 'round'; c.beginPath();
     for (b = 0; b < 2; b++) {
       a = b * Math.PI + 0.5 * Math.sin(fr * 3.7 + b);

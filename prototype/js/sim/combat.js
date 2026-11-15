@@ -2,7 +2,11 @@
 // Generated levels: s.diff scales enemy HP and contact damage; new behaviours live in enemies.js / bosses.js.
 P.Combat = {};
 
+// Hard ceiling (D-056, config-levels.js ceiling): returns null when the field is full. opts.boss (the boss itself) is never refused;
+// opts.bossAdd (its scripted adds) may go to the higher boss ceiling. Callers must handle null.
 P.Combat.spawnEnemy = function (s, type, x, y, opts) {
+  var CE = P.CFG.levels.ceiling;
+  if (!(opts && opts.boss) && s.enemies.length >= (opts && opts.bossAdd ? CE.boss : CE.hard)) { s.ceilingHits = (s.ceilingHits || 0) + 1; return null; }
   var d = P.CFG.enemies[type], scale = 1 + P.CFG.hpScalePerMinute * (s.runT / 60), df = s.diff;
   var hp = d.hp * (type === 'diner' ? 1 : scale) * (df ? df.hp : 1);
   var e = {
@@ -13,6 +17,7 @@ P.Combat.spawnEnemy = function (s, type, x, y, opts) {
     variant: s.rng.ai.int(0, 7), age: 0,
     skin: (opts && opts.skin) || null, windup: 0, swell: 0, boss: false, ai: null,
     evId: (opts && opts.ev) || 0, anchored: !!(opts && opts.anchored), lure: null, lootEv: 0,
+    flyer: !!d.flyer,                                      // wave 1: flies over walls (marti); see updateEnemies
   };
   if (opts && opts.elite) {
     var el = P.CFG.elite;
@@ -40,21 +45,59 @@ P.Combat.damageEnemy = function (s, e, base, dirx, diry, kb, canCrit, src) {
   var crit = canCrit && s.rng.combat.chance(Math.min(1, cc));
   var hm = e.helmet ? P.Enemies.helmetMul(s, e) : 1;
   var am = e.armour || 1;                                   // v0.6: armour cuts every hit (kasap, zirhli)
-  var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1) * hm * am;
+  var bm = P.Skins.hitMul(s, e);                            // wave 1: a hamal takes less from behind (skins.js)
+  var dmg = base * (1 + P.Combat.might(s)) * (crit ? P.CFG.hero.critMult : 1) * hm * am * bm;
+  var heavy = P.Combat.isHeavy(src);
   e.hp -= dmg;
   e.flash = P.CFG.feel.hitFlash;
+  if (heavy) P.Combat.heavyShockwave(s);            // str.3: runs before the knockback below, so the ring cannot cut this push
   if (kb > 0) {
     var k = kb * (1 + s.fx.knockbackPct) * (1 - e.kbResist), T = P.CFG.knockbackTime;
     e.kbx = dirx * 2 * k / T; e.kby = diry * 2 * k / T; e.kbT = T;
   }
+  if (heavy) P.Combat.heavyHit(s, e, dirx, diry);   // str.1 extra shove, str.4 stun on armour
+  if (e.boss) P.Combat.bossHit(s);                  // agg.2 Blood Rush
   s.events.push({ type: 'hit', id: e.id, x: e.x, y: e.y, dmg: dmg, crit: crit, src: src, dx: dirx, dy: diry, boss: !!e.boss, helmet: hm < 1 });
   if (e.helmet) P.Enemies.helmetHit(s, e, hm < 1);
   if (e.hp <= 0) P.Combat.killEnemy(s, e, crit, src);
 };
 
-// Shove a zombie aside (brute charge): impulse of k metres, resisted by its knockback resist.
-P.Combat.shove = function (e, dx, dy, k) {
+// ---------- Street Tree perk hooks (R1-T5 step 2, D-059). Each one is a no-op unless the run learned the perk (s.perk).
+// Config (P.CFG.perks) is read only inside a learned branch, so a build without config-perks.js behaves as before.
+P.Combat.hasPerk = function (s, id) { return !!(s.perk && s.perk[id]); };
+
+// The hit's src is the weapon or evolution id ('sledge', 'cluster'). Heavy is the flag on its config entry (config-weapons*.js).
+P.Combat.isHeavy = function (src) {
+  var cfg = src ? P.CFG.weapons[src] : null;
+  return !!(cfg && cfg.heavy);
+};
+
+// str.1 Heavy Hands: a heavy hit pushes its target heavyShove metres more. str.4 Wall Breaker: it stuns an armoured enemy.
+P.Combat.heavyHit = function (s, e, dirx, diry) {
+  if (P.Combat.hasPerk(s, 'str.1')) P.Combat.shove(e, dirx, diry, P.CFG.perks.heavyShove, true);
+  if (e.armour < 1 && P.Combat.hasPerk(s, 'str.4')) P.Status.apply(e, 'stun', P.CFG.perks.wallBreakerStun, 1);
+};
+
+// str.3 Shockwave: every shockwave.every-th heavy hit sends one instant shove ring from the hero (no damage).
+P.Combat.heavyShockwave = function (s) {
+  if (!P.Combat.hasPerk(s, 'str.3')) return;
+  var n = (s.pk.shock || 0) + 1;
+  s.pk.shock = n;
+  if (n % P.CFG.perks.shockwave.every === 0) P.Perks.ring(s, s.hero.x, s.hero.y);
+};
+
+// agg.2 Blood Rush: a boss hit during frenzy extends it. Skills.extendFrenzy owns the cap per frenzy.
+P.Combat.bossHit = function (s) {
+  if (!P.Combat.hasPerk(s, 'agg.2') || !P.Skills || !P.Skills.extendFrenzy || !P.Skills.frenzyOn(s)) return;
+  var B = P.CFG.perks.bloodRush;
+  P.Skills.extendFrenzy(s, B.ext, B.capT);
+};
+
+// Shove a zombie aside (brute charge): impulse of k metres, resisted by its knockback resist. add: stack onto a push already
+// running (the perk pushes), so a perk never cuts a hit's own knockback short. Stacking keeps the running push's clock.
+P.Combat.shove = function (e, dx, dy, k, add) {
   var f = k * (1 - e.kbResist), T = P.CFG.knockbackTime;
+  if (add && e.kbT > 0) { e.kbx += dx * 2 * f / T; e.kby += dy * 2 * f / T; return; }
   e.kbx = dx * 2 * f / T; e.kby = dy * 2 * f / T; e.kbT = T;
 };
 
@@ -101,9 +144,10 @@ P.Combat.killEnemy = function (s, e, crit, src) {
   if (s.rng.loot.chance(dr.simitChance * lk)) s.drops.push({ kind: 'simit', value: dr.simitHeal, x: e.x + 0.2, y: e.y, mag: false, pop: 0.25 });
   for (var di = s.drops.length - 4 < 0 ? 0 : s.drops.length - 4; di < s.drops.length; di++) P.Combat.keepInReach(s, s.drops[di]);
   if (crit) s.events.push({ type: 'critKill' });
+  if (crit && P.Combat.hasPerk(s, 'agg.3')) P.Combat.finisher(s, e);
   if (e.boss) P.Bosses.onDeath(s, e);
   if (e.type === 'bloater') P.Enemies.burst(s, e);
-  if (e.type === 'screamer') P.Enemies.onDeath(s, e);
+  P.Enemies.onDeath(s, e);                                  // screamer call cut, skin and wave 1 death hooks
   if (e.affix) P.Enemies2.onDeath(s, e);
   if (e.evId) P.Events.onKill(s, e);
 };
@@ -124,7 +168,7 @@ P.Combat.updateEnemies = function (s, dt) {
     }
     var own = P.Enemies.think(s, e, dt);
     var dx = h.x - e.x, dy = h.y - e.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
-    var sm = hasStatus ? P.Status.speedMul(e) : 1;
+    var sm = (hasStatus ? P.Status.speedMul(e) : 1) * (e.buffMul || 1);   // buffMul: musician aura (skins.js)
     var vx, vy, sx = 0, sy = 0, found = 0;
     if (own) { vx = e.dvx * sm; vy = e.dvy * sm; } else { vx = dx / d * e.speed * sm; vy = dy / d * e.speed * sm; }
     var rooted = !!(P.Status && P.Status.rooted && P.Status.rooted(e));
@@ -145,7 +189,7 @@ P.Combat.updateEnemies = function (s, dt) {
     }
     e.vx = vx; e.vy = vy; e.walk = (e.walk || 0) + Math.hypot(vx, vy) * dt;
     e.x += vx * dt; e.y += vy * dt;
-    P.World.clampWalk(e, e.r, s.props);
+    if (e.flyer) P.Enemies4.clampFly(s, e); else P.World.clampWalk(e, e.r, s.props);   // flyers pass over walls
   }
 };
 
@@ -232,13 +276,27 @@ P.Combat.explodeCanister = function (s, c) {
   s.props.canisters.forEach(function (o) {
     if (o.alive && Math.hypot(o.x - c.x, o.y - c.y) <= k.blast) P.Combat.damageProp(s, o, k.enemyDmg);
   });
+  if (P.Combat.hasPerk(s, 'str.2')) P.Combat.blastShove(s, c.x, c.y, k.blast);
 };
 
-// Hero damage is ignored during i-frames (hit i-frames `invuln`, dash/ult `iframes` set by E1).
+// str.2 Cart Shover: enemies just outside a blast (within blastShove.r metres of its edge) are pushed kb metres from its centre.
+// Enemies inside the blast take its damage as before and are not pushed here.
+P.Combat.blastShove = function (s, x, y, blastR) {
+  var S = P.CFG.perks.blastShove, i, e, dx, dy, d;
+  for (i = 0; i < s.enemies.length; i++) {
+    e = s.enemies[i];
+    if (e.dead || e.state !== 'active') continue;
+    dx = e.x - x; dy = e.y - y; d = Math.hypot(dx, dy);
+    if (d - e.r <= blastR || d - e.r > blastR + S.r) continue;
+    P.Combat.shove(e, dx / d, dy / d, S.kb, true);
+  }
+};
+
+// Hero damage is ignored during i-frames (hit i-frames `invuln`, dash/ult `iframes` set by E1). Returns the damage taken (0 if ignored).
 P.Combat.damageHero = function (s, raw, cause) {
   var h = s.hero, hc = P.CFG.hero;
-  if (h.invuln > 0 || (h.iframes || 0) > 0 || s.mode !== 'play') return;
-  if (P.Skills && P.Skills.tryDodge && P.Skills.tryDodge(s, raw, cause)) return;
+  if (h.invuln > 0 || (h.iframes || 0) > 0 || s.mode !== 'play') return 0;
+  if (P.Skills && P.Skills.tryDodge && P.Skills.tryDodge(s, raw, cause)) return 0;
   if (P.Skills && P.Skills.hitReduce) raw = P.Skills.hitReduce(s, raw, cause);
   var jc = P.CFG.passives.jacket, armor = Math.min(jc.armorCap, (h.passives.jacket || 0) * jc.armorPerLevel);
   var dmg = Math.max(1, raw - armor) * (1 - s.fx.dmgTakenPct);
@@ -251,6 +309,22 @@ P.Combat.damageHero = function (s, raw, cause) {
     h.hp = 0; s.mode = 'dead'; s.deathCause = cause;
     s.events.push({ type: 'death', cause: cause });
   }
+  return dmg;
+};
+
+// grit.4 Stubborn: at or below hpFrac of max HP, healing drops (simit and the like, not XP, coins or chests) are pulled to the
+// hero from pullR metres. It only moves food closer; damage and the death path are untouched, so it can never act as a revive.
+P.Combat.stubbornPull = function (s, d, dist) {
+  if (d.kind === 'xp' || d.kind === 'jeton' || d.kind === 'chest' || !P.Combat.hasPerk(s, 'grit.4')) return false;
+  var S = P.CFG.perks.stubborn, h = s.hero;
+  return h.hp <= S.hpFrac * h.maxHp && dist < S.pullR;
+};
+
+// grit.1 Thick Skin: the first melee hit that lands on the hero each run stuns its attacker (once per run, s.pk.thick).
+P.Combat.thickSkin = function (s, e) {
+  if (!P.Combat.hasPerk(s, 'grit.1') || s.pk.thick) return;
+  s.pk.thick = true;
+  P.Status.apply(e, 'stun', P.CFG.perks.thickSkin.stunT, 1);
 };
 
 // Melee contact. P.Enemies.onContact may handle the contact itself (bloater burst, brute charge hit).
@@ -263,7 +337,7 @@ P.Combat.contact = function (s) {
     if ((e.x - h.x) * (e.x - h.x) + (e.y - h.y) * (e.y - h.y) > rr * rr) continue;
     if (e.ai && P.Enemies.onContact(s, e)) continue;
     e.contactCd = P.CFG.contactInterval;
-    P.Combat.damageHero(s, e.contact, e.type);
+    if (P.Combat.damageHero(s, e.contact, e.type) > 0) P.Combat.thickSkin(s, e);
   }
 };
 
@@ -277,7 +351,7 @@ P.Combat.updateDrops = function (s, dt) {
     var d = s.drops[i];
     if (d.pop > 0) { d.pop -= dt; continue; }
     var dx = h.x - d.x, dy = h.y - d.y, dist = Math.hypot(dx, dy);
-    if (!d.mag && (dist < pr || (d.kind === 'chest' && dist < 6))) d.mag = true;
+    if (!d.mag && (dist < pr || (d.kind === 'chest' && dist < 6) || P.Combat.stubbornPull(s, d, dist))) d.mag = true;
     if (d.mag) {
       var step = Math.min(dist, (xc.magnetSpeed + P.Hero.speed(s)) * dt);
       d.x += dx / (dist || 1) * step; d.y += dy / (dist || 1) * step;
@@ -285,10 +359,46 @@ P.Combat.updateDrops = function (s, dt) {
     }
     if (dist > xc.collectDist) continue;
     s.drops.splice(i, 1);
+    var healed = null;
     if (d.kind === 'xp') { s.xpPicked++; P.Progression.addXp(s, d.value); }
     else if (d.kind === 'jeton') s.jeton += d.value;
     else if (d.kind === 'chest') s.pendingChests++;
-    else h.hp = Math.min(h.maxHp, h.hp + d.value);
-    s.events.push({ type: 'pickup', kind: d.kind, value: d.value });
+    else healed = P.Combat.dropHeal(s, d.value + (d.kind === 'simit' ? P.Combat.simitBonus(s) : 0), d.uncapped);
+    var ev = { type: 'pickup', kind: d.kind, value: d.value };
+    // Heal pickups (R1-T4 part 14): healed is the HP actually restored (grit bonus included); capped means the run's drop-heal
+    // budget stopped it; uncapped marks the boss-arena pickup. The view reads these, not value, for the floating amount.
+    if (healed !== null) { ev.healed = healed; ev.uncapped = !!d.uncapped; ev.capped = healed <= 0 && !d.uncapped && h.hp < h.maxHp; }
+    s.events.push(ev);
+  }
+};
+
+// grit.3 Iron Stomach: each simit heals ironStomach.simitHeal more (the caller caps the total at max HP).
+P.Combat.simitBonus = function (s) {
+  return P.Combat.hasPerk(s, 'grit.3') ? P.CFG.perks.ironStomach.simitHeal : 0;
+};
+
+// Drop heals (simit pickups from kills, cart and cover breaks, events and hazards) share one budget per run: drops.healCap HP,
+// from journey level levels.rampFrom on (L1 is uncapped, as before).
+// A pickup is still collected past the budget, but it restores nothing. s.dropHealed counts the HP actually restored.
+// uncapped (boss-arena pass): the boss-arena pickup (levels.bossHeal, bosses.js) is outside the budget and does not count
+// toward it; the route's drops cannot spend it before the boss, so the intro heal always restores what it says.
+P.Combat.dropHeal = function (s, amount, uncapped) {
+  var h = s.hero, before = h.hp;
+  if (s.diff && s.diff.heal !== undefined) amount *= s.diff.heal;   // R1-T4 part 18: Nightmare heals less (1 or unset otherwise)
+  if (uncapped) { h.hp = Math.min(h.maxHp, h.hp + amount); return h.hp - before; }
+  var cap = s.levelIndex >= P.CFG.levels.rampFrom ? P.CFG.drops.healCap : Infinity;
+  var room = Math.max(0, cap - (s.dropHealed || 0));
+  h.hp = Math.min(h.maxHp, h.hp + Math.min(amount, room));
+  s.dropHealed = (s.dropHealed || 0) + (h.hp - before);
+  return h.hp - before;
+};
+
+// agg.3 Finisher: a crit kill slows every enemy within finisher.r metres of the victim. Status slow takes the lost fraction,
+// so speed x slowMul is slow amount 1 - slowMul. XP and drops are not touched.
+P.Combat.finisher = function (s, victim) {
+  var F = P.CFG.perks.finisher, i, o;
+  for (i = 0; i < s.enemies.length; i++) {
+    o = s.enemies[i];
+    if (Math.hypot(o.x - victim.x, o.y - victim.y) <= F.r) P.Status.apply(o, 'slow', F.slowT, 1 - F.slowMul);
   }
 };

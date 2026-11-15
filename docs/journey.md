@@ -34,34 +34,39 @@ are in `journey.js` (`map: [x, y]`).
 | 2 | `galata` | Galata | Beyoğlu | 1.8 | 0.8 | L6–10 | galata | brute | Tour Guide (Turist Rehberi) |
 | 3 | `karakoy` | Karaköy | Beyoğlu | 2.6 | 0.8 | L11–15 | karakoy | brute | The Bride (Gelin) |
 | 4 | `bridge` | Galata Köprüsü | Haliç | 3.3 | 0.7 | L16–20 | bridge | bloater | Big Fisherman (Koca Balıkçı) |
-| 5 | `eminonu` | Eminönü | Fatih | 4.1 | 0.8 | L21–25 | eminonu | brute | The Captain (Kaptan) |
-| 6 | `sirkeci` | Sirkeci | Fatih | 4.8 | 0.7 | L26–30 | sirkeci | brute | The Ticket Man (Biletçi) |
-| 7 | `kapalicarsi` | Kapalıçarşı | Fatih | 5.6 | 0.8 | L31–35 | bazaar | brute | The Carpet Golem (Halı Golem) |
+| 5 | `eminonu` | Eminönü | Fatih | 4.1 | 0.8 | L21–25 | eminonu | taksici | The Captain (Kaptan) |
+| 6 | `sirkeci` | Sirkeci | Fatih | 4.8 | 0.7 | L26–30 | sirkeci | kasapBoss | The Ticket Man (Biletçi) |
+| 7 | `kapalicarsi` | Kapalıçarşı | Fatih | 5.6 | 0.8 | L31–35 | bazaar | taksici | The Carpet Golem (Halı Golem) |
 | 8 | `beyazit` | Beyazıt | Fatih | 6.3 | 0.7 | L36–40 | beyazit | spitter | The Pigeon Man (Güvercinci) |
 | 9 | `kumkapi` | Kumkapı | Fatih | 7.0 | 0.7 | L41–45 | kumkapi | bloater | The Fish Porter (Balık Hamalı) |
-| 10 | `laleli` | Laleli | Fatih | 7.8 | 0.8 | L46–50 | laleli | brute | The Wholesaler (Toptancı) |
-| 11 | `aksaray` | Aksaray | Fatih | 8.6 | 0.8 | L51–55 | aksaray | brute | The Dolmuş Driver (Dolmuşçu) |
-| 12 | `yenikapi` | Yenikapı | Fatih | 9.5 | 0.9 | L56–60 | yenikapi | brute | The Evening Crowd (Akşam Kalabalığı) |
+| 10 | `saray` | Topkapı Sarayı (TR owner check) | Fatih | 7.8 | 0.8 | L46–50 | saray | tourGuide | The Docent (TR Müze Rehberi) |
+| 11 | `halic` | Haliç–Balat (TR owner check) | Fatih | 8.6 | 0.8 | L51–55 | halic | antiquarian | The Antiquarian (TR name: owner) |
+
+Rows 10 and 11 are D-060 (approved 2026-11-12). Their boss types are new tunings of the kasapBoss shape. The Turkish names are owner checks.
+| 12 | `yenikapi` | Yenikapı | Fatih | 9.5 | 0.9 | L56–60 | yenikapi | taksici | The Evening Crowd (Akşam Kalabalığı) |
 | 13 | `samatya` | Samatya | Fatih | 10.3 | 0.8 | L61–65 | samatya | spitter | The Grill Man (Mangal Baba) |
 | 14 | `yedikule` | Yedikule | Fatih | 11.1 | 0.8 | L66–70 | yedikule | brute | The Key Keeper (Anahtarcı) |
 | 15 | `kazlicesme` | Kazlıçeşme | Zeytinburnu | 12.0 | 0.9 | L71–75 | kazlicesme | spitter | The Hose Man (Hortumcu) |
 | 16 | `zeytinburnu` | Zeytinburnu | Zeytinburnu | 13.0 | 1.0 | L76–80 | zeytinburnu | bloater | The Dye Foreman (Boyacı Ustası) |
-| 17 | `bakirkoy` | Bakırköy Çarşı | Bakırköy | 14.0 | 1.0 | L81–85 | bakirkoy | brute | The Principal (Müdür) |
+| 17 | `bakirkoy` | Bakırköy Çarşı | Bakırköy | 14.0 | 1.0 | L81–85 | bakirkoy | taksici | The Principal (Müdür) |
 | 18 | `bakirkoysahil` | Bakırköy Sahil | Bakırköy | 15.0 | 1.0 | L86–90 | sahil | bloater | The Ice-Cream Man (Dondurmacı) |
-| 19 | `atakoysahil` | Ataköy Marina | Bakırköy | 16.2 | 1.2 | L91–95 | marina | brute | The Yacht Owner (Yat Sahibi) |
+| 19 | `atakoysahil` | Ataköy Marina | Bakırköy | 16.2 | 1.2 | L91–95 | marina | kasapBoss | The Yacht Owner (Yat Sahibi) |
 | 20 | `atakoy` | Ataköy | Bakırköy | 17.0 | 0.8 | L96–100 | atakoy | brute | Sayın Abim (kapıcı; story name Ahmet Abi, D-039) |
 
-**Boss count:** 20 stage-5 bosses. Boss types are only three (brute, bloater, spitter), so each
-boss gets its own signature attack on top of the type kit (section 5).
+**Boss count:** 20 stage-5 bosses. Boss types are five (brute, bloater, spitter, taksici, kasapBoss; config-bosses.js `bossByHood`), so each
+boss gets its own signature attack on top of the type kit (section 5). D-060 adds two new tunings of the kasapBoss shape for hoods 10 and 11,
+`tourGuide` and `antiquarian`, with no new engine behaviour. Name check, settled 2026-11-13: hood 10 is "The Docent" (TR Müze Rehberi), so "The Tour Guide" stays the hood 2 (Galata) boss only.
 
 **Geography (v0.8, lane L):** the map check moved two hoods. Kumkapı now comes straight after
-Beyazıt (it was after Aksaray), which saves about 0.4 km on the walk and fixes the map, where it sat
+Beyazıt (it used to sit after Aksaray, which is no longer on the walk), which saves about 0.4 km on the walk and fixes the map, where it sat
 out of line. Zeytinburnu and Kazlıçeşme are swapped: Kazlıçeşme is the eastern stop, reached first
 from Yedikule. The walk is still stylised, not a GPS route. Ataköy Marina stays before home for the
 story (Dad's Letter). The owner confirms the order before the art pass (open item 9.4). `km` and
 map coordinates in `journey.js` follow the new order. The H## labels (sections, tables, story ids) use the walk position
 and were re-keyed with the order change: story ids (`H##i#`, `H##p#`, `H##b`), bark pools (`BK.hdNN.S`), hood looks and
 enemy roster adds move with their hood. `tools/check-hood-keys.js` checks that each hood keeps its own content.
+
+**D-060 detour (approved 2026-11-12).** Topkapı Sarayı takes the L46–50 slot and Haliç–Balat takes L51–55. The stop positions do not move. Real geography is a detour: the palace is east of Kapalıçarşı, and Balat is up on the Golden Horn. The walk covers it with one line in the walk: "Arda takes the long way, the bridges are blocked." The walk is still stylised, not a GPS route.
 
 ---
 
@@ -77,11 +82,16 @@ Each hood has five levels, one stage each (stage N = level N of the hood, so `H0
 
 | Stage | Role | Layout | Length (m) | Duration target | Hold | Waves (rule) | Elite windows | Modifier |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Arrival | Route | 170 | 3:00 | 40 s | walker + runner; roster[2] scripted intro at the first 25% | none | dusk |
-| 2 | Open ground | Arena or route | 200 | 3:30 | 50 s | adds roster[2] (40%) | 1 at 45% of the stage | none |
-| 3 | Set piece | Route, ambush on | 230 | 4:00 | 60 s | adds roster[3] when the hood has one | 1 at 60% | night (on about half the hoods) |
-| 4 | Twist | Route, hood twist | 260 | 4:30 | 70 s | full roster | 2 (at 35% and 70%) | fog or horde (one per hood) |
-| 5 | Boss | 100 m approach + boss arena | 160 | 5:00–6:00 | none (arena) | boss + adds (roster[0–1]) every 6 s on intro, then 60% of stage rate | boss mini-elite adds | per hood |
+| 1 | Arrival | Route | 170 → 212.5 | 3:00 | 40 → 50 s | walker + runner; roster[2] scripted intro at the first 25% | none | dusk |
+| 2 | Open ground | Arena or route | 200 → 250 | 3:30 | 50 → 62.5 s | adds roster[2] (40%) | 1 at 45% of the stage | none |
+| 3 | Set piece | Route, ambush on | 230 → 287.5 | 4:00 | 60 → 75 s | adds roster[3] when the hood has one | 1 at 60% | night (on about half the hoods) |
+| 4 | Twist | Route, hood twist | 260 → 325 | 4:30 | 70 → 87.5 s | full roster | 2 (at 35% and 70%) | fog or horde (one per hood) |
+| 5 | Boss | 100 → 125 m approach + boss arena | 160 → 200 | 5:00–6:00 | none (arena) | boss + adds (roster[0–1]) every 6 s on intro, then 60% of stage rate | boss mini-elite adds | per hood |
+
+Arrows show the L1 base → L2+ values. From L2 on, route length, boss approach and gate hold are ×1.25
+(`C.levels.pace`, R1-T4 part 16). Route stages 1 to 4 also drop a free upgrade crate at route segments B and D, and
+brute bosses have 2800 HP (see game-design §7). Duration targets are design goals; the bot's L2–10 mean after this
+package is 4.1 min per level.
 
 Route stages use the exit gate and the hold timer. Arena stages use the timer. Stage 5 uses the
 boss arena. Source numbers: `config-levels.js` (`C.levels.stages`, E2, in progress).
@@ -96,8 +106,7 @@ boss arena. Source numbers: `config-levels.js` (`C.levels.stages`, E2, in progre
 | 4 | 1.8 (holds 1.6 → 2.6 → 3.4) | ~170 | 110 | Two elites, hold phases ramp |
 | 5 | 1.1 (adds) + boss | ~90 | 90 | Adds stop at boss death |
 
-Global cap is 300 alive (GD §6). E2's cap is 140 for generated levels. Keep both until the bot has run on
-all 100 levels. Telemetry `perf_sample` reports the actual peak.
+There is no global cap in code. Route levels stop spawning at 140 alive (config-levels.js, `levels.cap`); horde spawns stop at 200 (config-horde.js, `ctl.cap`). Summons, boss adds, elites and events are not capped (R1 audit B6: bot peak 185 at L2, about 200 in boss arenas). Telemetry `perf_sample` reports the actual peak.
 
 ### 3.3 Rules that apply to every level
 
@@ -106,6 +115,21 @@ all 100 levels. Telemetry `perf_sample` reports the actual peak.
 - Each route stage has one twist object or prop from the hood list (section 5).
 - A stage 1 after a boss is a breather. Use 80% of the spawn rate.
 - A level is a full run. In-run level resets to 1 every level (GD §3). Power carries over only through meta.
+
+### 3.4 Replay tiers (R1-T4 part 18)
+
+The walk itself is unchanged. Two replays sit on top of it (GD §8.17):
+
+- **Nightmare, per hood.** Each level can be replayed as Nightmare once its hood is cleared on Normal. The same
+  route with harder numbers and one signature change per hood, through the existing levers: an extra elite
+  mark, a roster type, or a longer gate hold on stages 1–4. The boss arena keeps its layout (its HP and share
+  rise through the numbers). Table of signatures: `config-modes.js` `levels.nightmare.sig`, keyed by hood id.
+  A Nightmare star is a fourth star (clear, no revive, lowest HP at 40% or more).
+- **Night Shift, daily.** One endless run per day on a route picked from the stage 1–4 levels the player has
+  unlocked, rotating by date. The gate stays shut; spawn density ramps with time; the shift ends on death (one
+  revive) or at 12 minutes. The route is always a stage route, never a boss arena.
+
+Levels 1–100 keep their stage counts, boss stages and objectives in both tiers. Nothing in §3.1–3.3 changes.
 
 ---
 
@@ -139,13 +163,20 @@ the list.
 
 New types join the route mix from the stage shown (`C.levels.schedule` in `config-levels.js`). Their share grows with hood index (`newGrow` 0.1). Affixes roll on regular generated-level spawns (`C.affix.schedule`) from the hood shown. Hoods H01 to H04 have no new types and no affixes, so the early funnel is unchanged.
 
+**Ambient fauna exception (D-055).** Stray cats and ambient birds appear in every hood, H01 to H04 included, as cosmetic view-only life: never enemies, never in the sim. The thief bird (`marti`) is the one enemy that follows geography rather than a hood list: it joins from H05 Eminönü on, in every later hood, with a seagull look in seaside hoods and a pigeon look inland (`config-fauna.js`, `birdLook`).
+
+| Look | Hoods |
+|---|---|
+| Seagull | Galata, Galata Köprüsü, Karaköy, Eminönü, Sirkeci, Kumkapı, Haliç–Balat (confirm: Golden Horn shore, by the water rule), Samatya, Yedikule, Kazlıçeşme, Bakırköy Sahil, Ataköy Marina, Ataköy |
+| Pigeon | İstiklal, Kapalıçarşı, Beyazıt, Topkapı Sarayı (confirm: no water in the hood), Yenikapı (underground metro hood), Zeytinburnu, Bakırköy Çarşı |
+
 | Hood | Name | New type (from stage) |
 |---|---|---|
 | H05 | Eminönü | parkur (3) |
 | H07 | Kapalıçarşı | kasap (3) |
 | H08 | Beyazıt | parkur (4) |
 | H09 | Kumkapı | kasap (4) |
-| H11 | Aksaray | zehirli (3) |
+| H11 | Haliç–Balat | zehirli (3) (schedule kept by D-060) |
 | H13 | Samatya | kasap (3) |
 | H14 | Yedikule | zehirli (4) |
 | H15 | Kazlıçeşme | parkur (3) |
@@ -177,8 +208,8 @@ livery.
 - **Palette:** peach, mint and faded blue facades. Tram red. Warm gold lamp light.
 - **Ground:** stone slabs and rails. **Water:** none (gulls only).
 - **Light:** evening, then dusk. Streetlights fail one by one in stage 3.
-- **Roster:** walker, runner, crawler, diner. Skins: waiter, tourist, shopper, student.
-- **Twist:** diners turn (a human becomes a zombie after 2.5 s). Manhole crawlers under the rails.
+- **Roster:** walker, runner, crawler, diner (L1 only; generated levels drop it, D-056). Skins: waiter, tourist, shopper, student.
+- **Twist:** diners turn (a human becomes a zombie after 2.5 s), in the scripted L1. Crawlers along the rails.
 - **Stage 3:** Kestaneci's chestnut cart charges down the lane. Defend the cart (O7). Drops the
   Chestnut Brazier idea (future weapon, section 12 of weapons-skills.md).
 - **Stage 4:** overhead tram wires. Cut the wires (O4) to drop a Live Cable pickup.
@@ -270,7 +301,7 @@ livery.
 - **Twist:** turnstile gates. A closed gate blocks zombies. Pickups open gates. Magnet unlocks here.
 - **Stage 3:** the platform gate race (O11).
 - **Stage 4:** the ticket queue. The horde comes from the waiting line.
-- **Boss:** The Ticket Man. Brute. "No ticket, no entry." Summons gate blocks (walls that fall) and a
+- **Boss:** The Ticket Man. Butcher (kasapBoss). "No ticket, no entry." Summons gate blocks (walls that fall) and a
   line of zombie commuters.
 - **Story beat:** the vertical-slice build milestone ends here (L30). Chapter 1 continues to L100 (D-040). Mom's last clear call before the signal fails. The
   railway clock stops.
@@ -288,7 +319,7 @@ livery.
 - **Stage 3:** the lane maze. Shutters close behind Arda.
 - **Stage 4:** shop counters become chokepoints. A shutter with a handwritten note: "Kapıyı açmayın"
   (do not open the door).
-- **Boss:** The Carpet Golem. Brute armoured in rolled carpets. Carpet-roll charge (line telegraph).
+- **Boss:** The Carpet Golem. Taxi (taksici) armoured in rolled carpets. Carpet-roll charge (line telegraph).
   The weak point is the unrolled core. Drops the Kilim (future weapon).
 - **Story beat:** the first human threat hinted: looters. Story only, no human enemies yet.
 
@@ -325,38 +356,54 @@ livery.
   slow pool. Drops the Olta (future weapon).
 - **Story beat:** the last meze on the quay. The sea.
 
-### H10 · Laleli (Fatih, km 7.8, L46–50)
+### H10 · Topkapı Sarayı (Fatih, km 7.8, L46–50) (D-060)
 
-- **Scene:** wholesale street with cartons stacked on pavements. Shop windows full of mannequins.
-  Sodium streetlights.
-- **Props:** fabric rolls, carton stacks, luggage shop displays, clothes racks, bags on hooks.
-- **Palette:** sodium orange, grey cartons, pastel fabrics.
-- **Ground:** asphalt and tiles. **Water:** none.
-- **Light:** deep night, sodium streetlights.
-- **Roster:** walker, runner, brute, crawler. Skins: shopper, hamal, shopkeeper.
-- **Twist:** dormant mannequins. A mannequin is a dormant zombie. It wakes when Arda passes within 3 m.
-  Wake-up is a shape change, not a flash.
-- **Stage 3:** the mannequin wake (a surprise beat).
-- **Stage 4:** the fabric lane (zombies hide behind rolls).
-- **Boss:** The Wholesaler. Brute. Throws crates (lob telegraph). Summons a wave of five mannequins that
-  wake together.
-- **Story beat:** "Are they zombies?" (narrative, Laleli and Aksaray).
+- **Scene:** the outer gate square of the palace in late light. The gate tower and the old wall along the
+  Gülhane side. A ticket queue behind barriers. The palace is a museum, so the locals are visitors and staff.
+- **Props:** queue stanchions, ticket kiosks, audio-guide carts, plane trees, stone benches, souvenir stands,
+  guide's flag poles, bunting from the souvenir stands.
+- **Palette:** stone grey, cream stone, tea amber, tour-flag red (`#B5453A`), simit gold.
+- **Ground:** stone grey flagstone with wide joints. **Water:** none.
+- **Light:** late afternoon into dusk. Warm low sun from the gate side.
+- **Roster:** walker, runner, crawler (from the proposal's zombie locals; owner check). Skins: tour group
+  straggler (walker), museum attendant (walker, new skin), tourist with a camera (crawler), vendor (runner).
+- **Twist:** queue barriers funnel the lanes in stage 3.
+- **Stages:** 1 Palace Square, late afternoon, clear · 2 Gülhane Path, golden hour, fog off the park ·
+  3 Ticket Queue, dusk, barriers funnel the lanes · 4 Outer Courtyard, dusk, rain · 5 Palace Gate, dusk, clear, boss.
+- **TR names (TR owner check):** Saray Meydanı · Gülhane Yolu · Bilet Kuyruğu · Dış Avlu · Saray Kapısı. Stage 1 and stage 5 set by the owner (2026-11-13); Kule Kapısı stays with Yedikule stage 5.
+- **Stage 3:** the ticket queue. Barriers funnel the lanes.
+- **Stage 4:** the outer courtyard in rain.
+- **Boss:** The Docent (TR Müze Rehberi). A zombie guide with an umbrella and a flag. Umbrella sweep (wide
+  arc, telegraphed), rally call (a ring telegraph, then a small tour group of walkers files in), and a second
+  rally call in phase 3 (owner, 2026-11-13: no flag charge). Kasap shape, tuned as `tourGuide` (new tuning only, no new engine behaviour).
+- **Story beat:** to be rewritten by owner. The old beat ("Are they zombies?", mannequins) went with Laleli.
 
-### H11 · Aksaray (Fatih, km 8.6, L51–55)
+### H11 · Haliç–Balat (Fatih, km 8.6, L51–55) (D-060)
 
-- **Scene:** a bus-stop plaza at a busy junction. Generic minibuses and taxis in neutral colours.
-  Bus shelters. Traffic cones. Pide bakery with an oven.
-- **Props:** minibuses (no livery), taxis, bus shelters, traffic cones, kebab grills, pide peels.
-- **Palette:** asphalt grey, taxi yellow (generic), bakery cream.
-- **Ground:** asphalt. **Water:** none.
-- **Light:** night. Headlights as lane markers (no flashing).
-- **Roster:** walker, runner, brute, bloater, spitter. Skins: commuter, driver, worker.
-- **Twist:** moving minibuses in the lanes are hazards. A pass-through hits for damage.
-- **Stage 3:** the traffic lanes.
-- **Stage 4:** the campfire rest in a closed bakery. Arda admits his crush on Mila. Kaan teases him,
-  then goes quiet. (Triangle seed.) No combat in the rest.
-- **Boss:** The Dolmuş Driver. Brute. Horn-telegraphed lane charge. Door swing. Stop-and-go pattern.
-- **Story beat:** the campfire. Kaan goes quiet.
+- **Scene:** steep lanes of narrow, brightly painted row houses on the Golden Horn shore. Antique and
+  bric-a-brac shops, cafés with mismatched chairs, laundry between the balconies, the Balat quay.
+- **Props:** antique stands, café chairs and tables, stair rails, flower pots, handcarts, fishing crates on the
+  quay, laundry lines (overhead), café festoon lights (overhead), street cats (fauna).
+- **Palette:** terracotta, ochre, blue and faded pink house walls; tea-amber shutters.
+- **Ground:** uneven cobble, damp, with kerb steps. **Water:** the Golden Horn.
+- **Light:** blue hour into night. Warm window light and café lamps. Fire only in stage 3, under 3 flashes a second.
+- **Roster:** walker, runner, plus zehirli from stage 3 (enemy schedule, section 5.0). Skins: antique dealer
+  (walker), café owner (walker), fisherman (existing skin), grandmother with a shopping bag (runner, existing skin).
+  No child zombies.
+- **Twist:** stands block the lanes in stage 3, and a toppled brazier starts a fire.
+- **Stages:** 1 Haliç Shore, blue hour, clear · 2 Colour Houses, dusk, fog off the water · 3 Antique Lane, night,
+  fire from a toppled brazier, stands block the lanes · 4 Fatma Nine's Garage, night, clear, the campfire story page
+  (combat stays on) · 5 Balat Pier, night, rain, boss.
+- **TR names (TR owner check):** Haliç Kıyısı · Renkli Evler · Antikacılar Sokağı · Fatma Nine'nin Garajı · Balat İskelesi.
+- **Stage 3:** the antique lane. Stands block the lanes. A toppled brazier starts a fire.
+- **Stage 4:** the campfire story page moves here, from the closed bakery of the old L54 page, which needs a rewrite.
+  Owner's story call. The garage is Kaan's grandmother's, with the half-painted *Fatma Nine Balık Ekmek* sign
+  (characters.md). Combat stays on in this stage, as it did at L54 (owner, 2026-11-13). A true no-combat stage is deferred.
+- **Boss:** The Antiquarian (TR name: owner). A dealer with a brass lamp on a chain. Lamp swing (chain arc),
+  thrown vase (ring telegraph, shards), summon of "customers" in phase 2, a frenzy of falling stock in phase 3.
+  Kasap shape, tuned as `antiquarian` (new tuning only).
+- **Story beat:** to be rewritten by owner. The old campfire beat (Arda admits his crush on Mila, Kaan goes quiet,
+  triangle seed) is carried over until the owner rewrites it.
 
 ### H12 · Yenikapı (Fatih, km 9.5, L56–60)
 
@@ -371,7 +418,7 @@ livery.
   calls drop.
 - **Stage 3:** the power cut. Light the way (O5).
 - **Stage 4:** the stairs. Escort her down them (escort).
-- **Boss:** The Evening Crowd. Brute made of commuters. Sends crowd waves from the stairs. Keep the
+- **Boss:** The Evening Crowd. Taxi (taksici) made of commuters. Sends crowd waves from the stairs. Keep the
   torch on it.
 - **Story beat:** no signal. Mom's call drops for good in the tunnel.
 
@@ -394,13 +441,17 @@ livery.
 ### H14 · Yedikule (Fatih, km 11.1, L66–70)
 
 - **Scene:** old city walls and towers, shown with respect. Gardens and a tea garden inside the walls.
-  Ivy on stone.
-- **Props:** wall walks, tea-garden tables, hooks with keys, gates, ivy.
+  Ivy on stone. Stage 2 goes under the walls into the Zindanlar (dungeons). (D-060)
+- **Props:** wall walks, tea-garden tables, hooks with keys, gates, ivy. Stage 2: vault torches, rusted gates.
 - **Palette:** stone ochre, ivy green, morning blue.
-- **Ground:** gravel, grass, stone. **Water:** sea walls in the distance.
-- **Light:** sunrise, then morning light.
+- **Ground:** gravel, grass, stone. Stage 2: flagstone with wet patches, no openings in the floor (D-058).
+  **Water:** sea walls in the distance; drip in stage 2.
+- **Light:** sunrise, then morning light. Stage 2 is underground: torch light and drip, with fog.
 - **Roster:** walker, runner, brute, crawler, spitter. Skins: gardener, worker, granny.
 - **Twist:** keys open gates (O8). Narrow wall-walk corridor.
+- **Stage 2:** Zindanlar (Dungeons), underground. A vaulted stone corridor, rusted gates, torches and drip, fog.
+  No combat change. Generic cells; no real prisoner, state actor or execution imagery (guardrails).
+- **TR names (TR owner check):** Yedikule Surları · Zindanlar · Anahtarlar · Çay Bahçesi · Kule Kapısı.
 - **Stage 3:** find three keys to open the gate.
 - **Stage 4:** the tea garden. Tables block the lanes.
 - **Boss:** The Key Keeper. Brute with the ring of keys. Drops the keys on death (gate unlock).
@@ -422,13 +473,19 @@ livery.
 
 ### H16 · Zeytinburnu (Zeytinburnu, km 13.0, L76–80)
 
-- **Scene:** textile workshops and yards. Brick and concrete. Dye colours on drums.
+- **Scene:** textile workshops and yards. Brick and concrete. Dye colours on drums. Stage 2 is the Marmara
+  shore, a concrete quay with fishing piers (D-060).
 - **Props:** fabric bales, conveyor belts, dye drums (teal, magenta, yellow), pallets, forklifts (generic).
+  Stage 2: rope and bollard marks on the quay, fishing piers, a water band at the lane edge (visual only).
 - **Palette:** industrial grey and brick, with dye-colour accents.
-- **Ground:** concrete with paint. **Water:** canal and sea in the distance.
-- **Light:** morning, clear, with haze.
+- **Ground:** concrete with paint. Stage 2: wet concrete quay. **Water:** canal and sea in the distance; the
+  shore in stage 2.
+- **Light:** morning, clear, with haze. Rain on the shore in stage 2.
 - **Roster:** walker, runner, bloater, brute. Skins: worker, shopper, student.
 - **Twist:** dye drums explode in chains (O10). Conveyors push the player.
+- **Stage 2:** Sahil Rıhtımı (Shore Pier). A concrete quay and fishing piers on the Marmara, with dye-stained
+  runoff, wet, in rain. Bale stacks stay in stages 1 and 5 only.
+- **TR names (TR owner check):** Fabrika Kapısı · Sahil Rıhtımı · Konveyör · Boya Avlusu · Ustabaşı Avlusu.
 - **Stage 3:** the conveyor.
 - **Stage 4:** the drum yard.
 - **Boss:** The Dye Foreman. Bloater. Sprays dye gas clouds. Gas explodes in chains. Pop the drums to
@@ -448,7 +505,7 @@ livery.
 - **Twist:** dead escalators are one-way ramps. The school bell calls a spawn wave.
 - **Stage 3:** the bell (O9). Ring the bell to push the horde back.
 - **Stage 4:** the arcade. Shut the gates (O11).
-- **Boss:** The Principal. Brute with a megaphone (cone telegraph). Summons a "detention" line of
+- **Boss:** The Principal. Taxi (taksici) with a megaphone (cone telegraph). Summons a "detention" line of
   runners. The bell is the trigger.
 - **Story beat:** Arda's old high school. A classroom note.
 
@@ -477,7 +534,7 @@ livery.
 - **Twist:** pontoons tilt (moving floor). Ropes make net traps.
 - **Stage 3:** the pontoon bridge.
 - **Stage 4:** the rope nets. Zombies get stuck.
-- **Boss:** The Yacht Owner. Brute. Dock chain swing. Horn telegraph. Summons sailors. Drops the Vapur
+- **Boss:** The Yacht Owner. Butcher (kasapBoss). Dock chain swing. Horn telegraph. Summons sailors. Drops the Vapur
   Halatı (future weapon).
 - **Story beat:** home is close now. The sea is on both sides.
 
@@ -551,7 +608,8 @@ Sawtooth rule: the boss is the peak. The next stage 1 is the relief (80% spawn r
 
 - One level = one run, 3:00–6:00.
 - One hood = 5 levels = about 20–28 min including the map walk and the comic page.
-- Chapter 1 = about 7–9 h for a first pass, with deaths and replays.
+- Chapter 1 = about 7–9 h for a first pass, with deaths and replays. Bot extrapolation after the P1 pacing package: 6.8 h
+  (100 × the L2–10 mean of 4.1 min; 9-level sample), short of the range. See game-design §7.
 - Map walk after each level (results → map, see weapons-skills and story-presentation) gives
   a pause for the story and a reason to keep going.
 
@@ -625,8 +683,8 @@ Old arcs are blocks of ten levels. The new blocks are by geography. Each arc kee
 | B. Karaköy & the Bridge | H03–H04 | L11–20 | Bride (L15), Big Fisherman (L20), **Kaan joins** |
 | C. Eminönü & Sirkeci | H05–H06 | L21–30 | Captain (L25), Ticket Man (L30, build milestone) |
 | D. Grand Bazaar & Beyazıt | H07–H08 | L31–40 | Carpet Golem (L35), Pigeon Man (L40) |
-| E. Laleli & Aksaray | H10–H11 | L46–55 | Wholesaler (L50), campfire (L54), Dolmuş (L55) |
-| F. Kumkapı & Yenikapı | H09 and H12 | L41–45 and L56–60 | Fish Porter (L45), Evening Crowd (L60). Not contiguous now: Laleli and Aksaray sit between (open item 9.9) |
+| E. Topkapı Sarayı & Haliç–Balat | H10–H11 | L46–55 | Docent (L50), campfire (L54), Antiquarian (L55) |
+| F. Kumkapı & Yenikapı | H09 and H12 | L41–45 and L56–60 | Fish Porter (L45), Evening Crowd (L60). Not contiguous now: Topkapı Sarayı and Haliç–Balat sit between (open item 9.9) |
 | G. Samatya & Yedikule | H13–H14 | L61–70 | Grill Man (L65), Key Keeper (L70) |
 | H. Kazlıçeşme & Zeytinburnu | H15–H16 | L71–80 | Hose Man (L75), Dye Foreman (L80). Order flipped in v0.8 |
 | I. Bakırköy | H17–H18 | L81–90 | Principal (L85), Ice-Cream Man (L90) |
@@ -658,14 +716,14 @@ Open: the walk order puts letter #3 (L95) before letter #1 (L100). Renumbering o
 |---|---|---|---|
 | 9.1 | **Kaan joins at L20** (bridge boss) instead of L30 | **DECIDED 2026-11-08 (D-045): L20.** He is on the bridge in the story and must be there for the Captain beat in Eminönü (L25). | Moves a story beat and the squad unlock. Changes prd §4, content-catalog §6 and narrative.md *Characters*. |
 | 9.2 | **Build milestone at Sirkeci (L30)** instead of the Galata Bridge | Keep L30 as the vertical-slice build milestone (six hoods, a full arc, two bosses with comics). Chapter 1 ends at Ataköy (L100, D-040). | prd §1 and §4 change. |
-| 9.3 | **20 bosses, one per hood** (stage 5) | Yes, with a per-hood signature attack. Three boss types are a shared kit. | Art and animation load. 20 concepts × 2–3 attacks. |
+| 9.3 | **20 bosses, one per hood** (stage 5) | Yes, with a per-hood signature attack. Five boss archetypes are a shared kit. | Art and animation load. 20 concepts × 2–3 attacks. |
 | 9.4 | **Route order and geography** | **Applied in v0.8 (lane L):** Kumkapı after Beyazıt; Zeytinburnu and Kazlıçeşme swapped. The owner confirms against a real map before the art pass. | A local player may notice. Map, km and levels follow the new order. |
 | 9.5 | **Molotov name and unlock** | Display name "Benzin Şişesi" (petrol bottle). The word molotov has a political meaning in Turkey and elsewhere. Keep "molotov" in code IDs. | Guardrails (no politics). See weapons-skills §4. |
 | 9.6 | **Difficulty curve** | **DECIDED 2026-11-08 (D-041, D-042):** keep E2. The player gets a persistent power lever (attributes.md section 7.5), and new enemy types and affixes carry the late game. The hood-based curve is not used. Bot result: section 6.5. | 13× HP at L100 may be too steep without meta. |
 | 9.7 | **Boss names** | **DECIDED 2026-11-08 (D-046):** one set, the `spk.b.*` names in `strings-story.js`, Turkish with the section 2 canon role as the English gloss. Ataköy is Sayın Abim. The E2 names are retired (table 9.8). | Strings and comics. |
-| 9.9 | **Arc F is not contiguous** (Kumkapı L41–45, Yenikapı L56–60; Laleli and Aksaray sit between) | Keep F and write its beats across the two stops, or pair Kumkapı with Beyazıt in the arc. | Narrative lane. narrative.md assumes Kumkapı comes after Aksaray. |
-| 9.10 | **Story keys follow the walk position** (H##i#, barks, HOOD_LOOK, PAGE_MID) | Positions 9–11 and 15–16 now hold Kumkapı, Laleli, Aksaray, Kazlıçeşme and Zeytinburnu. Re-key the story lane's entries to match. The list is in the v0.8 hand-off. | Without it the wrong scene plays on the wrong hood. |
-| 9.11 | **Campfire rest** (PAGE_MID) | Moves from L49 to L54, the Aksaray stage 4 (closed bakery). | Story lane. |
+| 9.9 | **Arc F is not contiguous** (Kumkapı L41–45, Yenikapı L56–60; Topkapı Sarayı and Haliç–Balat sit between) | Keep F and write its beats across the two stops, or pair Kumkapı with Beyazıt in the arc. | Narrative lane. narrative.md assumes Kumkapı comes after Aksaray (the old order; Kumkapı now follows Beyazıt). |
+| 9.10 | **Story keys follow the walk position** (H##i#, barks, HOOD_LOOK, PAGE_MID) | Positions 9–11 and 15–16 now hold Kumkapı, Topkapı Sarayı, Haliç–Balat, Kazlıçeşme and Zeytinburnu. Re-key the story lane's entries to match. The list is in the v0.8 hand-off. D-060: the H10 and H11 story keys keep their positions, but their content is new and is marked to be rewritten by owner. | Without it the wrong scene plays on the wrong hood. |
+| 9.11 | **Campfire rest** (PAGE_MID) | Moves from L49 to L54, the Haliç–Balat stage 4 (Fatma Nine's Garage, D-060). The page needs a rewrite; the story call is the owner's. | Story lane. |
 | 9.12 | **Marmaray at Zeytinburnu and Bakırköy** | Zeytinburnu has no train in `journey.js`. Bakırköy lists one (`marmaray`). No train wait is assigned at either hood until the station is confirmed. | Fact check. Sirkeci, Yenikapı and Kazlıçeşme train waits are in the data. |
 | 9.13 | **Ataköy Marina before home** | Kept before home for the story (Dad's Letter at the end). | Story order. |
 

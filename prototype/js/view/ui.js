@@ -8,12 +8,13 @@
 // the objective (F7; AUDIT-7 U1 two-row header, class #hud.boss-on). The dash
 // chip shows its cooldown in seconds and a ring when ready (F9).
 P.UI = (function () {
-  var U = {}, el = {}, toastT = 0, lastHp = -1, lastSub = null, tierT = 0, tierKey = null, lastN = 0;
+  var U = {}, el = {}, toastT = 0, toastOut = 0, lastHp = -1, lastSub = null, tierT = 0, tierKey = null, lastN = 0, lastLv = 0;
+  var lastAdr = '', lastJl = '';   // the Adrenalin chip's label and the journey chip's first line: written only when they change
   var hudOn = false, overlayUp = false;
   var TIERS = [25, 50, 100, 200];
-  var IDS = ['hud', 'hp-fill', 'hp-trail', 'hp-text', 'timer', 'call', 'call-label', 'call-time', 'bars', 'xp-fill', 'lv',
+  var IDS = ['hud', 'hp-fill', 'hp-trail', 'hp-text', 'timer', 'call', 'call-label', 'call-time', 'bars', 'xp-fill', 'lv', 'lv-num',
     'subs', 'subs-speaker', 'subs-text', 'prompt', 'prompt-text', 'toast', 'skills', 'btn-ult', 'ult-fill', 'dash-chip',
-    'dash-fill', 'dash-sec', 'lvl-chip', 'streak', 'streak-label', 'streak-fill', 'boss-bar', 'boss-fill', 'boss-name'];
+    'dash-fill', 'dash-sec', 'lvl-chip', 'jl-num', 'jl-hood', 'streak', 'streak-label', 'streak-fill', 'boss-bar', 'boss-fill', 'boss-name'];
   U.IDS = IDS;
   U.missing = [];
 
@@ -37,11 +38,13 @@ P.UI = (function () {
   U.init = function () {
     IDS.forEach(function (id) { el[id] = bind(id); });
     if (U.missing.length) U.bootError('ui.init', 'missing ids: ' + U.missing.join(','));
+    if (P.UIProgress) P.UIProgress.init();   // Street Cred meter, XP ticks, level-up banner (ui-progress.js)
     if (P.Speech) { P.Speech.provider(offerOverlays); }
   };
 
   U.applyI18n = function () {
     document.documentElement.lang = P.lang;
+    if (P.Dialogue) P.Dialogue.langChanged();   // open pages, pops, calls and the bark bubble switch language now
     document.querySelectorAll('[data-i18n]').forEach(function (n) { n.textContent = P.t(n.getAttribute('data-i18n')); });
     document.querySelectorAll('[data-i18n-aria]').forEach(function (n) { n.setAttribute('aria-label', P.t(n.getAttribute('data-i18n-aria'))); });
     document.querySelectorAll('[data-lang]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-lang') === P.lang); });
@@ -50,7 +53,11 @@ P.UI = (function () {
   // HUD visibility = wanted by the flow (showHud) and no overlay up (setOverlay, called by Screens.show).
   U.showHud = function (on) {
     hudOn = !!on; applyVis();
-    if (!on) { el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); el.streak.classList.add('hidden'); lastSub = null; lastN = 0; }
+    if (!on) {
+      el.prompt.classList.add('hidden'); el.subs.classList.add('hidden'); el.streak.classList.add('hidden');
+      lastSub = null; lastN = 0; lastLv = 0;
+      if (P.UIProgress) P.UIProgress.reset();
+    }
   };
   // The overlay flag also goes on #phone (css: story pops and the call card hide, and comic.js freezes their timers).
   U.setOverlay = function (on) {
@@ -72,11 +79,15 @@ P.UI = (function () {
     lastHp = h.hp;
     el['hp-text'].textContent = Math.ceil(h.hp) + ' / ' + h.maxHp;
     var hold = s.dir.hold;
-    el.timer.textContent = hold.active && !s.props.shutterOpen
+    el.timer.textContent = hold.active && !s.props.shutterOpen && !(s.geo && s.geo.endless)   // endless (Night Shift): no gate countdown
       ? U.fmt(Math.ceil((hold.T || P.CFG.level.holdTime) - hold.t)) + ' ' + P.t('ui.hud.hold') : U.fmt(s.runT);
-    var L = s.levelInfo;
-    el['lvl-chip'].textContent = L ? P.upper(L.hood.name) + ' ' + P.t('ui.hud.level', { n: L.hoodIndex + 1, s: L.stage }) : '';
+    // Journey chip (A2): line 1 "BÖLÜM 7/100" (the journey level, index 1 to 100), line 2 the hood name of that level.
+    var L = s.levelInfo, jl = L ? P.t('ui.hud.journey', { n: L.index, of: P.Journey.count() }) : '';
+    el['lvl-chip'].classList.toggle('hidden', !L);
+    if (jl !== lastJl) { lastJl = jl; el['jl-num'].textContent = jl; el['jl-hood'].textContent = L ? P.upper(L.hood.name) : ''; }
     updateSkills(s);
+    if (P.UIProgress) P.UIProgress.hud(s);
+    if (P.ModesUI) P.ModesUI.hud(s);   // R1-T4 part 18: HUD moon and Nightmare vignette (cached, view only)
     updateStreak(s);
     updateBoss(s);
     var call = s.dir.call;
@@ -88,7 +99,11 @@ P.UI = (function () {
       for (var i = 0; i < bars.length; i++) bars[i].classList.toggle('on', i < call.bars);
     }
     el['xp-fill'].style.width = Math.min(100, s.xp / P.xpNeed(s.level) * 100) + '%';
-    el.lv.textContent = 'Lv ' + s.level;
+    // Adrenalin chip (A1, the in-run level): the bolt is SVG in index.html; the label is the aria-label, the number is visible.
+    var adr = P.t('ui.hud.adr', { n: s.level });
+    if (adr !== lastAdr) { lastAdr = adr; el.lv.setAttribute('aria-label', adr); el['lv-num'].textContent = String(s.level); }
+    if (lastLv && s.level > lastLv && P.UIProgress) P.UIProgress.levelUp();   // one pop on the XP bar per level-up
+    lastLv = s.level;
     updateSubs(s);
   };
 
@@ -144,8 +159,8 @@ P.UI = (function () {
     el.streak.classList.remove('hidden');
     TIERS.forEach(function (t) { if (n >= t && lastN < t) { tierKey = 'combo.' + t; tierT = 1.3; } });
     lastN = n;
-    el['streak-label'].textContent = tierT > 0 && tierKey ? P.t(tierKey) : P.t('combo.label') + ' ' + n + '/' + F.threshold;
-    el['streak-fill'].style.width = Math.min(100, n / F.threshold * 100) + '%';
+    el['streak-label'].textContent = tierT > 0 && tierKey ? P.t(tierKey) : P.t('combo.label') + ' ' + n + '/' + k.threshold;
+    el['streak-fill'].style.width = Math.min(100, n / k.threshold * 100) + '%';
   }
 
   // L1 dialogue lines now present as comic pop-ins (P.Story.forLine picks bust, side, mood).
@@ -153,12 +168,13 @@ P.UI = (function () {
     var sub = s.dir.call.sub;
     if (P.Comic && P.Story) {
       el.subs.classList.add('hidden');
-      if (sub && sub.id !== lastSub && P.LINES[sub.id]) P.Comic.pop(sub.id, P.Story.forLine(sub.id) || {});
+      if (sub && sub.id !== lastSub && P.Dialogue.has(sub.id)) P.Comic.pop(sub.id, P.Story.forLine(sub.id) || {});
       lastSub = sub ? sub.id : null;
       return;
     }
     if (!sub || !P.Settings.subs) { el.subs.classList.add('hidden'); return; }
-    var l = P.line(sub.id);
+    var l = P.Dialogue.get(sub.id);
+    if (!l) { el.subs.classList.add('hidden'); return; }
     el['subs-speaker'].textContent = l.speaker + ':';
     el['subs-text'].textContent = l.text;
     el.subs.classList.remove('hidden');
@@ -196,6 +212,8 @@ P.UI = (function () {
   }
 
   U.toast = function (text, sub, dur) {
+    clearTimeout(toastOut); toastOut = 0;   // a new toast cancels a slide-out still running
+    el.toast.classList.remove('is-out');
     el.toast.innerHTML = '';
     el.toast.appendChild(document.createTextNode(text));
     if (sub) { var sm = document.createElement('small'); sm.textContent = sub; el.toast.appendChild(sm); }
@@ -203,9 +221,15 @@ P.UI = (function () {
     toastT = dur || 2.5;
   };
 
+  // Time's up: the toast slides out over --m-exit, then hides (ui-motion.js U.leave; at once under Reduce motion).
+  function leaveToast() {
+    toastOut = P.UIMotion.leave(el.toast, 'is-out', function () { toastOut = 0; el.toast.classList.add('hidden'); });
+  }
+
   U.tick = function (dt) {
-    if (toastT > 0) { toastT -= dt; if (toastT <= 0) el.toast.classList.add('hidden'); }
+    if (toastT > 0) { toastT -= dt; if (toastT <= 0) leaveToast(); }
     if (tierT > 0) { tierT -= dt; if (tierT <= 0) tierT = 0; }
+    if (P.UIProgress) P.UIProgress.tick(dt);   // the level-up banner's timer (ui-progress.js)
   };
 
   return U;

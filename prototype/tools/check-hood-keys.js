@@ -1,7 +1,7 @@
 // Hood key check (v0.8, integration follow-up 1): story and bark content is keyed by hood POSITION (H##i#, H##p#, H##b,
-// BK.hdNN.S), but it must belong to the HOOD. For every hood id this checks that its position's keys exist in TR and EN,
+// BK.hdNN.S beats of js/dialogue/), but it must belong to the HOOD. For every hood id this checks that its position's keys exist in TR and EN,
 // that the hood's own intro line (or first bark) names the hood, that its comic page reads its own lines, and that the
-// campfire sits in Aksaray. Loads the non-view scripts of index.html, as check-objective-strings.js does.
+// campfire sits in Haliç–Balat (halic, stage 4). Loads the non-view scripts of index.html, as check-objective-strings.js does.
 // Usage: node prototype/tools/check-hood-keys.js   (exit 1 with the list of problems)
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -19,7 +19,7 @@ const P = globalThis.P;
 const NAME = {
   istiklal: /İstiklal|Istiklal|tram/i, galata: /Galata(?! Köprü| Bridge)/i, karakoy: /Karaköy|Karakoy/i,
   bridge: /Köprü|Bridge/i, eminonu: /Eminönü|Eminonu/i, sirkeci: /Sirkeci/i, kapalicarsi: /Kapal[ıi]çarşı|Bazaar/i,
-  beyazit: /Beyazıt|Beyazit/i, laleli: /Laleli/i, aksaray: /Aksaray/i, kumkapi: /Kumkapı|Kumkapi/i,
+  beyazit: /Beyazıt|Beyazit/i, saray: /Topkapı|Topkapi|Saray|Palace/i, halic: /Haliç|Halic|Balat/i, kumkapi: /Kumkapı|Kumkapi/i,
   yenikapi: /Yenikapı|Yenikapi/i, samatya: /Samatya/i, yedikule: /Yedikule/i, zeytinburnu: /Zeytinburnu/i,
   kazlicesme: /Kazlıçeşme|Kazlicesme/i, bakirkoy: /Bakırköy|Bakirkoy/i, bakirkoysahil: /Sahil|Seaside|promenade/i,
   atakoysahil: /Marina/i, atakoy: /Ataköy|Atakoy|Apartman|apartment|lobby/i,
@@ -28,9 +28,8 @@ const NAME = {
 const problems = [];
 const pad = n => (n < 10 ? '0' : '') + n;
 const J = P.Journey, hoods = J.hoods;
-const txt = v => (v && v[1] ? v[1] : '') + '\n' + (v && v[2] ? v[2] : '');   // [speaker, TR, EN]
-const lineTexts = id => (P.LINES[id] ? [P.LINES[id][1], P.LINES[id][2]] : []);
-const poolTexts = (lang, key) => (P.BarkPools[lang] && P.BarkPools[lang][key] ? P.BarkPools[lang][key].map(l => l.t) : []);
+const poolTexts = (lang, key) => (P.DLG[lang] && P.DLG[lang][key] ? P.DLG[lang][key].map(l => l.t) : []);
+const lineTexts = id => [poolTexts('tr', id)[0], poolTexts('en', id)[0]].filter(Boolean);
 
 if (hoods.length !== 20) problems.push('expected 20 hoods, found ' + hoods.length);
 if (new Set(hoods.map(h => h.id)).size !== hoods.length) problems.push('duplicate hood ids');
@@ -41,13 +40,13 @@ hoods.forEach((h, hi) => {
   // 1. Story keys at this position exist in TR and EN.
   ['i1a', 'i2a', 'i3a'].forEach(k => {
     const id = 'H' + p + k, t = lineTexts(id);
-    if (!t[0] || !t[1]) problems.push(`${where}: story line ${id} missing TR or EN`);
+    if (t.length < 2) problems.push(`${where}: story line ${id} missing TR or EN`);
   });
   // Hood pops (H##p1..p4) start at hood 5 (levels 21-100); every hood has a boss pop (H##b).
   const need = hi >= 4 ? ['p1', 'p2', 'p3', 'p4', 'b'] : ['b'];
   need.forEach(k => {
     const id = 'H' + p + k;
-    if (!P.LINES[id]) problems.push(`${where}: story line ${id} missing`);
+    if (!P.Dialogue.has(id)) problems.push(`${where}: story line ${id} missing`);
   });
   // 2a. The boss name banner key of this hood (boss.<id>, copied from spk.b.<id> in strings-journey.js) exists in TR and EN.
   ['tr', 'en'].forEach(lang => {
@@ -78,18 +77,18 @@ hoods.forEach((h, hi) => {
 });
 
 // 5. No orphan positional keys: every H## story line and BK.hdNN pool belongs to position 1..20.
-Object.keys(P.LINES).forEach(id => {
+Object.keys(P.DLG.beats).forEach(id => {
   const m = /^H(\d\d)[ibp]/.exec(id) || /^H(\d\d)b$/.exec(id);
   if (m && (+m[1] < 1 || +m[1] > hoods.length)) problems.push('orphan story line ' + id);
 });
-['tr', 'en'].forEach(lang => Object.keys(P.BarkPools[lang] || {}).forEach(key => {
+['tr', 'en'].forEach(lang => Object.keys(P.DLG[lang] || {}).forEach(key => {
   const m = /^BK\.hd(\d\d)\./.exec(key);
   if (m && (+m[1] < 1 || +m[1] > hoods.length)) problems.push(`orphan bark pool ${lang} ${key}`);
 }));
 
-// 6. Level-pinned beats: the campfire is the Aksaray stage-4 mid beat (L54), and L49 is no longer a campfire.
+// 6. Level-pinned beats: the campfire is the Haliç–Balat stage-4 mid beat (L54), and L49 is no longer a campfire.
 const L54 = J.level(54);
-if (L54.hood.id !== 'aksaray' || L54.stage !== 4) problems.push(`L54 is ${L54.hood.id} stage ${L54.stage}, expected aksaray stage 4`);
+if (L54.hood.id !== 'halic' || L54.stage !== 4) problems.push(`L54 is ${L54.hood.id} stage ${L54.stage}, expected halic stage 4`);
 const mid54 = P.Story.beat(54, 'mid');
 if (!mid54 || mid54.kind !== 'page' || mid54.id !== 'campfire') problems.push('L54 mid beat is not the campfire page');
 const mid49 = P.Story.beat(49, 'mid');
@@ -99,6 +98,13 @@ if (mid49 && mid49.kind === 'page') problems.push('L49 still opens the campfire 
 const idSet = new Set(hoods.map(h => h.id));
 Object.keys(P.CFG && P.CFG.enemyRosterAdds || {}).forEach(k => { if (!idSet.has(k)) problems.push('enemyRosterAdds key is not a hood id: ' + k); });
 
-console.log(`hood keys: ${hoods.length} hoods · story lines ${Object.keys(P.LINES).filter(k => /^H\d\d/.test(k)).length} · bark pools (tr) ${Object.keys(P.BarkPools.tr || {}).filter(k => /^BK\.hd/.test(k)).length}`);
+// 8. The journey boss field of a hood is its runtime archetype (bossByHood, config-bosses.js; R1-B4).
+hoods.forEach(h => {
+  const rt = P.CFG && P.CFG.bossByHood && P.CFG.bossByHood[h.id];
+  if (!rt) problems.push('no bossByHood entry for ' + h.id);
+  else if (h.boss !== rt) problems.push(`journey boss of ${h.id} is ${h.boss}, runtime bossByHood is ${rt}`);
+});
+
+console.log(`hood keys: ${hoods.length} hoods · story beats ${Object.keys(P.DLG.beats).filter(k => /^H\d\d/.test(k)).length} · bark beats ${Object.keys(P.DLG.beats).filter(k => /^BK\.hd/.test(k)).length}`);
 if (problems.length) { console.log('FAIL'); problems.forEach(x => console.log(' - ' + x)); process.exit(1); }
 console.log('PASS: every hood keeps its story, bark, comic and roster content');

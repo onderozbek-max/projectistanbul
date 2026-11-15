@@ -13,6 +13,14 @@ var SEG_IDS = ['A', 'B', 'C', 'D'];
 
 P.Levels.stage = function (index) { return P.CFG.levels.stages[P.Journey.level(index).stage - 1]; };
 
+// R1-T4 part 16 (pacing P1): route length, boss approach and gate hold of a stage, scaled by config levels.pace from
+// journey level rampFrom on. Below rampFrom (L1, hand-built) the stage numbers are returned unchanged.
+P.Levels.paced = function (index, st) {
+  var C = P.CFG.levels, on = index >= C.rampFrom, rm = on ? C.pace.routeMul : 1, hm = on ? C.pace.holdMul : 1;
+  return { len: st.len * rm, approach: st.approach === undefined ? undefined : st.approach * rm,
+    holdT: st.holdT === undefined ? undefined : st.holdT * hm };
+};
+
 // Difficulty multipliers for global index k = index-1: gentle early, steeper late (config diff).
 P.Levels.difficulty = function (index) {
   var k = index - 1, D = P.CFG.levels.diff;
@@ -26,25 +34,27 @@ function levelRng(s, index) {
 }
 
 // ---------- build ----------
-P.Levels.build = function (s, index) {
+P.Levels.build = function (s, index, sarayRaster) {
   var info = P.Journey.level(index), st = P.Levels.stage(index), G0 = P.CFG.level.corridor, C = P.CFG.levels;
-  var rng = levelRng(s, index), boss = !!st.boss;
-  var exitY = Math.round(st.len + rng.range(-6, 6));
-  var holdY = boss ? st.approach : exitY - C.holdDepth;
+  var rng = levelRng(s, index), boss = !!st.boss, pst = P.Levels.paced(index, st);
+  var exitY = Math.round(pst.len + rng.range(-6, 6));
+  var holdY = boss ? pst.approach : exitY - C.holdDepth;
   var geo = { xMin: G0.xMin, xMax: G0.xMax, length: exitY + 4, exitY: exitY, holdY: holdY,
-    holdT: boss ? 0 : st.holdT, boss: boss, blocks: [], landmarks: [], events: [], zones: [], sub: info.stage,
+    holdT: boss ? 0 : pst.holdT, boss: boss, blocks: [], landmarks: [], events: [], zones: [], sub: info.stage,
     kit: info.hood.kit || C.defaultKit };
+  if (sarayRaster && info.hood.id === 'saray') geo.sarayRaster = true;
   s.geo = geo;
   s.diff = P.Levels.difficulty(index);
   s.props = { carts: [], canisters: [], doorOpen: true, shutter: 0, shutterOpen: false, scaffoldDown: false, geo: geo };
   s.hero.x = 0; s.hero.y = 2;
   s.dir.hold.T = geo.holdT;
-  s.gen = { info: info, st: st, stageIdx: info.stage, hood: info.hood, roster: rosterOf(info.hood, info.stage), skins: info.hood.skins,
+  s.gen = { info: info, st: st, stageIdx: info.stage, hood: info.hood, roster: rosterOf(info.hood, info.stage, info.hoodIndex), skins: info.hood.skins,
     marks: [], mi: 0, seg: 'A', acc: 0, next: null, arena: false, bossSpawned: false, boss: null, won: false, midDone: false, t: 0 };
   s.layout = P.Layouts.plan(s, info, rng, geo);   // zone and centre landmarks first: street blocks keep clear of them
   layBlocks(geo, rng);
+  if (P.Eczane && P.Eczane.place) P.Eczane.place(s, index, info);   // R1-T4 part 14: at most one pharmacy station (own RNG stream), before the slots
   P.Layouts.slots(s);
-  P.Layouts.spawns(s);                               // door, window and manhole spawn points (Lane A portals)
+  P.Layouts.spawns(s);                               // door and window spawn points (Lane A portals)
   s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY), P.Layouts.marks(s.layout))
     .sort(function (a, b) { return a.y - b.y; });
   civilians(s);
@@ -55,12 +65,13 @@ P.Levels.build = function (s, index) {
 };
 
 // Roster: the hood's enemy types, plus its extras (v0.5 screamer / hardhat) from stage extraFrom on, plus the v0.6
-// schedule (new types by hood and stage, config-levels.js).
-function rosterOf(hood, stage) {
-  var C = P.CFG.levels, base = hood.enemies.filter(function (t) { return t !== 'diner'; }), ex = C.hoodExtras[hood.id] || [], out;
+// schedule (new types by hood and stage, config-levels.js), plus the thief (`thief`, by hood index from fromHood on).
+function rosterOf(hood, stage, hoodIndex) {
+  var C = P.CFG.levels, base = hood.enemies.filter(function (t) { return t !== 'diner'; }), ex = C.hoodExtras[hood.id] || [], out, T = C.thief;
   if (stage < C.extraFrom) return base;
   out = base.concat(ex.filter(function (t) { return base.indexOf(t) < 0; }));
   C.schedule.forEach(function (sc) { if (sc.hood === hood.id && stage >= sc.from && out.indexOf(sc.type) < 0) out.push(sc.type); });
+  if (T && hoodIndex >= T.fromHood && stage >= T.from && out.indexOf(T.type) < 0) out.push(T.type);
   return out;
 }
 
@@ -87,7 +98,8 @@ function layBlocks(geo, rng) {
     [-1, 1].forEach(function (side) {
       if (!rng.chance(B.sideChance)) return;
       var kind = geo.kit[rng.int(0, geo.kit.length - 1)];
-      var w = K[kind][0], h = K[kind][1];
+      var size = (geo.sarayRaster && P.CFG.levels.sarayRaster.footprints[kind]) || K[kind];
+      var w = size[0], h = size[1];
       var x = side * (B.sideMin + w / 2 + rng.range(0, B.sideJit)), by = y + rng.range(-B.yJit, B.yJit);
       if (Math.abs(x) + w / 2 > geo.xMax - B.wallEdge) return;
       addBlock(geo, kind, x, by, w, h);
@@ -176,6 +188,14 @@ P.Levels.step = function (s, dt) {
   winCheck(s);
 };
 
+// R1-T4 part 16 (pacing P1): one free upgrade crate when the route enters segment pace.crateSeg (config; null = none), from
+// journey level rampFrom on. It opens like a chest (progression.js openChest: one upgrade) and is the compensation for the
+// slower Adrenalin pace (fewer level-up cards). It is not an Adrenalin level-up and does not move s.level or s.xp.
+function crateAt(s, segId) {
+  var C = P.CFG.levels;
+  if (s.levelIndex >= C.rampFrom && [].concat(C.pace.crateSeg || []).indexOf(segId) >= 0) s.pendingChests++;
+}
+
 function processMarks(s) {
   var g = s.gen, h = s.hero;
   while (g.mi < g.marks.length && h.y >= g.marks[g.mi].y) doMark(s, g.marks[g.mi++]);
@@ -183,7 +203,7 @@ function processMarks(s) {
 
 function doMark(s, m) {
   var g = s.gen;
-  if (m.kind === 'seg') { g.seg = m.id; s.events.push({ type: 'segment', id: m.id }); }
+  if (m.kind === 'seg') { g.seg = m.id; s.events.push({ type: 'segment', id: m.id }); crateAt(s, m.id); }
   else if (m.kind === 'mid') { g.midDone = true; s.events.push({ type: 'story', id: g.info.id, when: 'mid' }); }
   else if (m.kind === 'intro') introGroup(s);
   else if (m.kind === 'elite') eliteAt(s);
@@ -200,8 +220,8 @@ function holdStage(s, dt) {
   if (hold.active) {
     hold.t += dt;
     s.props.shutter = Math.min(1, hold.t / G.holdT);
-    if (hold.t >= G.holdT && !s.props.shutterOpen) openGate(s);
-    if (!s.props.shutterOpen && hold.t < G.holdT - P.CFG.levels.holdStopBefore) spawnHold(s, dt);
+    if (hold.t >= G.holdT && !s.props.shutterOpen && !G.endless) openGate(s);   // endless (Night Shift): the gate never opens
+    if (!s.props.shutterOpen && (G.endless || hold.t < G.holdT - P.CFG.levels.holdStopBefore)) spawnHold(s, dt);
   } else if (s.hero.y < G.holdY) spawnRoute(s, dt);
 }
 
@@ -260,13 +280,14 @@ function canAdd(m) { var d = P.CFG.enemies[m.type]; return !(d && d.noAdd); }
 function spawnBudget(s, dt, rate, mix, behind) {
   var g = s.gen, guard = 0;
   rate *= P.Events.spawnMul(s);
+  if (P.Modes) rate *= P.Modes.spawnMul(s);   // R1-T4 part 18: Night Shift ramp (1 in every other mode)
   if (rate <= 0) return;
   if (!g.next) g.next = pickType(s, mix);
   var cost = costOf(g.next);
   g.acc = Math.min(g.acc + rate * dt, cost + 1);
   while (g.acc >= cost && guard++ < 3) {
     if (s.enemies.length >= P.CFG.levels.cap) break;
-    s.routeSpawn = true;                                   // enemies3.js E3.entrance: a route spawn may rise from a manhole or window
+    s.routeSpawn = true;                                   // enemies3.js E3.entrance: a route spawn may rise from a window, balcony or tram door
     var placed = spawnOne(s, g.next, behind);
     s.routeSpawn = false;
     if (!placed) break;
@@ -306,8 +327,9 @@ function routeMix(s, seg) {
 function spawnOne(s, type, behindShare) {
   var pos = spotFor(s, s.rng.spawn.chance(behindShare || 0));
   if (!pos) return false;
-  if (type === 'crawler') {
-    s.dir.telegraphs.push({ x: pos.x, y: pos.y, r: 0.8, t: 0, T: P.CFG.levels.crawlerTelegraph, then: 'emerge', skin: pickSkin(s) });
+  if (type === 'crawler') {   // D-058: crawlers crawl in from off-screen like every other enemy; nothing comes up from below the ground
+    P.Combat.spawnEnemy(s, type, pos.x, pos.y, { skin: pickSkin(s) });
+    if (pos.behind) s.events.push({ type: 'groan', x: pos.x, y: pos.y });
     return true;
   }
   P.Combat.spawnEnemy(s, type, pos.x, pos.y, { skin: pickSkin(s), affix: P.Enemies2.roll(s, type, s.gen.info.hoodIndex) });
@@ -380,6 +402,6 @@ function startArena(s) {
   for (var i = 0; i < C.bossAddStart; i++) {
     var pool = g.roster.filter(function (t) { var d = P.CFG.enemies[t]; return !(d && d.noAdd); }) || ['walker'];
     var a = (i / C.bossAddStart) * Math.PI * 2, type = pool[i % pool.length];
-    P.Combat.spawnEnemy(s, type === 'crawler' ? 'walker' : type, g.boss.x + Math.cos(a) * 4.5, g.boss.y + Math.sin(a) * 4.5, { skin: pickSkin(s), state: 'turning', stateT: C.bossIntro });
+    P.Combat.spawnEnemy(s, type === 'crawler' ? 'walker' : type, g.boss.x + Math.cos(a) * 4.5, g.boss.y + Math.sin(a) * 4.5, { skin: pickSkin(s), state: 'turning', stateT: C.bossIntro, bossAdd: true });
   }
 }

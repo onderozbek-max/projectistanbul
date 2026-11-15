@@ -63,8 +63,8 @@ P.RestaurantArt = (function () {
     var s = L.sign;
     PR.rect(c, pr, s.x0, s.y0, s.x1, s.y1, '#1F4D3A', '#8A6A4E', 4);
     var txt = 'LEZZET DÜRÜM SALONU', px = pr.s(0.26);
-    c.font = 'bold ' + Math.round(px) + 'px system-ui, sans-serif';
-    while (c.measureText(txt).width > pr.s(s.x1 - s.x0 - 0.3) && px > 6) { px -= 1; c.font = 'bold ' + Math.round(px) + 'px system-ui, sans-serif'; }
+    c.font = 'bold ' + Math.round(px) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif';
+    while (c.measureText(txt).width > pr.s(s.x1 - s.x0 - 0.3) && px > 6) { px -= 1; c.font = 'bold ' + Math.round(px) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; }
     c.fillStyle = '#F4EBDD'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(txt, pr.X((s.x0 + s.x1) / 2), pr.Y((s.y0 + s.y1) / 2));
   }

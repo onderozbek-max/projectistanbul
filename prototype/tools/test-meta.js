@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 // The sim files plus the meta data, daily, hub, collect and save modules. Views, story and the meta UI panels are left out.
-const NOT_LOADED = /^js\/(view|story)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|gear|stats|arsenal)\.js$/;
+const NOT_LOADED = /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|gear|stats|arsenal)\.js$/;
 
 // A node-side localStorage, installed before the meta modules load (meta-save.js reads it at call time).
 const store = {};

@@ -44,7 +44,7 @@
   // v0.6 · Parkurcu (free-runner): fast and fragile. Crouches on a ring at the hero's spot, then leaps there.
   E.parkur = {
     hp: 16, speed: 2.6, contact: 6, radius: 0.36, xp: 5, kbResist: 0.1, budget: 2.0,
-    leapMin: 2.6, leapMax: 7.0, leapCd: 2.2, windup: 0.45, leapT: 0.42, leapR: 1.0, leapDmg: 12, leapKb: 1.2,
+    leapMin: 2.6, leapMax: 7.0, leapCd: 2.2, windup: 0.5, leapT: 0.42, leapR: 1.0, leapDmg: 12, leapKb: 1.2,
   };
   // v0.6 · Zehirli tükürükçü (toxic spitter): the spitter's rules, but the glob bursts into a long toxic cloud.
   E.zehirli = Object.assign({}, E.spitter, {
@@ -52,31 +52,38 @@
   });
 
   // ---- bosses (one per hood type; scaled by hood and difficulty in levels.js) ----
+  // Archetypes in this table are the base set. tourGuide (saray) and antiquarian (halic) are defined in config-bosses.js
+  // (kasapBoss shape), which extends this table; their hood wiring is bossByHood there and hood.boss in journey.js.
   C.bosses = {
     brute: {                                                             // CC 6 style: charges, stomps, summons
-      hp: 1400, speed: 0.8, contact: 14, radius: 0.9, xp: 80, kbResist: 0.95,
-      windup: 0.9, laneLen: 12, laneW: 2.4, chargeSpeed: 9, chargeDmg: 18, chargeKb: 2.0,
-      stomp: { r: 3.4, dmg: 16, windup: 1.0 }, summon: { n: 4, windup: 0.8, r: 3 },
-      gap: 0.8, rageGap: 0.5, pause: 1.2, rageAt: 0.5, rageSpeed: 1.3, rageWindup: 0.6,
+      hp: 2800, speed: 0.8, contact: 14, radius: 0.9, xp: 80, kbResist: 0.95,           // R1-T4 part 16 (P1): hp 1400 -> 2800 (brute archetype only: H01, H02, H03, H14, H20)
+      windup: 0.9, laneLen: 12, laneW: 2.4, chargeSpeed: 9, chargeDmg: 12, chargeKb: 2.0,   // boss-arena pass: chargeDmg 18 -> 12
+      stomp: { r: 3.4, dmg: 12, windup: 1.0 }, summon: { n: 4, windup: 0.8, r: 3 },           // stomp dmg 16 -> 12
+      gap: 0.8, rageGap: 0.8, pause: 1.2, rageAt: 0.5, rageSpeed: 1.3, rageWindup: 0.6,       // rageGap 0.5 -> 0.8 (enrage cadence)
     },
     bloater: {                                                           // toxic pools, mini bloaters, belly slam
       hp: 1300, speed: 0.55, contact: 18, radius: 0.9, xp: 80, kbResist: 0.9,
-      pools: { n: 3, r: 2.0, windup: 1.0, t: 6, dps: 3, span: 6 }, minis: { n: 3, windup: 0.9, r: 2.2 },   // pool dps 3 (was 4)
+      pools: { n: 3, r: 2.0, windup: 1.0, t: 6, dps: 2, span: 6 }, minis: { n: 3, windup: 0.9, r: 2.2 },   // pool dps 2 (boss-arena pass; was 3, was 4)
       slam: { r: 3.5, windup: 1.1, dmg: 20, shove: 2.5 }, burst: { r: 4.0, enemyDmg: 60, heroDmg: 22, cloudT: 4 },
       gap: 0.8, rageGap: 0.5, pause: 1.0, rageAt: 0.5,
     },
     spitter: {                                                           // fan spray of 5, acid rain
       hp: 1100, speed: 0.7, contact: 14, radius: 0.8, xp: 80, kbResist: 0.9,
       keep: 6, band: 1.0, gap: 0.8, rageGap: 0.5, pause: 0.8, rageAt: 0.5,
-      fan: { n: 5, spread: 60, rangeMin: 4, rangeMax: 8, windup: 0.8, flight: 0.9, dmg: 6, puddleT: 3, puddleDps: 3, r: 1.1 },
-      rain: { n: 8, span: 9, windup: 1.0, r: 1.2, t: 4, dps: 3 },
+      fan: { n: 5, spread: 60, rangeMin: 4, rangeMax: 8, windup: 0.8, flight: 0.9, dmg: 6, puddleT: 3, puddleDps: 2, r: 1.1 },   // puddleDps 3 -> 2 (boss-arena pass)
+      rain: { n: 8, span: 9, windup: 1.0, r: 1.2, t: 4, dps: 2 },                                                              // dps 3 -> 2 (boss-arena pass)
     },
   };
 
   // ---- level generator (journey levels 2..100) ----
   C.levels = {
+    rampFrom: 2,                       // R1-T4 part 4: first journey level with the drop-heal cap and the frenzy speed; L1 is unchanged
+    // R1-T4 part 16 (pacing P1): route length (stages len, boss approach) and gate hold (holdT) scale by these from rampFrom on
+    // (P.Levels.paced, sim/levels.js). 1 = the pre-part-16 pace. Stage numbers below stay the base values.
+    pace: { routeMul: 1.25, holdMul: 1.25, crateSeg: ['B', 'D'] },   // crateSeg: route segments (A-D) that each drop a free upgrade crate (null = none)
     // Difficulty per global index k = index-1 (gentle early, steeper late). hp = 1 + lin*k + quad*k^2.
-    diff: { hpLin: 0.03, hpQuad: 0.0002, dmgLin: 0.006, spawnLin: 0.005, spawnCap: 2.0, xpLin: 0.04, bossHoodMul: 0.03, bossShare: 0.3 },
+    // R1-T4 part 4: xpLin 0.04 -> 0.05 (XP per kill grows faster with the level index; keeps late boss levels clearable, see the review).
+    diff: { hpLin: 0.03, hpQuad: 0.0002, dmgLin: 0.006, spawnLin: 0.005, spawnCap: 2.0, xpLin: 0.05, bossHoodMul: 0.03, bossShare: 0.3 },
     // Stages 1..5 (stage 5 = boss arena). len = exit gate distance (m); holdT escalates (s).
     stages: [
       { id: 1, len: 170, rate: 1.2, holdT: 40, behind: 0.00, newShare: 0.25, elites: [], ambush: false, intro: true },
@@ -92,10 +99,17 @@
     holdStopBefore: 6,                 // no spawns in the last 6 s of a hold
     bossAddRate: 1.08,                 // boss-fight adds: share of stage rate (AUDIT-6 B4: x1.8 from 0.6 for arena density)
     bossAddStart: 6,                   // adds around the boss on intro
-    cap: 140,                          // max alive (perf and readability)
+    // Boss-arena pass: one simit pickup `ahead` m in front of the hero at the arena intro (sim/bosses.js arenaHeal). value 0 = none.
+    // uncapped: outside drops.healCap, because the route spends the run-wide cap before the boss (the trace showed 26 HP and no heal).
+    bossHeal: { value: 25, ahead: 3, pop: 0.25, uncapped: true },
+    cap: 140,                          // max alive (perf and readability): the soft gate for route spawns
+    // D-056: one hard ceiling of live enemies for every spawn path (Combat.spawnEnemy refuses past it). A boss always spawns; its scripted
+    // adds (intro ring, summons) may go to `boss`. 140 (here) and 200 (config-horde.js ctl.cap) stay as the soft spawn gates, so this
+    // changes almost nothing at runtime. Do not lower it before the Low-device run (M0-T4) gives a measured number.
+    ceiling: { hard: 200, boss: 220 },
     spawnAhead: { gap: 0.5, depth: 7 }, spawnBehind: { gap: 1.0, depth: 6 }, sideX: 6.2,
     ambush: { walkers: 8, runners: 4, x: 5.6, yMin: 2, yMax: 5 },
-    introCount: 3, eliteLead: 8, crawlerTelegraph: 1.0, arenaBossAhead: 13, bossIntro: 1.6,
+    introCount: 3, eliteLead: 8, arenaBossAhead: 13, bossIntro: 1.6,
     civilians: { groups: 2, perGroup: 3, fleeSpeed: 4.0, life: 8 },
     // Blocks: AABB obstacles, central lane |x| < laneClear stays open for pathing.
     block: { laneClear: 1.6, sideMin: 2.2, sideMax: 6.6, slot: 9, startClear: 8, sideChance: 0.75,
@@ -103,12 +117,16 @@
     kinds: {                       // kind -> size [w (x), h (y)] in m (F renders by kind)
       car: [1.9, 4.2], taxi: [1.9, 4.2], dolmus: [2.2, 5.0], bus: [2.6, 9.0], barrier: [3.0, 0.6],
       kiosk: [1.6, 1.6], bench: [0.6, 1.8], bin: [0.6, 0.6], planter: [1.2, 1.2], crates: [1.0, 1.0],
-      tables: [1.2, 1.2], cart: [1.4, 0.9], tree: [0.8, 0.8], bollard: [0.35, 0.35],
+      tables: [1.2, 1.2], tavlatable: [0.9, 0.9], cart: [1.4, 0.9], tree: [0.8, 0.8], bollard: [0.35, 0.35],
+      antique: [1.6, 1.2],           // D-060 Haliç–Balat antique stand (art fw 1.6 x fd 1.2); breakable, hp in config-env.js. lx_stall: config-layouts.js
     },
+    // Commissioned Saray footprints (metres across and along) and cover HP for the raster review run.
+    sarayRaster: { footprints: { barrier: [0.3, 0.3], bench: [1.8, 0.6] },
+      cover: { barrier: 20, lx_stall: 30, bench: null } },
     // v0.5 · extra roster types per hood id (added from stage 2), weight = extraShare x segment share.
     hoodExtras: {
       galata: ['screamer'], karakoy: ['hardhat'], bridge: ['screamer'], eminonu: ['hardhat'], kapalicarsi: ['screamer'],
-      laleli: ['hardhat'], aksaray: ['screamer'], yenikapi: ['hardhat'], zeytinburnu: ['hardhat'],
+      saray: ['hardhat'], halic: ['screamer'], yenikapi: ['hardhat'], zeytinburnu: ['hardhat'],
       bakirkoy: ['screamer'], atakoy: ['screamer', 'hardhat'],
     },
     extraFrom: 2, extraShare: 0.5,
@@ -116,15 +134,21 @@
     // Tier curve (docs/journey.md §5.1): tier 1 = H01-H04 (no new type), tier 2 = H05-H10, tier 3 = H11-H15, tier 4 = H16-H20.
     schedule: [
       { hood: 'eminonu', type: 'parkur', from: 3 }, { hood: 'kapalicarsi', type: 'kasap', from: 3 },
-      { hood: 'beyazit', type: 'parkur', from: 4 }, { hood: 'aksaray', type: 'zehirli', from: 3 },
+      { hood: 'beyazit', type: 'parkur', from: 4 }, { hood: 'halic', type: 'zehirli', from: 3 },
       { hood: 'samatya', type: 'kasap', from: 3 }, { hood: 'zeytinburnu', type: 'zehirli', from: 2 },
       { hood: 'yedikule', type: 'zehirli', from: 4 }, { hood: 'kumkapi', type: 'kasap', from: 4 },
       { hood: 'kazlicesme', type: 'parkur', from: 3 }, { hood: 'bakirkoy', type: 'kasap', from: 4 },
       { hood: 'bakirkoysahil', type: 'parkur', from: 2 }, { hood: 'atakoysahil', type: 'kasap', from: 2 },
       { hood: 'atakoy', type: 'parkur', from: 2 }, { hood: 'atakoy', type: 'zehirli', from: 3 }, { hood: 'atakoy', type: 'kasap', from: 4 },
+      // Wave 1 (R1, audit section 10): cayci (tea carrier) in the old city, from stage 2. The thief (marti) is set by `thief` below.
+      { hood: 'eminonu', type: 'cayci', from: 2 }, { hood: 'sirkeci', type: 'cayci', from: 2 }, { hood: 'beyazit', type: 'cayci', from: 2 },
+      { hood: 'kapalicarsi', type: 'cayci', from: 2 }, { hood: 'saray', type: 'cayci', from: 2 }, { hood: 'halic', type: 'cayci', from: 2 },
     ],
+    // Thief (marti, R1 audit 13 answer 1): one behaviour, two looks by geography (config-fauna.js birdLook). It is in every hood
+    // from fromHood on (0-based: 4 = H05 Eminönü), from stage `from`. H01 to H04 have no enemy thieves (docs/journey.md §5.0).
+    thief: { type: 'marti', fromHood: 4, from: 2 },
     extraTypes: ['screamer', 'hardhat'],   // weight extraShare x segment share
-    newTypes: ['parkur', 'kasap', 'zehirli'], newGrow: 0.1,   // v0.6 types: same weight, times (1 + newGrow x hood index)
+    newTypes: ['parkur', 'kasap', 'zehirli', 'marti', 'cayci'], newGrow: 0.1,   // v0.6 types (+ wave 1): same weight, times (1 + newGrow x hood index)
     // Boss names are NOT here (AUDIT-5 D-8/H2, owner 2026-11-08): one set lives in js/story/strings-story.js (spk.b.*,
     // Turkish title + canon English gloss). js/strings-journey.js copies it to boss.<hood> for the boss banner.
   };
@@ -199,7 +223,7 @@
     tram: { w: 2.8, len: 12, back: 1, dmg: 999, kb: 2.0, rushT: 0.8 },
   };
 
-  // ---- v0.5 strings and call lines. Merged into P.STR / P.LINES by js/view/events-fx.js (strings load later). ----
+  // ---- v0.5 strings (merged into P.STR by js/view/events-fx.js; strings load later) and call subtitle times. ----
   C.levelStrings = {
     'prompt.hack': { tr: 'Bağlan · basılı tut', en: 'Link · hold' },
     'prompt.rescue': { tr: 'Kafesin yanında dur', en: 'Stay by the cage' },
@@ -213,6 +237,7 @@
     'hack.tram': { tr: 'Tram kumandası', en: 'Tram control' },
     'hack.done': { tr: 'BAĞLANDI', en: 'LINKED' },
     'hack.lost': { tr: 'KESİLDİ', en: 'LOST' },
+    'hack.weak': { tr: 'ZAYIF BAĞLANTI', en: 'WEAK SIGNAL' },
     'ev.ambush': { tr: 'PUSU!', en: 'AMBUSH!' },
     'ev.loot': { tr: 'Tepsiyi yakala!', en: 'Catch the tray!' },
     'ev.rescue': { tr: 'Birini kurtar!', en: 'Rescue someone!' },
@@ -231,7 +256,7 @@
     'ev.tram': { tr: 'TRAM!', en: 'TRAM!' },
     'ev.ferry': { tr: 'VAPUR!', en: 'FERRY!' },
     'ev.defend': { tr: 'Dayan!', en: 'Hold!' },
-    'set.bloater': { tr: 'Şişman Garson', en: 'Fat Waiter' },
+    'set.bloater': { tr: 'Dombili', en: 'Bloated Waiter' },
     'set.spitter': { tr: 'Balkon tükürükçüsü', en: 'Balcony spitter' },
     'set.screamer': { tr: 'Çığlıkçı', en: 'Screamer' },
     'set.hardhat': { tr: 'Baretli', en: 'Hardhat' },
@@ -244,14 +269,8 @@
     'aff.zirhli': { tr: 'Zırhlı', en: 'Armoured' },
     'aff.patlayan': { tr: 'Patlayan', en: 'Volatile' },
   };
-  C.levelLines = {
-    callHack1: ['spk.anne', 'Arda! Duyuyor musun? Sinyal geldi galiba!', 'Arda! Can you hear me? I think the signal is back!'],
-    callHack2: ['spk.arda', 'Duyuyorum anne! Eve yürüyorum, merak etme.', "I can hear you! I'm walking home, don't worry."],
-    barkBloater: ['spk.arda', 'Şişman bir garson... kapıdan fırladı!', 'A fat waiter... just burst out of the shop!'],
-    barkSpitter: ['spk.arda', 'Balkonda biri bana tükürüyor!', 'Someone on the balcony is spitting at me!'],
-    barkScreamer: ['spk.arda', 'Bağırdı... şimdi herkes buraya gelecek!', 'It screamed... now everyone is coming!'],
-    barkHack: ['spk.arda', 'Sinyal kutusu! Bağlanabilirim.', 'The signal box! I can link into it.'],
-    barkBlackout: ['spk.arda', 'Elektrikler gitti... gözleri parlıyor.', "Power's gone... their eyes are glowing."],
-    barkLoot: ['spk.arda', 'O tepsi simit dolu! Yakalamam lazım.', 'That tray is full of simit! I have to catch it.'],
-  };
+  // Seconds a call subtitle stays up, by call id (Phase 3 rule: min(4.5, max(2.2, 0.4 + 0.058 per character of the longer of the two lines))). Fixed numbers, so
+  // the timer is the same in every language and the sim never reads text. The call lines are the beats of the same id in js/dialogue/.
+  C.callDurDefault = 2.6;
+  C.callDur = { callA1: 3.416, callA2: 2.72, callA3: 3.996, callB1: 3.3, callB2: 3.184, callB3: 4.228, callB4: 4.5, callC1: 2.836, callC2: 4.5, callD1: 2.952, callHack1: 2.778, callHack2: 3.648 };
 })(P.CFG);

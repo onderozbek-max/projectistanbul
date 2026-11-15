@@ -249,9 +249,11 @@ P.Progression.statLines = function (card) {
   return out;
 };
 
+// A weapon card that raises an owned weapon (its .up text) rather than offering the weapon itself.
+P.Progression.isUpgrade = function (card) { return card.id[0] === 'w' && card.next > 1 && !card.evo; };
+// The rules text only (class B). The card's flavour line is a dialogue beat ('flav.<item>'); the view adds it (screens.js).
 P.Progression.describe = function (card) {
-  var up = card.id[0] === 'w' && card.next > 1 && !card.evo;
-  return P.t('desc.' + card.item + (up ? '.up' : ''));
+  return P.t('desc.' + card.item + (P.Progression.isUpgrade(card) ? '.up' : ''));
 };
 
 // Level-up shockwave: shove nearby enemies away from the hero (no damage).

@@ -1,4 +1,4 @@
-// Shock, pull and evolution visuals (workstream E1): Live Cable bolts (30 Hz flicker) and stun crowns (2.5 Hz),
+// Shock, pull and evolution visuals (workstream E1): Live Cable bolts (re-rolled 3 Hz) and stun crowns (2.5 Hz),
 // Speargun harpoon with a rope that sags in flight and goes taut when stuck, Fire Extinguisher cone + foam
 // residue, Usta's Cleaver blade with swoosh, Chain Cyclone blades + pull ring, Cluster splits.
 // Drawn through P.WFx2.drawGround / drawAir. armPose supplies the spear and extinguisher arm animation.
@@ -58,14 +58,14 @@ P.WFx3 = (function () {
   // ---------- arm poses (hero back hand, called from WFx.heroBackHand) ----------
   // Returns true when it drew the arm. Spear: pulled back (0-0.4) then thrust (0.4-1). Extinguisher: braced, pushed.
   M.armPose = function (c, sh, u, f, skin, sleeve) {
-    if (anim.spear < 0.25) return spearArm(c, sh, u, skin, sleeve, anim.spear / 0.25);
-    if (anim.ext < 0.3) return extArm(c, sh, u, skin, sleeve, anim.ext / 0.3);
+    if (anim.spear < 0.25) return spearArm(c, sh, u, f, skin, sleeve, anim.spear / 0.25);
+    if (anim.ext < 0.3) return extArm(c, sh, u, f, skin, sleeve, anim.ext / 0.3);
     return false;
   };
 
-  function spearArm(c, sh, u, skin, sleeve, p) {
-    var sa = -anim.spearA, back = p < 0.4 ? p / 0.4 : 1 - (p - 0.4) / 0.6, reach = (0.34 - back * 0.22) * u;
-    var hx = sh.x + Math.cos(sa) * reach, hy = sh.y + Math.sin(sa) * reach;
+  function spearArm(c, sh, u, f, skin, sleeve, p) {
+    var sa = -anim.spearA + P.WFx.awayTilt(-anim.spearA, f), back = p < 0.4 ? p / 0.4 : 1 - (p - 0.4) / 0.6, reach = (0.34 - back * 0.22) * u;
+    var hx = sh.x + Math.cos(sa) * reach + P.WFx.awayShift(sa, f, u), hy = sh.y + Math.sin(sa) * reach;
     P.WFx.limbI(c, sh.x, sh.y, hx, hy, sleeve, 0.09 * u);
     c.save(); c.translate(hx, hy); c.rotate(sa);
     c.strokeStyle = '#7A5230'; c.lineWidth = 3; c.beginPath(); c.moveTo(-0.5 * u, 0); c.lineTo(0.7 * u, 0); c.stroke();
@@ -76,9 +76,9 @@ P.WFx3 = (function () {
     return true;
   }
 
-  function extArm(c, sh, u, skin, sleeve, p) {
-    var sa = -anim.extA, kick = Math.sin(Math.min(1, p) * Math.PI) * 0.1, reach = (0.36 - kick) * u;
-    var hx = sh.x + Math.cos(sa) * reach, hy = sh.y + Math.sin(sa) * reach;
+  function extArm(c, sh, u, f, skin, sleeve, p) {
+    var sa = -anim.extA + P.WFx.awayTilt(-anim.extA, f), kick = Math.sin(Math.min(1, p) * Math.PI) * 0.1, reach = (0.36 - kick) * u;
+    var hx = sh.x + Math.cos(sa) * reach + P.WFx.awayShift(sa, f, u), hy = sh.y + Math.sin(sa) * reach;
     P.WFx.limbI(c, sh.x, sh.y, hx, hy, sleeve, 0.09 * u);
     c.save(); c.translate(hx, hy); c.rotate(sa);
     c.fillStyle = '#D7263D'; c.strokeStyle = INK; c.lineWidth = 2;
@@ -149,10 +149,11 @@ P.WFx3 = (function () {
     });
   }
 
-  // Jagged bolt between two points; the jitter is re-rolled at 30 Hz from a seeded hash (replay-safe).
+  // Jagged bolt between two points. The jitter is re-rolled 3 times a second (design-system 11: a bright bolt at 30 Hz was a
+  // strobe) from a seeded hash, so it stays replay-safe; under Reduce flashing it holds one shape.
   function drawBolt(c, R, b, u, t) {
     var a = Math.max(0, 1 - b.t / b.T), n = 9, k, q, j, dx = b.x1 - b.x0, dy = b.y1 - b.y0, L = Math.hypot(dx, dy) || 1;
-    var nx = -dy / L, ny = dx / L, fr = Math.floor(t * 30), pts = [];
+    var nx = -dy / L, ny = dx / L, fr = (P.Settings && P.Settings.reduceFlash) ? 0 : Math.floor(t * 3), pts = [];
     for (k = 0; k <= n; k++) {
       q = k / n; j = (k === 0 || k === n) ? 0 : (hash(b.seed + k * 7.13 + fr * 3.1) - 0.5) * 0.5;
       pts.push([R.X(b.x0 + dx * q + nx * j), R.Y(b.y0 + dy * q + ny * j)]);

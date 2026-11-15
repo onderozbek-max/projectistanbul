@@ -87,6 +87,22 @@ Each loop has one hook, one thing the player does, and one number to watch.
 - Streak: counts days with at least one level played. **One free streak save per week.** No guilt copy.
 - Daily rewards are cosmetics, coins or story items. **No power.** Power comes from play (business-plan §5.1, principle 1).
 
+### 3.7 Replay notes: Nightmare and the Night Shift (R1-T4 part 18)
+
+- **Why these two.** Once a hood is cleared, the walk has no reason to come back to it. Nightmare gives a reason
+  (a fourth star, a moon per hood, the optional title at three moons) without new content. The Night Shift gives
+  a daily reason that does not depend on the daily challenge: its own seed, its own streak, its own best score.
+- **Guardrails.** Rewards come from play only: no timers, no wait, no spend. Nightmare never changes a Normal
+  run or Normal stars. A Night Shift never unlocks anything and never touches the Normal progress.
+- **Resolved (owner, delegated to the build lead).** The Night Shift's first run of the day pays **coins only** (fixed 60 plus a
+  streak chest). It pays no Street Cred, because Street Cred is an attribute currency and daily rewards never carry power (3.6).
+  Street Cred still comes from play (kills and clears), as in any run.
+- **What to watch (telemetry, GD §10).** `mode` on `level_start` and `level_end` (normal, nightmare, nightshift).
+  Nightmare: share of hoods cleared that start a Nightmare level, fourth-star rate, moons per active player.
+  Night Shift: share of active players who start the shift each day, day-streak length, survival median, and the
+  share of runs that reach the 12-minute cap. If the cap share is high, the ramp is too gentle; if the median is
+  under 5 minutes, it is too steep (`config-modes.js` `nightshift.ramp`).
+
 ---
 
 ## 4. The hook ladder: seven reasons to start the next run

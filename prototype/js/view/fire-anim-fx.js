@@ -234,7 +234,7 @@ P.FireAnimFx = P.FireAnimFx || {};
       c.beginPath(); c.arc(0, 0, 0.09, 0, TAU); c.fillStyle = 'rgba(255,200,80,0.28)'; c.fill();
       c.globalCompositeOperation = 'source-over';
       M.end(F);
-      M.star(F, x, y, 0.05 + 0.02 * Math.sin(p.t * 60), 'rgba(255,250,220,0.95)', p.t * 40);
+      M.star(F, x, y, 0.05 + 0.02 * Math.sin(Math.floor(p.t * 3) / 3 * 60), 'rgba(255,250,220,0.95)', p.t * 40);
     }
     for (j = 0; j < F.flights.length; j++) {
       f = F.flights[j];

@@ -16,10 +16,10 @@ P.Story = (function () {
   var SPK = {
     'spk.arda': { who: 'arda', side: 'l' }, 'spk.phone': { who: 'arda', side: 'l', mood: 'sad' },
     'spk.anne': { who: 'anne', side: 'r' }, 'spk.baba': { who: 'baba', side: 'r' }, 'spk.usta': { who: 'usta', side: 'r' },
-    'spk.friend': { who: 'friend', side: 'r' }, 'spk.kaan': { who: 'friend', side: 'r' },
+    'spk.friend': { who: 'kaan', side: 'r' }, 'spk.kaan': { who: 'kaan', side: 'r' },
     'spk.news': { who: 'news', side: 'r', mood: 'shout' },
     'spk.shop': { who: 'shopkeeper', side: 'r' }, 'spk.shopkeeper': { who: 'shopkeeper', side: 'r' },
-    'spk.ahmet': { who: 'shopkeeper', side: 'r' }, 'spk.mila': { who: 'stranger', side: 'r' },
+    'spk.ahmet': { who: 'ahmet', side: 'r' }, 'spk.mila': { who: 'mila', side: 'r' }, 'spk.dede': { who: 'dede', side: 'r' }, 'spk.ada': { who: 'ada', side: 'r' },
     'spk.stranger': { who: 'stranger', side: 'r' }, 'spk.zombie': { who: 'zombie', side: 'r', mood: 'shout' }
   };
   // Calls: [line prefix, line count, bars per line]. A last line at 0 bars ends in "Sinyal yok" (dropped).
@@ -27,7 +27,7 @@ P.Story = (function () {
     50: ['C50', 4, [0, 1, 1, 0]], 70: ['C70', 5, [1, 2, 2, 3, 3]], 90: ['C90', 5, [3, 4, 4, 4, 4]] };
   // L100 has no end page here: P.Finale (story/finale.js) plays the arrival comic from main.js finishWin.
   var PAGE_END = { 1: 'l1_outro', 5: 'l5_end', 20: 'kaan_join', 30: 'l30_end' };
-  // Campfire: Aksaray stage 4 (Aksaray is walk position 11 since v0.8, so its stage 4 is L54).
+  // Campfire: Haliç–Balat stage 4, Fatma Nine's garage (halic is walk position 11, so its stage 4 is L54; D-060).
   var PAGE_MID = { 54: 'campfire' };
   // Hood looks: three backgrounds and three tones per hood, keyed by hood id so a reorder keeps each look with its hood.
   var HOOD_LOOK = {
@@ -35,7 +35,7 @@ P.Story = (function () {
     karakoy: 'cafe street yard|warm night red', bridge: 'bridge bridge bridge|night cold red',
     eminonu: 'quay quay fishquay|warm warm night', sirkeci: 'hall tunnel hall|cold night cold',
     kapalicarsi: 'bazaar bazaar bazaar|warm warm night', beyazit: 'square square square|warm cold warm',
-    laleli: 'shopwin shopwin shopwin|cold night night', aksaray: 'road road road|night night red',
+    saray: 'square square walls|warm warm night', halic: 'shopwin yard fishquay|night warm night',
     kumkapi: 'fishquay fishquay fishquay|cold warm night', yenikapi: 'tunnel tunnel tunnel|night cold red',
     samatya: 'sea sea sea|warm cold warm', yedikule: 'walls walls walls|warm night night',
     zeytinburnu: 'yard yard yard|warm night red', kazlicesme: 'lawn lawn lawn|cold cold red',
@@ -45,13 +45,13 @@ P.Story = (function () {
 
   // ---------- lines ----------
   function bossSpeaker(key) {
-    return key === 'spk.b.atakoy' ? { who: 'shopkeeper', side: 'r', mood: 'sad' } : { who: 'zombie', side: 'r', mood: 'shout' };
+    return key === 'spk.b.atakoy' ? { who: 'ahmet', side: 'r', mood: 'sad' } : { who: 'zombie', side: 'r', mood: 'shout' };
   }
   // {who, side, mood, important} for a line, or null for narration and unknown lines.
   S.forLine = function (id) {
-    var L = P.LINES && P.LINES[id], base;
-    if (!L || L[0] === 'spk.cap') return null;
-    base = SPK[L[0]] || (L[0].indexOf('spk.b.') === 0 ? bossSpeaker(L[0]) : null);
+    var B = P.Dialogue.beat(id), spk = B && B.spk, base;
+    if (!B || spk === 'spk.cap') return null;
+    base = SPK[spk] || (spk.indexOf('spk.b.') === 0 ? bossSpeaker(spk) : null);
     if (!base) return null;
     return { who: base.who, side: base.side, mood: MOOD[id] || base.mood || 'neutral', important: !!IMPORTANT[id] };
   };
@@ -78,7 +78,7 @@ P.Story = (function () {
     });
     return pn(bg, tone, bustsFor(who), it, extra);
   }
-  function linesWith(prefix) { return Object.keys(P.LINES).filter(function (k) { return k.indexOf(prefix) === 0; }); }
+  function linesWith(prefix) { return P.Dialogue.ids(prefix); }
   function hoodPages() {
     var out = {};
     P.Journey.hoods.forEach(function (h, hi) {
@@ -161,5 +161,6 @@ P.Story = (function () {
     return false;
   };
   S.levelIndex = levelIndex;
+  P.Dialogue.onLang(function () { if (P.Comic && P.Comic.relang) P.Comic.relang(); });
   return S;
 })();

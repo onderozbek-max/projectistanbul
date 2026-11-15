@@ -10,7 +10,7 @@ P.SkillsFx = (function () {
   var pops = [];
   var ghosts = [], trail = [], ult = null, eye = null, banner = null, evo = null, vac = null, ghostT = 0, icons = {},
     slipSeen = [], slipDone = false,
-    kit = { convoy: null, horn: null };   // latest v0.5 ult payloads (lanes, car size, horn radius)
+    kit = { convoy: null, horn: null, tackle: null };   // latest v0.5 ult payloads (lanes, car size, horn radius)
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function noop() {}
 
@@ -34,7 +34,8 @@ P.SkillsFx = (function () {
         P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: 0.9, t: 0.3, T: 0.3, col: BLUE });
         P.Sfx.play('nearMiss', 150, { pan: pn });
         break;
-      case 'ult': if (ev.id === 'convoy' || ev.id === 'horn') startSweep(ev); else startUlt(ev); break;
+      case 'ult': if (ev.id === 'convoy' || ev.id === 'horn' || ev.id === 'tackle') startSweep(ev); else startUlt(ev); break;
+      case 'tackleStab': stabFx(ev, pn); break;
       case 'ultReady': P.Fx.letter(h.x, h.y + 1.4, P.t('ult.ready')); P.Sfx.play('ultReady', 300); break;
       case 'frenzy': if (ev.on) { showBanner('frenzy.on', 1.2); P.Sfx.play('frenzy', 300); } break;
       case 'nazarDodge':
@@ -85,6 +86,13 @@ P.SkillsFx = (function () {
     P.Sfx.play(ev.id === 'horn' ? 'ferryHorn' : 'bell', 300);
   }
 
+  // Tackle & Stab: a gold ring and a shake where the stab lands (the sim fires tackleStab once, at the end of Kaan's charge).
+  function stabFx(ev, pn) {
+    P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r, t: 0.35, T: 0.35, col: GOLD });
+    P.Fx.addTrauma(0.4);
+    P.Sfx.play('hit', 100, { pan: pn });
+  }
+
   // Dash-through: each enemy the dash passes within SLIP_R gets an afterimage at the contact; the third one
   // shouts SIYRILDI! once per dash. The cause is visible (the hero goes through the crowd, and the enemies live).
   function slipCheck(s) {
@@ -127,6 +135,7 @@ P.SkillsFx = (function () {
   // ---------- under the hero: afterimages, frenzy trail, cooldown ring ----------
   F.drawUnder = function (R, s) {
     var c = R.ctx, u = R.ppm, h = s.hero, X = R.X(h.x), Y = R.Y(h.y);
+    if (P.WTier) P.WTier.drawAura(R, s);
     c.save();
     ghosts.forEach(function (g) { drawGhost(c, R, g, u); });
     trail.forEach(function (q, k) {
@@ -157,7 +166,18 @@ P.SkillsFx = (function () {
     for (i = 0; i < list.length; i++) {
       if (list[i].kind === 'convoy') drawConvoy(c, R, list[i]);
       else if (list[i].kind === 'horn') drawHorn(c, R, list[i]);
+      else if (list[i].kind === 'tackle') drawTackle(c, R, list[i]);
     }
+  }
+
+  // Kaan's charge: a dashed lane from Arda to the landing point and Kaan himself running along it (view only; the sim owns the hit).
+  function drawTackle(c, R, w) {
+    var u = R.ppm, C = kit.tackle || P.CFG.ults.tackle, p = Math.min(1, w.t / w.T), hx = w.x0 + w.dx * C.dist * p, hy = w.y0 + w.dy * C.dist * p;
+    c.setLineDash([8, 8]); c.strokeStyle = 'rgba(' + GOLD + ',0.45)'; c.lineWidth = C.laneW * u * 0.5;
+    c.beginPath(); c.moveTo(R.X(w.x0), R.Y(w.y0)); c.lineTo(R.X(hx), R.Y(hy)); c.stroke();
+    c.setLineDash([]);
+    P.Sprites.person(c, R.X(hx), R.Y(hy - 0.25), { u: u * 1.22, face: w.dx >= 0 ? 1 : -1, phase: w.t * 14, skin: '#C98E6B', shirt: '#2F6B4F',
+      pants: '#22242E', hair: '#1B1B22', still: false, flash: 0, arms: 'idle', backHand: noop });
   }
 
   // Cars drive up the screen (world +y) from y0 to y0 + 2hh; the swept band stays behind each car.
@@ -295,12 +315,12 @@ P.SkillsFx = (function () {
       c.globalAlpha = 1;
     }
     c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
-    c.font = 'italic 900 ' + Math.round(H * 0.06) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
+    c.font = 'italic 900 ' + Math.round(H * 0.06) + 'px "CM Bangers", Bangers, Impact, sans-serif';
     c.lineWidth = 8; c.strokeStyle = INK; c.fillStyle = '#FFD166';
     c.strokeText(P.t('evo.title'), cx, H * 0.2); c.fillText(P.t('evo.title'), cx, H * 0.2);
-    c.font = 'italic 900 ' + Math.round(H * 0.045) + 'px "Avenir Next Condensed", "Arial Narrow", system-ui';
+    c.font = 'italic 900 ' + Math.round(H * 0.045) + 'px "CM Bangers", Bangers, Impact, sans-serif';
     c.lineWidth = 6; c.strokeText(P.t('item.' + e.to), cx, H * 0.66); c.fillStyle = '#FFFFFF'; c.fillText(P.t('item.' + e.to), cx, H * 0.66);
-    c.font = '600 16px system-ui'; c.lineWidth = 3;
+    c.font = '600 16px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.lineWidth = 3;
     var line = P.t('evo.from', { from: P.t('item.' + e.from), to: P.t('item.' + e.to) });
     c.strokeText(line, cx, H * 0.73); c.fillStyle = 'rgba(255,255,255,0.8)'; c.fillText(line, cx, H * 0.73);
     c.restore();

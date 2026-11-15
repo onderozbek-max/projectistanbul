@@ -35,6 +35,17 @@ P.Power = P.Power || {};
   // Hoods fully cleared before journey level `index` (1-based). Levels are sequential, so this is its hood index.
   W.hoodsBefore = function (index) { return Math.floor((clamp(Math.round(+index) || 1, 1, J.hoods.length * J.levelsPerHood) - 1) / J.levelsPerHood); };
 
+  // Street Tree perks the typical player owns at level `index`: Street Cred from lifetime kills (killsPerLevel per cleared
+  // level), spent down perkOrder on every perk whose attribute gate the expected rank meets and whose cost is affordable.
+  W.expectedPerks = function (index, attr) {
+    var E = C.expect, sc = P.Stats.scAt(Math.round(E.killsPerLevel * Math.max(0, (Math.round(+index) || 1) - 1))), out = [];
+    E.perkOrder.forEach(function (id) {
+      var n = P.Tree.node(id);
+      if (n && attr >= n.gate && n.cost <= sc) { out.push(id); sc -= n.cost; }
+    });
+    return out;
+  };
+
   // The typical player at level `index`: every number follows hoods cleared, and the rule for each is in config.
   W.expectedLoadout = function (index) {
     var E = C.expect, done = W.hoodsBefore(index), lvl = clamp(Math.round(1 + E.gearPerHood * done), 1, M.CFG.gear.maxLevel);
@@ -46,7 +57,7 @@ P.Power = P.Power || {};
       var owned = slot.items.filter(function (id) { var it = M.ITEMS[id]; return it && (!it.unlockAt || it.unlockAt <= index - 1); });
       if (owned.length) items.push({ id: owned[owned.length - 1], lvl: lvl });
     });
-    lo = { gear: W.gearWithHood(items, done), startWeapon: M.CFG.startWeapon, stats: stats, mastery: mastery, ult: E.ult, hero: 'arda', modifiers: [] };
+    lo = { gear: W.gearWithHood(items, done), startWeapon: M.CFG.startWeapon, stats: stats, mastery: mastery, perks: W.expectedPerks(index, attr), ult: E.ult, hero: 'arda', modifiers: [] };
     return lo;
   };
 

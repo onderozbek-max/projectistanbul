@@ -12,7 +12,7 @@
 //   centre: [{ x, y, kind, recipe, ev }]      3 x 3 m centre landmarks, kind 'cm_*' (view: layouts-centre.js);
 //                                             ev = ambush | loot | hack, fired by P.Layouts.trigger from a 'landmark' mark
 //   slots:  [{ x, y, zone }]                  free floor spots for env props (Lane A); zone = index in zones, -1 = street
-//   spawns: [{ x, y, side, kind }]            door | window | manhole spawn points (Lane A portals); side = -1 | 1
+//   spawns: [{ x, y, side, kind }]            door | window spawn points (Lane A portals); side = -1 | 1
 //   boss:   { type, cover } | null            arena cover for the boss stage (cover = piece kind)
 // Solids are AABBs in geo.blocks: { kind, x, y, w, h, rc }. kind is lx_* (view: layouts-fx.js), cm_* (layouts-centre.js),
 // bollard or tables (existing P.Props kinds). geo.zones = zones, geo.landmarks = centre.
@@ -202,19 +202,15 @@ function zoneAt(zones, y) {
   return -1;
 }
 
-// Door, window and manhole spawn points (s.layout.spawns), after the street blocks exist. Deterministic: no rng, so a
+// Door and window spawn points (s.layout.spawns), after the street blocks exist. Deterministic: no rng, so a
 // level always has the same points. Doors sit at the facade line on alternating sides, windows opposite and further up,
-// manholes on the centre lane. A point inside a solid is skipped.
+// A point inside a solid is skipped.
 P.Layouts.spawns = function (s) {
   var L = s.layout, G = s.geo, K = P.CFG.layouts.spawn, y, sd, i = 0;
   for (y = K.from; y < G.exitY - K.endGap; y += K.every, i++) {
     sd = i % 2 ? 1 : -1;
     addSpawn(G, L, sd * K.sideX, y, sd, 'door');
     addSpawn(G, L, -sd * K.sideX, y + K.winOff, -sd, 'window');
-  }
-  for (y = K.from + K.manholeOff, i = 0; y < G.exitY - K.endGap; y += K.manholeEvery, i++) {
-    sd = i % 2 ? 1 : -1;
-    addSpawn(G, L, sd * K.manholeX, y, sd, 'manhole');
   }
 };
 function addSpawn(G, L, x, y, sd, kind) {

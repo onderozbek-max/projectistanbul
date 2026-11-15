@@ -13,8 +13,10 @@ P.HoodCard = (function () {
     sirkeci: ['Sirkeci Garı 1890’da açıldı; Avrupa’dan gelen demiryolu hattının İstanbul’daki son durağıydı.', 'Sirkeci Station opened in 1890 as the Istanbul end of the railway line from Europe.'],
     kapalicarsi: ['Kapalıçarşı’da 60’tan fazla sokak ve binlerce dükkân vardır.', 'The Grand Bazaar has more than 60 streets and thousands of shops.'],
     beyazit: ['Sahaflar, eski kitapların satıldığı Beyazıt’ın ünlü sokağıdır.', 'Sahaflar is Beyazıt’s famous lane of second-hand books.'],
-    laleli: ['Laleli, 1980’lerden beri tekstil ve hazır giyim toptancılığıyla bilinir.', 'Laleli has been known for textile and ready-to-wear wholesale since the 1980s.'],
-    aksaray: ['Aksaray, minibüs, otobüs ve metro bağlantılarının kesiştiği büyük bir kavşaktır.', 'Aksaray is a major junction where minibus, bus and metro lines meet.'],
+    // TR owner check: the Turkish line below is a neutral placeholder; the owner writes the real text.
+    saray: ['Topkapı Sarayı, Osmanlı sultanlarının yaklaşık 400 yıl boyunca ana konutuydu.', 'Topkapı Palace was the main home of the Ottoman sultans for nearly 400 years.'],
+    // TR owner check: placeholder line, owner writes the real Turkish.
+    halic: ['Balat’ın renkli evleri, Haliç kıyısına inen dik sokaklara dizilidir.', 'Balat’s brightly painted houses climb steep lanes down to the Golden Horn.'],
     kumkapi: ['Kumkapı, meyhaneleri ve balık pazarıyla bilinen eski bir semttir.', 'Kumkapı is an old district known for its meyhanes and fish market.'],
     yenikapi: ['Yenikapı kazılarında Bizans dönemine ait ahşap gemi kalıntıları bulundu.', 'Excavations at Yenikapı uncovered wooden ship hulls from the Byzantine era.'],
     samatya: ['Samatya’nın ahşap evleri, eski Rum ve Ermeni mahallelerinin dokusunu taşır.', 'Samatya’s wooden houses keep the texture of its former Greek and Armenian neighbourhoods.'],
@@ -66,15 +68,20 @@ P.HoodCard = (function () {
     card.appendChild(fact);
     var p = plan(li);
     if (p) card.appendChild(p);
+    var pw = P.UIProgress && P.UIProgress.hoodNode(li);   // "Your power" strip and the next unlock (ui-progress.js)
+    if (pw) card.appendChild(pw);
     card.appendChild(el('div', 'hc-skip', tx('hc.skip')));
     card.setAttribute('data-sub', en() ? sub.en : sub.tr);
     return card;
   }
   // Objective and run condition of the level (lane P). Null on level 1, which has neither.
+  // R1-T4 part 18: the mode of the level on screen (H.show opts.mode). Nightmare adds one line to the plan.
+  var curMode = 'normal';
   function plan(li) {
-    var ob = P.Objectives && P.Objectives.forLevel(li), md = P.Modifiers && P.Modifiers.forLevel(li), box;
-    if (!ob && !md) return null;
+    var ob = P.Objectives && P.Objectives.forLevel(li), md = P.Modifiers && P.Modifiers.forLevel(li), nm = curMode === 'nightmare', box;
+    if (!ob && !md && !nm) return null;
     box = el('div', 'hc-plan');
+    if (nm) box.appendChild(el('div', 'hc-mode', tx('mode.nm.line', { m: tx('mode.nm.name') })));
     if (ob) box.appendChild(el('div', 'hc-obj', tx('hc.obj', { name: tx('obj.' + ob + '.title') })));
     if (md) box.appendChild(el('div', 'hc-mod', tx('hc.mod', { name: tx('hmod.' + md.id + '.name') })));
     return box;
@@ -100,6 +107,7 @@ P.HoodCard = (function () {
   // Show the card for a level. opts.big overrides the default (big at stage 1 only).
   H.show = function (li, opts, onDone) {
     var hood = li.hood, th = P.Themes.get(hood.theme), big = opts && typeof opts.big === 'boolean' ? opts.big : (li.stage || 1) === 1;
+    curMode = opts && opts.mode ? opts.mode : 'normal';
     H.hide();
     var ov = el('div', 'hc-overlay' + (big ? ' hc-big' : ' hc-small') + (still() ? ' hc-still' : ''));
     ov.appendChild(big ? bigCard(li, th, hood) : banner(li, th, hood));

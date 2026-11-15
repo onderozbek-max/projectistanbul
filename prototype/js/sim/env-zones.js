@@ -107,12 +107,13 @@ function slowEnemies(s) {
   }
 }
 
+// The hero's wet-tile slow (pace.1 and pace.3 are read through P.Skills.wetSlowOn).
 function heroWet(s) {
-  var E = s.env, Z = E.zones, h = s.hero, C = P.CFG.env.puddle, m = 1;
+  var E = s.env, Z = E.zones, h = s.hero, C = P.CFG.env.puddle, inside = false;
   for (var i = 0; i < Z.length; i++) {
-    if (Z[i].kind === 'puddle' && Math.hypot(h.x - Z[i].x, h.y - Z[i].y) <= Z[i].r) { m = 1 - C.heroSlow; break; }
+    if (Z[i].kind === 'puddle' && Math.hypot(h.x - Z[i].x, h.y - Z[i].y) <= Z[i].r) { inside = true; break; }
   }
-  E.heroMul = m;
+  E.heroMul = P.Skills.wetSlowOn(s, 'dryPud', inside) ? 1 - C.heroSlow : 1;
 }
 
 P.EnvZones.step = function (s, dt) {

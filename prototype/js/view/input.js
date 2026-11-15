@@ -10,6 +10,9 @@ P.Input = (function () {
     dashReq: false, ultReq: false, skillReq: false, dashDir: null };
   var joy, phone, pid = null, base = null, RADIUS = 31, DEAD = 0.08, DESIGN_H = 844;
   var trail = null, lastTap = null;
+  // A finger that held the stick when an overlay (pause, cards, chest, story page) called reset() while it was still down.
+  // The stick is not lost: when play resumes and that finger moves, the stick re-anchors on it (no jump, no baby steps).
+  var held = null;
   // Clock for taps and flicks (replaced in tests so swipe timing is scripted).
   I.now = function () { return performance.now(); };
 
@@ -22,15 +25,13 @@ P.Input = (function () {
       if (!I.enabled || e.target.closest('button')) return;
       tapCheck(p, now);
       if (pid !== null || p.y < 0.4 * DESIGN_H || !sideOk(p.x)) return;
-      pid = e.pointerId; base = p;
-      try { phone.setPointerCapture(pid); } catch (err) { /* synthetic events */ }
-      joy.style.left = p.x + 'px'; joy.style.top = p.y + 'px';
-      joy.classList.remove('hidden');
-      setKnob(0, 0);
+      held = null;
+      spawn(e.pointerId, p);
     });
     phone.addEventListener('pointermove', function (e) {
       var p = toLocal(e);
       if (trail && e.pointerId === trail.id && I.enabled) flickCheck(p, I.now());
+      if (pid === null && held !== null && e.pointerId === held && I.enabled) { held = null; spawn(e.pointerId, p); }
       if (e.pointerId !== pid) return;
       var dx = p.x - base.x, dy = p.y - base.y, d = Math.hypot(dx, dy);
       var k = d > RADIUS ? RADIUS / d : 1;
@@ -41,6 +42,7 @@ P.Input = (function () {
     });
     function end(e) {
       if (trail && e.pointerId === trail.id) trail = null;
+      if (held !== null && e.pointerId === held) held = null;
       if (e.pointerId !== pid) return;
       pid = null; I.vec.x = 0; I.vec.y = 0;
       joy.classList.add('hidden');
@@ -60,6 +62,15 @@ P.Input = (function () {
   };
 
   function setKnob(x, y) { joy.firstElementChild.style.transform = 'translate(' + x + 'px,' + y + 'px)'; }
+
+  // The stick belongs to pointer id, anchored where it landed (design px). The knob starts centred, so the first move is never a jump.
+  function spawn(id, p) {
+    pid = id; base = p; I.vec.x = 0; I.vec.y = 0;
+    try { phone.setPointerCapture(pid); } catch (err) { /* synthetic events */ }
+    joy.style.left = p.x + 'px'; joy.style.top = p.y + 'px';
+    joy.classList.remove('hidden');
+    setKnob(0, 0);
+  }
 
   // Handedness: the stick spawns only in the chosen part of the screen (x in design points).
   function sideOk(x) {
@@ -104,6 +115,7 @@ P.Input = (function () {
   I.requestSkill = function () { if (I.enabled) I.skillReq = true; };
 
   I.reset = function () {
+    if (pid !== null) held = pid;
     pid = null; I.vec.x = 0; I.vec.y = 0; joy && joy.classList.add('hidden');
     I.dashReq = false; I.ultReq = false; I.skillReq = false; I.dashDir = null; trail = null; lastTap = null;
   };

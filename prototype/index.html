@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Project Istanbul · Level 1 prototype</title>
+<link rel="stylesheet" href="css/motion.css">
 <link rel="stylesheet" href="css/proto.css">
 <link rel="stylesheet" href="css/meta.css">
 <link rel="stylesheet" href="css/comic.css">
 <link rel="stylesheet" href="css/hood.css">
+<link rel="stylesheet" href="css/progress.css">
+<link rel="stylesheet" href="css/modes.css">
 </head>
 <body>
 <main id="stage">
@@ -16,19 +19,23 @@
     <canvas id="game" aria-hidden="true"></canvas>
 
     <!-- In-run HUD (design/lofi/04-run-hud.html, DS 5, 13; AUDIT-7 U1). Two rows and an XP line, about 18% of 844 pt:
-         row 1 = HP, hood, timer, pause; XP line = level, XP, streak; row 2 = objective (the boss bar replaces it in a boss
-         fight) or the call strip (icon + one line). -->
+         row 1 = HP, journey level (BÖLÜM n/100 over the hood, two lines), timer, pause; XP line = Adrenalin (the in-run level,
+         a bolt and a number), Street Cred, XP, streak; row 2 = objective (the boss bar replaces it
+         in a boss fight) or the call strip (icon + one line). At 150% text, settings.js (P.applySettings) moves Street Cred
+         into row 2 so the streak chip keeps the XP bar at least 120 px wide (T4 part 8). -->
+    <div class="mode-vignette" id="mode-vignette" aria-hidden="true"></div>
     <header id="hud" class="hud hidden">
       <div class="hud-row top">
         <div class="hp">
           <div class="hp-bar"><div class="hp-trail" id="hp-trail"></div><div class="hp-fill" id="hp-fill"></div><div class="hp-ticks"></div><span class="hp-text" id="hp-text">100 / 100</span></div>
         </div>
-        <span class="chip small lvl-chip" id="lvl-chip"></span>
+        <span class="chip lvl-chip" id="lvl-chip"><span class="jl-num" id="jl-num"></span><span class="jl-hood" id="jl-hood"></span><i class="hud-moon hidden" id="hud-moon" role="img"></i></span>
         <span class="chip" id="timer">0:00</span>
         <button class="btn-icon" id="btn-pause" data-i18n-aria="ui.hud.pause"><span class="pause-glyph"></span></button>
       </div>
       <div class="hud-xp">
-        <span class="chip" id="lv">Lv 1</span>
+        <span class="chip adr-chip" id="lv" role="img" aria-label="Adrenalin 1"><svg class="adr-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M13.5 1.5 4 13.5h6.2l-1.6 9 10.4-12.9h-6.3z"/></svg><span id="lv-num">1</span></span>
+        <span class="sk-meter" id="sk-meter"><svg class="sk-ico" viewBox="0 0 24 24" aria-hidden="true"><polygon fill="#FFD166" stroke="#14151F" stroke-width="2" points="12,1.5 15,9 23,9 16.5,14 19,22.5 12,17.5 5,22.5 7.5,14 1,9 9,9"/></svg><span class="sk-label" id="sk-label"></span><span class="sk-track"><i id="sk-fill"></i></span></span>
         <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
         <div class="streak hidden" id="streak"><span id="streak-label"></span><span class="streak-bar"><i id="streak-fill"></i></span></div>
       </div>
@@ -42,6 +49,8 @@
     <div id="subs" class="subs hidden" aria-live="polite"><b id="subs-speaker"></b><span id="subs-text"></span></div>
     <div id="prompt" class="prompt hidden"><span id="prompt-text"></span></div>
     <div id="toast" class="toast hidden"></div>
+    <!-- Level-up banner (T4 part 5): non-blocking, 1.2 s, no taps. Text from ui-progress.js. -->
+    <div id="lvl-banner" class="lvl-banner hidden" role="status" aria-live="polite"><b id="lvl-title"></b><span id="lvl-line"></span></div>
     <div id="joy" class="joy hidden" aria-hidden="true"><div class="knob"></div></div>
     <div id="skills" class="skills hidden">
       <div class="dash-chip" id="dash-chip" aria-hidden="true"><span class="dash-fill" id="dash-fill"></span><b data-i18n="ui.hud.dash"></b><small class="dash-sec" id="dash-sec"></small></div>
@@ -78,7 +87,7 @@
     <!-- 05 Level up -->
     <section id="scr-cards" class="screen overlay hidden">
       <div class="center-stack">
-        <h2 class="display light" data-i18n="ui.cards.title"></h2>
+        <h2 class="display light" id="cards-title"></h2>
         <p class="caption light" id="cards-sub"></p>
         <p class="tut-pill hidden" id="cards-tut" data-i18n="prompt.t_card"></p>
         <div class="cards" id="cards"></div>
@@ -137,6 +146,7 @@
     <section id="scr-settings" class="screen light-bg hidden">
       <div class="row between"><button class="btn ghost square" id="btn-settings-back" data-i18n-aria="ui.set.back">←</button>
         <h2 class="h1" data-i18n="ui.set.title"></h2><span class="square"></span></div>
+      <button class="btn ghost wide small-btn hidden" id="btn-settings-export" data-i18n="ui.pause.export"></button>
       <div class="list" id="settings-list"></div>
       <p class="caption light" id="settings-note"></p>
     </section>
@@ -146,6 +156,7 @@
       <div class="center-stack">
         <h2 class="display light" data-i18n="ui.down.title"></h2>
         <p class="caption light" id="down-survived"></p>
+        <p class="body light down-line" id="down-line"></p>
         <div class="panel row gap">
           <div class="icon-box" id="down-icon"></div>
           <div><p class="caption" data-i18n="ui.down.cause"></p><p class="title" id="down-cause"></p><p class="body" id="down-tip"></p></div>
@@ -170,19 +181,30 @@
 
     <!-- 08 Results -->
     <section id="scr-results" class="screen light-bg hidden">
-      <div class="center-block">
-        <p class="caption" id="res-label"></p>
-        <h2 class="display" id="res-title"></h2>
-        <div class="stars" id="res-stars"></div>
-        <p class="caption" id="res-criteria"></p>
+      <!-- Head, rewards and recap scroll in .res-body (at 150% text, and with the objective panel); the actions are a footer
+           under it, so they never cover text. -->
+      <div class="res-body">
+        <div class="center-block">
+          <p class="caption" id="res-label"></p>
+          <h2 class="display" id="res-title"></h2>
+          <div class="stars" id="res-stars"></div>
+          <p class="caption" id="res-criteria"></p>
+          <p class="pw-strip" id="res-power"></p>
+        </div>
+        <div class="panel" id="res-rewards"></div>
+        <div class="panel res-recap" id="res-recap"></div>
+        <!-- Anchor only, never shown: objectives-hud.js inserts its results panel right after this element. The time and walk
+             rows are in the recap now (ui-progress.js). -->
+        <div id="res-run" class="hidden"></div>
       </div>
-      <div class="panel" id="res-rewards"></div>
-      <div class="panel" id="res-run"></div>
-      <div class="spacer"></div>
-      <button class="btn secondary wide" id="btn-double" disabled></button>
-      <button class="btn primary wide" id="btn-next" data-i18n="ui.res.next"></button>
-      <button class="btn secondary wide" id="btn-retry" data-i18n="ui.res.retry"></button>
-      <button class="btn ghost wide" id="btn-to-title" data-i18n="ui.res.title"></button>
+      <div class="res-actions">
+        <button class="btn secondary wide" id="btn-double" disabled></button>
+        <button class="btn primary wide" id="btn-next" data-i18n="ui.res.next"></button>
+        <div class="row gap">
+          <button class="btn secondary grow" id="btn-retry" data-i18n="ui.res.retry"></button>
+          <button class="btn ghost light grow" id="btn-to-title" data-i18n="ui.res.title"></button>
+        </div>
+      </div>
     </section>
   </div>
 </main>
@@ -190,18 +212,30 @@
 <script src="js/config.js"></script>
 <script src="js/config-weapons.js"></script>
 <script src="js/config-levels.js"></script>
+<script src="js/config-modes.js"></script>
 <script src="js/config-layouts.js"></script>
 <script src="js/config-enemies3.js"></script>
 <script src="js/config-bosses.js"></script>
 <script src="js/config-enemies4.js"></script>
+<script src="js/config-enemies5.js"></script>
+<script src="js/config-enemy-look.js"></script>
+<script src="js/config-fauna.js"></script>
+<script src="js/config-skins.js"></script>
 <script src="js/config-stats.js"></script>
+<script src="js/config-tree.js"></script>
+<script src="js/config-bond.js"></script>
+<script src="js/config-perks.js"></script>
 <script src="js/config-power.js"></script>
+<script src="js/config-feel.js"></script>
 <script src="js/config-weapons2.js"></script>
 <script src="js/config-weapons3.js"></script>
+<script src="js/config-weapon-tiers.js"></script>
 <script src="js/config-env.js"></script>
 <script src="js/config-objectives.js"></script>
 <script src="js/config-modifiers.js"></script>
 <script src="js/config-horde.js"></script>
+<script src="js/config-arena-evolve.js"></script>
+<script src="js/view/hints-config.js"></script>
 <script src="js/strings.js"></script>
 <script src="js/journey.js"></script>
 <script src="js/strings-weapons.js"></script>
@@ -210,19 +244,26 @@
 <script src="js/strings-journey.js"></script>
 <script src="js/strings-enemies3.js"></script>
 <script src="js/strings-enemies4.js"></script>
+<script src="js/strings-enemies5.js"></script>
 <script src="js/strings-weapons2.js"></script>
 <script src="js/strings-weapons3.js"></script>
 <script src="js/meta/strings-meta2.js"></script>
-<script src="js/story/strings-barks.js"></script>
+<script src="js/strings-modes.js"></script>
+<script src="js/meta/strings-tree.js"></script>
 <script src="js/strings-feel.js"></script>
+<script src="js/strings-moments.js"></script>
 <script src="js/strings-env.js"></script>
+<script src="js/strings-signs.js"></script>
 <script src="js/strings-progress.js"></script>
 <script src="js/strings-ui2.js"></script>
 <script src="js/strings-cards.js"></script>
 <script src="js/strings-horde.js"></script>
+<script src="js/strings-progress-ui.js"></script>
+<script src="js/strings-hints.js"></script>
 <script src="js/sim/rng.js"></script>
 <script src="js/sim/world.js"></script>
 <script src="js/sim/combat.js"></script>
+<script src="js/sim/perks.js"></script>
 <script src="js/sim/weapons.js"></script>
 <script src="js/sim/weapons2.js"></script>
 <script src="js/sim/weapons3.js"></script>
@@ -236,6 +277,11 @@
 <script src="js/sim/layouts.js"></script>
 <script src="js/sim/levels.js"></script>
 <script src="js/sim/enemies3.js"></script>
+<script src="js/sim/skins.js"></script>
+<script src="js/sim/skins-fisher.js"></script>
+<script src="js/sim/enemies4.js"></script>
+<script src="js/sim/enemies4-marti.js"></script>
+<script src="js/sim/enemies4-cayci.js"></script>
 <script src="js/sim/events.js"></script>
 <script src="js/sim/events-kinds.js"></script>
 <script src="js/sim/env.js"></script>
@@ -243,6 +289,7 @@
 <script src="js/sim/env-zones.js"></script>
 <script src="js/sim/env-rules.js"></script>
 <script src="js/sim/env-portal.js"></script>
+<script src="js/sim/eczane.js"></script>
 <script src="js/sim/hack.js"></script>
 <script src="js/sim/modifiers.js"></script>
 <script src="js/sim/objectives.js"></script>
@@ -252,18 +299,22 @@
 <script src="js/sim/horde.js"></script>
 <script src="js/sim/director.js"></script>
 <script src="js/sim/sim.js"></script>
+<script src="js/sim/modes.js"></script>
 <script src="js/view/settings.js"></script>
 <script src="js/view/icons.js"></script>
 <script src="js/view/icons-evo.js"></script>
 <script src="js/view/sfx-bank.js"></script>
 <script src="js/view/sfx-bank2.js"></script>
 <script src="js/view/sfx.js"></script>
+<script src="js/view/sfx-gen.js"></script>
 <script src="js/view/music.js"></script>
 <script src="js/view/telemetry.js"></script>
 <script src="js/view/indoor.js"></script>
 <script src="js/view/speech.js"></script>
 <script src="js/view/fx.js"></script>
+<script src="js/view/quality.js"></script>
 <script src="js/view/render.js"></script>
+<script src="js/view/death-beat.js"></script>
 <script src="js/view/render-world.js"></script>
 <script src="js/view/restaurant-props.js"></script>
 <script src="js/view/restaurant-art.js"></script>
@@ -274,14 +325,27 @@
 <script src="js/view/art-enemies3.js"></script>
 <script src="js/view/art-enemies4.js"></script>
 <script src="js/view/art-enemies5.js"></script>
+<script src="js/view/art-enemies6.js"></script>
+<script src="js/view/art-bosses.js"></script>
+<script src="js/view/art-enemy-look.js"></script>
+<script src="js/view/art-enemy-bosses.js"></script>
+<script src="js/view/art-raster.js"></script>
+<script src="js/view/art-raster-chars.js"></script>
+<script src="js/view/art-raster-world.js"></script>
+<script src="js/view/art-raster-items.js"></script>
 <script src="js/view/portraits.js"></script>
 <script src="js/view/weapons-fx.js"></script>
+<script src="js/view/feel.js"></script>
+<script src="js/view/moments.js"></script>
+<script src="js/view/moments-screen.js"></script>
+<script src="js/view/vehicles.js"></script>
 <script src="js/view/weapons-fx2.js"></script>
 <script src="js/view/skills-fx.js"></script>
 <script src="js/view/skill-button.js"></script>
 <script src="js/view/weapons-fx3.js"></script>
 <script src="js/view/enemies-fx.js"></script>
 <script src="js/view/enemies-fx2.js"></script>
+<script src="js/view/enemies-fx-w1.js"></script>
 <script src="js/view/weapons-fx4.js"></script>
 <script src="js/view/fire-anim-prim.js"></script>
 <script src="js/view/fire-anim-held.js"></script>
@@ -293,23 +357,53 @@
 <script src="js/view/fire-anim-held4.js"></script>
 <script src="js/view/fire-anim-fx4.js"></script>
 <script src="js/view/fire-anim.js"></script>
+<script src="js/view/weapon-sil-prim.js"></script>
+<script src="js/view/weapon-sil.js"></script>
+<script src="js/view/weapon-sil-evo.js"></script>
+<script src="js/view/weapon-tiers.js"></script>
 <script src="js/view/events-fx.js"></script>
+<script src="js/view/consumables-icons.js"></script>
+<script src="js/view/consumables.js"></script>
+<script src="js/view/consumables-zone.js"></script>
+<script src="js/view/perk-mark.js"></script>
 <script src="js/view/istanbul.js"></script>
 <script src="js/view/istanbul-props.js"></script>
 <script src="js/view/istanbul-props2.js"></script>
 <script src="js/view/istanbul-props-env.js"></script>
 <script src="js/view/env-fx.js"></script>
+<script src="js/view/fauna-art.js"></script>
+<script src="js/view/fauna.js"></script>
+<script src="js/view/arena-art-data.js"></script>
+<script src="js/view/arena-art.js"></script>
+<script src="js/view/arena-props-data.js"></script>
+<script src="js/view/arena-props.js"></script>
+<script src="js/view/galata-props.js"></script>
+<script src="js/view/bridge-props.js"></script>
+<script src="js/view/arena-overhead-data.js"></script>
+<script src="js/view/arena-overhead.js"></script>
+<script src="js/view/saray-props.js"></script>
+<script src="js/view/arena-sky-data.js"></script>
+<script src="js/view/arena-sky.js"></script>
+<script src="js/view/arena-evolve.js"></script>
+<script src="js/view/arena-evolve-decals.js"></script>
 <script src="js/view/istanbul-themes.js"></script>
 <script src="js/view/istanbul-landmarks.js"></script>
 <script src="js/view/layouts-fx.js"></script>
 <script src="js/view/layouts-centre.js"></script>
 <script src="js/view/hood-card.js"></script>
+<script src="js/view/modes-ui.js"></script>
 <script src="js/view/objectives-hud.js"></script>
 <script src="js/view/input.js"></script>
 <script src="js/view/ui.js"></script>
+<script src="js/view/ui-motion.js"></script>
+<script src="js/view/ui-progress.js"></script>
+<script src="js/view/hints.js"></script>
+<script src="js/view/hints-detect.js"></script>
+<script src="js/view/hints-view.js"></script>
 <script src="js/view/screens.js"></script>
 <script src="js/view/coldopen.js"></script>
 <script src="js/view/comic-busts.js"></script>
+<script src="js/view/comic-busts-hair.js"></script>
 <script src="js/view/comic-busts-cast.js"></script>
 <script src="js/view/comic-art.js"></script>
 <script src="js/view/comic-text.js"></script>
@@ -318,26 +412,53 @@
 <script src="js/view/finale-scenes.js"></script>
 <script src="js/view/finale-approach.js"></script>
 <script src="js/view/finale-credits.js"></script>
-<script src="js/story/strings-barks-tr.js"></script>
-<script src="js/story/strings-barks-en.js"></script>
-<script src="js/story/story-lang-tr.js"></script>
-<script src="js/story/story-lang-en.js"></script>
-<script src="js/story/lang-apply.js"></script>
+<script src="js/story/strings-finale.js"></script>
+<script src="js/dialogue/dialogue.js"></script>
+<script src="js/dialogue/beats-core.js"></script>
+<script src="js/dialogue/beats-story-hoods.js"></script>
+<script src="js/dialogue/beats-barks.js"></script>
+<script src="js/dialogue/batches.js"></script>
+<script src="js/dialogue/intents.js"></script>
+<script src="js/dialogue/tr/barks-cards.js"></script>
+<script src="js/dialogue/tr/barks-combat.js"></script>
+<script src="js/dialogue/tr/barks-hoods-01-10.js"></script>
+<script src="js/dialogue/tr/barks-hoods-11-20.js"></script>
+<script src="js/dialogue/tr/barks-world.js"></script>
+<script src="js/dialogue/tr/cards-flavour.js"></script>
+<script src="js/dialogue/tr/core.js"></script>
+<script src="js/dialogue/tr/finale.js"></script>
+<script src="js/dialogue/tr/story-hoods-01-10.js"></script>
+<script src="js/dialogue/tr/story-hoods-11-20.js"></script>
+<script src="js/dialogue/tr/story-levels.js"></script>
+<script src="js/dialogue/en/barks-cards.js"></script>
+<script src="js/dialogue/en/barks-combat.js"></script>
+<script src="js/dialogue/en/barks-hoods-01-10.js"></script>
+<script src="js/dialogue/en/barks-hoods-11-20.js"></script>
+<script src="js/dialogue/en/barks-world.js"></script>
+<script src="js/dialogue/en/cards-flavour.js"></script>
+<script src="js/dialogue/en/core.js"></script>
+<script src="js/dialogue/en/finale.js"></script>
+<script src="js/dialogue/en/story-hoods-01-10.js"></script>
+<script src="js/dialogue/en/story-hoods-11-20.js"></script>
+<script src="js/dialogue/en/story-levels.js"></script>
 <script src="js/story/story-data.js"></script>
 <script src="js/story/barks.js"></script>
-<script src="js/story/finale-lang-tr.js"></script>
-<script src="js/story/finale-lang-en.js"></script>
 <script src="js/story/finale-data.js"></script>
 <script src="js/story/finale.js"></script>
 <script src="js/meta/meta-save.js"></script>
 <script src="js/meta/meta-data.js"></script>
 <script src="js/meta/meta-unlocks.js"></script>
 <script src="js/meta/meta-power.js"></script>
+<script src="js/meta/meta-progress.js"></script>
 <script src="js/meta/meta-daily.js"></script>
+<script src="js/meta/meta-modes.js"></script>
+<script src="js/meta/meta-nightshift.js"></script>
 <script src="js/meta/meta-collect.js"></script>
 <script src="js/meta/meta-map.js"></script>
 <script src="js/meta/meta-gear.js"></script>
 <script src="js/meta/meta-stats.js"></script>
+<script src="js/meta/meta-bond-ui.js"></script>
+<script src="js/meta/meta-tree.js"></script>
 <script src="js/meta/meta-arsenal.js"></script>
 <script src="js/meta/meta-hub.js"></script>
 <script src="js/meta/meta-ui.js"></script>

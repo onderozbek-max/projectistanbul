@@ -9,7 +9,7 @@ P.Meta = P.Meta || {};
 
   // ---- Named constants (economy, progression, gear) ----
   M.CFG = {
-    storageKey: 'nsi.meta.v2', levelCount: LEVELS, levelsPerHood: J.levelsPerHood, hoodCount: J.hoods.length,
+    storageKey: 'nsi.meta.v3', levelCount: LEVELS, levelsPerHood: J.levelsPerHood, hoodCount: J.hoods.length,
     totalKm: J.totalKm, startWeapon: 'knife', starsMax: 3, masteryBadgeRank: 5,
     coins: {
       clearBase: 40,        // clear reward = clearBase + clearPerLevel * level (GD 8.7)
@@ -97,13 +97,18 @@ P.Meta = P.Meta || {};
     for (var i = 1; i <= LEVELS; i++) if (!M.isCleared(i)) return i;
     return LEVELS;
   };
-  // Map view state: done = fully cleared hoods, cur = hood the token stands on, km = walked distance.
+  // Map view state: done = fully cleared hoods, cur = hood the token stands on. km = the saved walk (the km of the last
+  // cleared hood, unchanged). kmShown = km plus the share of the next hood walked (levels cleared / levelsPerHood), a
+  // display value only: nothing saved or tested reads it as distance.
   M.snapshot = function () {
-    var s = load(), n = J.hoods.length, done = 0, curDone = 0, k;
+    var s = load(), n = J.hoods.length, done = 0, curDone = 0, k, km, next, frac;
     while (done < n && M.hoodCleared(done)) done++;
     if (done < n) for (k = 1; k <= J.levelsPerHood; k++) if (M.isCleared(M.levelAt(done, k))) curDone++;
+    km = done > 0 ? J.hoods[done - 1].km : 0;
+    next = done < n ? J.hoods[done].km : km;
+    frac = done >= n ? 1 : curDone / J.levelsPerHood;
     return { done: done, cur: Math.min(done, n - 1), curDone: done >= n ? J.levelsPerHood : curDone,
-      km: done > 0 ? J.hoods[done - 1].km : 0, unlocked: s.unlocked, coins: s.coins };
+      km: km, kmShown: km + (next - km) * frac, unlocked: s.unlocked, coins: s.coins };
   };
 
   // ---- Rewards ----
@@ -205,10 +210,12 @@ P.Meta = P.Meta || {};
     var t = M.CFG.ultKills;
     return i < t.length ? t[i] : t[t.length - 1] + (i - t.length + 1) * 10000;
   };
+  // A bond ult (cfg.bond = meter value) unlocks by Kaan's bond; the others by lifetime kills. needBond is set for bond ults only.
   M.ults = function () {
     var s = load(), ids = M.ultIds();
     return ids.map(function (id, i) {
-      var need = M.ultUnlockKills(i);
+      var U = (P.CFG.ults && P.CFG.ults[id]) || {}, need = M.ultUnlockKills(i);
+      if (U.bond) return { id: id, index: i, need: 0, needBond: U.bond, unlocked: (s.bonds.kaan | 0) >= U.bond };
       return { id: id, index: i, need: need, unlocked: s.counters.kills >= need };
     });
   };
@@ -238,8 +245,48 @@ P.Meta = P.Meta || {};
     var s = load(), h = s.heroes[hero || 'arda'], next = P.Stats.allocate(h.stats, draft);
     if (!next) return false;
     h.stats = next; save();
+    Object.keys(draft || {}).forEach(function (k) {
+      if (draft[k] > 0) tel('meta_upgrade', { type: 'attribute', id: k, cost: 0, points: draft[k], rank_after: next.attr[k] });
+    });
     return true;
   };
+
+  // ---- Telemetry (game-design 10): the meta layer reports through M.onTel(event, fields), set by view/telemetry.js (P.Tel.log).
+  // Headless tools set their own. No hook, no event, and the save is identical either way. ----
+  function tel(event, fields) { if (typeof M.onTel === 'function') M.onTel(event, fields); }
+  function scFlow(delta, source, balance) { tel('currency_flow', { currency: 'street_cred', delta: delta, source_or_sink: source, balance_after: balance }); }
+
+  // ---- Street Tree (D-059): learn and respec persist the hero's Street Cred and the tree together ----
+  M.treeState = function () {
+    var s = load(), ch = String(P.CFG.tree.chapter);
+    return { learned: Object.assign({}, s.tree.learned), sc: s.heroes.arda.stats.sc | 0, ranks: Object.assign({}, s.heroes.arda.stats.attr),
+      respecUsed: (s.tree.respecs[ch] | 0) >= P.CFG.tree.respecPerChapter, spent: P.Tree.spent(s.tree) };
+  };
+  M.treeLearn = function (id) {
+    var s = load(), r = P.Tree.learn(s.heroes.arda.stats, s.tree, id), n = P.Tree.node(id);
+    if (!r) return false;
+    s.heroes.arda.stats = r.prog; s.tree = r.tree; save();
+    tel('perk_learned', { perk_id: id, cost: n.cost, attr_rank: r.prog.attr[n.attr], sc_after: r.prog.sc });
+    scFlow(-n.cost, 'perk_learned', r.prog.sc);
+    return true;
+  };
+  // Returns the refunded Street Cred, or 0 when the chapter's free respec is used or nothing is learned.
+  M.treeRespec = function () {
+    var s = load(), cleared = Object.keys(s.tree.learned).length, r = P.Tree.respec(s.heroes.arda.stats, s.tree);
+    if (!r) return 0;
+    s.heroes.arda.stats = r.prog; s.tree = r.tree; save();
+    tel('perk_respec', { refunded: r.refunded, perks_cleared: cleared, chapter: P.CFG.tree.chapter, sc_after: r.prog.sc });
+    scFlow(r.refunded, 'respec_refund', r.prog.sc);
+    return r.refunded;
+  };
+
+  // ---- Companion bonds (config-bond.js): Kaan only in the slice ----
+  M.bondState = function () {
+    var s = load(), v = s.bonds.kaan | 0;
+    return { kaan: { value: v, tier: P.Bond.tier(v), joined: P.Bond.joined(s.stars), max: P.CFG.tree.bondMax } };
+  };
+  // Kaan's passive aura (threshold 25): the loadout carries bondHpPct, the sim adds it to max HP.
+  function bondAura(s) { return P.Bond.joined(s.stars) && P.Bond.tier(s.bonds.kaan | 0) >= 1 ? P.CFG.bond.kaan.auraHpPct : 0; }
 
   // ---- Run options (daily modifiers etc.) ----
   // beginRun(opts) remembers opts for the next loadout(). openDaily() calls it. opts: {daily, modifiers, seed}.
@@ -248,11 +295,13 @@ P.Meta = P.Meta || {};
 
   // ---- Loadout for createSim (contract: gear, startWeapon, stats, mastery, ult, hero, modifiers) ----
   // Equipped gear (capped per stat) plus the hood-rank power (config-power.js). Shared maths: meta-power.js.
-  function gearSum(s) {
-    var items = [];
+  // Equipped items as [{id, lvl}]: the input of P.Power.gearWithHood (the loadout) and P.Power.gearTotal (the power readout).
+  M.gearItems = function () {
+    var s = load(), items = [];
     M.SLOTS.forEach(function (slot) { var id = s.equipped[slot.id]; if (id) items.push({ id: id, lvl: s.gear[id].lvl }); });
-    return P.Power.gearWithHood(items, M.snapshot().done);
-  }
+    return items;
+  };
+  function gearSum() { return P.Power.gearWithHood(M.gearItems(), M.snapshot().done); }
   function masteryRanks(s) {
     var out = {};
     Object.keys(s.mastery).forEach(function (w) { out[w] = M.masteryRank(w, s.mastery[w]); });
@@ -262,15 +311,17 @@ P.Meta = P.Meta || {};
     var s = load(), hero = s.heroes.arda, o = opts || activeRun || {}, ults = M.ults(), ult = hero.ult, lo;
     var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
-    lo = { gear: gearSum(s), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
-      mastery: masteryRanks(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared) };
+    lo = { gear: gearSum(), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
+      mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), bonds: { kaan: P.Bond.joined(s.stars) ? s.bonds.kaan | 0 : 0 }, bondHpPct: bondAura(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared),
+      mode: o.mode === 'nightmare' || o.mode === 'nightshift' ? o.mode : 'normal' };   // R1-T4 part 18: the sim reads loadout.mode (sim/modes.js)
     if (o.daily) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; lo.daily = true; }
+    if (o.nightshift) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; }
     return lo;
   };
   M.progress = function () {
-    var s = load(), stars = {};
+    var s = load(), stars = {}, snap = M.snapshot();
     Object.keys(s.stars).forEach(function (k) { stars[k] = s.stars[k]; });
-    return { unlocked: s.unlocked, stars: stars, coins: s.coins, kmWalked: M.snapshot().km };
+    return { unlocked: s.unlocked, stars: stars, coins: s.coins, kmWalked: snap.km, kmShown: snap.kmShown };
   };
 
   // ---- Results: one finished level updates every system, then the next open plays the sequence ----
@@ -290,20 +341,35 @@ P.Meta = P.Meta || {};
   }
   // Daily Coin rush (x1.5 in D.MODS): scales the run's reward. 1 for any other run.
   function dailyCoinMult(r) {
-    if (!r.daily || !P.Modifiers || !P.Modifiers.dailyFold) return 1;
+    if (!(r.daily || r.mode === 'nightshift') || !P.Modifiers || !P.Modifiers.dailyFold) return 1;
     return P.Modifiers.dailyFold(P.Meta.Daily.resolve(r.modifiers)).coinMult;
   }
+  // Night Shift reward: the run's coins in full (a shift is not lost by ending early), plus the day's fixed pay when it is the first run.
+  function nsReward(r, won, pay) {
+    var run = Math.round(num(r.coins));
+    return { won: won, first: false, run: run, clear: 0, starBonus: 0, objective: 0, total: run + (pay ? pay.coins : 0) };
+  }
+  // Mode branches (R1-T4 part 18): 'nightmare' settles through meta-modes.js (its own stars and moon; the normal stars,
+  // unlocks and Kaan bond are untouched), 'nightshift' through meta-nightshift.js (no stars, no unlocks). Normal is unchanged.
   function apply(s, r, now) {
-    var i = M.clampLevel(r.levelIndex), won = !!r.won, prev = s.stars[i] || 0, before = M.snapshot();
-    var stars = won ? Math.max(1, Math.min(M.CFG.starsMax, Math.round(num(r.stars)))) : 0;
-    var rw = M.rewardFor({ levelIndex: i, won: won, coins: r.coins, objective: !!(r.tally && r.tally.objDone) }, prev, stars), st0 = s.heroes.arda.stats;
-    var st = P.Stats.applyLevel(st0, r.tally, won), day = P.Meta.Daily.dayKey(new Date(now)), ups, news, achieved, daily;
-    var hoodWas = M.hoodCleared(M.level(i).hoodIndex);
-    if (won) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
+    var i = M.clampLevel(r.levelIndex), won = !!r.won, mode = r.mode || 'normal', nm = mode === 'nightmare', ns = mode === 'nightshift';
+    var prev = s.stars[i] || 0, before = M.snapshot(), bond, mdl = null, nsInfo = null, rw, st, ups, news, achieved, daily;
+    var stars = !won || ns ? 0 : Math.max(1, Math.min(nm ? P.CFG.nightmare.starsMax : M.CFG.starsMax, Math.round(num(r.stars))));
+    var st0 = s.heroes.arda.stats, day = P.Meta.Daily.dayKey(new Date(now)), hoodWas = M.hoodCleared(M.level(i).hoodIndex);
+    if (ns) nsInfo = P.Meta.NightShift.settle(s, r, now);
+    if (nm) mdl = P.Meta.Modes.settle(s, i, won, stars);
+    rw = ns ? nsReward(r, won, nsInfo.pay) : M.rewardFor({ levelIndex: i, won: won, coins: r.coins, objective: !!(r.tally && r.tally.objDone) }, nm ? 99 : prev, nm ? 0 : stars);
+    st = P.Stats.applyLevel(st0, r.tally, won);
+    if (nm && mdl.first && st.gains.sc > 0) { var extra = st.gains.sc * (P.CFG.nightmare.cred - 1); st.prog.sc += extra; st.gains.sc += extra; }   // Street Cred x2 on the first Nightmare clear
+    if (won && !nm && !ns) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
     if (!hoodWas && M.hoodCleared(M.level(i).hoodIndex)) s.counters.hoodsCleared += 1;   // AUDIT-7 CR-8: once per hood
-    rw.total = Math.round(coinBonus(s, rw.total) * dailyCoinMult(r));
+    bond = nm || ns ? { gain: 0, crossed: [] } : P.Bond.gain(s.bonds.kaan | 0, { levelIndex: i, won: won, stars: stars, prevStars: prev });
+    s.bonds.kaan = (s.bonds.kaan | 0) + bond.gain;
+    rw.total = Math.round(coinBonus(s, rw.total) * dailyCoinMult(Object.assign({}, r, { mode: mode })) * (nm ? P.CFG.nightmare.coins : 1));
     s.coins += rw.total;
     s.heroes.arda.stats = st.prog;
+    if (st.gains.sc > 0) scFlow(st.gains.sc, 'level_end', st.prog.sc);
+    bond.crossed.forEach(function (at) { tel('bond_threshold', { companion: 'kaan', threshold: at, value: s.bonds.kaan | 0, level_id: i }); });
     ups = accumulateMastery(s, r.tally && r.tally.bySrc);
     daily = dailyResult(s, r, won, day);
     P.Meta.Collect.bump(s, Object.assign({}, r, { won: won, levelIndex: i, daily: !!daily }));
@@ -313,7 +379,8 @@ P.Meta = P.Meta || {};
     s.lastPlayed = now;
     return { levelIndex: i, won: won, stars: stars, reward: rw, newGear: newGear, before: before, after: M.snapshot(),
       kills: r.kills | 0, statGains: { hero: 'arda', gains: st.gains, before: st0, after: st.prog },
-      masteryUps: ups, collected: news, achieved: achieved, daily: daily };
+      masteryUps: ups, collected: news, achieved: achieved, daily: daily, mode: mode, nightmare: mdl, nightshift: nsInfo,
+      bond: { kaan: { gain: bond.gain, value: s.bonds.kaan | 0, crossed: bond.crossed, joined: !ns && i === P.CFG.bond.kaan.joinLevel && won && !prev } } };
   }
   // Called by the game after a level. r: {levelIndex, won, stars, coins, kills, timeS, tally, daily, reviveUsed}.
   M.onResults = function (r) {

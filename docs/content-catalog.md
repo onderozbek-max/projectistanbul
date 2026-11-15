@@ -12,7 +12,7 @@
 
 | ID | Name | HP | Armor | Move (m/s) | Signature weapon | Tag-in move | Ultimate | Available |
 |---|---|---|---|---|---|---|---|---|
-| `hero_arda` | Arda | 100 | 0 | 3.2 | Döner Knife (`wpn_knife`) | **Kaçış (dash):** 3.2 m in 0.16 s, 0.3 s i-frames, 3.5 s cooldown (`skill_dash`, D-031) | **Evil-Eye Burst (Nazar Patlaması):** 2 s burst, 60 dmg ring, push 2.5 m; charged by kills and elites (`skill_ult`, D-031) | Slice (start) |
+| `hero_arda` | Arda | 100 | 0 | 3.2 | Döner Knife (`wpn_knife`) | **Depar (dash):** 3.2 m in 0.16 s, 0.3 s i-frames, 3.5 s cooldown (`skill_dash`, D-031) | **Evil-Eye Burst (Nazar Patlaması):** 2 s burst, 60 dmg ring, push 2.5 m; charged by kills and elites (`skill_ult`, D-031) | Slice (start) |
 | `hero_kaan` | Kaan | 180 | 2 | 2.6 | Anchor | **Mini Slam:** r 1.5 m, 25 dmg, knockback 1 m | **Ground Slam:** r 3.5 m, 80 dmg, stun 1 s, knockback 2 m | Slice (L30) |
 | `hero_mila` | Mila | 70 | 0 | 4.2 | Twin Batons | **Dash:** 3 m through enemies, 15 dmg | **Sprint Blitz:** 3 rapid dashes (35 dmg each), leaves a 40% slow trail for 3 s | Chapter 2 |
 | `hero_ada` | Ada | 80 | 0 | 3.2 | Slingshot | **Calm Pulse:** r 3 m, slow 40% for 2 s | **Calm Field:** r 5 m, slow 60% for 4 s + volley of 12 bolts (20 dmg each) | Chapter 2 |
@@ -110,14 +110,14 @@ Budget cost = cost per spawn in the spawn director's budget (game-design.md §6)
 |---|---|---|---|---|---|---|---|---|---|
 | `enm_walker` | Walker / Yürüyen | 10 | 1.2 | 5 | 2 | 1.0 | 0% | Shambles toward the player | L1 |
 | `enm_runner` | Runner / Koşucu | 6 | 2.9 | 4 | 3 | 1.5 | 0% | Sprints toward the player | L1 (seg C) |
-| `enm_crawler` | Crawler / Sürünen | 8 | 1.0 | 6 | 2 | 1.5 | 50% | Emerges from manholes (1.0 s telegraph), low silhouette | L1 (scripted) |
-| `enm_brute` | Brute / İriyarı | 80 | 0.9 | 15 | 10 | 6.0 | 80% | Slow tank, shoulder-charge 4 m every 6 s (0.8 s telegraph) | L4 |
-| `enm_spitter` | Spitter / Tükürükçü | 15 | 1.1 | 4 | 4 | 3.0 | 0% | Keeps 5 m distance; spit projectile 6 dmg, 4 m/s, every 3 s (0.6 s telegraph) | L6 |
-| `enm_exploder` | Exploder / Patlayan | 20 | 1.4 | 0 | 4 | 3.0 | 30% | Within 1.2 m: 0.8 s fuse, explodes r 2.0 m, 20 dmg; **hurts zombies too** | L8 |
-| `enm_tourist` | Tourist / Turist | 12 | 1.3 | 5 | 2 | 1.2 | 0% | Like a walker; 30% Jeton drop chance. (Selfie stick, no camera flashes: photosensitivity) | L11 |
-| `enm_fisherman` | Fisherman / Balıkçı | 25 | 1.0 | 6 | 5 | 4.0 | 20% | Casts a line every 4 s, range 5 m (0.7 s line telegraph); pulls the player 1.5 m (Grabbed) | L21 |
+| `enm_crawler` | Crawler / Sürünen | 14 | 1.0 | 6 | 4 | 1.5 | 50% | Crawls in from the street edge (no entrance animation, D-058), low silhouette | L1 (scripted) |
+| `enm_brute` | Brute / İriyarı | 80 | 0.9 | 15 | 10 | 8.0 | 80% | Slow tank, shoulder-charge 8 m every 6 s (0.8 s telegraph) | L4 |
+| `enm_spitter` | Spitter / Tükürükçü | 15 | 1.1 | 4 | 4 | 3.0 | 0% | Keeps about 5.5 m; acid glob 4 dmg (r 1.0 m) leaves a 3 s puddle; fires every 3 s after a 0.7 s windup. **Deliberate exception** to the 0.8 s telegraph floor (config-enemies4.js), with zehirli | L6 |
+| `enm_bloater` | Bloater / Dombili | 24 | 0.75 | 0 | 5 | 3.0 | 30% | Drifts in and swells (from 3.5 m); bursts on contact or death: 22 dmg to the hero (r 2.2 m), 30 to zombies; toxic cloud r 1.8 m for 3 s (4 dps on zombies, 2 dps on the hero). Mini bloaters come from the bloater boss. | L11 |
+| `enm_tourist` | Tourist / Turist | 12 | 1.3 | 5 | 2 | 1.2 | 0% | Like a walker; 30% Jeton drop chance. (Selfie stick, no camera flashes: photosensitivity). **Not in code:** tourist is an outfit (skin) only in journey.js, with no enemy def | L11 |
+| `enm_fisherman` | Fisherman / Balıkçı | 25 | 1.0 | 6 | 5 | 4.0 | 20% | Casts a line every 4 s, range 5 m (0.7 s line telegraph); pulls the player 1.5 m (Grabbed). **Not in code:** fisher is an outfit (skin) only; the line cast is a proposal (R1 audit §4A) | L21 |
 
-**Elite variant (any type):** ×4 HP, ×1.5 damage, +15% scale, purple outline (`elite` token,
+**Elite variant (any type):** ×4 HP, ×1.5 damage, +15% scale, gold outline `#FFC93C` (config.js `eliteOutline`, `elite` token,
 plus a crown-shaped marker for colorblind players), drops a Mini Chest. First elite: L7.
 
 **Visual rules:** each type has a unique silhouette readable at 48 px (design-system.md §6).
@@ -200,7 +200,7 @@ Template: game-design.md §6. Durations are targets for an average player.
 | 5 | Mini-boss | — | **Kestaneci** | 5 min | Chestnut cart becomes a weapon idea |
 | 6 | Route | — | **Spitter** | 5 min | — |
 | 7 | Arena | — | First **Elite** | 6 min | — |
-| 8 | Route | night | **Exploder** | 5 min | Streetlights fail one by one |
+| 8 | Route | night | **Bloater** | 5 min | Streetlights fail one by one |
 | 9 | Arena | horde | — | 6 min | — |
 | 10 | Boss | — | **Vatman** | 7 min | Motion comic: tram crash, Arda heads downhill to Karaköy |
 
@@ -254,8 +254,10 @@ Template: game-design.md §6. Durations are targets for an average player.
 | `int_gas_canister` | Gas canister (tüp) | 10 | Explosion r 2.5 m: 60 dmg to enemies, **15 to the player** | Risk/reward |
 | `int_tea_tray` | Café table with a tea tray | 15 | 6 tea glasses burst outward, 10 dmg each | Comic SFX "ŞANGIR!" |
 | `int_cafe_chairs` | Café chairs | — | Knocked aside (cosmetic, physics-lite) | Pure juice |
+| `int_eczane` | Eczane (pharmacy) heal station | Heal 30 HP once, then empty (touch 0.4 s). Outside the drop-heal cap | One per level on L3+ route stages 1–4 in street-like hoods (game-design §5.8) | Solid street block; not on L1–L2 or a boss stage |
+| `int_kiosk` | Büfe (simit and tea kiosk) heal station, R1-T4 part 17 | Heal 30 HP once, then empty (touch 0.4 s). Outside the drop-heal cap; same rules as `int_eczane` | One per level on L3+ route stages 1–4 in the nine non-street hoods: boat, ferry and bazaar (game-design §5.8) | Solid block (block kind `bufe`, not breakable); awning, simit and tea-glass art; not on L1–L2 or a boss stage |
 | `int_shutter` | Shop shutter | — | Objective door (opens on script) | Route-level exits |
-| `int_manhole` | Manhole | — | Crawler spawn point (1.0 s telegraph: lid rattles) | Telegraph = audio + visual |
+| `int_manhole` | Manhole | — | **Retired as a spawn point (D-058).** Not placed in levels; the Manhole Cover weapon is unaffected | — |
 
 ---
 
@@ -299,7 +301,7 @@ Rule: each weapon has one evolution. It needs the weapon at L5 and the passive o
 
 | ID | Name (EN / TR) | Input | Effect (config) | Notes |
 |---|---|---|---|---|
-| `skill_dash` | Dash / Kaçış | Swipe flick (40 px in 200 ms) or double-tap (280 ms). Space on desktop | 3.2 m in 0.16 s, i-frames 0.3 s, cooldown 3.5 s | A near miss ("KIL PAYI!") slows time to 0.25 for 0.25 s, once per dash. |
+| `skill_dash` | Dash / Depar | Swipe flick (40 px in 200 ms) or double-tap (280 ms). Space on desktop | 3.2 m in 0.16 s, i-frames 0.3 s, cooldown 3.5 s | A near miss ("KIL PAYI!") slows time to 0.25 for 0.25 s, once per dash. |
 | `skill_ult` | Evil-Eye Burst / Nazar Patlaması | Ult button (auto-fires if the setting is on) | 2.0 s burst, 60 dmg ring, push 2.5 m. Weapons ×1.5 power, cooldowns ×0.6 | Charge: +0.004 per kill, +0.03 per elite (250 kills). |
 | `skill_frenzy` | Frenzy / Çılgınlık ("ÇILGINLIK!") | Automatic | 6 s, weapon attack speed +40% | Trigger: 60 kills with gaps ≤ 1.5 s. 50 proposed (weapons §8.2). |
 
@@ -315,4 +317,35 @@ Owner feedback: the tea tray, umbrella, backgammon pieces, chestnut brazier and 
 | `wpn_slingshot` | Slingshot / Sapan | Marble volley with ricochet | Ricochet, crit | L4 | 9 dmg, 2 marbles, 3 bounces (max 5) | Two marbles on one enemy in one volley: lucky shot, x2 damage. Signature: 4-marble volley. |
 | `wpn_cardoor` | Car Door / Araba Kapısı | Shield that raises and reflects spit; shove | Defence | L9 | 8 dmg, radius 1.4 m, arc 110°, open 0.8 s | Presses in: stun and shove. Signature: full ring wall. |
 | `wpn_chainsaw` | Chainsaw / Motorlu Testere | Melee rev in ticks, stalls if it hits nothing | Melee | L6 | 5 dmg per tick, arc 80°, rev 1.0 s, reach 2.2 m | Stall adds 0.8 s cooldown. Signature: rampage (360° spin). New mechanic (`weapons5.js`). |
+
+## 11. Wave 1 enemy variety (R1, branch `r1/enemy-wave1`)
+
+Numbers are copied from the config files: skins from `js/config-skins.js` (`P.CFG.skins`), the two new types from `js/config-enemies5.js` (`P.CFG.enemies` Defs and `P.CFG.enemies5` behaviour). The spawn schedule is `C.levels.schedule` in `js/config-levels.js`. Sim: `js/sim/skins.js`, `js/sim/skins-fisher.js`, `js/sim/enemies4*.js`. Status and deviations: [reviews/AUDIT-ENEMIES-2026-11-10.md](../reviews/AUDIT-ENEMIES-2026-11-10.md) "Wave 1".
+
+### 11.1 Skin behaviours (existing outfits that now have a job)
+
+A skin rolls its behaviour once, at spawn, with `chance` 0.2 per eligible spawn and at most `maxAlive` 2 live behaviour zombies per skin. Eligible from `minHood` (0-based hood index). Types: walker only.
+
+| Skin | minHood | Behavior | Key numbers | Telegraph / counter |
+|---|---|---|---|---|
+| Fisher / Balıkçı (`fisher`) | 2 | Casts a hook line at the hero from 6 m with line of sight. On a hit the hero is dragged 2.5 m toward the fisher over 0.25 s, no damage. Cooldown 4.5 s, first cast after 2.0 s | Telegraph 0.6 s (lane, 0.3 m wide) | Dash, a wall, leaving the line or a boss/hack/cinematic cancels the pull |
+| Musician / Müzisyen (`musician`) | 2 | While it lives, walkers within 6 m move 1.15x faster (one flat buff, no stacking) | Radius 6 m, speedMul 1.15; from Karaköy (hood index 2), not Galata: on the Galata boss (L10) it cost 14 points of no-death in the bot (lead, R1) | Faint dotted ring (view only); no telegraph |
+| Hamal / Hamal (`hamal`) | 4 | Walks at 0.8x. A hit from behind (hero in the rear half-plane of its heading) does 0.5x damage. On death leaves a breakable crate (`crates`, 25 hp) that blocks walking | rearMul 0.5, rearCos 0, crateT 8.0 s, crate 1.0 x 1.0 m | Crate is a level-style box; no telegraph |
+
+### 11.2 New enemy types
+
+| ID | Name (EN / TR) | HP | Speed | Contact dmg | XP | Budget | Knockback resist | Behavior | First level |
+|---|---|---|---|---|---|---|---|---|---|
+| `enm_marti` | Seagull thief / Martı | 5 | 3.6 | 0 | 3 | 1.5 | 20% | Flies over walls, hovers within 2 m of the hero. With a loose XP drop within 4.5 m: a dive shadow (0.5 s ring) on the drop, then a dive at 9 m/s takes it. Flees at 5 m/s with the XP. Killed while carrying: the XP drops again with 6 gold. Off-screen while carrying: the XP is lost, no kill credit | Stage 2 in every hood from H05 Eminönü on (`C.levels.thief`), none in H01 to H04. The look is seagull in seaside hoods and pigeon inland (`C.birdLook`, `config-fauna.js`); same stats and behavior |
+| `enm_cayci` | Tea carrier / Çaycı | 28 | 0.9 | 6 | 6 | 3.0 | 20% | Keeps 4.5 m (band 0.8 m) from the hero. Throws from 2.5 to 5 m every 4.0 s (first after 1.5 s), after a 0.7 s windup (ground ring on the hero's spot, the telegraph). Glob 0 damage, lands as a 1.0 m puddle for 6 s. In the puddle the hero moves at 0.75x, for 3 s after the last touch | Stage 2, 6 old-city hoods (`eminonu`, `sirkeci`, `beyazit`, `kapalicarsi`, `saray`, `halic`) |
+
+Both types are added to `newTypes` (route mix weight, growing by `newGrow` 0.1 per hood index).
+
+### 11.3 Bark beats
+
+`BK.fk.marti`, `BK.fk.cayci`, `BK.fk.guvercin` (inland pigeon thief) and `BK.fk.kedi` (first stray cat) are first-sighting barks, batch D, speaker Arda, `joke` 1. EN lines are approved by the lead; the `guvercin` and `kedi` TR lines are drafts for owner review (`reviews/dialogue/tr-D2.csv`).
+
+### 11.4 Ambient fauna (view only)
+
+Stray cats (white-and-brown mixed, orange, brown; 1 to 3 per level) and ambient birds (2 to 4 per level; seagulls by the sea, pigeons inland) are in every hood, H01 to H04 included. They are cosmetic: never enemies, never damage, never in the sim state, no sim random numbers, no effect on the sim digest. A cat trots away from the hero within 3 m and stands and hisses at an elite or boss within 10 m. Birds take off when the hero or an enemy is within 2.5 m. Numbers are taste dials in `config-fauna.js`. The named tabby Paşa (story, L12) is separate from the anonymous strays.
 

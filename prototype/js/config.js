@@ -17,7 +17,7 @@ P.CFG = {
                                                                           //     minus the 0.5 m ring. At 4.6 the ring and the knife tip clipped the screen edge.
     spriteScale: { hero: 1.22, walker: 1.15, runner: 1.15, elite: 1.25 }, // G2: draw scale on top of each rig's own scale
                                                                           //     (collision radii are never read here)
-    anim: { bobWalk: 0.05, bobIdle: 0.012, squashWalk: 0.04, stepWidth: 0.02,   // walk cycle: body bob and squash (units)
+    anim: { bobWalk: 0.09, bobIdle: 0.035, squashWalk: 0.08, stepWidth: 0.05, squashIdle: 0.03,   // walk cycle: body bob and squash (units); idle breath bob (units) and squash (fraction)
             hitSquashX: 0.14, hitSquashY: 0.12 },                              // hit squash (fraction of the pose)
     blinkHz: 1.5, blinkMinAlpha: 0.6,                                     // G5: invulnerability pulse, never above 3 per s
     contactShadow: { alpha: 0.22, radius: 0.9, aspect: 0.36 },            // G4: enemy ground shadow (x body radius)
@@ -25,6 +25,8 @@ P.CFG = {
     crowdRing: { spitter: '#C6F04A', bloater: '#FF8A3D' }, ringRadius: 1.1, // G4: coloured base ring for readable crowds (radius x body)
     eliteOutline: { color: '#FFC93C', units: 0.05 },                      // G4: gold outline on elites (units of figure height)
     ao: { spread: [0.34, 0.18, 0.05], alpha: [0.10, 0.13, 0.16], dx: 0.08, dy: -0.12 }, // ground AO under props (m)
+    maxDpr: 2,                                                            // PERF (T4 part 12): device pixel ratio cap for the world canvas (iPhone 3 -> 2)
+    quality: { emaS: 2, downMs: 20, downHoldS: 4, upMs: 13, upHoldS: 30, menuFps: 30, spriteCacheMB: 64 },   // PERF: governor (js/view/quality.js), menu cadence, sprite bake budget
   },
   hero: {
     maxHp: 100, speed: 3.2, pickupRadius: 1.5, critChance: 0.05, critMult: 1.5,  // GD 4.1, CC 1
@@ -47,8 +49,13 @@ P.CFG = {
   // GD 4.5 (V3 exp 1.4 -> 1.6: 9 cards + 2 chests). crowd: gem XP divided by 1 + mul x alive / ref (v0.8, AUDIT-7 G-1
   // horde; P.Progression.crowdCost). ref 40 keeps bot clears at 4/6 or better from L25 to L100 (ref 20 dropped L50 to 2/6);
   // level-ups are 9-13 on L2-L12 except L9 (21), and 11-29 from L22 to L100: the 8-14 band is still open on the late levels.
-  xp: { base: 5, mult: 5, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, crowd: { mul: 1, ref: 40 } },
-  drops: { jetonChance: 0.05, jetonMin: 1, jetonMax: 5, simitChance: 0.005, simitHeal: 25 }, // CC 8-9
+  // R1-T4 part 4: generated levels (L2+) use base 30 / mult 5 (first level-up ~11 s, about 8 per L2, 11-12 on L3-4, 7 on L5;
+  // reviews/REVIEW-R1.md T4 part 4). The hand-built Level 1 keeps xp.l1 (level-001-istiklal.md section 8). P.xpHand picks the curve.
+  // R1-T4 part 16 (pacing P1): base 30 / mult 5 -> 32 / 11 (L2+). First Adrenalin level-up about 12 s, then one every ~28-31 s
+  // on the bot; the crates in config-levels.js pace.crateSeg pay for the lost cards. L1 keeps xp.l1 (unchanged).
+  xp: { base: 32, mult: 11, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, crowd: { mul: 1, ref: 40 }, l1: { base: 5, mult: 5, exp: 1.6 } },
+  // healCap: HP per run from simit and other drops (combat.js dropHeal), R1-T4 part 4. simitChance stays 0.005: 0.002 cost ~9 points of L5 clear.
+  drops: { jetonChance: 0.05, jetonMin: 1, jetonMax: 5, simitChance: 0.005, simitHeal: 25, healCap: 70 }, // CC 8-9
   // V2 Level 1 kit (owner feedback: "ayran, tereyağ, çatal are meaningless"). Every weapon is a distinct verb.
   weapons: {
     knife: {                                                              // signature melee arc (replaces Fork)
@@ -113,9 +120,9 @@ P.CFG = {
     canister: { hp: 10, radius: 0.4, blast: 2.5, enemyDmg: 60, playerDmg: 15, trauma: 0.3 },
   },
   feel: {                                                                 // DS 6-7
-    hitFlash: 0.06, hitStopCritKill: 0.05, hitStopMinGap: 0.25, stabHitStop: 0.08,
-    traumaPlayerHit: 0.2, traumaDecay: 1.5, maxShakePx: 12, maxShakeDeg: 1,
-    scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.03, punchTime: 0.12,
+    hitFlash: 0.06, stabHitStop: 0.08,
+    traumaPlayerHit: 0.45, traumaDecay: 1.5, maxShakePx: 12, maxShakeDeg: 1,
+    scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.06, punchTime: 0.12, dmgPop: 1.5, dmgPopT: 0.15,
     dmgNumberLife: 0.7, dmgNumberRise: 0.6, dmgNumberMax: 40, dmgMerge: 0.2, lowHpFrac: 0.3,
     edgePulseFrac: 0.1, edgePulseAlpha: 0.25, edgePulseLife: 0.25, edgePulseGap: 0.55,  // G3: red edge pulse on a heavy hit (gap > 0.5 s so three hits in 1 s give at most two pulses)
     heroFlashGap: 0.34,                                                   // G3: hero white flash, at most 3 in any 1 s window (60 ms each)
@@ -141,7 +148,7 @@ P.CFG = {
     simitCart: { x: 5, y: 70 }, chestnutCart: { x: -4, y: 80 },
     canisters: [ { x: 4, y: 100 }, { x: -5, y: 210 }, { x: 3, y: 218 } ],
     elites: { firstY: 140, firstX: 3.5, holdT: 28 },                     // V3: one elite in C, one mid-hold, each drops a Mini Chest
-    cat: { x: -6.5, y: 170 }, manhole: { x: -3, y: 176 }, catTriggerY: 165, crawlerTelegraph: 1.0,
+    cat: { x: -6.5, y: 170 }, crawlerFrom: { x: -5.6, y: 176 }, catTriggerY: 165,
     civilians: { groups: 4, perGroup: 3, fleeSpeed: 4.2, life: 7 },      // V2: fewer, real people (no "rain")
     grabY: 30, clusterY: 90, clusterDoorY: 105, clusterCount: 10,
     chestnutBarkY: 70,
@@ -161,7 +168,7 @@ P.CFG = {
       { y: 22, ev: 'ambush', opts: { types: ['runner'], n: 5, x: 6.2 } },            // runner pack, early in A
       { y: 44, ev: 'loot' },                                                         // simit-tray runner in A
       { y: 50, ev: 'hack', opts: { kind: 'cell', x: -5.9, y: 66 } },                 // phone-shop booster (B)
-      { y: 96, ev: 'set', opts: { type: 'bloater', x: 6.4, y: 112, label: 'bloater' } },   // Şişman Garson (B)
+      { y: 96, ev: 'set', opts: { type: 'bloater', x: 6.4, y: 112, label: 'bloater' } },   // Dombili / Bloated Waiter (B)
       { y: 118, ev: 'ambush', opts: { types: ['walker'], n: 7, x: -6.2 } },          // alley horde, arrow (B)
       { y: 132, ev: 'set', opts: { type: 'spitter', x: -6.0, y: 138, anchored: true, label: 'spitter' } }, // balcony (C)
       { y: 178, ev: 'blackout', opts: { T: 7 } },                                    // power cut (C)
@@ -172,8 +179,11 @@ P.CFG = {
   },
 };
 
+// XP to the next run level. P.xpHand is true for the hand-built Level 1; P.createSim sets it for each run, so the HUD bar
+// (js/view/ui.js reads P.xpNeed(level)) follows the curve the run plays without a second argument.
+P.xpHand = true;
 P.xpNeed = function (level) {
-  var c = P.CFG.xp;
+  var c = P.xpHand ? P.CFG.xp.l1 : P.CFG.xp;
   return Math.round(c.base + c.mult * Math.pow(level, c.exp));
 };
 

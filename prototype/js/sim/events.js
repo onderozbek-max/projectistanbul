@@ -147,10 +147,10 @@ P.Events.coins = function (s, x, y, n, v) {
 };
 
 // ---------- helpers: a rescued civilian throws things at zombies for a while (civHelpPct high enough) ----------
-P.Events.addHelper = function (s, x, y) {
-  var R = P.CFG.ev.rescue;
-  s.ev.helpers.push({ x: x, y: y, t: R.helperT, cd: R.helperEvery });
-  s.events.push({ type: 'helperStart', x: x, y: y, t: R.helperT });
+P.Events.addHelper = function (s, x, y, T) {
+  var R = P.CFG.ev.rescue, t = T === undefined ? R.helperT : T;
+  s.ev.helpers.push({ x: x, y: y, t: t, cd: R.helperEvery });
+  s.events.push({ type: 'helperStart', x: x, y: y, t: t });
 };
 
 function stepHelpers(s, dt) {

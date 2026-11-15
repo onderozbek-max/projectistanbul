@@ -63,7 +63,7 @@ P.Meta = P.Meta || {};
     var b = el('button', 'meta-ars-ult' + (u.unlocked ? '' : ' is-locked') + (M.state().heroes.arda.ult === u.id ? ' is-on' : ''), ultBox);
     b.disabled = !u.unlocked;
     el('div', 'meta-ars-name', b).textContent = nameOf('ult.', u.id);
-    el('div', 'meta-ars-kills', b).textContent = u.unlocked ? t('ars.ultOn') : t('ars.ultNeed', { n: fmtNum(u.need) });
+    el('div', 'meta-ars-kills', b).textContent = u.unlocked ? t('ars.ultOn') : u.needBond ? t('ars.ultNeedBond', { n: u.needBond }) : t('ars.ultNeed', { n: fmtNum(u.need) });
     b.addEventListener('click', function () { if (M.setUlt(u.id)) { sfx('uiTap'); renderAll(); } });
   }
   function renderUlts() {
@@ -100,8 +100,8 @@ P.Meta = P.Meta || {};
     activeBox = el('div', 'meta-ars-ults', root);
   }
   Ars.build = build;
-  Ars.show = function () { if (root) { root.classList.remove('meta-hidden'); renderAll(); } };
-  Ars.hide = function () { if (root) root.classList.add('meta-hidden'); };
-  Ars.isOpen = function () { return !!root && !root.classList.contains('meta-hidden'); };
+  Ars.show = function () { if (root) { P.UIMotion.panelShow(root); renderAll(); } };
+  Ars.hide = function () { if (root) P.UIMotion.panelHide(root); };   // slides out (ui-motion.js)
+  Ars.isOpen = function () { return !!root && P.UIMotion.panelOpen(root); };
   Ars.signatureOf = signatureOf;
 })(P.Meta);

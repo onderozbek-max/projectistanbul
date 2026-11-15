@@ -1,0 +1,5 @@
+# Source takes from the sound tool (the owner's originals) are not tracked. ready/ is the game's copy and is tracked.
+/*.wav
+/*.mp3
+/*.ogg
+/*.m4a

@@ -9,8 +9,8 @@
     profile: [0.45, 1.0, 0.9],
     // Hold (the finale before the gate): base + perLevel x k, from `start` of that up to full by `ramp` of the hold time.
     hold: { base: 40, perLevel: 0.8, cap: 130, start: 0.6, ramp: 0.5 },
-    // Boss arena: a stream of adds around the boss (the arena's own adds in levels.js stay on top).
-    arena: { base: 24, perLevel: 0.35, cap: 60 },
+    // Boss arena: a stream of adds around the boss (the arena's own adds in levels.js stay on top). Boss-arena pass: 24/0.35/60 -> 12/0.15/30.
+    arena: { base: 12, perLevel: 0.15, cap: 30 },
     // Controller: spawns come at min(max, gain x deficit) per second (holdMax in the finale), where deficit = target x
     // nearMul - (enemies in the frame, plus margin metres above and below it). nearMul is calibrated: measured on-screen
     // reaches about 0.85..0.95 of the route target on L2..L22 (the rest is spawns still walking in). Past about L40 the

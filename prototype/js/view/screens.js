@@ -6,7 +6,7 @@ P.Screens = (function () {
   // Overlays take the HUD, the dash and nazar buttons and the subtitle layer off screen while they are up (AUDIT-6 F1).
   var OVERLAYS = ['scr-cards', 'scr-chest', 'scr-pause', 'scr-settings', 'scr-down'];
   S.show = function (id) {
-    ALL.forEach(function (x) { $(x).classList.toggle('hidden', x !== id); });
+    ALL.forEach(function (x) { P.UIMotion.screen($(x), x === id); });   // fade in and out (css/motion.css, ui-motion.js)
     if (P.UI && P.UI.setOverlay) P.UI.setOverlay(OVERLAYS.indexOf(id) >= 0);
   };
   S.hideAll = function () { S.show(null); };
@@ -15,10 +15,16 @@ P.Screens = (function () {
   // The share of Jeton that survives a give-up or a quit (config: rewards.loseKeep), as a whole percent.
   S.keepPct = function () { return Math.round(P.CFG.rewards.loseKeep * 100); };
 
-  function iconBox(item, cls) {
-    var d = document.createElement('div');
+  // The item's icon in box d: the raster icon when it is decoded (D-066), else the code icon (art-raster-items.js iconInto retries).
+  function artIcon(d, item, lv, px) {
+    if (P.ArtRasterItems) P.ArtRasterItems.iconInto(d, item, lv, px);
+    else d.innerHTML = P.Icons.svg(item, px);
+  }
+  // lv: a weapon card shows its tier art at that level (D-066, raster on); the slots and the other cards show the clean icon.
+  function iconBox(item, cls, lv) {
+    var d = document.createElement('div'), px = cls === 'icon' ? 40 : 30;
     d.className = cls + ' kind-' + (P.Progression.isWeapon(item) ? 'w' : (item === 'simit' || item === 'jeton') ? 'f' : 'p');
-    d.innerHTML = P.Icons.svg(item, cls === 'icon' ? 40 : 30);
+    artIcon(d, item, lv, px);
     return d;
   }
 
@@ -109,7 +115,7 @@ P.Screens = (function () {
       var live = liveCard(c);
       delete box.dataset.locked; box.classList.remove('has-pick'); setRerollLock(false);
       if (live) onPick(live);
-    }, P.Settings.reduceMotion ? 0 : 320);
+    }, P.UIMotion.wait('--m-select'));
   }
   // Fork options (AUDIT-7 U2): the mods as two 44 pt buttons in the card's chip line. A tap on one picks it and the card.
   // Their descriptions are in the long-press sheet. onSub(i) runs on a sub-button click.
@@ -169,10 +175,16 @@ P.Screens = (function () {
   function passiveDeltas(c) {
     return P.Progression.statLines(c).map(function (r) { return (r.b + ' ' + P.t(r.k)).trim(); });
   }
+  // Rules text (class B, P.STR desc.*) with the card's one-line flavour (class C, the dialogue beat flav.<item>) in front of it.
+  function cardText(c) {
+    var d = P.Progression.describe(c), id = 'flav.' + c.item;
+    var fl = !P.Progression.isUpgrade(c) && P.Dialogue.has(id) ? P.Dialogue.text(id) : '';
+    return fl ? fl + ' ' + d : d;
+  }
   function cardEffect(c) {
-    if (c.id[0] === 'f') return P.Progression.describe(c);
+    if (c.id[0] === 'f') return cardText(c);
     var items = c.id[0] === 'w' ? weaponDeltas(c) : passiveDeltas(c);
-    return items.length ? items.slice(0, 2).join(' · ') : P.Progression.describe(c);
+    return items.length ? items.slice(0, 2).join(' · ') : cardText(c);
   }
   // Evolution helpers (read-only mirror of weapons6.js evoHint): what an evolution still needs, and the first target.
   function evoNeeds(s, id) {
@@ -249,8 +261,8 @@ P.Screens = (function () {
   function buildCard(s, c, i, scripted, box, onPick) {
     var kind = c.id[0], b = document.createElement('button'), face = mk('div', 'card-face'), body = mk('div', 'card-body'), l1 = mk('div', 'card-l1');
     b.className = 'card kind-' + kind + (scripted && i === 0 ? ' highlight' : '') + (c.fork ? ' fork' : '') + (c.evo ? ' evo' : '');
-    b.style.animationDelay = (P.Settings.reduceMotion ? 0 : i * 70) + 'ms';
-    face.appendChild(iconBox(c.item, 'icon'));
+    b.style.animationDelay = P.UIMotion.stagger(i) + 'ms';
+    face.appendChild(iconBox(c.item, 'icon', c.next));
     var badge = cardBadge(c, kind); if (badge) face.appendChild(badge);
     l1.appendChild(mk('span', 'name', P.t('item.' + c.item)));
     if (kind !== 'f') l1.appendChild(pips(c.next - 1, c.next));
@@ -268,7 +280,7 @@ P.Screens = (function () {
   // ---------- card detail sheet (AUDIT-7 U2): every stat row, the full text, the recipe or the fork's two options ----------
   function hideInfo() { $('card-info').classList.add('hidden'); }
   function showInfo(s, c) {
-    var root = $('card-info'), kind = c.id[0], chip = $('ci-chip'), desc = P.Progression.describe(c), info, mc;
+    var root = $('card-info'), kind = c.id[0], chip = $('ci-chip'), desc = cardText(c), info, mc;
     $('ci-type').textContent = P.t('card.type.' + kind) + (c.fork ? ' · ' + P.t('card.mod') : '');
     $('ci-name').textContent = P.t('item.' + c.item);
     if (c.evo) desc = P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + '\n' + desc;
@@ -289,7 +301,7 @@ P.Screens = (function () {
     var h = s.hero, add = function (item, lv) {
       var d = document.createElement('div'); d.className = 'slot' + (item ? ' filled' : '');
       if (item) {
-        d.classList.add(P.Progression.isWeapon(item) ? 'kind-w' : 'kind-p'); d.innerHTML = P.Icons.svg(item, 28);
+        d.classList.add(P.Progression.isWeapon(item) ? 'kind-w' : 'kind-p'); artIcon(d, item, 0, 28);
         d.title = P.t('item.' + item);
         var sm = document.createElement('small'); sm.textContent = lv; d.appendChild(sm);
         var tags = slotTags(s, item); if (tags) d.appendChild(tags);
@@ -308,6 +320,7 @@ P.Screens = (function () {
 
   S.showCards = function (s, offer, onPick, onReroll) {
     gen++; curOffer = offer; hideInfo();   // a new offer on screen: picks from the previous one are dropped (CR-3)
+    $('cards-title').textContent = P.t('lvb.title', { n: s.level });
     $('cards-sub').textContent = P.t('ui.cards.sub', { n: s.level }) + ' · ' + P.t('ui.cards.hold');
     $('cards-tut').classList.toggle('hidden', !offer.scripted);
     var box = $('cards'); box.innerHTML = ''; delete box.dataset.locked; box.classList.remove('has-pick');
@@ -331,7 +344,7 @@ P.Screens = (function () {
 
   // {hood, n (district number), s (stage)} for journey-aware labels.
   S.levelVars = function (s, extra) {
-    var L = s.levelInfo || P.Journey.level(1), o = { hood: L.hood.name, n: L.hoodIndex + 1, s: L.stage };
+    var L = s.levelInfo || P.Journey.level(1), o = { hood: L.hood.name, n: L.hoodIndex + 1, s: L.stage, of: P.Journey.levelsPerHood };
     for (var k in extra) o[k] = extra[k];
     return o;
   };
@@ -363,20 +376,35 @@ P.Screens = (function () {
       b.onclick = function () { var i = values.indexOf(P.Settings[key]); P.Settings[key] = values[(i + 1) % values.length]; commit(); };
       return b;
     }
+    // Volume slider, 0-100 in 10% steps (T4 part 8). Dragging is live (P.applySettings); the value is saved when the finger lifts.
+    function volume(key, label) {
+      var wrap = mk('div', 'vol'), inp = document.createElement('input'), out = mk('span', 'vol-val', P.Settings[key] + '%');
+      inp.type = 'range'; inp.min = '0'; inp.max = '100'; inp.step = '10'; inp.value = String(P.Settings[key]);
+      inp.setAttribute('aria-label', label); inp.setAttribute('aria-valuetext', P.Settings[key] + '%');
+      inp.oninput = function () {
+        P.Settings[key] = +inp.value; out.textContent = inp.value + '%'; inp.setAttribute('aria-valuetext', inp.value + '%');
+        if (P.applySettings) P.applySettings();
+      };
+      inp.onchange = function () { P.saveSettings(); };
+      wrap.appendChild(inp); wrap.appendChild(out);
+      return wrap;
+    }
     var lang = document.createElement('button'); lang.className = 'toggle on'; lang.textContent = P.lang === 'tr' ? 'TR' : 'EN';
     lang.onclick = function () { P.lang = P.Settings.lang = P.lang === 'tr' ? 'en' : 'tr'; commit(); };
     row(P.t('ui.set.lang'), lang);
-    row(P.t('ui.set.sound'), toggle('sound'));
-    row(P.t('ui.set.music'), step('musicVol', P.SettingSteps.music, function (v) { return '%' + v; }));
+    row(P.t('ui.set.music'), volume('musicVol', P.t('ui.set.music')));
+    row(P.t('ui.set.sound'), volume('sfxVol', P.t('ui.set.sound')));
     row(P.t('ui.set.subs'), toggle('subs'));
     row(P.t('ui.set.reduceMotion'), toggle('reduceMotion'));
     row(P.t('ui.set.reduceFlash'), toggle('reduceFlash'));
     row(P.t('ui.set.shake'), step('shake', P.SettingSteps.shake, function (v) { return '%' + v; }));
+    row(P.t('ui.set.textSize'), step('textSize', P.SettingSteps.text, function (v) { return '%' + v; }));
     row(P.t('ui.set.dmgNumbers'), toggle('dmgNumbers'));
     row(P.t('ui.set.blood'), toggle('blood'));
     row(P.t('ui.set.haptics'), toggle('haptics'));
-    row(P.t('ui.set.joy'), step('joySide', ['right', 'left'], function (v) { return P.t(v === 'left' ? 'ui.set.joyL' : 'ui.set.joyR'); }));
+    row(P.t('ui.set.joy'), step('joySide', ['any', 'right', 'left'], function (v) { return P.t(v === 'left' ? 'ui.set.joyL' : v === 'right' ? 'ui.set.joyR' : 'ui.set.joyA'); }));
     $('settings-note').textContent = P.t('ui.set.note');
+    $('btn-settings-export').classList.toggle('hidden', !S.devTools());   // team export (?debug=1): the map has no pause menu
     $('btn-settings-back').onclick = onBack;
     S.show('scr-settings');
   };
@@ -399,6 +427,8 @@ P.Screens = (function () {
   // 0.8 s beat before this runs (main.js). handlers: { revive(kind), giveUp() }.
   S.showDown = function (s, handlers) {
     $('down-survived').textContent = P.t('ui.down.survived', S.levelVars(s, { t: P.UI.fmt(s.runT) }));
+    var dl = P.Dialogue.line('down.arda');   // view RNG only; a rotating Arda line above the cause card
+    $('down-line').textContent = dl ? dl.t : '';
     var cause = s.deathCause || 'walker';
     killerArt($('down-icon'), cause);
     $('down-cause').textContent = P.t('cause.' + cause);
@@ -427,18 +457,21 @@ P.Screens = (function () {
   }
 
   S.showResults = function (r) {
-    $('res-title').textContent = P.t(r.win ? 'ui.res.clear' : 'ui.res.fail');
-    $('res-label').textContent = P.t('ui.res.labelHood', { n: r.hoodN, s: r.stage, hood: P.upper(r.hood) });
+    // R1-T4 part 18: Night Shift has its own titles, no stars and no criteria; a Nightmare run has four stars.
+    var ns = r.mode === 'nightshift';
+    $('res-title').textContent = P.t(ns ? (r.win ? 'ui.ns.done' : 'ui.ns.over') : r.win ? 'ui.res.clear' : 'ui.res.fail');
     $('btn-next').classList.toggle('hidden', !r.win || !r.hasNext);
-    var st = $('res-stars'); st.innerHTML = '';
-    [48, 56, 48].forEach(function (sz, i) {
+    var st = $('res-stars'); st.innerHTML = ''; st.classList.toggle('hidden', ns);
+    var sizes = r.stars.length > 3 ? [40, 52, 52, 40] : [48, 56, 48];
+    if (!ns) sizes.forEach(function (sz, i) {
       var sv = star(sz, r.stars[i]); st.appendChild(sv);
-      setTimeout(function () { sv.classList.add('in'); }, P.Settings.reduceMotion ? 0 : 250 + i * 300);
+      setTimeout(function () { sv.classList.add('in'); }, P.UIMotion.wait('--m-enter') + i * P.UIMotion.wait('--m-beat'));
     });
-    var crit = $('res-criteria'); crit.innerHTML = '';
+    var crit = $('res-criteria'); crit.innerHTML = ''; crit.classList.toggle('hidden', ns);
     // Star goals come from P.Objectives.goals (lane P) when the run passes them; the old three-goal list is the fallback.
-    var goals = r.goals || [{ key: 'ui.res.starClear', on: r.stars[0] }, { key: 'ui.res.starNoRevive', on: r.stars[1] },
+    var goals = ns ? [] : r.goals || [{ key: 'ui.res.starClear', on: r.stars[0] }, { key: 'ui.res.starNoRevive', on: r.stars[1] },
       { key: 'ui.res.starHp', on: r.stars[2], hp: true }];
+    if (!ns && !r.goals && r.stars.length > 3) goals.push({ key: 'res.star4', vars: { n: Math.round(P.CFG.levels.nightmare.fourthHp * 100) }, on: r.stars[3] });
     goals.forEach(function (g, i) {
       var sp = document.createElement(g.on ? 'span' : 's'); sp.textContent = P.t(g.key, g.vars);
       crit.appendChild(sp);
@@ -446,18 +479,16 @@ P.Screens = (function () {
       if (i < goals.length - 1) crit.appendChild(document.createTextNode(' · '));
     });
     var rw = $('res-rewards'); rw.innerHTML = '';
-    function kv(parent, k, v) { var d = document.createElement('div'); d.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b = document.createElement('span'); b.textContent = v; d.appendChild(a); d.appendChild(b); parent.appendChild(d); }
-    kv(rw, P.t('ui.res.jeton'), '+' + r.jeton + ' ' + (r.firstClear ? P.t('ui.res.firstClear') : r.win ? '' : P.t('ui.res.partial')));
-    if (r.win) kv(rw, P.t('ui.res.hurda'), '+' + r.hurda);
-    kv(rw, P.t('ui.res.kills'), String(r.kills));
+    function kv(parent, k, v) { var d = document.createElement('div'); d.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b = document.createElement('span'); b.textContent = v; d.appendChild(a); d.appendChild(b); parent.appendChild(d); return b; }
+    var jetonTail = r.firstClear ? P.t('ui.res.firstClear') : r.win ? '' : P.t('ui.res.partial');
+    P.UIMotion.countUp(kv(rw, P.t('ui.res.jeton'), ''), r.jeton, function (v) { return '+' + v + ' ' + jetonTail; });   // count-up, tap to finish
+    if (r.win) P.UIMotion.countUp(kv(rw, P.t('ui.res.hurda'), ''), r.hurda, function (v) { return '+' + v; });
     if (r.firstClear) kv(rw, P.t('ui.res.gear'), P.t('ui.res.commonGear'));
-    var rn = $('res-run'); rn.innerHTML = '';
-    kv(rn, P.t('ui.res.time'), P.UI.fmt(r.time));
-    kv(rn, P.t('ui.res.runLevel'), String(r.level));
-    kv(rn, 'İstanbul', P.t('ui.res.progress', { km: r.km }));
+    if (P.UIProgress) P.UIProgress.results(r);   // level headline, power strip, run recap and the walk (ui-progress.js)
+    if (P.ModesUI) P.ModesUI.results(r, rw, kv);   // Nightmare and Night Shift rows (view/modes-ui.js)
     var db = $('btn-double'); db.innerHTML = ''; db.appendChild(document.createTextNode(P.t('ui.res.double')));
     var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = P.t('ui.cards.ad') + ' · ' + P.t('ui.res.notInProto'); db.appendChild(tg);
-    db.classList.toggle('hidden', !r.win);
+    db.classList.toggle('hidden', !r.win || ns);
     S.show('scr-results');
   };
 
@@ -490,7 +521,7 @@ P.Screens = (function () {
     $('chest-level').textContent = card.next ? P.t('chest.level', { n: card.next }) : '';
     chestTags(s, card, info);
     fillStats($('chest-stats'), P.Progression.statLines(card));
-    var rm = P.Settings.reduceMotion, OPEN = rm ? 0.1 : 1.5;
+    var rm = (P.Settings && P.Settings.reduceMotion), OPEN = rm ? 0.1 : 1.5;
     S.show('scr-chest'); P.Sfx.play('chestDrop');
     function frame(now) {
       if (done) return;
@@ -501,7 +532,7 @@ P.Screens = (function () {
       if (t > 0.45 && t < OPEN) { var k = Math.floor((t - 0.45) / 0.33); if (k !== sh) { sh = k; P.Sfx.play('chestShake'); } shake = Math.sin(t * 60) * (4 + k * 3); }
       var open = t >= OPEN ? Math.min(1, (t - OPEN) / 0.25) : 0;
       if (open > 0) {
-        if (!S._opened) { S._opened = true; P.Sfx.play('chestOpen'); setTimeout(function () { info.classList.add('in'); }, rm ? 0 : 250); }
+        if (!S._opened) { S._opened = true; P.Sfx.play('chestOpen'); setTimeout(function () { info.classList.add('in'); }, P.UIMotion.wait('--m-enter')); }
         c.save(); c.translate(cx, cy - 60); c.rotate(t * 0.6); c.globalCompositeOperation = 'lighter';
         for (var i = 0; i < 14; i++) {
           c.rotate(Math.PI * 2 / 14); var g = c.createLinearGradient(0, 0, 0, -330);
@@ -517,8 +548,11 @@ P.Screens = (function () {
     }
     S._opened = false;
     requestAnimationFrame(frame);
+    // A tap during the beat jumps to the reveal and the next tap continues, so the beat never holds input for long.
     scr.onclick = function () {
-      if ((performance.now() - t0) / 1000 < OPEN + 0.5 || done) return;
+      if (done) return;
+      var ready = OPEN + P.UIMotion.ms('--m-beat') / 1000;
+      if ((performance.now() - t0) / 1000 < ready) { t0 = performance.now() - ready * 1000; return; }
       done = true; scr.onclick = null; P.Sfx.play('pick'); onDone(card);
     };
   };

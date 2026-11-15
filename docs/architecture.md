@@ -144,7 +144,7 @@ WeaponInstance    =   def + current level + runtime state (cooldown timers, orbi
   + **budget curve** (points per second, piecewise linear) + **enemy weight table per time window**
   + active `ModifierDef`s.
 - Patterns: `ring_offscreen`, `line_ahead`, `cluster`, `from_points(tag)` (doorways, alleys,
-  manholes placed as markers in the level scene), `both_ends` (bridge).
+  placed as markers in the level scene), `both_ends` (bridge).
 - Route levels: `SegmentTrigger` and `HoldZone` markers in the scene switch the director's active
   segment config; hold zones lock the corridor until timer/objective completion.
 - Respects the global cap (300) and per-type caps; refunds budget when capped.
@@ -199,6 +199,23 @@ interface + fake/local implementation now, real SDK adapter later. Registered in
   `game/sim/` or `game/core/` references `QualityProfile`, `quality_tier`, or `presentation/`.
 
 ### 4.18 Localization
+- **Dialogue store (D-051).** Voice text (barks, story pages, pops, calls, captions, finale, card flavour) is class C and lives only in
+  the dialogue store: a shared beat table (`beats-*.js`: id, speaker, use, bubble limit, joke allowed) plus one native line set per
+  language (`tr/*.js`, `en/*.js`: `beatId -> [{ t, j?, spk?, mood? }]`), data only and JSON-convertible so the Godot port loads the
+  same files. API `P.Dialogue`: `line(id, opts)` (random, no repeat until exhausted, never the last, view RNG only), `get(id)` (fixed
+  variant for pages, pops and calls), `pool`, `has`, `beat`, `ids`. A missing beat or language line returns null and fails
+  `tools/test-dialogue.js`; there is no fallback to the other language. UI (class A) and rules text (class B) stay in `P.STR` and are
+  translated precisely.
+- **Locale selection.** First launch reads the device language (prototype `navigator.languages`; Godot `OS.get_locale_language()`):
+  any `tr*` selects Turkish, anything else English, saved as the player's setting. Settings overrides it and switches at once
+  (open pages, pops and calls re-resolve); the URL `?lang=tr|en` overrides for testing and is not saved.
+- The sim never reads text or the language: call subtitle times are config (`callDur`), not a function of the line.
+- **Review batches and tools (prototype, `tools/`).** `js/dialogue/batches.js` lists the beats of each writing pass (A first) and
+  `intents.js` holds one English intent line per beat; both scripts are written from the intent, never from each other.
+  `dialogue-export.js --lang= --batch=` writes the editor CSV, `dialogue-import.js` applies keep / rewrite / cut verdicts (the only
+  thing that sets `ok: 1`), `dialogue-apply.js` writes authored lines into the data files, `dialogue-lint.js` checks an authored file
+  (length, joke ratio, banned lists, duplicates, profanity caps), and `test-dialogue.js` enforces the same checks on every written
+  batch (`lib-dialogue-checks.js`; later batches are counted as notes, the guardrail list must have zero hits everywhere).
 - Godot translation system with `localization/strings.csv` (keys + TR + EN).
 - `services/text_util.gd` provides `upper(text, locale)` / `lower(text, locale)` that handle
   Turkish `i/İ` and `ı/I` (the built-in `to_upper()` is locale-blind). Unit-tested.

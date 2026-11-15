@@ -4,11 +4,11 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-layouts.js', 'js/config-enemies3.js', 'js/config-bosses.js', 'js/config-enemies4.js', 'js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js', 'js/config-env.js',
+const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-layouts.js', 'js/config-enemies3.js', 'js/config-bosses.js', 'js/config-enemies4.js', 'js/config-enemies5.js', 'js/config-skins.js','js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js', 'js/config-env.js',
   'js/config-objectives.js', 'js/config-modifiers.js', 'js/config-horde.js',
   'js/strings.js', 'js/strings-progress.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/strings-weapons3.js', 'js/sim/rng.js', 'js/sim/world.js',
   'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
-  'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/layouts.js', 'js/sim/levels.js', 'js/sim/enemies3.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
+  'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/layouts.js', 'js/sim/levels.js', 'js/sim/enemies3.js', 'js/sim/skins.js', 'js/sim/skins-fisher.js', 'js/sim/enemies4.js', 'js/sim/enemies4-marti.js', 'js/sim/enemies4-cayci.js','js/sim/events.js', 'js/sim/events-kinds.js',
   'js/sim/env.js', 'js/sim/env-kinds.js', 'js/sim/env-zones.js', 'js/sim/env-rules.js', 'js/sim/env-portal.js',
   'js/sim/hack.js', 'js/sim/modifiers.js', 'js/sim/objectives.js', 'js/sim/objectives-kinds.js',
   'js/sim/progression.js', 'js/sim/weapons6.js', 'js/sim/horde.js', 'js/sim/director.js', 'js/sim/sim.js'];
@@ -62,12 +62,13 @@ ATTACKS.forEach(a => {
   notes.push(a.type + ' events ok=' + a.want.every(w => r.seen.has(w)) + ' pose=' + r.pose.toFixed(2));
 });
 
-// 3. CR-2 entrance exemption: only route or horde spawns (s.routeSpawn) may rise from a manhole or window.
+// 3. CR-2 entrance exemption: only route or horde spawns (s.routeSpawn) may rise from a window, door, balcony or tram.
 // Set pieces (ev, anchored, elite) and plain spawns outside the route keep their spot.
 (function () {
   const s = newSim(23, 7), h = s.hero, N = 60, y = h.y + 12;
   const rising = (opts, route) => {
     s.routeSpawn = !!route; let n = 0;
+    s.enemies.length = 0;                                   // D-056: each call starts on an empty field (the ceiling refuses past 200)
     for (let i = 0; i < N; i++) {
       const e = P.Combat.spawnEnemy(s, 'walker', (i % 2 ? 1 : -1) * 6, y + (i % 5) * 0.4, opts);
       if (e.state === 'rising') n++;

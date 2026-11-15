@@ -1,11 +1,12 @@
 // Comic story presentation (workstream G v0.4; lettering and fit v0.5). P.Comic.page: full-screen comic pages (blocking;
 // the lead pauses the game). P.Comic.pop: non-blocking bust pop-in (upper band). P.Comic.call: Mom's phone-call card.
-// Art: comic-art.js. Lettering: comic-text.js. Panel layout, fit search and audit: comic-layout.js. Text: P.LINES through
+// Art: comic-art.js. Lettering: comic-text.js. Panel layout, fit search and audit: comic-layout.js. Text: P.Dialogue beats through
 // P.Story.forLine. Nothing here truncates text: the layout fits it (see comic-layout.js). Pages, pops and calls wait
 // until the lettering faces are ready (A.whenReady), so layout and drawing always use the same font.
 P.Comic = (function () {
   var C = {}, A = P.ComicArt, TX = P.ComicText, L = P.ComicLayout;
   var TYPE_CPS = L.CPS, POP = L.POP, POP_W = POP.w, POP_H = POP.h, POP_TOP = 150, RING_LEN = 125.66, AREA = L.AREA;
+  var OUT_HOLD = 0.6, TURN_GAP = 0.5;   // a call's hold after it ends (s); least time between two page slides (s): two a second at most
   var dpr = Math.min(2, window.devicePixelRatio || 1);
   var book = null, bookQueue = [], pops = [], calls = [], popEl = null, popCv = null;
   var loopOn = false, last = 0;
@@ -25,7 +26,7 @@ P.Comic = (function () {
   function reduced() { return !!(P.Settings && P.Settings.reduceMotion); }
   function host() { return document.getElementById('phone') || document.body; }
   function el(tag, cls, parent) { var n = document.createElement(tag); if (cls) n.className = cls; if (parent) parent.appendChild(n); return n; }
-  function voiceOf(who) { return ['arda', 'anne', 'usta', 'friend'].indexOf(who) >= 0 ? who : 'other'; }
+  function voiceOf(who) { if (who === 'kaan') return 'friend'; return ['arda', 'anne', 'usta', 'friend'].indexOf(who) >= 0 ? who : 'other'; }
   function sfx(name, gapMs, who) { if (P.Sfx && P.Sfx.play) P.Sfx.play(name, gapMs, { voice: who ? voiceOf(who) : 'other' }); }
   function duck(on) { if (P.Music && P.Music.duck) P.Music.duck(on); }
   function hash(s) { var h = 7; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; }
@@ -96,12 +97,32 @@ P.Comic = (function () {
     return P.t(def.tag || 'cm.tag.story') + ' · ' + (i + 1);
   }
   function clearGrid() { book.grid.innerHTML = ''; book.panels = []; }
+  // Page turn (T4 part 4, JS-driven): the grid of the page that leaves slides off to the left while the next one slides in
+  // from the right, over --m-enter (turnUpdate, run by pageUpdate). Under Reduce motion, or within TURN_GAP of the last slide,
+  // the page changes at once, so a run of quick taps never makes more than two slides a second.
+  function turnGrid() {
+    var old = book.grid, fresh = el('div', 'cm-grid', null);
+    if (book.turn) { book.turn.el.remove(); book.turn = null; }   // a slide still running gives way to this one
+    if (old && old.parentNode) old.parentNode.insertBefore(fresh, old.nextSibling); else book.root.appendChild(fresh);
+    book.grid = fresh; book.panels = [];
+    if (!old || !old.childElementCount || reduced() || book.turnIn > 0) { if (old) old.remove(); return; }
+    book.turn = { el: old, t: 0 }; book.turnIn = TURN_GAP;
+    fresh.style.transform = 'translate3d(100%,0,0)';
+  }
+  function turnUpdate(dt) {
+    var tn = book.turn, span = P.UIMotion.ms('--m-enter') / 1000, k = 1;
+    tn.t += dt;
+    if (span > 0) k = clamp(tn.t / span, 0, 1);
+    tn.el.style.transform = 'translate3d(' + (-100 * k * k).toFixed(2) + '%,0,0)';
+    book.grid.style.transform = 'translate3d(' + (100 * (1 - easeOut(k))).toFixed(2) + '%,0,0)';
+    if (k >= 1) { tn.el.remove(); book.turn = null; book.grid.style.transform = ''; }
+  }
   function nextPage() {
     book.pi++;
     if (book.pi >= book.list.length) return closeBook(false);
     var def = P.Story.pages[book.list[book.pi]];
     if (!def) return nextPage();
-    clearGrid();
+    turnGrid();
     book.label.textContent = labelOf(def, book.pi);
     book.panels = def.panels.map(function (pd, i) { return makePanel(pd, L.panelRect(def.panels.length, i)); });
     book.cur = 0; book.dark.style.opacity = 0; book.zoom = null;
@@ -131,7 +152,7 @@ P.Comic = (function () {
     if (!book && bookQueue.length) { var q = bookQueue.shift(); openBook(q.list, q.onDone); }
   }
   function openBook(list, onDone) {
-    book = { list: list, pi: -1, onDone: onDone, panels: [], cur: 0, zoom: null, holding: false, holdT: 0 };
+    book = { list: list, pi: -1, onDone: onDone, panels: [], cur: 0, zoom: null, holding: false, holdT: 0, turn: null, turnIn: 0 };
     var root = el('div', 'cm-page' + (reduced() ? ' cm-reduce' : ''), host());
     root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', P.t('cm.page.label'));
     book.root = root; book.grid = el('div', 'cm-grid', root); book.dark = el('div', 'cm-dark', root);
@@ -184,6 +205,8 @@ P.Comic = (function () {
   // Per-frame page update: typing, blips, Ken Burns drift, zoom, hold-to-skip ring.
   function pageUpdate(dt) {
     var b = book; if (!b) return;
+    if (b.turn) turnUpdate(dt);
+    if (b.turnIn > 0) b.turnIn -= dt;
     b.panels.forEach(function (p) {
       if (!p.revealed) return;
       if (!p.done) {
@@ -262,7 +285,7 @@ P.Comic = (function () {
 
   // ---------- calls ----------
   function callCard(rec) {
-    var card = el('div', 'cm-call cm-compact' + (rec.blocking ? ' cm-block' : '') + (reduced() ? ' cm-reduce' : ''), host());
+    var card = el('div', 'cm-call cm-compact' + (rec.blocking ? ' cm-block' : '') + (reduced() ? ' cm-reduce' : ' is-enter-from'), host());
     var head = el('div', 'cm-call-head', card), ctact = el('div', 'cm-contact', head), info = el('div', 'cm-call-info', head);
     ctact.appendChild(A.contact(rec.who, 'neutral', 56, dpr));
     rec.nameEl = el('div', 'cm-call-name', info); rec.nameEl.textContent = P.upper(P.t('spk.' + rec.who));
@@ -277,6 +300,7 @@ P.Comic = (function () {
     rec.nosigEl = el('div', 'cm-nosig', card); rec.nosigEl.textContent = P.t('cm.nosig');
     rec.el = card; rec.nosigEl.style.display = 'none';
     card.addEventListener('pointerup', function () { if (rec.blocking && rec.phase === 'talk') rec.LT = 99; });
+    void card.offsetHeight; card.classList.remove('is-enter-from');   // entrance: from the offset state to rest (comic.css)
     sfx('phoneRing', 900, 'other');
   }
   // Bars: a number for the whole call, or an array with one value per line (dropping and recovering signal).
@@ -286,7 +310,7 @@ P.Comic = (function () {
     return b == null ? 4 : b;
   }
   function setBars(rec) {
-    var n = barsAt(rec, rec.li), kids = rec.barsEl.children, flick = n <= 1 && Math.floor(rec.T * 2) % 2 === 1;
+    var n = barsAt(rec, rec.li), kids = rec.barsEl.children, flick = n <= 1 && !reduced() && Math.floor(rec.T * 2) % 2 === 1;   // one bar blinks at 1 Hz; steady under Reduce motion
     for (var i = 0; i < 4; i++) kids[i].classList.toggle('on', i < n && !flick);
   }
   function setSub(rec, speaker, text) {
@@ -329,10 +353,16 @@ P.Comic = (function () {
       if (!rec.ringed2 && rec.T >= 1.0) { rec.ringed2 = true; sfx('phoneRing', 900, 'other'); }
       if (rec.T >= 2.0) { rec.el.classList.remove('cm-ringing'); rec.phase = 'talk'; rec.li = 0; rec.T = 0; if (rec.lines.length) startLine(rec); else endCall(rec, false); }
     } else if (rec.phase === 'talk') { stepTalk(rec, dt); }
-    else if (rec.phase === 'nosig' && rec.T >= 1.6) rec.phase = 'out';
-    if (rec.phase === 'out' && rec.T >= 0.6) return finishCall(rec);
+    else if (rec.phase === 'nosig' && rec.T >= 1.6) { rec.phase = 'out'; rec.T = 0; }   // the hold after a drop starts now
+    if (rec.phase === 'out') leaveCall(rec);
+    if (rec.phase === 'out' && rec.T >= OUT_HOLD) return finishCall(rec);
     drawCall(rec); setBars(rec);
     rec.timerEl.textContent = fmt(rec.T);
+  }
+  // Exit (T4 part 4): the card slides up and fades over --m-exit, ending as its hold closes (OUT_HOLD). Not under Reduce motion.
+  function leaveCall(rec) {
+    if (rec.leaving || reduced() || rec.T < OUT_HOLD - P.UIMotion.ms('--m-exit') / 1000) return;
+    rec.leaving = true; rec.el.classList.add('is-leaving');
   }
   function stepTalk(rec, dt) {
     rec.LT += dt;
@@ -351,9 +381,10 @@ P.Comic = (function () {
     c.clearRect(0, 0, AREA.w, 150); c.drawImage(rec.bg.cv, 0, 0, AREA.w, 150);
     A.bust(c, 'arda', ardaTalks ? cur.mood : 'neutral', 74, 146, 96,
            { alpha: ardaTalks || !talk ? 1 : 0.7, talk: ardaTalks ? 0.5 + 0.5 * Math.sin(rec.T * 16) : 0 });
-    A.bust(c, rec.who, callerTalks ? cur.mood : 'neutral', 290 + (rec.phase === 'ring' ? Math.sin(rec.T * 18) * 2 : 0), 150, 140,
+    A.bust(c, rec.who, callerTalks ? cur.mood : 'neutral', 290 + (rec.phase === 'ring' && !reduced() ? Math.sin(rec.T * 18) * 2 : 0), 150, 140,
            { alpha: callerTalks || !talk ? 1 : 0.7, talk: callerTalks ? 0.5 + 0.5 * Math.sin(rec.T * 16) : 0 });
-    if (rec.staticOn) A.static(c, AREA.w, 150, A.rng(Math.floor(rec.T * 20)), 0.55);
+    // Call static re-rolls 3 times a second (it was 20: a strobe over the whole call box); held still under Reduce flashing.
+    if (rec.staticOn) A.static(c, AREA.w, 150, A.rng((P.Settings && P.Settings.reduceFlash) ? 0 : Math.floor(rec.T * 3)), 0.55);
   }
   function finishCall(rec) {
     calls.shift(); rec.el.remove();
@@ -372,6 +403,36 @@ P.Comic = (function () {
     if (book || pops.length || calls.length) requestAnimationFrame(frame); else loopOn = false;
   }
 
+  // ---------- language switch (D-051): the open page, pops and call re-resolve their lines in the new language ----------
+  function relangBook() {
+    var def = P.Story.pages[book.list[book.pi]], old = book.panels, cur = book.cur;
+    if (!def || book.zoom) return;
+    clearGrid();
+    book.panels = def.panels.map(function (pd, i) {
+      var p = makePanel(pd, L.panelRect(def.panels.length, i)), o = old[i];
+      if (o && o.revealed) { p.revealed = true; p.el.classList.add('in'); p.done = !!o.done; p.T = o.done ? p.total : Math.min(o.T, p.total); }
+      return p;
+    });
+    book.label.textContent = labelOf(def, book.pi);
+    book.hint.textContent = P.t('cm.tap'); book.root.setAttribute('aria-label', P.t('cm.page.label'));
+    if (book.panels[cur]) announce(book.panels[cur]);
+  }
+  C.relang = function () {
+    if (!A.ready) return;
+    pops = pops.map(function (j) {
+      var s = j.src != null ? resolve(j.src, j.opts) : null, n;
+      if (!s || !s.caps) return j;
+      n = popJob(s, j.opts); n.src = j.src; n.opts = j.opts; n.T = j.T; n.started = j.started;
+      return n;
+    });
+    calls.forEach(function (rec) {
+      if (!rec.el) return;
+      rec.nameEl.textContent = P.upper(P.t('spk.' + rec.who)); rec.nosigEl.textContent = P.t('cm.nosig');
+      if (rec.phase === 'talk' && rec.cur) { var lt = rec.LT; startLine(rec); rec.LT = Math.min(lt, rec.typeDur + rec.holdDur - 0.01); }
+    });
+    if (book) relangBook();
+  };
+
   // ---------- public API ----------
   // ids: one page id or an array (played in order). onDone(skipped) runs when the last page closes.
   C.page = function (ids, onDone) {
@@ -381,20 +442,21 @@ P.Comic = (function () {
     if (book) { bookQueue.push({ list: list, onDone: onDone }); return; }
     openBook(list, onDone);
   };
-  // line: P.LINES id or {who, mood, side, text|key, important}. opts: {mood, side, important, shout}.
+  // line: a beat id (P.Dialogue) or {who, mood, side, text|key, important}. opts: {mood, side, important, shout}.
   C.pop = function (line, opts) {
     if (!A.ready) { A.whenReady(function () { C.pop(line, opts); }); return; }
     var s = resolve(line, opts);
     if (!s || !s.caps) return;
     if (pops.length >= 4) pops.splice(1, 1);
     ensurePop();
-    pops.push(popJob(s, opts));
+    var j = popJob(s, opts); j.src = line; j.opts = opts;
+    pops.push(j);
     kick();
   };
-  // who: caller portrait id; lineIds: P.LINES ids. opts: {bars: n | [n per line], blocking, mood}.
+  // who: caller portrait id; lineIds: beat ids. opts: {bars: n | [n per line], blocking, mood}.
   C.call = function (who, lineIds, onDone, opts) {
     var o = opts || {};
-    var rec = { who: who, lines: (lineIds || []).filter(function (id) { return P.LINES[id]; }), onDone: onDone,
+    var rec = { who: who, lines: (lineIds || []).filter(function (id) { return P.Dialogue.has(id); }), onDone: onDone,
                 bars: o.bars == null ? 4 : o.bars, blocking: !!o.blocking, phase: 'ring', T: 0, LT: 0, li: 0,
                 staticUntil: 0, staticOn: false, ringed2: false, typeDur: 0, holdDur: 0, len: 0, cur: null };
     calls.push(rec);
