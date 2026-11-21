@@ -13,7 +13,7 @@ P.Horde = {};
     return s.rng.horde || (s.rng.horde = P.makeRng((Math.imul((s.seed >>> 0) ^ 0x4F0E1D3B, 2654435761) + (s.levelIndex || 0) * 92821) >>> 0));
   }
   function state(s) {
-    return s.horde || (s.horde = { budget: 0, queue: [], marks: {}, surges: 0, debutT: 0, seen: {}, spawned: 0, miss: 0 });
+    return s.horde || (s.horde = { budget: 0, queue: [], marks: {}, surges: 0, debutT: 0, seen: {}, spawned: 0, arenaSpawned: 0, miss: 0 });
   }
 
   // The camera frame as the view draws it for generated levels (fx.js targetY, cam.w, cam.x = 0).
@@ -39,7 +39,7 @@ P.Horde = {};
   // They would only accumulate and cost step time. Set pieces, elites, bosses and special types are never culled.
   function cullable(e) {
     return (e.fodder || e.type === 'walker' || e.type === 'runner') && !e.evId && !e.anchored && !e.elite && !e.boss &&
-      !e.lure && !e.lootEv && !e.civ && !e.entrance;
+      !e.lure && !e.lootEv && !e.civ && !e.entrance && !e.frenzyWave && !e.routeGuard;
   }
   function cull(s, fr) {
     var lim = fr.cy - fr.half - cfg().ctl.cullBehind, list = s.enemies;
@@ -75,7 +75,8 @@ P.Horde = {};
     var H = cfg(), G = s.geo, g = s.gen, k = Math.max(0, s.levelIndex - 1), t, f, m, P3 = H.profile, mm;
     if (!G || s.mode !== 'play' || s.props.shutterOpen) return 0;
     mm = modMul(s);
-    if (G.boss && g && g.arena) {                       // boss arena: adds around the boss while it lives
+    if (g && g.arena) {                                 // boss arena: adds around the boss while it lives
+      if (s.routeTrial) return 0;
       if (!g.boss || g.boss.dead) return 0;
       return mm * Math.min(H.arena.cap, H.arena.base + H.arena.perLevel * k);
     }
@@ -86,7 +87,8 @@ P.Horde = {};
     }
     var p = clamp01(s.hero.y / Math.max(1, G.holdY));   // route (boss levels: up to the arena's approach)
     m = p < 0.5 ? P3[0] + (P3[1] - P3[0]) * (p / 0.5) : P3[1] + (P3[2] - P3[1]) * ((p - 0.5) / 0.5);
-    return mm * Math.min(H.on.cap, H.on.base + H.on.perLevel * k) * m;
+    var pressure = s.milestone ? P.RouteMilestones.pressure(s) : 1;
+    return mm * Math.min(H.on.cap, H.on.base + H.on.perLevel * k) * m * pressure;
   };
 
   // Off-screen spawn spot: ahead, behind (groan cue) or at a side wall. Never in a block or past the gate.
@@ -110,29 +112,38 @@ P.Horde = {};
     var R = rng(s), H = cfg().ctl, hold = s.dir.hold.active || !!(s.gen && s.gen.arena), St = state(s);
     var pt = spot(s, fr, R, hold ? H.behindHold : H.behindShare, H.sideShare);
     if (!pt) { St.miss++; return false; }
-    St.spawned++;
     s.routeSpawn = true;                                   // enemies3.js: an ambient spawn may come from a window, balcony or tram door
     var e = P.Combat.spawnEnemy(s, R.chance(H.runnerShare) ? 'runner' : 'walker', pt.x, pt.y, { skin: skin(s) });
     s.routeSpawn = false;
     if (!e) return false;                                  // D-056: the hard ceiling refused it
+    St.spawned++;
+    if (s.gen && s.gen.arena) St.arenaSpawned++;
     fodder(e);
     if (pt.behind) s.events.push({ type: 'groan', x: pt.x, y: pt.y });
     return true;
+  }
+
+  function ambientLeft(s, S) {
+    var L = P.CFG.levels, C = s.milestone && P.RouteMilestones.pace(s) ||
+      (P.Levels.earlyNormal(s) && !s.dir.hold.active ? L.istiklalRoute : null);
+    if (!C) return Infinity;
+    if (s.gen.arena) return C.bossAmbient - S.arenaSpawned;
+    return Math.floor(C.ambientStart + (Math.max(2, s.gen.routeFront || 2) - 2) * C.ambientPerM) - (S.spawned - S.arenaSpawned);
   }
 
   // Ambient controller: rate = min(max, gain x deficit) per second, where the deficit is target x nearMul minus the
   // enemies inside the frame plus margin. Spawns stop at the horde cap. The budget caps at `burst` so a pause does not
   // release a flood.
   function ambient(s, S, fr, dt) {
-    var H = cfg().ctl, target = Hd.target(s), need, rate;
-    if (target <= 0) { S.budget = 0; return; }
+    var H = cfg().ctl, target = Hd.target(s), left = ambientLeft(s, S), need, rate;
+    if (target <= 0 || left < 1) { S.budget = 0; return; }
     need = target * H.nearMul - count(s, fr, H.margin);
     if (need <= 0) { S.budget = 0; return; }
     rate = Math.min(s.dir.hold.active ? H.holdMax : H.max, H.gain * need);   // the finale gets its own spawn limit
     S.budget = Math.min(H.burst, S.budget + rate * dt);
-    while (S.budget >= 1 && need >= 1 && s.enemies.length < H.cap) {
+    while (S.budget >= 1 && need >= 1 && left >= 1 && s.enemies.length < H.cap) {
       if (!spawnAmbient(s, fr)) break;
-      S.budget -= 1; need -= 1;
+      S.budget -= 1; need -= 1; left--;
     }
   }
 
@@ -177,7 +188,7 @@ P.Horde = {};
   // Surge marks: route progress (y / hold y) and the hold's start and middle. Each mark fires once.
   function marks(s, S, fr) {
     var H = cfg().surge, G = s.geo, i, key, p;
-    if ((G.boss && s.gen.arena) || s.props.shutterOpen || s.mode !== 'play') return;
+    if (s.gen.arena || s.props.shutterOpen || s.mode !== 'play') return;
     if (s.dir.hold.active) {
       for (i = 0; i < H.holdAt.length; i++) {
         key = 'h' + i;
@@ -210,6 +221,7 @@ P.Horde = {};
     var S = state(s), fr = frame(s);
     cull(s, fr);
     tickQueue(s, S, fr);
+    if (P.Levels.tramRespite(s) || P.Levels.routeRelief(s)) return;
     marks(s, S, fr);
     if (S.debutT > 0) { S.debutT -= dt; return; }
     ambient(s, S, fr, dt);

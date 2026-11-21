@@ -1,0 +1,12 @@
+Using the attached current six civilian identities, create a matching TRANSPARENT idle/reaction sprite atlas for this same Ink & Tea game. This fixes a generic NPC fallback that changes every stationary person into one man. Preserve all six faces, hairstyles, body builds and exact outfits from the six source rows. Clean dark outlines, warm cel shading, elevated three-quarter 55-degree game view, facing screen right. No text, backgrounds, ground, panels, scenery, labels, shadows or glows.
+
+EXACT 2 columns x6 rows, twelve FULL BODY figures. Transparent gutters, centered adults of equal crown-to-sole height (84% of each cell) with soles at94% cell height. Standing with both feet on the ground, natural relaxed legs; no running poses or small copies. Column1 calm standing, column2 startled standing with slightly raised defensive hands; stay the same body height.
+
+Row1 ponytail woman, teal jacket, white top, khaki trousers, sneakers.
+Row2 dark-haired office man, pale blue rolled sleeve shirt, loose dark tie, gray trousers, brown shoes.
+Row3 curly-haired woman, plum cardigan, cream top, dark trousers, sneakers.
+Row4 older gray-haired mustached man, mustard vest, cream short sleeve shirt, dark green trousers, brown shoes.
+Row5 curly-haired young man, orange athletic jacket, white tee, charcoal trousers, blue cross-body bag, white sneakers.
+Row6 woman with dark loose hair, light cream overshirt, blue top, rust trousers, white sneakers.
+
+These are the same six people, now standing calmly or startled. Retain their identities so their existing running frames will match. Every figure fully inside its own cell with hands and feet intact. Transparent alpha background.

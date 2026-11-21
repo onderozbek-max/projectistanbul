@@ -71,14 +71,7 @@
   },
   "ownerExceptions": {
     "_about": "Per-line owner exceptions (decision D-052 PROPOSED, 2026-11-10): the owner approved these exact lines despite a guardrail or flag rule. Key = \"<beat>#<variant>\", value = rule ids to skip. Only the listed rule is skipped, only for that line; new lines still hit the rule.",
-    "tr": {
-      "callC2#0": ["religion"],
-      "BK.hack.tram.fail#1": ["religion"],
-      "BK.self#8": ["ethnic-regional"],
-      "BK.evend.blackout#2": ["body-shaming"],
-      "BK.boss#4": ["english-word"],
-      "BK.hd05.4#1": ["formal-plural"]
-    }
+    "tr": {}
   },
   "turkishWhitelistInEnglish": ["abi", "usta", "dede", "simit", "dürüm", "döner", "çay", "dolmuş", "kapıcı", "paşa", "pasha", "nazar"],
   "englishWhitelistInTurkish": ["ok", "gps", "scooter", "wi-fi", "wifi", "sms"]

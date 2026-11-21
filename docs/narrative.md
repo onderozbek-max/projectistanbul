@@ -18,6 +18,25 @@ behind a family that keeps leaving him letters. Each letter knows a little more 
 
 ## Tone
 
+**Current English direction, 2026-11-19 (D-122, proposed):** the owner's English references
+are South Park and Rick and Morty. Use original situational satire, contradictory social
+rules and character friction while retaining plain meaning, local specificity and emotional
+restraint. The English script is written natively from shared scene facts; it does not
+translate the Turkish jokes. See `voice-en.md` §1 and `reviews/EN-END-TO-END-AUDIT-2026-11-19.md`.
+
+**Current Turkish direction, 2026-11-19 (D-121, proposed):** the owner's latest references
+are Leyla ile Mecnun and Gibi: ordinary social logic under absurd pressure, distinct responses,
+and humor that exposes a character rather than interrupting the danger. This supersedes the
+older Turkish reference list below. Loss stays quiet. Comic endings must change a relationship,
+reveal usable information or create a specific unresolved question; automatic dramatic zooms
+are not a substitute. The first-30 working script is revised; later-content continuity issues
+remain recorded in `reviews/TR-END-TO-END-AUDIT-2026-11-19.md` before expansion.
+
+2026-11-16 Turkish revision: the owner asks for the absurd everyday logic, character friction
+and dry responses associated with Leyla ile Mecnun, South Park and Rick and Morty, without
+forcing a joke into every line. The Turkish working direction is in `voice-tr.md` §1 and
+proposed D-100; the original plot and the quiet emotional beats stay in place.
+
 - **Shaun of the Dead × Turkish dizi.** Comedy shows up most often. Heart hits harder.
   Horror hits hardest.
 - **Local jokes, universal delivery.** Turks catch the extra layer; everyone else still gets
@@ -112,6 +131,24 @@ map in `journey.md`). Chapters 2–4 keep the district format below until they g
 ---
 
 ## Chapter 1: *Eve Dönüş* (Homecoming)
+
+**Shared motivation clarification, 2026-11-19 (D-121 / D-122, proposed):** at L5 Mom tells Arda to
+collect his existing scooter as well as Dad's marked map; the map photo will not send. Arda
+explicitly commits to collecting them before continuing to Sarıyer. The scooter/toolkit are
+already part of the Ataköy arrival canon below, not a new first-30 mechanic. Their visible
+pickup remains a required later-finale payoff. L30 establishes Dad's firsthand highway visit
+before Arda asks what he saw. Both native scripts establish these facts in their own voices.
+No new plot branch or additional blocking scene is introduced.
+
+**Turkish prototype revision, 2026-11-16 (D-103, proposed):** L5 establishes that the family
+has left and asks Arda to collect Dad's note at home; L15 confirms they are safe in Sarıyer.
+The empty apartment is therefore an emotional arrival, not a surprise the audience already
+knows. Calls add facts rather than repeatedly concealing the same answer. L10/L15 gain short
+victory comics; Kaan states his plan to check on Nuri before walking Arda home, and later
+confirms Fatma Nine is with his cousins. The recurring radio bulletin advertises safety in
+the northern forest; Letter #1 explicitly contradicts it. Dad's reason remains unrevealed.
+This is the current local TR draft under the owner's second-pass request; older scene
+summaries below describe the earlier reveal timing. See the second-pass review packet.
 **Taksim → Ataköy · on foot · Levels 1–100 · Squad: Arda (+ Kaan from L20, proposed)**
 
 **Synopsis:** Arda is eating döner on İstiklal when a breaking-news report flickers on the
@@ -122,14 +159,14 @@ traffic is gridlocked. Ataköy is 17 km away and the only way there is to walk.
 
 | Arc (journey §8.2) | Hoods (levels) | What happens | Hood boss (stage 5) |
 |---|---|---|---|
-| A. İstiklal & Galata | H01–H02 (1–10) | Cold open: TV, the bite, the knife. Dropped call. Tutorial by fire. On Galata: zombie tourists with selfie sticks. | *The Vatman* (L5): a zombie tram driver in a derailed red tram. *Tour Guide* (L10). |
+| A. İstiklal & Galata | H01–H02 (1–10) | Cold open: TV, the bite, the knife. Dropped call. Tutorial by fire. On Galata: zombie tourists with selfie sticks. | *The Vatman* (L5): a zombie tram driver in a derailed red tram. *Tower Keeper* (L10). |
 | B. Karaköy & the Bridge | H03–H04 (11–20) | Paşa the cat hisses at an empty alley... it isn't empty. Zombie fishermen cast lines that reel you in. **Kaan joins after the bridge boss (L20, proposed):** a misunderstanding (he thinks Arda is infected), then a team-up. | *The Bride* (L15): a zombie wedding party in a Karaköy café. *Big Fisherman* (L20). |
 | C. Eminönü & Sirkeci | H05–H06 (21–30) | Spice clouds as hazards (pepper = stun). Kaan has to put down his zombified boat captain. First emotional beat. Sirkeci ends the slice at L30. | *The Captain* (L25): anchor chain sweep. *The Ticket Man* (L30, slice end). |
 | D. Grand Bazaar & Beyazıt | H07–H08 (31–40) | Maze levels. Humans looting the gold shops. First hint that people are the next threat. | *The Carpet Golem* (L35). *The Pigeon Man* (L40). |
 | E. Topkapı Sarayı & Haliç–Balat | H10–H11 (46–55) | Dusk at the palace gate and the tour queue (D-060), then Balat's colour houses into night. **Campfire at Fatma Nine's Garage**, Kaan's grandmother's garage in Balat (owner story call; to be rewritten by owner). Carried over until then: Arda admits his crush on Mila. Kaan teases him, then goes quiet. *(Triangle seed.)* | *The Docent* (L50). *The Antiquarian* (L55). |
-| F. Kumkapı & Yenikapı | H09 and H12 (41–45, 56–60) | Fish market, then the underground Marmaray station with flashlight-only levels. | *Fish Porter* (L55). *The Evening Crowd* (L60): a station-wide horde. |
+| F. Kumkapı & Yenikapı | H09 and H12 (41–45, 56–60) | Fish market, then the underground Marmaray station with flashlight-only levels. | *Fish Porter* (L45). *The Evening Crowd* (L60): a station-wide horde. |
 | G. Samatya & Yedikule | H13–H14 (61–70) | Sunrise over the sea. The walk turns along the coast. | *The Grill Man* (L65): the barbecue horde (was "The Picnic"). *Key Keeper* (L70). |
-| H. Kazlıçeşme & Zeytinburnu | H15–H16 (71–80) | The coastal road. A crackling radio mentions "safe zones" and "stay away from the north". | *Dye Foreman* (L75). *Hose Man* (L80). |
+| H. Kazlıçeşme & Zeytinburnu | H15–H16 (71–80) | The coastal road. The radio advertises a safe zone in the northern forest. Dad's note contradicts the broadcast. | *Hose Man* (L75). *Dye Foreman* (L80). |
 | I. Bakırköy | H17–H18 (81–90) | Outskirts, an abandoned mall, Arda's old high school. | *The Principal* (L85). *Ice-Cream Man* (L90). |
 | J. Ataköy | H19–H20 (91–100) | Home. The apartment is empty. **Dad's Letter #1** + toolkit + Arda's electric scooter. The family went to Dede's in Sarıyer. Ominous line: *"Avoid the highways. And whatever the radio says about the forest up north, stay away from it."* | *Yacht Owner* (L95). *Ahmet Abi* (L100): the beloved apartment *kapıcı* who brought bread every morning. Bittersweet. |
 

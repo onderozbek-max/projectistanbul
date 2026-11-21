@@ -60,8 +60,21 @@ P.Meta = P.Meta || {};
     el('span', 'meta-tree-dname', top).textContent = t('tree.' + sel + '.name');
     el('span', 'meta-tree-dcap', top).textContent = t('tree.tier', { attr: t('stat.' + n.attr), n: n.tier });
     el('p', 'meta-tree-ddesc', d).textContent = t('tree.' + sel + '.desc');
+    if (n.attr === 'str' && ['str.1', 'str.3', 'str.4'].indexOf(n.id) >= 0) {
+      var owned = M.loadout().startWeapon, supports = P.Combat.isHeavy(owned);
+      el('p', 'meta-tree-dneeds', d).textContent = t(supports ? 'growth.heavyYes' : 'growth.heavyNo', { weapon: t('item.' + owned) });
+      var compatible = P.CFG.arsenal.weapons.filter(function (id) { return P.Combat.isHeavy(id); });
+      el('p', 'meta-tree-dneeds', d).textContent = t('growth.heavyList', {
+        weapons: compatible.map(function (id) { return t('item.' + id); }).join(', ')
+      });
+    }
     if (state !== 'learned') el('p', 'meta-tree-dneeds', d).textContent = needsText(st, n);
     if (state === 'short') el('p', 'meta-tree-dneeds is-warn', d).textContent = t('tree.short', { sc: st.sc });
+    if (rankOf(st, n.attr) < n.gate) {
+      var training = el('button', 'growth-path-link', d);
+      training.textContent = t('growth.train', { attr: t('stat.' + n.attr) });
+      training.addEventListener('click', function () { panel.onPage('attr', n.attr); });
+    }
     var btn = el('button', 'meta-btn meta-tree-learn', d);
     btn.textContent = state === 'learned' ? t('tree.learned') : t('tree.learn', { c: n.cost });
     btn.disabled = state !== 'available';
@@ -117,12 +130,16 @@ P.Meta = P.Meta || {};
     lastLearned = null;
   }
   function build(host, opts) {
-    panel = { root: el('section', 'meta-tree meta-hidden', host) };
-    var head = el('div', 'meta-attr-head', panel.root), back = el('button', 'meta-iconbtn', head);
+    panel = { root: el('section', 'meta-tree growth-page meta-hidden', host), onPage: opts.onPage };
+    var top = el('div', 'growth-header', panel.root);
+    var head = el('div', 'meta-attr-head', top), back = el('button', 'meta-iconbtn', head);
     back.textContent = '←'; back.setAttribute('aria-label', t('meta.back'));
     back.addEventListener('click', function () { if (opts && opts.onBack) opts.onBack(); });
-    el('div', 'meta-title', head).textContent = t('tree.title');
-    panel.sc = el('span', 'meta-tree-sc', head);
+    el('div', 'meta-title', head).textContent = t('growth.title');
+    M.growthNavigation(top, 'tree', opts.onPage);
+    var cred = el('div', 'growth-cred', panel.root);
+    el('span', 'meta-attr-note growth-explain', cred).textContent = t('growth.treeHint');
+    panel.sc = el('span', 'meta-tree-sc', cred);
     panel.pages = el('div', 'meta-tree-pages', panel.root);
     panel.grid = el('div', 'meta-tree-grid', panel.root);
     panel.bond = el('div', 'meta-bond meta-hidden', panel.root);
@@ -130,7 +147,29 @@ P.Meta = P.Meta || {};
     panel.foot = el('div', 'meta-tree-foot', panel.root);
   }
   T.build = function (host, opts) { if (!panel) build(host, opts); };
-  T.show = function () { if (panel) { confirming = false; sel = null; P.UIMotion.panelShow(panel.root); render(); } };
+  T.firstAvailable = function () {
+    var st = M.treeState();
+    return P.Tree.ids().find(function (id) { return stateOf(st, id) === 'available'; });
+  };
+  T.nextIn = function (attr) {
+    var learned = M.treeState().learned;
+    return P.Tree.ids().find(function (id) { return id.split('.')[0] === attr && !learned[id]; });
+  };
+  T.show = function (preferred) {
+    if (!panel) return;
+    confirming = false; sel = null;
+    var n = preferred && P.Tree.node(preferred);
+    if (n) {
+      sel = n.id;
+      page = PAGES.street.indexOf(n.attr) >= 0 ? 'street' : 'fight';
+    }
+    P.UIMotion.panelShow(panel.root); render();
+    if (n) {
+      P.UIMotion.revealWithin(panel.root,panel.detail);
+      var action = panel.detail.querySelector('.meta-tree-learn:not(:disabled),.growth-path-link') || panel.grid.querySelector('[data-perk="' + n.id + '"]');
+      if (action) action.focus({ preventScroll: true });
+    }
+  };
   T.hide = function () { if (panel) P.UIMotion.panelHide(panel.root); confirming = false; };   // slides out (ui-motion.js)
   T.isOpen = function () { return !!panel && P.UIMotion.panelOpen(panel.root); };
   T.showBond = function () { if (panel) { page = 'bond'; render(); } };

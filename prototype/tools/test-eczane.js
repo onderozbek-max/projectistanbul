@@ -8,11 +8,10 @@
 // Usage: node prototype/tools/test-eczane.js
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
+const { ROOT, indexScripts } = require('./lib-load');
 // Same module list as bot.js and test-env.js: index.html's sim scripts (view, story and flow files excluded).
 const NOT_SIM = /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|arsenal|collect|daily|save)\.js$/;
-const FILES = [...fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAll(/<script src="([^"]+)"/g)]
-  .map(m => m[1]).filter(f => !NOT_SIM.test(f));
+const FILES = indexScripts().filter(f => !NOT_SIM.test(f));
 const store = {};
 globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
@@ -237,6 +236,15 @@ rules('pharmacy', findStation('eczane'), 'eczane');
 rules('kiosk', findStation('kiosk'), 'bufe');
 
 // ---------- 4. drop heals: the pickup event (combat.js updateDrops) ----------
+{
+  const s = started(3, 3), h = s.hero, d = { kind: 'simit', value: 10, x: h.x, y: h.y, mag: true, pop: 0 };
+  h.hp = h.maxHp; s.drops.push(d);
+  P.Combat.updateDrops(s, DT);
+  check(s.drops.includes(d) && !d.mag, 'drops: full HP leaves food available on the ground');
+  h.hp -= 20;
+  P.Combat.updateDrops(s, DT);
+  check(!s.drops.includes(d) && h.hp === h.maxHp - 10, 'drops: food can be collected after taking damage');
+}
 {
   const s = started(3, 3), h = s.hero;
   s.dropHealed = P.CFG.drops.healCap; h.hp = h.maxHp - 25;

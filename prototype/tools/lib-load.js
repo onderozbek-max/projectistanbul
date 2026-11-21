@@ -1,16 +1,18 @@
-// Shared loader for the dialogue tools: runs the non-view scripts of index.html in this process and returns P.
-// Used by dialogue-export.js and dialogue-import.js (and available to other node tools).
+// Shared index.html script order for Node tools. loadP runs the non-view scripts with in-memory storage.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const NOT_LOADED = /^js\/view\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|gear|stats|tree|bond-ui|arsenal)\.js$/;
+function indexScripts() {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  return [...html.matchAll(/<script src="([^"]+)"/g)].map(match => match[1]);
+}
 function loadP() {
   const store = {};
   globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1])
+  indexScripts()
     .filter(f => !NOT_LOADED.test(f) && fs.existsSync(path.join(ROOT, f)))
     .forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
   return globalThis.P;
 }
-module.exports = { loadP, ROOT };
+module.exports = { indexScripts, loadP, ROOT };

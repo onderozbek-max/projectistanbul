@@ -4,17 +4,17 @@ Object.assign(P.DLG.en, {
   "BK.hd11.1": [
     { t: "Haliç–Balat. Steep, and very colorful.", ok: 1 },
     { t: "Laundry's out. Nobody's bringing it in.", ok: 1 },
-    { t: "Blue hour on the Horn. Wrong decade.", j: 1, ok: 1 },
+    { t: "Antiques everywhere. Even the phones look exhausted.", j: 1 },
   ],
   "BK.hd11.2": [
     { t: "Fog on the Horn. Painted walls, no one.", ok: 1 },
-    { t: "Pink next to ochre. Nobody's arguing.", j: 1, ok: 1 },
+    { t: "Those houses are still cheerful. Read the room, houses.", j: 1 },
     { t: "Café chairs stacked, waiting for guests.", ok: 1 },
   ],
   "BK.hd11.3": [
     { t: "Old stuff on every step. Zero bidders.", ok: 1 },
-    { t: "Shelves on the lane. Climb or squeeze.", j: 1, ok: 1 },
-    { t: "Brazier tipped. Fire's having a moment.", ok: 1 },
+    { t: "A shelf in the street. Even the furniture's fleeing.", j: 1 },
+    { t: "The brazier tipped. Fire spreading across the lane." },
   ],
   "BK.hd11.4": [
     { t: "Fatma Nine's garage. Finally, a break.", ok: 1 },
@@ -27,7 +27,7 @@ Object.assign(P.DLG.en, {
     { t: "Stock's falling. This isn't a sale.", j: 1, ok: 1 },
   ],
   "BK.hd12.1": [
-    { t: "Yenikapı. Underground, gray light, gray phone.", ok: 1 },
+    { t: "Yenikapı. Underground again. Check the flashlight." },
     { t: "The escalator's stopped halfway. Like the rest of my day.", j: 1, ok: 1 },
     { t: "The steps go down. I don't love that.", ok: 1 },
   ],
@@ -52,19 +52,19 @@ Object.assign(P.DLG.en, {
     { t: "The crowd's on the platform. Last stop, then.", ok: 1 },
   ],
   "BK.hd13.1": [
-    { t: "Samatya before dawn. The sea's quiet. The zombies aren't.", ok: 1 },
+    { t: "Daylight in Samatya. I can see too many of them." },
     { t: "The promenade's empty. Mostly empty.", j: 1, ok: 1 },
     { t: "Nobody on the sea wall. Nobody on the benches.", ok: 1 },
   ],
   "BK.hd13.2": [
     { t: "The blankets are laid out. Someone meant to stay.", ok: 1 },
-    { t: "Sunrise coming. Blankets everywhere. Watch your feet.", ok: 1 },
+    { t: "Morning light on the blankets. Watch where I step." },
     { t: "You can't see what's under the blankets. Keep your distance.", ok: 1 },
   ],
   "BK.hd13.3": [
     { t: "A cat's hissing. Something's under a blanket.", ok: 1 },
     { t: "The cats are hissing at everything. Good. I trust cats now.", j: 1, ok: 1 },
-    { t: "Sun's coming up. The cats have been right all night.", ok: 1 },
+    { t: "Those cats spotted trouble before I did. Again." },
   ],
   "BK.hd13.4": [
     { t: "Sea wall. Push them in, and they just drift off.", ok: 1 },
@@ -77,7 +77,7 @@ Object.assign(P.DLG.en, {
     { t: "Golden light and grill smoke. Lovely, if it weren't this.", ok: 1 },
   ],
   "BK.hd14.1": [
-    { t: "Yedikule's walls. They held once. Let's hope again.", ok: 1 },
+    { t: "Yedikule's walls. Find a gate we can get through." },
     { t: "On top of the wall. Narrow, but it's the high ground.", ok: 1 },
     { t: "The walls are still standing. I'm not sure about me.", j: 1, ok: 1 },
   ],
@@ -112,14 +112,14 @@ Object.assign(P.DLG.en, {
     { t: "The grass is wet. Watch your feet.", ok: 1 },
   ],
   "BK.hd15.3": [
-    { t: "Sprinklers on. Hoses across the path. Watch the wet.", ok: 1 },
+    { t: "Hoses across the path. Don't trip on one." },
     { t: "The sprinkler lanes are slippery. Walk on the dry bits.", ok: 1 },
     { t: "Wet ground, live cable. Nobody panic.", j: 1, ok: 1 },
   ],
   "BK.hd15.4": [
-    { t: "Joggers in a pack. I'd love to keep up with them.", ok: 1 },
-    { t: "They're running in a line. Lovely, really.", ok: 1 },
-    { t: "Joggers coming in a pack. Perfect.", ok: 1 },
+    { t: "Runners in a pack. Don't let them surround me." },
+    { t: "A whole pack of runners coming this way." },
+    { t: "Keep a gap between me and those runners." },
   ],
   "BK.hd15.5": [
     { t: "The hose yard. Hoses everywhere. Anyone know the way?", ok: 1 },
@@ -142,9 +142,9 @@ Object.assign(P.DLG.en, {
     { t: "Conveyor belt. I'd rather not be the next thing on it.", ok: 1 },
   ],
   "BK.hd16.4": [
-    { t: "Drums in every color. Don't shoot the teal one.", ok: 1 },
+    { t: "Drums all along the fence. Stay clear if one catches." },
     { t: "One drum goes, and the whole row goes. Keep back.", ok: 1 },
-    { t: "Keep away from the magenta ones. They look ready.", ok: 1 },
+    { t: "Those drums are packed tight. Give them room." },
   ],
   "BK.hd16.5": [
     { t: "The foreman's still on shift. Overtime, anybody?", j: 1, ok: 1 },
@@ -159,7 +159,7 @@ Object.assign(P.DLG.en, {
   "BK.hd17.2": [
     { t: "Shops, shutters, shoppers. Mostly shutters.", ok: 1 },
     { t: "Dust falling through the skylight like snow.", ok: 1 },
-    { t: "A shopping trolley squeaking. Who's pushing it?", ok: 1 },
+    { t: "A shopping cart squeaking. Who's pushing it?" },
   ],
   "BK.hd17.3": [
     { t: "School bell. Every time it rings, they come.", ok: 1 },
@@ -178,12 +178,12 @@ Object.assign(P.DLG.en, {
   ],
   "BK.hd18.1": [
     { t: "Bakırköy shore. Palms, bikes, and an ice-cream bell.", ok: 1 },
-    { t: "Promenade's empty, bar one ice-cream bell ringing.", ok: 1 },
+    { t: "Quiet along the promenade. Then that bell again." },
     { t: "Palms, bike lane, sea. Nice view for a last walk.", ok: 1 },
   ],
   "BK.hd18.2": [
     { t: "Benches all facing the sea. Nobody on any of them.", ok: 1 },
-    { t: "Picnic bags on the benches. Nobody's coming back.", ok: 1 },
+    { t: "Picnic bags left on the benches. Where did everyone go?" },
     { t: "The benches are still waiting for their people.", ok: 1 },
   ],
   "BK.hd18.3": [
@@ -202,9 +202,9 @@ Object.assign(P.DLG.en, {
     { t: "A cold cloud from the ice-cream cart. Sure. Why not.", ok: 1 },
   ],
   "BK.hd19.1": [
-    { t: "Ataköy marina at dawn. Masts, boats, zombie sailors.", j: 1, ok: 1 },
+    { t: "The marina. Even now, I can't afford a boat.", j: 1 },
     { t: "Masts clinking in the wind. The sea's the calm bit.", ok: 1 },
-    { t: "Dawn on the marina. The boats are still tied up.", ok: 1 },
+    { t: "Morning at the marina. Boats still tied up." },
   ],
   "BK.hd19.2": [
     { t: "The pontoon's tilting. I'm not good on boats.", ok: 1 },
@@ -214,7 +214,7 @@ Object.assign(P.DLG.en, {
   "BK.hd19.3": [
     { t: "A zombie just fell in. Splash. Goodbye.", j: 1, ok: 1 },
     { t: "Halfway across. Halfway is the hardest bit.", ok: 1 },
-    { t: "Don't look down at the water. It looks back.", ok: 1 },
+    { t: "Something moving in the water. Stay on the boards." },
   ],
   "BK.hd19.4": [
     { t: "Rope nets everywhere. Zombies stuck in them.", ok: 1 },
@@ -247,8 +247,8 @@ Object.assign(P.DLG.en, {
     { t: "The keys are somewhere out here. Ahmet Abi would know.", ok: 1 },
   ],
   "BK.hd20.5": [
-    { t: "Ahmet Abi. Take your bread, son. Please.", ok: 1 },
+    { t: "Ahmet Abi? It's me. Arda." },
     { t: "Courtyard, morning. I really don't want to do this.", ok: 1 },
-    { t: "Ahmet Abi. I'm not going before you say 'take your bread.'", ok: 1 },
+    { t: "He used to wait up for me. I can't leave him like this." },
   ],
 });

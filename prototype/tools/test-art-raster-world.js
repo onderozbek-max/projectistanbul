@@ -161,7 +161,7 @@ async function nodePart() {
   const cnv = { ctx: w0.ctx(), ppm: 39, dpr: 1, cam: { x: 0, y: 0 }, X: (x) => x * 39, Y: (y) => -y * 39 };
   const off = await world({ raster: false, search: '' });
   ok(!off.P.ArtRasterWorld, 'flag off: the raster world file is not loaded');
-  const offR = await world({ raster: true, search: '', manifest: true, images: 'load' });
+  const offR = await world({ raster: true, search: '?art=current', manifest: true, images: 'load' });
   ok(offR.P.ArtRasterWorld.place(cnv, simOf(offR.P, 6), 'road', 0) === null, 'flag off: place() is null for the road with raster files loaded');
   const noMan = await world({ raster: true, search: '?art=raster', manifest: false, images: 'load' });
   ok(noMan.P.ArtRasterWorld.place(cnv, simOf(noMan.P, 6), 'road', 0) === null, 'not ready: a failed manifest gives null (fallback)');
@@ -175,8 +175,23 @@ async function nodePart() {
   const p1 = on.P.ArtRasterWorld.place(cnv, simOf(on.P, 6), 'walk', 1), p2 = on.P.ArtRasterWorld.place(cnv, simOf(on.P, 6), 'walk', 1);
   ok(p1 && p1 === p2 && p1.t.cv && p1.t.k > 0, 'placements: the same object on repeat calls (cached per level, no per-frame allocation)');
   const fac = on.P.ArtRasterWorld.place(cnv, simOf(on.P, 6), 'facade', 1), facL = on.P.ArtRasterWorld.place(cnv, simOf(on.P, 6), 'facade', -1);
-  ok(fac.x0 === 6.2 && fac.x1 === 9.6 && fac.ox === 6.2 && fac.sx === 1 && facL.x0 === -6.2 && facL.x1 === -9.6 && facL.sx === -1, 'facades: the strip spans x 6.2 to 9.6 on each side and mirrors on the left');
-  ok(Math.abs(fac.t.w - 3.4) < 1e-9 && Math.abs(fac.t.h - 10.2) < 1e-9, 'facades: the super-tile is 3.4 m across and two 5.1 m fronts tall (8 x 12 m asset scaled to 0.425)');
+  ok(fac.projected && facL.projected && fac.x0 === 7 && facL.x0 === -7 && fac.ox === 7 && fac.sx === 1 && facL.sx === -1,
+    'facades: Galata fronts align with the outside of the sidewalk and face in from both sides');
+  ok(Math.abs(fac.t.w - 3.3) < 1e-9 && fac.t.h === 16 && on.log.some((e) => e.tag === 'bake' && e.name === 'transform' && e.args[0] === 0 && e.args[2] === -1),
+    'facades: artwork follows the street axis, with room for an outward roof edge');
+  const first = await world(RAS), corner = first.P.CFG.view.istiklalWall;
+  const street = first.P.ArtRasterWorld.place(cnv, simOf(first.P, 1), 'facade', -1);
+  ok(street.wall === corner && first.log.some(e => e.tag === 'bake' && e.name === 'transform' &&
+    e.args[2] === -1 && e.args[3] === corner.rise / corner.depth && e.args[4] === corner.depth),
+    'facades: İstiklal illustrations use the same roof-to-pavement angle as the restaurant corner');
+  const endY = 11, endView = { ctx: first.ctx(), ppm: 1, X: x => x, Y: y => -y };
+  first.P.ArtRasterWorld.drawEnd(endView, street, endY);
+  ok(first.log.some(e => e.tag === 'main' && e.name === 'transform' &&
+    e.args[2] === corner.depth && e.args[3] === corner.rise &&
+    e.args[4] === street.x1 && e.args[5] === -(endY + corner.rise)),
+    'facades: the illustrated end wall starts at the roof corner and reaches the same ground line');
+  const lateFac = on.P.ArtRasterWorld.place(cnv, simOf(on.P, 31), 'facade', 1);
+  ok(!lateFac.projected && lateFac.x0 === 6.2 && lateFac.t.h === 10.2, 'facades: later hoods keep the original treatment');
   const rails = on.P.ArtRasterWorld.place(cnv, simOf(on.P, 1), 'rails', 0);
   ok(rails && rails.ox === -2 && rails.x0 === -1.2 && rails.x1 === 1.2, 'rails: the istiklal tram tile is centred so its rails sit on x = 0 +- 0.5 m');
   const shore = on.P.ArtRasterWorld.place(cnv, simOf(on.P, 11), 'walk', 1);
@@ -201,7 +216,7 @@ async function nodePart() {
     const baseline = LEVELS.map((l) => groundLog(before, l));
     const now = LEVELS.map((l) => groundLog(after, l));
     ok(LEVELS.every((l, i) => sameLog(baseline[i], now[i]) && baseline[i].length > 50), 'flag off: drawGround draw-call log equals the HEAD render-world (' + baseline.map((b) => b.length).join('/') + ' calls)');
-    const withFiles = await world({ raster: true, search: '', manifest: true, images: 'load' });
+    const withFiles = await world({ raster: true, search: '?art=current', manifest: true, images: 'load' });
     ok(LEVELS.every((l, i) => sameLog(groundLog(withFiles, l), now[i])), 'flag off with raster files loaded: the same log as with no raster files');
   } else notes.push('flag-off baseline: git HEAD not available, the HEAD comparison is skipped');
   const logsOf = async (o) => { const out = []; for (const l of LEVELS) out.push(groundLog(await world(o), l)); return out; };
@@ -235,7 +250,7 @@ async function nodePart() {
 
 // Chrome part: the flag on, levels from six hoods start, no thrown errors, no 404, screenshots kept.
 function chromePart() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (process.argv.indexOf('--no-chrome') >= 0 || !fs.existsSync(CHROME)) { notes.push('headless Chrome not found or --no-chrome: Chrome part skipped'); resolve(); return; }
     fs.mkdirSync(OUT, { recursive: true });
     const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.jpg': 'image/jpeg' };
@@ -246,59 +261,77 @@ function chromePart() {
       res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' }); fs.createReadStream(file).pipe(res);
     });
     srv.listen(0, '127.0.0.1', async () => {
-      const base = 'http://127.0.0.1:' + srv.address().port;
-      const port = await new Promise((r) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'raster-world-test-'));
-      const proc = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check', '--disable-gpu', 'about:blank'], { stdio: 'ignore' });
-      let wsUrl = null;
-      for (let i = 0; i < 150 && !wsUrl; i++) { try { const l = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); const pg = l.find((x) => x.type === 'page'); if (pg) wsUrl = pg.webSocketDebuggerUrl; } catch (e) {} if (!wsUrl) await new Promise((r) => setTimeout(r, 100)); }
-      const ws = new WebSocket(wsUrl); let id = 0; const pend = new Map(), listeners = [];
-      await new Promise((r) => { ws.onopen = r; });
-      ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.id && pend.has(m.id)) { const p = pend.get(m.id); pend.delete(m.id); p(m.result); } else if (m.method) listeners.forEach((f) => f(m)); };
-      const send = (method, params = {}) => new Promise((r) => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
-      const errors = [], known = [];
-      listeners.push((m) => {
-        if (m.method === 'Runtime.exceptionThrown') {
-          // objectives-hud.js reads R.cam before the first frame of a story run (also with the flag off): counted as a note, not a failure.
-          const d = m.params.exceptionDetails, msg = ((d.exception && d.exception.description) || d.text).split('\n')[0];
-          const inHud = ((d.stackTrace && d.stackTrace.callFrames) || []).some((f) => /objectives-hud\.js$/.test(f.url || ''));
-          if (inHud && /reading 'ox'/.test(msg)) known.push(msg); else errors.push('exception: ' + msg);
+      let dir, proc, ws, failure;
+      const screenshots = [];
+      try {
+        const base = 'http://127.0.0.1:' + srv.address().port;
+        const port = await new Promise((r) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'raster-world-test-'));
+        proc = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`,
+          '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--disk-cache-size=1', '--media-cache-size=1', 'about:blank'],
+        { stdio: 'ignore' });
+        let wsUrl = null;
+        for (let i = 0; i < 150 && !wsUrl; i++) { try { const l = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); const pg = l.find((x) => x.type === 'page'); if (pg) wsUrl = pg.webSocketDebuggerUrl; } catch (e) {} if (!wsUrl) await new Promise((r) => setTimeout(r, 100)); }
+        ws = new WebSocket(wsUrl); let id = 0; const pend = new Map(), listeners = [];
+        await new Promise((r, j) => { ws.onopen = r; ws.onerror = j; });
+        ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.id && pend.has(m.id)) { const p = pend.get(m.id); pend.delete(m.id); p(m.result); } else if (m.method) listeners.forEach((f) => f(m)); };
+        const send = (method, params = {}) => new Promise((r) => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
+        const errors = [];
+        listeners.push((m) => {
+          if (m.method === 'Runtime.exceptionThrown') {
+            const d = m.params.exceptionDetails, msg = ((d.exception && d.exception.description) || d.text).split('\n')[0];
+            errors.push('exception: ' + msg);
+          }
+          if (m.method === 'Network.responseReceived' && m.params.response.status >= 400 && !/favicon/.test(m.params.response.url)) bad.push(m.params.response.status + ' ' + m.params.response.url);
+        });
+        const ev = async (e) => (await send('Runtime.evaluate', { expression: e, returnByValue: true })).result.value;
+        const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+        await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable');
+        await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+        const picks = [6, 11, 16, 21, 26, 30];   // active first-30 districts; production beyond L30 is gated
+        const placed = [];
+        for (const lv of picks) {
+          errors.length = 0;
+          await send('Page.navigate', { url: `${base}/index.html?art=raster&level=${lv}&skipintro=1&seed=42` });
+          for (let i = 0; i < 240; i++) {
+            if (await ev("!!window.P?.ArtRaster && P.ArtRaster.heroState() === 'ready'")) break;
+            await sleep(250);
+          }
+          await ev("if (P.Story) P.Story.play = function (l, w, done) { if (done) done(false); return true; };");
+          await ev("document.getElementById('btn-start').click()");
+          for (let i = 0; i < 60; i++) {
+            if ((await ev('P.debug && P.debug.state')) === 'play') break;
+            if (i === 5 || i === 20) await ev("var b = document.getElementById('btn-start'); if (b && (!P.debug || !P.debug.sim)) b.click();");
+            if (i % 3 === 2) for (const t of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type: t, x: 195, y: 500, button: 'left', clickCount: 1 });
+            await sleep(250);
+          }
+          for (let i = 0; i < 60; i++) { const st = JSON.parse((await ev('JSON.stringify(P.ArtRaster.status())')) || '{}'); if (st.loaded >= 2 || (st.failed || []).length) break; await sleep(200); }
+          await sleep(1500);
+          const got = await ev("(function(){ try { var s = P.debug.sim, R = { ctx: document.createElement('canvas').getContext('2d'), ppm: 32, dpr: 2 }; return ['road', 'walk', 'facade'].map(function (k) { return P.ArtRasterWorld.place(R, s, k, 1) ? 1 : 0; }).join(''); } catch (e) { return 'none:' + e.message + ':' + P.debug.state; } })()") || 'none';
+          placed.push(lv + ':' + got + ':' + errors.length);
+          const shot = await send('Page.captureScreenshot', { format: 'png' });
+          screenshots.push([path.join(OUT, 'L' + lv + '.png'), Buffer.from(shot.data, 'base64')]);
+          ok(errors.length === 0, 'chrome, level ' + lv + ': no thrown errors (' + errors.slice(0, 2).join('; ') + ')');
         }
-        if (m.method === 'Network.responseReceived' && m.params.response.status >= 400 && !/favicon/.test(m.params.response.url)) bad.push(m.params.response.status + ' ' + m.params.response.url);
-      });
-      const ev = async (e) => (await send('Runtime.evaluate', { expression: e, returnByValue: true })).result.value;
-      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-      await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable');
-      await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-      const picks = [6, 16, 31, 51, 66, 91];   // galata, bridge, kapalicarsi, halic, yedikule, atakoysahil (stage 1)
-      const placed = [];
-      for (const lv of picks) {
-        errors.length = 0; known.length = 0;
-        await send('Page.navigate', { url: `${base}/index.html?art=raster&level=${lv}&skipintro=1&seed=42` });
-        await sleep(1200);
-        await ev("if (P.Story) P.Story.play = function (l, w, done) { if (done) done(false); return true; };");
-        await ev("document.getElementById('btn-start').click()");
-        for (let i = 0; i < 60; i++) {
-          if ((await ev('P.debug && P.debug.state')) === 'play') break;
-          if (i === 5 || i === 20) await ev("var b = document.getElementById('btn-start'); if (b && (!P.debug || !P.debug.sim)) b.click();");
-          if (i % 3 === 2) for (const t of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type: t, x: 195, y: 500, button: 'left', clickCount: 1 });
-          await sleep(250);
+        ok(placed.every((p) => /:111:/.test(p)), 'chrome: road, walk and facade resolve on each of six hoods (' + placed.join(' ') + ')');
+        ok(!bad.some((b) => /assets\/art\//.test(b)), 'chrome: no 404 for a tile');
+      } catch (err) {
+        failure = err;
+      } finally {
+        if (ws) ws.close();
+        if (proc) proc.kill();
+        srv.close();
+        if (dir) {
+          await new Promise((r) => setTimeout(r, 250));
+          try { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch (e) {}
         }
-        for (let i = 0; i < 60; i++) { const st = JSON.parse((await ev('JSON.stringify(P.ArtRaster.status())')) || '{}'); if (st.loaded >= 2 || st.failed.length) break; await sleep(200); }
-        await sleep(1500);
-        const got = await ev("(function(){ try { var s = P.debug.sim, R = { ctx: document.createElement('canvas').getContext('2d'), ppm: 32, dpr: 2 }; return ['road', 'walk', 'facade'].map(function (k) { return P.ArtRasterWorld.place(R, s, k, 1) ? 1 : 0; }).join(''); } catch (e) { return 'none'; } })()") || 'none';
-        placed.push(lv + ':' + got + ':' + errors.length);
-        if (known.length) notes.push('chrome, level ' + lv + ': known pre-existing objectives-hud exception (flag off too): ' + known[0]);
-        const shot = await send('Page.captureScreenshot', { format: 'png' });
-        fs.writeFileSync(path.join(OUT, 'L' + lv + '.png'), Buffer.from(shot.data, 'base64'));
-        ok(errors.length === 0, 'chrome, level ' + lv + ': no thrown errors (' + errors.slice(0, 2).join('; ') + ')');
       }
-      ok(placed.every((p) => /:111:/.test(p)), 'chrome: road, walk and facade resolve on each of six hoods (' + placed.join(' ') + ')');
-      ok(!bad.some((b) => /assets\/art\//.test(b)), 'chrome: no 404 for a tile');
-      ws.close(); proc.kill(); srv.close();
-      await sleep(200);
-      try { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch (e) {}
-      resolve();
+      if (failure) { reject(failure); return; }
+      // Write the QA copies once Chrome's temporary profile has been released.
+      try {
+        screenshots.forEach(([file, bytes]) => fs.writeFileSync(file, bytes));
+        resolve();
+      } catch (err) { reject(err); }
     });
   });
 }

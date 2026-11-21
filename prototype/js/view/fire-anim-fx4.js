@@ -110,12 +110,7 @@ P.FireAnimFx = P.FireAnimFx || {};
       }
     },
     doorSlam: function (F, ev) {
-      var r = ev.r > 0 ? ev.r : 1.2, n = clampN(ev.n, 0, 6), cnt = F.count(10), i, a, p;
-      for (i = 0; i < cnt; i++) {                                              // dust ring on the ground (squashed)
-        a = i / cnt * TAU;
-        p = F.spawn('dust', ev.x + Math.cos(a) * r * 0.9, ev.y + Math.sin(a) * r * 0.9 * 0.35, 0.45, 0.14, '170,160,150');
-        p.op = 0.5; p.vx = Math.cos(a) * 0.6; p.vy = Math.sin(a) * 0.2;
-      }
+      var r = ev.r > 0 ? ev.r : 1.2, n = clampN(ev.n, 0, 6), i, p;
       for (i = 0; i < Math.min(6, 2 + n); i++) {                               // a few paving chips, no cracks
         p = F.spawn('chip', ev.x + M.rnd(-0.4, 0.4) * r, ev.y + 0.05, 0.6, 0.07, '150,146,140');
         p.grav = 1; p.bounce = true; p.vx = M.rnd(-1.4, 1.4); p.vy = M.rnd(-0.2, 0.2); p.vz = M.rnd(1.2, 2.2);

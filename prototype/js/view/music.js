@@ -1,24 +1,23 @@
 // Music player for audio/music/<id>.mp3: one streamed HTMLAudioElement per track (no fetch, no decode).
 // iOS Safari ignores HTMLMediaElement.volume (it reads 1 and writes do nothing), so over http(s) every track is routed
 // through Web Audio: MediaElementAudioSourceNode -> per-track GainNode -> the SFX master limiter (P.Sfx.mixInput()).
-// Fades, the run layer balance, the comic trim and the duck are then real gains on the phone. Over file:// (Chromium
+// Fades, the comic trim and the duck are then real gains on the phone. Over file:// (Chromium
 // silences a file:// media source for Web Audio) and without Web Audio, the element volume is used, as before.
 // A missing file fails silently. Files resolve from this script's own URL (override with P.Music.base).
-// The shipped files are procedural placeholders from tools/render-music.js. The owner's Suno exports replace them
-// under the same names via tools/prepare-music.js (loops: exact length, seamless; stingers: not looped). No code change.
-// API: play(id, {fade}) | stop(fade) | duck(on) | duckFor(seconds) | intensity(0..1) | setVolume(0..1) | unlock() | current() | ids
-// run_calm + run_intense are one song in two stems: they play together (same length and tempo, same position) and
-// crossfade with equal power. Every other track is alone: the only overlap is the FADE seconds of a crossfade.
+// Music uses the owner's eight prepared MP3s. tools/prepare-music.js keeps the player IDs and exact loop lengths.
+// API: play(id, {fade}) | stop(fade) | duck(on) | duckFor(seconds) | setVolume(0..1) | unlock() | current() | ids
+// A scene change silences the outgoing track before starting the next.
 // Music has its own switch: P.Settings.music === false mutes it (the "Sound effects" toggle does not).
 // A hidden page pauses the music; a shown page starts the tracks that should be playing.
 P.Music = (function () {
   var IDS = ['title', 'map', 'run_calm', 'run_intense', 'boss', 'comic', 'victory', 'defeat'];
-  var LAYER = { run_calm: 'run_intense' }, ONE_SHOT = { victory: 1, defeat: 1 }, DUCK = 0.355, TICK = 50, FADE = 1.2, INTENSITY_FADE = 2, RETRY = 0.5;
+  var ONE_SHOT = { victory: 1, defeat: 1 }, DUCK = 0.355, TICK = 50, FADE = 1.2, RETRY = 0.5;
   // Per-track trim (linear). The tool masters every file to -16 LUFS; comic is a dialogue bed and sits at the -18 LUFS of
   // docs/audio-cue-sheet.md (-2 dB).
   var GAIN = { comic: Math.pow(10, -2 / 20) };
-  var slots = {}, missing = {}, main = null, layer = null, vol = 0.7, duckOn = false, duckCur = 1, xI = 0, duckTimer = null;
-  var timer = null, listening = false, hidden = false, graph;   // graph: undefined until the first track, then {ctx, out} or null
+  var slots = {}, missing = {}, main = null, vol = 0.7, duckOn = false, duckCur = 1, duckTimer = null;
+  var scoreRun = null, scoreAge = 0, sampleIn = 0, dangerFor = 0, quietFor = 0;
+  var timer = null, listening = false, hidden = false, graph, lastMix = '';   // graph: undefined until the first track, then {ctx, out} or null
   function now() { return performance.now() / 1000; }
   function clamp01(v) { v = Number(v); return v !== v ? 0 : (v < 0 ? 0 : (v > 1 ? 1 : v)); }
   function resolveBase() {
@@ -53,11 +52,7 @@ P.Music = (function () {
     var u = s.dur > 0 ? clamp01((t - s.t0) / s.dur) : 1;
     return s.from + (s.to - s.from) * u;
   }
-  // Only a stopped element is rewound. A track still fading out keeps its place, so a quick replay does not cut its wave.
-  function stopped(s) { return s.el.paused || s.el.ended; }
-  // Should be running: the main and the layer (the layer keeps running at zero volume so it can rise again), and a track
-  // still fading in. An outgoing track is not.
-  function active(s) { return !!s && !s.dead && (s === main || s === layer || s.to > 0) && !(ONE_SHOT[s.id] && s.el.ended); }
+  function active(s) { return s === main && !s.dead && !(ONE_SHOT[s.id] && s.el.ended); }
   function fadeTo(s, target, sec) {
     var t = now();
     if (Math.abs(s.to - target) < 0.005) return;
@@ -75,12 +70,19 @@ P.Music = (function () {
     var t = now(), on = P.Settings && P.Settings.music === false ? 0 : 1;
     duckCur += ((duckOn ? DUCK : 1) - duckCur) * 0.15;
     each(function (s) {
-      if (s.dead) return;
+      if (s.dead || (s.priming && s !== main)) return;
       setOut(s, clamp01(level(s, t)) * vol * duckCur * on * (GAIN[s.id] || 1));
       retry(s, t);
-      // Pause only outgoing tracks; the active pair keeps running at zero volume so it can rise again.
-      if (s.to === 0 && s !== main && s !== layer && t >= s.t0 + s.dur && !s.el.paused) s.el.pause();
+      if (!s.priming && s !== main && t >= s.t0 + s.dur && !s.el.paused) s.el.pause();
     });
+    if (P.Tel && P.Tel.log) observeMix();
+  }
+
+  function observeMix() {
+    var tracks = api.audibleTracks(), wanted = api.current(), output = graph ? graph.ctx.state : 'media', key = wanted + '|' + output + '|' + tracks.join(',');
+    if (lastMix === key) return;
+    lastMix = key;
+    P.Tel.log('music_state', { requested: wanted, audio_context: output, audible: tracks });
   }
   function startTick() {
     if (!timer && typeof setInterval === 'function') timer = setInterval(sync, TICK);
@@ -89,7 +91,6 @@ P.Music = (function () {
     s.dead = true;
     try { s.el.pause(); } catch (e) { /* ignore */ }
     if (main === s) main = null;
-    if (layer === s) layer = null;
   }
   // The context feeds every routed track, so it has to run. One made before a gesture, or interrupted by the phone, is resumed here.
   function resumeCtx() {
@@ -100,21 +101,17 @@ P.Music = (function () {
   function playEl(s) {
     var p;
     if (hidden) return;   // a hidden page starts nothing; showing it does (kick)
-    // The run pair starts in step: a layer that was stopped joins the main's position.
-    if (s === layer && main && main !== s && s.el.paused) {
-      try { s.el.currentTime = main.el.currentTime; } catch (e) { /* not ready: keeps its own position */ }
-    }
     if (s.g && graph && graph.ctx.state !== 'running') resumeCtx();
     try { p = s.el.play(); } catch (e) { p = null; }
     if (p && p.catch) {
       p.catch(function (e) {
         var n = e && e.name;
         if (n === 'NotAllowedError' || n === 'AbortError') return;   // blocked until a gesture; or paused while it was loading
-        missing[s.id] = true; dropSlot(s); balance(0.3);             // NotSupportedError: the file is missing or unplayable
+        missing[s.id] = true; dropSlot(s);             // NotSupportedError: the file is missing or unplayable
       });
     }
   }
-  // A track that should play but is paused (a start the browser blocked, a layer raised from zero) is tried again every RETRY s.
+  // Retry a start the browser blocked while waiting for a gesture.
   function retry(s, t) {
     if (!active(s) || !s.el.paused || t < s.retryAt) return;
     s.retryAt = t + RETRY;
@@ -128,30 +125,70 @@ P.Music = (function () {
     el = new Audio(api.base + id + '.mp3');
     s = { id: id, el: el, from: 0, to: 0, t0: 0, dur: 0.01, dead: false, src: null, g: null, retryAt: 0 };
     el.loop = !ONE_SHOT[id]; el.preload = 'auto'; el.volume = 0;
-    el.addEventListener('error', function () { missing[id] = true; dropSlot(s); balance(0.3); });
+    el.addEventListener('error', function () { missing[id] = true; dropSlot(s); });
     wire(s);
     slots[id] = s;
     startTick();
     return s;
   }
-  // Equal-power split between calm and intense; calm returns to full when the intense layer is missing.
-  function balance(sec) {
-    if (!main || main.dead) return;
-    if (layer && !layer.dead) {
-      fadeTo(main, Math.cos(xI * Math.PI / 2), sec);
-      fadeTo(layer, Math.sin(xI * Math.PI / 2), sec);
-    } else {
-      fadeTo(main, 1, sec);
-    }
-  }
-  function fadeOutAll(sec) {
-    each(function (s) { if (!s.dead) fadeTo(s, 0, sec); });
+  function silence(s) {
+    if (s.dead) return;
+    s.from = s.to = s.dur = 0;
+    setOut(s, 0);
+    if (!s.priming && !s.el.paused) s.el.pause();
   }
   // Retries playback that the browser blocked before a user gesture (and resumes the context). A finished one-shot stays
   // "wanted" until the next play(), so it must not be restarted by every tap.
   function kick() {
     if (graph && graph.ctx.state !== 'running') resumeCtx();
     each(function (s) { if (active(s) && s.el.paused) playEl(s); });
+  }
+  function prime(id) {
+    var s = slot(id), pending;
+    if (!s || !s.g || s.g.gain.value !== 0 || level(s, now()) > 0 || s.primed || s.priming || active(s)) return;
+    try { pending = s.el.play(); } catch (e) { return; }
+    function park() {
+      s.priming = false; s.primed = true;
+      if (active(s)) return;
+      s.el.pause();
+      try { s.el.currentTime = 0; } catch (e) { /* metadata still loading */ }
+    }
+    if (pending && pending.then) {
+      s.priming = true;
+      pending.then(park, function () { s.priming = false; });
+    } else park();
+  }
+  function gesture() {
+    // WebKit grants playback per element. Warm the two in-run transitions silently during a gesture.
+    if (!hidden && typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent || '') && route()) {
+      prime('boss');
+      prime('run_intense');
+    }
+    kick();
+  }
+  function pressure(s) {
+    if (s.sk && s.sk.frenzyT > 0) return 14;
+    var h = s.hero, n = 0;
+    for (var i = 0; i < s.enemies.length && n < 14; i++) {
+      var e = s.enemies[i], dx = h.x - e.x, dy = h.y - e.y;
+      if (!e.dead && e.state === 'active' && dx * dx + dy * dy < 64) n++;
+    }
+    return n;
+  }
+  function score(s, dt) {
+    if (s !== scoreRun) { scoreRun = s; scoreAge = sampleIn = dangerFor = quietFor = 0; }
+    var cue = api.current();
+    if (cue !== 'run_calm' && cue !== 'run_intense') return;
+    scoreAge += dt; sampleIn += dt;
+    if (sampleIn < 0.5) return;
+    var n = pressure(s), step = sampleIn;
+    sampleIn = 0;
+    dangerFor = n >= 14 ? dangerFor + step : 0;
+    quietFor = n <= 6 ? quietFor + step : 0;
+    if (cue === 'run_calm' && dangerFor >= 4 || cue === 'run_intense' && scoreAge >= 12 && quietFor >= 8) {
+      api.play(cue === 'run_calm' ? 'run_intense' : 'run_calm', { resume: true });
+      scoreAge = dangerFor = quietFor = 0;
+    }
   }
   // A hidden page pauses every track, as the game does. A shown page starts the tracks that should be audible.
   function onVisibility() {
@@ -163,25 +200,19 @@ P.Music = (function () {
     base: resolveBase(),
     play: function (id, opts) {
       var fade = opts && typeof opts.fade === 'number' ? opts.fade : FADE, s;
+      if (id !== 'run_calm' && id !== 'run_intense') scoreRun = null;
       // A finished one-shot may be played again; a looping track that is already the main one is left alone.
       if (main && main.id === id && !main.dead && !(ONE_SHOT[id] && main.el.ended)) return;
-      fadeOutAll(fade);
-      main = null; layer = null;
-      s = slot(id);
+      each(silence);
+      main = s = slot(id);
       if (!s) return;
-      main = s;
-      if (stopped(s)) s.el.currentTime = 0;
+      if (!opts || !opts.resume || ONE_SHOT[id]) s.el.currentTime = 0;
       fadeTo(s, 1, fade);
       playEl(s);
-      if (LAYER[id] && slot(LAYER[id])) {
-        layer = slots[LAYER[id]];
-        balance(fade);
-        playEl(layer);
-      }
     },
     stop: function (fade) {
-      fadeOutAll(typeof fade === 'number' ? fade : FADE);
-      main = null; layer = null;
+      each(function (s) { if (!s.dead) fadeTo(s, 0, typeof fade === 'number' ? fade : FADE); });
+      main = null;
     },
     duck: function (on) { clearTimeout(duckTimer); duckTimer = null; duckOn = !!on; },
     // Ducks to the DUCK level for `sec` seconds, then releases with the same ramp as duck(false).
@@ -189,21 +220,27 @@ P.Music = (function () {
       api.duck(true);
       duckTimer = setTimeout(function () { duckTimer = null; api.duck(false); }, Math.max(0, Number(sec) || 0) * 1000);
     },
-    intensity: function (x) {
-      xI = clamp01(x);
-      if (main && main.id === 'run_calm') balance(INTENSITY_FADE);
-    },
     setVolume: function (v) { vol = clamp01(v); },
+    score: score,
     unlock: function () {
       startTick();
       if (!listening && typeof document !== 'undefined') {
         listening = true;
-        ['pointerdown', 'keydown', 'touchend'].forEach(function (ev) { document.addEventListener(ev, kick, { passive: true }); });
+        ['pointerdown', 'keydown', 'touchend'].forEach(function (ev) { document.addEventListener(ev, gesture, { passive: true }); });
         document.addEventListener('visibilitychange', onVisibility);
       }
-      kick();
+      gesture();
     },
     current: function () { return main && !main.dead ? main.id : null; },
+    playing: function () { return !!(main && !main.dead && !main.el.paused && !main.el.ended && main.el.currentTime > 0); },
+    audibleTracks: function () {
+      var tracks = [];
+      each(function (s) {
+        if (s.dead || s.el.paused || s.el.ended || !s.el.currentTime) return;
+        if (s.g ? graph.ctx.state === 'running' && s.g.gain.value > 0 : s.el.volume > 0) tracks.push(s.id);
+      });
+      return tracks;
+    },
     ids: IDS
   };
   return api;

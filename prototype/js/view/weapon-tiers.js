@@ -3,7 +3,7 @@
 //   1. live shapes: each frame, every flying or sustained entity in the sim (blades, flasks, bolts, spears, the chainsaw bar ...)
 //      draws with its owned variant's silhouette at the table's level (an evolution reads its base's mastery rank)
 //   2. shots: one-off shapes started by a wfire event (the knife swing, the nail burst, the nailstorm fan)
-//   3. impacts: hit sparks shaped by class (slash, pierce, blunt, fire, chemical, electric); the bright flash takes a
+//   3. impacts: weapon-specific shapes at the contact point, with rank-specific reach and follow-through. A bright flash takes a
 //      P.Fx.flashGo('hit') slot (3 a second at most, none under Reduce flashing)
 // Plus the hero cue (a halo round the ring that grows with the sum of owned weapon levels, drawn under the ring) and the held-weapon
 // glow (FireAnim.drawHeld). Density: above caps.effects effects the player's alpha drops to caps.playerAlpha and secondary
@@ -11,7 +11,7 @@
 P.WTier = (function () {
   var T = { enabled: true }, C = P.CFG.wtier, TAU = Math.PI * 2, shots = [], parts = [], hist = new WeakMap(), ages = new WeakMap(), lookCache = {};
   var st = T.stats = { spawned: 0, impacts: 0, flashes: 0, culled: 0, denseFrames: 0, frames: 0, maxParts: 0, peak: 0 };
-  var impactsFrame = 0, dense = false, mod = null, nowS = 0;
+  var impactsFrame = 0, impactCount = {}, detailAt = {}, dense = false, mod = null, nowS = 0;
   // Live lists: the P.Weapons.state key each variant draws from. DOWN lists count their timer down (progress 1 at the end).
   var LIVE = { blades: 'sawblade', manholes: 'manhole', torches: 'torch', hooks: 'olta', doors: 'cardoor', marbles: 'slingshot',
     spears: 'speargun', sprays: 'extinguisher', bolts: 'cable', slams: 'sledge', flasks: 'molotov', pools: 'molotov',
@@ -82,7 +82,7 @@ P.WTier = (function () {
     return adjust(look(id, lv), m);
   };
 
-  T.reset = function () { shots = []; parts = []; impactsFrame = 0; dense = false; mod = null; nowS = 0; };
+  T.reset = function () { shots = []; parts = []; impactsFrame = 0; impactCount = {}; detailAt = {}; dense = false; mod = null; nowS = 0; };
 
   // ---------- events ----------
   // The half-width of a shot in radians: the owned level's arc (knife) or spread (nailstorm), else a default by class.
@@ -94,38 +94,54 @@ P.WTier = (function () {
   T.onWfire = function (ev, s) {
     if (!T.enabled) return;
     var id = ev.variant && spec(ev.variant) ? ev.variant : ev.w, sp = spec(id), lv, lk, Lv;
-    if (!sp || sp.live !== 'shot') return;
+    if (!sp || sp.live !== 'shot' || id === 'knife') return;   // The signed swing events also cover the knife's backswings.
     lv = levelOf(s, id, ev.lv);
     lk = look(id, lv);
     Lv = P.Weapons.level(s.hero, id);
-    shots.push({ sil: lk.sil, lk: lk, E: { x: ev.x, y: ev.y, a: +ev.ang || 0, t: 0, T: lk.life, n: (ev.n | 0) || 1,
+    var life = id === 'nailgun' ? lk.life * (1.12 + lv * 0.095) : lk.life;
+    shots.push({ sil: lk.sil, lk: lk, E: { x: ev.x, y: ev.y, a: +ev.ang || 0, t: 0, T: life, n: (ev.n | 0) || 1,
       half: halfOf(s, id, sp), range: Lv && Lv.range ? Lv.range : 1.3, seed: Math.random() * 1000, q: 0, age: 0, hist: [], hx: ev.x, hy: ev.y, src: null } });
     if (shots.length > C.caps.maxShots) shots.shift();
     st.spawned++;
   };
 
-  // Impact sparks for one hit, shaped by the weapon's class. Primary = the class burst; secondary = the look's edge sparks.
+  var outlined = { cardoor: 1, minibus: 1, torch: 1, forge: 1, chainsaw: 1, grinder: 1, extinguisher: 1, foamstorm: 1, fireworks: 1, finale: 1 };
+  var solid = { cardoor: 1, minibus: 1, torch: 1, forge: 1, chainsaw: 1, grinder: 1, extinguisher: 1, foamstorm: 1,
+    cable: 1, olta: 1, hookpull: 1, speargun: 1, netspear: 1, sawblade: 1, twinsaw: 1, manhole: 1, slingshot: 1, fireworks: 1, nailgun: 1 };
+  var liveContact = { cardoor: 1, minibus: 1, manhole: 1, slingshot: 1, speargun: 1, netspear: 1,
+    cable: 1, stormshield: 1, extinguisher: 1, foamstorm: 1, olta: 1, hookpull: 1, sledge: 1, blacksmith: 1, fireworks: 1, finale: 1 };
+  T.handlesImpact = function (s, src) { return T.enabled && P.WeaponImpacts.weapon(s, src) !== null; };
+  T.usesActionContact = function (s, src) { return T.enabled && !!P.WAttackCues && !!liveContact[P.WeaponImpacts.weapon(s, src)]; };
+
+  function contactNearby(id, ev, r) {
+    var since = C.contact.clusterT;
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var p = parts[i];
+      if (p.T - p.t > since) break;
+      if (p.k === 'contact' && p.id === id && (p.x - ev.x) * (p.x - ev.x) + (p.y - ev.y) * (p.y - ev.y) < r * r) return true;
+    }
+    return false;
+  }
+
   T.onHit = function (ev, s) {
-    if (!T.enabled) return;
-    var sp = spec(ev.src), cls = sp ? sp.cls : 'blunt', im = C.impact[cls], lv, lk, m, n, i, p;
-    if (!im || impactsFrame >= C.caps.maxImpactsPerFrame) return;
+    if (!T.enabled || impactsFrame >= C.caps.maxImpactsPerFrame || parts.length >= C.caps.maxParts) return;
+    var I = P.WeaponImpacts, id = ev.weaponVariant ? I.profile(ev.weaponVariant) && ev.weaponVariant : I.weapon(s, ev.src), m = mod || modsNow();
+    if (!id || (P.WAttackCues && liveContact[id]) || (impactCount[id] || 0) >= C.contact.maxPerWeapon) return;
+    var lv = levelOf(s, id), p = I.make(id, ev, C.evos[id] ? Math.max(4, lv) : lv);
+    if (contactNearby(id, ev, p.w * (m.dense ? 1.25 : 0.85))) { st.culled++; return; }
+    if (p.detail) {
+      // One large mark leads a burst. The remaining contacts stay compact above the crowd.
+      if (detailAt[id] !== undefined && nowS - detailAt[id] < C.contact.detailGap) p = I.make(id, ev, lv, true);
+      else detailAt[id] = nowS;
+    }
     impactsFrame++;
-    lv = sp ? levelOf(s, ev.src) : 1; lk = look(sp ? ev.src : 'knife', lv); m = mod || modsNow();
-    if ((ev.crit || (ev.dmg || 0) >= C.flash.heavyDmg) && !m.reduceFlash && P.Fx && P.Fx.flashGo && P.Fx.flashGo('hit')) {
-      parts.push({ k: 'flash', x: ev.x, y: ev.y, r: lk.glow * 1.6, t: 0.06, T: 0.06, col: lk.col });
+    impactCount[id] = (impactCount[id] || 0) + 1;
+    parts.push(p);
+    if (!outlined[id] && parts.length < C.caps.maxParts && (ev.crit || (ev.dmg || 0) >= C.flash.heavyDmg) && !m.reduceFlash &&
+      P.Fx && P.Fx.flashGo && P.Fx.flashGo('hit')) {
+      parts.push({ k: 'flash', x: ev.x, y: ev.y + 0.48, r: p.w * 0.44, t: 0.06, T: 0.06 });
       st.flashes++;
     }
-    n = im.n + (m.secondary ? lk.edge : 0);
-    for (i = 0; i < n; i++) {
-      if (i >= im.n && m.partStep > 1 && i % m.partStep) continue;   // tiers 1 and 2: secondary sparks 1 in 2 or 3
-      if (parts.length >= C.caps.maxParts) { st.culled++; break; }
-      p = { k: 'imp', shape: im.shape, x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 0, a: Math.random() * TAU,
-        sp: im.speed * (0.5 + Math.random() * 0.5), rot: Math.random() * 6, vr: (Math.random() - 0.5) * 20,
-        seed: Math.random() * 1000, col: im.col, T: im.life * (0.7 + Math.random() * 0.3), t: 0 };
-      p.t = p.T;
-      parts.push(p);
-    }
-    if (m.secondary && lk.ring > 0) parts.push({ k: 'ring', x: ev.x, y: ev.y, r: lk.glow, t: 0.22, T: 0.22, col: lk.col });
     st.impacts++;
   };
 
@@ -154,7 +170,7 @@ P.WTier = (function () {
 
   T.update = function (dt, s) {
     var i, p, fa = 0, fx = P.WFx && P.WFx.parts ? P.WFx.parts.length : 0, lists, total = 0, pool = P.FireAnim && P.FireAnim.pool || [];
-    impactsFrame = 0; nowS += dt;
+    impactsFrame = 0; if (parts.length) impactCount = {}; nowS += dt;
     for (i = shots.length - 1; i >= 0; i--) { shots[i].E.t += dt; if (shots[i].E.t >= shots[i].E.T) shots.splice(i, 1); }
     for (i = parts.length - 1; i >= 0; i--) { p = parts[i]; p.t -= dt; if (p.t <= 0) parts.splice(i, 1); }
     for (i = 0; i < pool.length; i++) if (pool[i].alive) fa++;
@@ -184,17 +200,14 @@ P.WTier = (function () {
   function heroShapes(s, now) {
     var h = s.hero, Wp = P.Weapons, out = [], lv, a, k, cid, rad;
     cid = Wp.variantOf(h, 'chain');
-    if (h.weapons[cid] || h.weapons.chain) {
+    if (cid !== 'chain' && (h.weapons[cid] || h.weapons.chain)) {
       lv = Wp.level(h, cid) || Wp.level(h, 'chain');
-      if (lv) for (k = 0; k < lv.blades; k++) {
-        a = (h.chainA || 0) + k * TAU / lv.blades;
-        out.push({ id: cid, e: { x: h.x + Math.cos(a) * lv.radius, y: h.y + Math.sin(a) * lv.radius, a: a, rad: lv.radius,
-          pullR: lv.pullR || 0, idx: k, n: lv.blades } });
+      var action=Wp.chainAct(s),n=lv&&lv.blades+action.M.count,reach=lv&&lv.radius*action.area;
+      if (lv) for (k = 0; k < n; k++) {
+        a = ((cid === 'cyclone' ? h.cycA : h.chainA) || 0) + k * TAU / n;
+        out.push({ id: cid, e: { x: h.x + Math.cos(a) * reach, y: h.y + Math.sin(a) * reach, a: a, rad: reach,
+          pullR: lv.pullR || 0, idx: k, n: n } });
       }
-    }
-    if (h.weapons.cleaver) {
-      lv = Wp.level(h, 'cleaver');
-      if (lv) out.push({ id: 'cleaver', e: { x: h.x, y: h.y, a: h.cleaA || 0, rad: lv.radius, idx: 0, n: 1 } });
     }
     if (h.weapons.stormshield) {
       lv = Wp.level(h, 'stormshield');
@@ -220,7 +233,7 @@ P.WTier = (function () {
         if (!sil || !sp) return;
         lay = P.WSil.layer[lk.sil] || 'air';
         if (lay !== 'both' && lay !== layer) return;
-        q = key === 'rev' ? 0.5 : progress(key, e);
+        q = progress(key, e);
         pos = anchorOf(key, e, q, h);
         E = { x: pos.x, y: pos.y, a: key === 'rev' ? +h.revAng || 0 : (e.a !== undefined ? +e.a : Math.atan2((e.y1 || 0) - (e.y0 || 0), (e.x1 || 0) - (e.x0 || 0))),
           q: q, t: e.t || 0, T: e.T || 0, age: ageOf(e), hist: hist.get(e) || [], seed: e.seed || 0, hx: h.x, hy: h.y, key: key,
@@ -234,81 +247,59 @@ P.WTier = (function () {
       out.push([sil, { x: e.x, y: e.y, a: e.a, q: 0.5, t: 0, T: 0, age: now, hist: [], seed: 0, hx: h.x, hy: h.y, key: 'hero', src: null,
         now: now, layer: layer, rad: e.rad, pullR: e.pullR, half: 0, n: e.n, idx: e.idx }, lk]);
     });
-    out.forEach(function (o) { o[0](c, R, o[1], adjust(o[2], m)); });
+    var blend = c.globalCompositeOperation;
+    out.forEach(function (o) {
+      if (layer === 'air') c.globalCompositeOperation = solid[o[2].id] ? 'source-over' : blend;
+      o[0](c, R, o[1], adjust(o[2], m));
+    });
+    if (layer === 'air') c.globalCompositeOperation = blend;
   }
 
   // One-off shots: their silhouette drawers, on the layer they belong to. The hero position is live, so a swing follows Arda.
   function drawShots(c, R, layer, s) {
     var m = mod || modsNow();
+    var blend = c.globalCompositeOperation;
     shots.forEach(function (sh) {
       var sil = P.WSil[sh.sil], lay = P.WSil.layer[sh.sil] || 'air', E = sh.E;
       if (!sil || (lay !== 'both' && lay !== layer)) return;
+      if (layer === 'air') c.globalCompositeOperation = solid[sh.lk.id] ? 'source-over' : blend;
       E.q = clamp(E.t / E.T, 0, 1); E.age = E.t; E.now = nowS; E.layer = layer;
       if (s && s.hero) { E.hx = s.hero.x; E.hy = s.hero.y; }
       sil(c, R, E, adjust(sh.lk, m));
     });
+    if (layer === 'air') c.globalCompositeOperation = blend;
   }
 
-  // Impact particles. Positions follow their age; the flash and the ring each have their own pass.
   function drawParts(c, R, layer) {
+    var m = mod || modsNow();
     parts.forEach(function (p) {
-      var age = p.T - p.t, a = clamp(p.t / p.T, 0, 1), X, Y, ang, k, u = R.ppm;
-      if (p.k === 'flash') {
-        if (layer !== 'air') return;
-        c.fillStyle = 'rgba(255,255,255,' + (0.45 * a).toFixed(3) + ')'; c.beginPath(); c.arc(R.X(p.x), R.Y(p.y), p.r * u, 0, TAU); c.fill();
-        return;
+      if (p.k === 'contact') {
+        if (p.layer === layer) P.WeaponImpacts.draw(c, R, p, m);
+      } else if (layer === 'air' && !m.reduceFlash) {
+        c.fillStyle = 'rgba(255,239,214,' + (0.33 * p.t / p.T).toFixed(3) + ')';
+        c.beginPath(); c.arc(R.X(p.x), R.Y(p.y), p.r * R.ppm, 0, TAU); c.fill();
       }
-      if (p.k === 'ring') {
-        if (layer !== 'ground') return;
-        c.strokeStyle = 'rgba(' + p.col + ',' + (0.6 * a).toFixed(3) + ')'; c.lineWidth = 2 + 3 * a;
-        c.beginPath(); c.ellipse(R.X(p.x), R.Y(p.y), p.r * u * (1.6 - a), p.r * u * 0.5 * (1.6 - a), 0, 0, TAU); c.stroke();
-        return;
-      }
-      if (layer !== 'air') return;
-      X = R.X(p.x); Y = R.Y(p.y);
-      c.globalAlpha = a * (mod ? mod.alpha : 1);
-      switch (p.shape) {
-        case 'crescent': ang = -Math.atan2(p.dy, p.dx);
-          c.strokeStyle = 'rgb(' + p.col + ')'; c.lineWidth = 2.2; c.lineCap = 'round';
-          c.beginPath(); c.arc(X, Y, (0.18 + 0.4 * age) * u, ang - 0.7, ang + 0.7); c.stroke(); break;
-        case 'spike': ang = -p.a;
-          c.strokeStyle = 'rgb(' + p.col + ')'; c.lineWidth = 2; c.lineCap = 'round';
-          c.beginPath(); c.moveTo(X, Y); c.lineTo(X + Math.cos(ang) * 0.22 * u * (1.2 - a), Y + Math.sin(ang) * 0.22 * u * (1.2 - a)); c.stroke(); break;
-        case 'chip': k = 0.06 * u;
-          X += Math.cos(p.a) * p.sp * age * u; Y += Math.sin(p.a) * p.sp * age * u - 2.2 * age * age * u;
-          c.save(); c.translate(X, Y); c.rotate(p.rot + p.vr * age);
-          c.fillStyle = 'rgb(' + p.col + ')'; c.fillRect(-k, -k * 0.5, 2 * k, k); c.restore(); break;
-        case 'ember':
-          X += Math.sin(p.seed + age * 9) * 0.05 * u; Y -= (0.2 + p.sp * 0.3) * age * u;
-          c.fillStyle = 'rgb(' + p.col + ')'; c.beginPath(); c.arc(X, Y, (0.035 + 0.03 * a) * u, 0, TAU); c.fill(); break;
-        case 'bubble': Y -= 0.25 * age * u;
-          c.strokeStyle = 'rgb(' + p.col + ')'; c.lineWidth = 1.5;
-          c.beginPath(); c.arc(X, Y, (0.05 + 0.08 * (1 - a)) * u, 0, TAU); c.stroke(); break;
-        case 'zig':
-          if (mod && mod.reduceFlash) break;
-          c.strokeStyle = 'rgb(' + p.col + ')'; c.lineWidth = 2; c.beginPath(); c.moveTo(X, Y);
-          c.lineTo(X + Math.cos(p.a) * 0.12 * u, Y + Math.sin(p.a) * 0.12 * u);
-          c.lineTo(X + Math.cos(p.a + 1.2) * 0.22 * u, Y + Math.sin(p.a + 1.2) * 0.22 * u); c.stroke(); break;
-        default:
-          c.strokeStyle = 'rgb(' + p.col + ')'; c.lineWidth = 2; c.beginPath(); c.moveTo(X, Y);
-          c.lineTo(X + Math.cos(p.a) * 0.15 * u, Y + Math.sin(p.a) * 0.15 * u); c.stroke();
-      }
-      c.globalAlpha = 1;
     });
   }
 
   // ---------- draw hooks (WFx2.drawGround / drawAir call these) ----------
   T.drawGround = function (R, s) {
+    if (P.SceneFlow && P.SceneFlow.current() && P.SceneFlow.current().kind !== 'entry') return;
     if (!T.enabled || !s) return;
     var c = R.ctx;
     c.save(); drawList(c, R, s, 'ground'); drawShots(c, R, 'ground', s); drawParts(c, R, 'ground'); c.restore();
   };
   T.drawAir = function (R, s) {
+    if (P.SceneFlow && P.SceneFlow.current() && P.SceneFlow.current().kind !== 'entry') return;
     if (!T.enabled || !s) return;
     var c = R.ctx;
     c.save(); c.globalCompositeOperation = 'lighter';
-    drawList(c, R, s, 'air'); drawShots(c, R, 'air', s); drawParts(c, R, 'air');
-    c.restore();
+    drawList(c, R, s, 'air'); drawShots(c, R, 'air', s); c.restore();
+    drawParts(c, R, 'air');
+    if (P.WSil.drawBoundNet) {
+      var nets = P.Weapons.state(s).nets;
+      if (nets && nets.length) P.WSil.drawBoundNet(c, R, nets);
+    }
   };
 
   // Hero cue: a halo round the ring (radius rBase..rBase+rStep at most, so the ring stays clear), motes at high totals. f = the sum
@@ -339,7 +330,7 @@ P.WTier = (function () {
 
   // Held weapon: a small glow at the hand, brighter with the level (table glow x held.glowMul, in metres). G is FireAnim's geometry.
   T.heldGlow = function (F, G, id, s) {
-    if (!T.enabled || !id || !spec(id) || !F.c || !F.R) return;
+    if (!T.enabled || !id || outlined[id] || !spec(id) || !F.c || !F.R) return;
     var lv = levelOf(s, id), lk = look(id, lv), H = C.held, f = (lv - 1) / (C.levels - 1), m = mod || modsNow(), c = F.c, R = F.R;
     var X = R.X(G.hx + G.ca * 0.5), Y = R.Y(G.hy + G.sa * 0.5), rr = Math.max(0.05, lk.glow * H.glowMul) * R.ppm;
     var a = (H.alphaMin + (H.alphaMax - H.alphaMin) * f) * m.alpha, g = c.createRadialGradient(X, Y, 0, X, Y, rr);

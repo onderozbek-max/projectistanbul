@@ -101,6 +101,7 @@
   };
 
   A.scene = function (c, w, h, key, seed) {
+    if (P.ComicRaster) return orig.apply(this, arguments);
     if (PAINT[key]) { PAINT[key](c, w, h, seed); return c; }
     return orig.apply(this, arguments);
   };

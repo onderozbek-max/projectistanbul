@@ -47,8 +47,9 @@ P.UIProgress = (function () {
     return [P.t('prog.levelN', { n: info.index }), P.upper(info.hood.name), sub, info.boss ? P.t('meta.boss') : '']
       .filter(Boolean).join(' · ');
   };
-  // Hood card (view/hood-card.js): the power strip and the next unlock, under the fact line. Null when progress is not loaded.
+  // Arrival shows the current action. The route's next unlock belongs on the results screen.
   V.hoodNode = function (li) {
+    if (li.index <= 30) return el('p', 'hc-obj', P.t('slice.goal.' + li.index));
     if (!ready()) return null;
     var box = el('div', 'hc-power'), nx = P.Progress.nextAfter(li.index, true);
     box.appendChild(el('p', 'pw-strip', powerText(P.Progress.power())));
@@ -103,7 +104,57 @@ P.UIProgress = (function () {
     if (nodes.banner) { nodes.banner.classList.add('hidden'); nodes.banner.classList.remove('is-out'); }
   };
 
-  // ---- Results: power strip, run recap (time and walk as one compact line each, then Street Cred, power and the next unlock) ----
+  V.recipeAdvice = function (recipe) {
+    if (!recipe || recipe.status === 'evolved') return '';
+    var key = !recipe.rank ? 'weapon' : recipe.rank < 3 || recipe.paired ? 'rank' : 'passive';
+    if (recipe.status === 'ready') key = 'chest';
+    return P.t('res.recipe.' + key, { weapon: P.t('item.' + recipe.weapon), passive: P.t('item.' + recipe.passive),
+      rank: P.CFG.maxItemLevel, evo: P.t('item.' + recipe.evo) });
+  };
+  V.liveRecipe = function (recipe, offer) {
+    if (!recipe) return '';
+    var key = recipe.status === 'evolved' ? 'evolved' : recipe.status === 'ready' ? 'chest' :
+      !recipe.rank ? 'weapon' : recipe.rank < 3 || recipe.paired ? 'rank' : 'passive';
+    var cards = offer && offer.cards || [];
+    var card = cards.find(function (c) { return c.evo === recipe.weapon; });
+    if (!card && key !== 'evolved') card = cards.find(function (c) { return c.item === recipe.passive && !recipe.paired; });
+    if (!card && recipe.rank < P.CFG.maxItemLevel) card = cards.find(function (c) { return c.item === recipe.weapon; });
+    if (card) key = card.evo ? 'evolveNow' : card.item === recipe.passive ? 'passiveNow' : !recipe.rank ? 'weaponNow' : 'rankNow';
+    return P.t('live.recipe.' + key, { weapon: P.t('item.' + recipe.weapon), passive: P.t('item.' + recipe.passive),
+      rank: P.CFG.maxItemLevel, next: card && card.next, evo: P.t('item.' + (card && card.evo ? card.item : recipe.evo)) });
+  };
+  function earnedPractice(rc, meta) {
+    if (!meta) return;
+    var gains = meta.statGains && meta.statGains.gains, xp = gains && gains.xp;
+    var trained = xp && Object.keys(xp).filter(function (id) { return xp[id] > 0; });
+    if (trained && trained.length) {
+      var ready = trained.filter(function (id) { return gains.ready[id] > 0; });
+      var strongest = trained.reduce(function (a, b) { return xp[b] > xp[a] ? b : a; });
+      kv(rc, P.t('res.recap.training'), ready.length ? ready.map(function (id) {
+        return P.t('growth.attributeReady', { attr: P.t('stat.' + id), n: gains.ready[id] });
+      }).join(' · ') : P.t('res.recap.practice', { attr: P.t('stat.' + strongest), n: xp[strongest].toLocaleString(P.lang) }));
+    }
+    var lifts = meta.masteryUps || [], kills = meta.masteryKills || {};
+    var lead = Object.keys(kills).reduce(function (a, b) { return !a || kills[b] > kills[a] ? b : a; }, null);
+    if (lifts.length || lead) kv(rc, P.t('res.recap.mastery'), lifts.length ? lifts.map(function (u) {
+      return P.t('res.recap.masteryRank', { weapon: P.t('item.' + u.id), n: u.to });
+    }).join(' · ') : P.t('res.recap.masteryKills', { weapon: P.t('item.' + lead), n: kills[lead] }));
+  }
+  // ---- Results: power strip, run recap and the next unlock ----
+  function experiment(idx,r){
+    var b=$('btn-res-experiment'),M=P.Meta;if(!b||!M)return;
+    b.classList.add('hidden');if(!r.win||M.starterIds().length===1)return;
+    var rematch=idx===30?25:idx;
+    if(M.tacticalAllowed(rematch,'normal')){b.textContent=P.t('a12.next.rematch',{n:rematch});b.dataset.target='rematch:'+rematch;}
+    else {var id=M.starter()==='knife'?'nailgun':'knife';b.textContent=P.t('a12.next.starter',{weapon:P.t('item.'+id)});b.dataset.target='arsenal';}
+    b.classList.remove('hidden');
+  }
+  function lossAdvice(r){
+    var cause=r.deathCause||'',group=/tram|traffic|car|Trolley/i.test(cause)?'crossing':/acid|toxic|fire|spit|spice/i.test(cause)?'hazard':
+      /cook|kasap|boss|bride|fisher|captain|ticket|keeper|vatman|roaster/i.test(cause)?'boss':'crowd';
+    var key='cause.'+cause,label=P.t(key);if(label===key){key='enemy.'+cause;label=P.t(key);}
+    return P.t('a12.loss.'+group)+(label===key?'':' '+P.t('a12.loss.source',{name:label}));
+  }
   V.results = function (r) {
     var idx = (r.hoodN - 1) * P.Journey.levelsPerHood + r.stage, label = $('res-label');
     if (label) label.textContent = P.t('ui.res.labelLevel', { n: idx, hood: P.upper(r.hood) });   // "LEVEL 12 · İSTİKLAL"
@@ -111,17 +162,33 @@ P.UIProgress = (function () {
     if (!ready() || !strip || !rc) return;
     var meta = r.meta || null, pw = P.Progress.power(), earned = meta && meta.statGains ? meta.statGains.gains.sc : 0;
     strip.textContent = powerText(pw);
-    rc.innerHTML = '';
+    var next = $('res-next-step');
+    if (next) {
+      var unlocked = r.hasNext && r.win && Object.keys(P.CFG.unlock.weapons).find(function (id) { return P.CFG.unlock.weapons[id] === idx + 1; });
+      var note = unlocked ? P.t('res.next.weapon', { name: P.t('item.' + unlocked) }) : V.recipeAdvice(r.recipe);
+      var district = '';
+      if (r.mode === 'normal' && r.win) {
+        district = r.stage === P.Journey.levelsPerHood ? P.t('res.districtClear', { hood: r.hood }) :
+          P.t('res.districtStage', { hood: r.hood, stage: r.stage, total: P.Journey.levelsPerHood });
+      }
+      if(!r.win)note=lossAdvice(r);
+      next.textContent = [district, note].filter(Boolean).join(' ');
+      next.classList.toggle('hidden', !next.textContent);
+    }
+    experiment(idx,r);rc.innerHTML = '';
     rc.appendChild(el('p', 'caption res-head', P.t('res.recap.head')));
     rc.appendChild(el('p', 'res-reached', P.t('res.recap.reached', { n: r.level, kills: r.kills, streak: r.streak | 0 })));
+    if (idx <= 5) rc.appendChild(el('p', 'caption', P.t('res.recap.resetWeapons')));
     kv(rc, P.t('ui.res.time'), P.UI.fmt(r.time), false, true);
     kv(rc, P.t('ui.res.walk'), P.t('ui.res.progress', { km: km(+r.km || 0), total: P.Journey.totalKm }), false, true);   // km with the part of the next district
+    earnedPractice(rc, meta);
     var scNode = kv(rc, P.t('res.recap.sc'), '');
     P.UIMotion.countUp(scNode, earned, function (v) { return P.t('res.recap.scVal', { n: v, k: P.Progress.streetCred(0).next }); });
     var g = meta ? P.Progress.hoodGain(meta.before.done, meta.after.done) : null;
     kv(rc, P.t('res.recap.power'), g && g.rank > 0 ? [P.t('prog.gainDmg', { v: pct(g.dmg) }), P.t('prog.gainHp', { v: pct(g.hp) })].join(' · ')
       : P.t('res.recap.noPower'));
-    var nx = P.Progress.nextAfter(idx, !!r.win), nextTxt = P.t('meta.allDone');
+    var boundary = r.win && P.CFG.experience && idx >= P.CFG.experience.through;
+    var nx = boundary ? null : P.Progress.nextAfter(idx, !!r.win), nextTxt = P.t(boundary ? 'exp.boundary' : 'meta.allDone');
     if (nx) nextTxt = r.win ? V.unlockText(nx) : P.t('res.recap.retry', { unlock: V.unlockText(nx) });
     kv(rc, P.t('res.recap.next'), nextTxt, true);
   };

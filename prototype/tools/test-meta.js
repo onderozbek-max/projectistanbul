@@ -248,6 +248,9 @@ section('settings', () => {
   check(load('null', true).Settings.reduceMotion === true, 'settings: OS reduced motion ignored after a null save');
   check(load('{"reduceMotion":"maybe"}', true).Settings.reduceMotion === false, 'settings: a stored non-boolean reduceMotion was overridden by the OS');
   check(typeof load('null', false).applySettings === 'function', 'settings: applySettings not defined after a null save');
+  const oldDamage = load('{"dmgNumbers":true,"musicVol":60}', false).Settings;
+  check(oldDamage.dmgNumbers === false && oldDamage.musicVol === 60, 'settings: clear the old damage-number default and retain the sound level');
+  check(load('{"dmgNumbers":true,"damageNumbersVersion":1}', false).Settings.dmgNumbers === true, 'settings: keep the new opt-in after a reload');
 });
 
 console.log('meta tests: ' + passes + ' checks passed, ' + fails.length + ' failed');

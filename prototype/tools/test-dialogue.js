@@ -69,7 +69,9 @@ for (let n = 1; n <= 100; n++) ['intro', 'start', 'mid', 'boss', 'end'].forEach(
   if (!b) return;
   if (b.kind === 'pop') need(b.line, `level ${n} ${when}`);
   if (b.kind === 'call') b.lines.forEach(id => need(id, `level ${n} ${when} call`));
-  if (b.kind === 'page' && !P.Story.pages[b.id]) problems.push(`level ${n} ${when}: page ${b.id} does not exist`);
+  if (b.kind === 'page') [].concat(b.id).forEach(id => {
+    if (!P.Story.pages[id]) problems.push(`level ${n} ${when}: page ${id} does not exist`);
+  });
 });
 // L1: call lines, cold open, director barks.
 Object.keys(P.CFG.callDur).forEach(id => need(id, 'P.CFG.callDur'));
@@ -123,6 +125,21 @@ function digest(lang) {
 const dTr = digest('tr'), dEn = digest('en');
 if (dTr.hex !== dEn.hex) problems.push(`sim digest differs between TR (${dTr.hex.slice(0, 10)}) and EN (${dEn.hex.slice(0, 10)})`);
 P.lang = 'tr';
+
+// The L1 route can resume the same conversation without showing minutes of silence on the HUD.
+const l1Call = P.createSim(42, { tramRhythm: true });
+P.startPlay(l1Call);
+l1Call.cardPicks = 1;
+for (let i = 0; i < 270; i++) P.Director.step(l1Call, 1 / 60);
+const call = l1Call.dir.call;
+if (!call.active || !call.sub || call.t <= 0) problems.push('L1 shows the first conversation after selecting a card');
+for (let i = 0; i < 900; i++) P.Director.step(l1Call, 1 / 60);
+const elapsed = call.t;
+for (let i = 0; i < 300; i++) P.Director.step(l1Call, 1 / 60);
+if (call.sub || call.queue.length || call.t !== elapsed) problems.push('L1 call timer keeps counting after the first exchange');
+l1Call.hero.y = 63;
+P.Director.step(l1Call, 1 / 60);
+if (call.sub?.id !== 'callB1' || call.t !== 0) problems.push('the passage should start a fresh timed exchange with Mom');
 
 // ---------- 3-7. length, joke ratio, banned lists, pair detector, duplicates (strict for written batches, notes for the rest) ----------
 const ids = Object.keys(B);

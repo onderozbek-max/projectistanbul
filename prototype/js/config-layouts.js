@@ -24,6 +24,7 @@
       brute: { kind: 'lx_pillar', n: 6, x: 3.8 }, bloater: { kind: 'lx_truck', n: 4, x: 4.6 }, spitter: { kind: 'tables', n: 6, x: 3.2 } } },
     // Centre landmarks (3 x 3 m) on the street part of a route: one chance every `every` m, beside the centre lane.
     centre: { from: 12, every: 30, jitter: 8, chance: 0.6, offAxis: 2.6, holdGap: 8, zoneGap: 3, size: 3,
+      booth: { x: 4.18, w: 2.04, h: 1.75, terminal: 1.55 },
       events: [{ k: 'ambush', w: 2 }, { k: 'loot', w: 1 }, { k: 'hack', w: 2 }], hack: ['atm', 'cell', 'traffic'] },
     // Free floor spots for env props (Lane A), along the route, both sidewalks, kept clear of solids.
     slot: { every: 6, side: 5.8, clear: 1.0, max: 120 },
@@ -31,7 +32,7 @@
     // visible half-width), windows on the opposite side winOff m further up.
     spawn: { from: 10, every: 16, endGap: 6, sideX: 5.4, winOff: 8, clear: 0.8 },
     // Bot route hint (tools/bot.js targetOf): walk to the next chokepoint within `look` m; a choke counts as passed `passed` m past it.
-    route: { look: 30, passed: 0.6 },
+    route: { look: 30, passed: 0.6, through: 0.5, alignBefore: 1.4 },
   };
   // Block kinds added for the layouts (sizes in metres: [w across, h along]). Same table as the street kinds.
   C.levels.kinds = Object.assign(C.levels.kinds, { lx_stall: [1.8, 1.6], lx_truck: [2.2, 5.0], lx_boat: [1.8, 3.4], lx_pillar: [1.2, 1.2] });

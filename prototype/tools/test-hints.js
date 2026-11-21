@@ -11,7 +11,7 @@ function ok(c, m) { if (c) passes++; else { fails++; console.log('FAIL ' + m); }
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
 const FILES = ['js/strings.js', 'js/view/hints-config.js', 'js/strings-hints.js', 'js/view/consumables-icons.js', 'js/view/consumables.js',
-  'js/view/consumables-zone.js', 'js/view/hints.js', 'js/view/hints-detect.js', 'js/view/hints-view.js'];
+  'js/sim/route-milestones.js', 'js/view/consumables-zone.js', 'js/view/speech.js', 'js/view/hints.js', 'js/view/hints-detect.js', 'js/view/hints-view.js'];
 
 // A store like localStorage (getItem / setItem). `data` is what a save would hold between sessions.
 function memStore(data) {
@@ -63,6 +63,8 @@ function load(opts) {
   ctx.P.CFG.feel2 = { pickup: { popT: 0.25, lift: 0.4 } };
   ctx.P.CFG.drops = { healCap: 70, simitHeal: 25 };
   ctx.P.CFG.levels = { rampFrom: 5 };
+  ctx.P.Combat = { dropHealRoom(s) { return s.levelIndex < ctx.P.CFG.levels.rampFrom ? Infinity :
+    Math.max(0, ctx.P.CFG.drops.healCap - (s.dropHealed || 0)); } };
   ctx.P.CFG.hack = { r: 2.4 };
   vm.createContext(ctx);
   FILES.forEach((f) => vm.runInContext(read(f), ctx, { filename: f }));
@@ -72,8 +74,9 @@ function load(opts) {
   R.toScreen = (x, y) => ({ x: R.X(x), y: R.Y(y) });
   ctx.P.Render = R;
   ctx.P.Hints.setStore(o.store === undefined ? memStore() : o.store);
-  // opts.props: the prop painters (istanbul-props.js, istanbul-props2.js), for the kiosk art check (R1-T4 part 17).
-  if (o.props) ['js/view/istanbul-props.js', 'js/view/istanbul-props2.js'].forEach((f) => vm.runInContext(read(f), ctx, { filename: f }));
+  // opts.props loads the street service painters for the kiosk art check (R1-T4 part 17).
+  if (o.props) ['js/view/istanbul-props.js', 'js/view/istanbul-props2.js', 'js/view/istanbul-street-services.js', 'js/view/street-service-art.js']
+    .forEach((f) => vm.runInContext(read(f), ctx, { filename: f }));
   return ctx.P;
 }
 
@@ -85,6 +88,14 @@ function sim(extra) {
 }
 const simit = (x, y) => ({ kind: 'simit', value: 25, x: x, y: y, mag: false, pop: 0 });
 const jeton = (x, y) => ({ kind: 'jeton', value: 3, x: x, y: y, mag: false, pop: 0 });
+
+// A protected relationship scene cannot acquire an incidental chest/food callout or consume its seen state.
+{
+ const P=load(),s=sim({drops:[simit(0,0)]});let protectedScene=true,shown='not called';
+ P.SceneFlow={running:()=>protectedScene};P.Hints.view={render:a=>{shown=a;}};
+ P.Hints.update(s,.1);ok(shown===null&&!P.Hints.isSeen('heal'),'protected story suppresses incidental hints without consuming them');
+ protectedScene=false;P.Hints.update(s,.1);ok(P.Hints.current()?.type==='heal','the actual interaction remains discoverable after control returns');
+}
 
 // Drives update() in 0.1 s steps for `secs` seconds; calls onStep(t) after each. Returns the list of started callouts.
 function run(P, s, secs, onStep) {
@@ -99,6 +110,51 @@ function run(P, s, secs, onStep) {
     if (onStep) onStep(t);
   }
   return starts;
+}
+
+// A nearby warning owns the player's attention. Incidental text can appear again once it passes.
+{
+  const P = load();
+  const s = sim({ enemyTele: [{ kind: 'lane', x: 0, y: 6, dx: 0, dy: -1, len: 9, w: 1 }] });
+  let bark, tutorial, instructing = false;
+  P.Speech.provider(() => {
+    P.Speech.offer({ kind: 'bark', w: 90, h: 40, ax: 200, ay: 350, place: slot => { bark = slot; } });
+    if (instructing) P.Speech.offer({ kind: 'tutorial', w: 100, h: 40, ax: 200, ay: 400, place: slot => { tutorial = slot; } });
+  });
+  P.Speech.resolve(P.Render, s);
+  ok(P.Speech.warningNear(s) && bark === null, 'a charge lane reaching the hero defers barks');
+  s.enemyTele[0].x = 6;
+  P.Speech.resolve(P.Render, s);
+  ok(!P.Speech.warningNear(s) && !!bark, 'a warning on the far side of the arena leaves nearby speech available');
+  instructing = true;
+  P.Speech.resolve(P.Render, s);
+  ok(!!tutorial && bark === null, 'tutorial instructions take precedence over incidental speech');
+  s.enemyTele = []; s.dir.telegraphs = [{ x: 1, y: 0, r: 1 }];
+  ok(P.Speech.warningNear(s), 'nearby boss stomp rings defer incidental text too');
+}
+
+// Quiet L26 hides optional victory/frenzy decorations, preserving actual interaction and
+// health feedback. The same offers resume in L27; no simulation state is changed.
+{
+  const P = load(), slots = {};
+  const s = sim({ levelIndex: 26, loadout: { kaanJoined: true } });
+  const types = { celebration: ['banner', false], pickup: ['toast', false],
+    level: ['pop', false], injury: ['pop', true], objective: ['tutorial', true] };
+  P.Speech.provider(() => {
+    Object.entries(types).forEach(([id, [kind, important]], i) => {
+      P.Speech.offer({ id, kind, important, prio: 4, w: 60, h: 25,
+        x: 20, y: 240 + i * 70, place: slot => { slots[id] = slot; } });
+    });
+  });
+  const before = JSON.stringify(s);
+  P.Speech.resolve(P.Render, s);
+  ok(!slots.celebration && !slots.pickup && !slots.level, 'L26 holds optional celebratory text');
+  ok(!!slots.injury && !!slots.objective, 'L26 retains important health and required instruction');
+  ok(JSON.stringify(s) === before, 'Quiet presentation never changes game state');
+  s.levelIndex = 27; P.Speech.resolve(P.Render, s);
+  // Tutorial intentionally suppresses incidental banners. Remove it for the ordinary next-level case.
+  delete types.objective; P.Speech.resolve(P.Render, s);
+  ok(!!slots.celebration && !!slots.pickup && !!slots.level, 'L27 resumes ordinary presentation');
 }
 
 // ---------- 1. each hint shows once, ever ----------
@@ -261,6 +317,10 @@ function P_rate_ok() {
   const C = P.Consumables.CLASS;
   ok(P.Consumables.classOf('simit') === 'heal' && P.Consumables.classOf('chest') === 'power' && P.Consumables.classOf('jeton') === 'currency', 'grammar: simit is heal, chest is power, jeton is currency');
   ok(P.Consumables.handles('xp') === false && P.Consumables.handles('simit') === true, 'grammar: XP gems stay outside the grammar');
+  const food = simit(0, 0), fullHealth = sim({ hero: { hp: 100, maxHp: 100 } });
+  ok(P.Consumables.healState(fullHealth, food) === 'saved' && P.Consumables.healState(sim(), food) === 'ready', 'food: held at full health and ready when hurt');
+  const healCap = sim({ levelIndex: 5, dropHealed: 70 });
+  ok(P.Consumables.healState(healCap, food) === 'spent' && P.Consumables.healState(healCap, { ...food, uncapped: true }) === 'ready', 'food: route budget cannot consume the arena heal');
   const fills = Object.keys(C).map((k) => C[k].fill), icons = Object.keys(C).map((k) => C[k].icon);
   ok(new Set(fills).size === fills.length && new Set(icons).size === icons.length, 'grammar: every class has its own colour and its own shape');
   ok(Object.keys(C).every((k) => P.ConsumablesIcons.names.indexOf(C[k].icon) >= 0), 'grammar: every class icon exists');
@@ -301,7 +361,10 @@ function P_rate_ok() {
   ok(R.ctx.rec.fills === 0, 'zone: no edge arrow for a terminal on screen');
   R.ctx = fakeCtx();
   Z.drawScreen(R, sim({ hacks: [{ id: 4, kind: 'atm', x: 40, y: 0, r: 2.4, prog: 0, state: 'idle' }] }));
-  ok(R.ctx.rec.fills === 1, 'zone: an off-screen terminal gets one edge arrow');
+  ok(R.ctx.rec.fills === 0, 'zone: a remote optional ATM does not compete with the route');
+  R.ctx = fakeCtx();P.RouteMilestones={target:function(){return[40,0];}};
+  Z.drawScreen(R, sim({ hacks: [{ id: 4, kind: 'tram', x: 40, y: 0, r: 2.4, prog: 0, state: 'idle' }] }));
+  ok(R.ctx.rec.fills === 1, 'zone: the actual required offscreen terminal retains its route arrow');
 }
 
 // ---------- 12. the eczane station sign: states are distinct ----------
@@ -332,12 +395,17 @@ function P_rate_ok() {
   ok(det({ variant: 'kiosk', used: false, b: b }).kiosk && !det({ variant: 'kiosk', used: false, b: b }).eczane, 'detect: an unused kiosk is a kiosk hint');
   ok(det({ variant: 'eczane', used: false, b: b }).eczane && !det({ variant: 'eczane', used: false, b: b }).kiosk, 'detect: an unused pharmacy is an eczane hint');
   ok(!det({ variant: 'kiosk', used: true, b: b }).kiosk, 'detect: a used kiosk gives no hint');
+  const gate = { y: b.y - 1, open: false };
+  const route = sim({ eczane: { list: [{ variant: 'kiosk', used: false, b: b }] }, milestone: gate });
+  ok(!P.HintsDetect.scan(route, ctxIn).kiosk, 'detect: a kiosk beyond a closed route gate gives no hint');
+  gate.open = true;
+  ok(P.HintsDetect.scan(route, ctxIn).kiosk, 'detect: opening the gate makes the kiosk hint available');
   // The sign: a plate with the icon; usable glows, steady under Reduce motion; empty reads EMPTY (TR BOŞ).
   const signOf = (Q, icon, state, t, motion) => { const c = fakeCtx(); Q.Consumables.stationSign(c, 0, 0, 30, state, t, motion, icon); return c.rec; };
   ok(signOf(P, 'bufe', 'usable', 0.2, true).stops.join() !== signOf(P, 'bufe', 'usable', 0.9, true).stops.join(), 'kiosk sign: the usable glow pulses with motion on');
   ok(signOf(P, 'bufe', 'usable', 0.2, false).stops.join() === signOf(P, 'bufe', 'usable', 0.9, false).stops.join(), 'kiosk sign: the usable glow is steady under Reduce motion');
   ok(signOf(P, 'bufe', 'empty', 0.2, true).texts.indexOf('BOŞ') >= 0 && signOf(P, 'bufe', 'empty', 0.2, true).stops.length === 0, 'kiosk sign: empty is grey with the BOŞ label and no glow');
-  // The art (istanbul-props2.js reg 'bufe'): a registered solid cover that draws in every state, with the bufe icon on its sign.
+  // The kiosk is a registered solid cover that draws in every state, with the bufe icon on its sign.
   const canvasDoc = { createElement: () => ({ width: 0, height: 0, getContext: () => fakeCtx() }) };
   const Q = load({ store: memStore(), document: canvasDoc, props: true });
   ok(Q.Props.has('bufe') && Q.Props.roleOf('bufe', { w: 1.4, h: 1.0 }) === 'solid', 'kiosk art: bufe is a registered solid cover (not breakable)');

@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "tool": "prototype/tools/prepare-art.js",
- "recipe": "54024189ef696d28",
+ "recipe": "16058b53bfdb5a62",
  "root": "prototype/assets/art/",
  "inventory": {
   "file": "art/commission/asset-inventory.json",
@@ -16,7 +16,7 @@
    "bottom": "bottom centre of the vehicle",
    "centre": "source cell centre (weapons, pickups, effects)"
   },
-  "scale": "atlas px per source px. One scale per entity: every frame of a character uses the scale that makes its idle frame heightPx tall.",
+  "scale": "atlas px per source px. The display scale is based on idle heightPx. Boss action frames include poseScale to match the body scale of the locomotion sheet.",
   "facing": "side views face right; mirror at runtime for left. The hero front view faces the camera (down), back away (up).",
   "encoding": "png8 = 256-colour palette PNG, chosen when colourError.over8 <= 0.12; png32 = RGBA. colourError is measured on alpha >= 128 pixels: over8 is the share off by more than 8 levels in any channel."
  },
@@ -24,57 +24,57 @@
   "hero_arda": {
    "kind": "hero",
    "atlas": "characters/hero_arda.png",
-   "scale": 0.8355,
+   "scale": 0.4178,
    "srcHeightPx": 383,
-   "heightPx": 320,
+   "heightPx": 160,
    "facing": "right",
    "views": {
     "side": {
      "facing": "right",
      "frames": {
       "idle": {
-       "x": 643,
-       "y": 554,
-       "w": 124,
-       "h": 320,
-       "px": 38,
-       "py": 320,
+       "x": 78,
+       "y": 447,
+       "w": 62,
+       "h": 160,
+       "px": 19,
+       "py": 160,
        "anchor": "feet"
       },
       "walk1": {
-       "x": 696,
-       "y": 885,
-       "w": 176,
-       "h": 312,
-       "px": 90.7,
-       "py": 311.6,
+       "x": 346,
+       "y": 447,
+       "w": 88,
+       "h": 156,
+       "px": 45.3,
+       "py": 155.8,
        "anchor": "feet"
       },
       "walk2": {
-       "x": 455,
-       "y": 885,
-       "w": 126,
-       "h": 317,
-       "px": 45.5,
-       "py": 317.5,
+       "x": 222,
+       "y": 447,
+       "w": 63,
+       "h": 159,
+       "px": 22.8,
+       "py": 158.7,
        "anchor": "feet"
       },
       "walk3": {
-       "x": 876,
-       "y": 885,
-       "w": 196,
-       "h": 311,
-       "px": 92.7,
-       "py": 310.8,
+       "x": 438,
+       "y": 447,
+       "w": 98,
+       "h": 155,
+       "px": 46.4,
+       "py": 155.4,
        "anchor": "feet"
       },
       "walk4": {
-       "x": 585,
-       "y": 885,
-       "w": 107,
-       "h": 317,
-       "px": 46.4,
-       "py": 317.5,
+       "x": 289,
+       "y": 447,
+       "w": 53,
+       "h": 159,
+       "px": 23.2,
+       "py": 158.7,
        "anchor": "feet"
       }
      }
@@ -83,48 +83,48 @@
      "facing": "down",
      "frames": {
       "idle": {
-       "x": 483,
-       "y": 554,
-       "w": 156,
-       "h": 320,
-       "px": 78.1,
-       "py": 320,
+       "x": 249,
+       "y": 280,
+       "w": 78,
+       "h": 160,
+       "px": 39.1,
+       "py": 160,
        "anchor": "feet"
       },
       "walk1": {
        "x": 2,
-       "y": 554,
-       "w": 157,
-       "h": 327,
-       "px": 106.1,
-       "py": 326.7,
+       "y": 280,
+       "w": 79,
+       "h": 163,
+       "px": 53.1,
+       "py": 163.3,
        "anchor": "feet"
       },
       "walk2": {
-       "x": 163,
-       "y": 554,
-       "w": 156,
-       "h": 324,
-       "px": 95.2,
-       "py": 324.2,
+       "x": 85,
+       "y": 280,
+       "w": 78,
+       "h": 162,
+       "px": 47.6,
+       "py": 162.1,
        "anchor": "feet"
       },
       "walk3": {
-       "x": 1007,
+       "x": 510,
        "y": 2,
-       "w": 157,
-       "h": 328,
-       "px": 53.1,
-       "py": 327.5,
+       "w": 79,
+       "h": 164,
+       "px": 26.5,
+       "py": 163.8,
        "anchor": "feet"
       },
       "walk4": {
-       "x": 323,
-       "y": 554,
-       "w": 156,
-       "h": 324,
-       "px": 61.4,
-       "py": 324.2,
+       "x": 167,
+       "y": 280,
+       "w": 78,
+       "h": 162,
+       "px": 30.7,
+       "py": 162.1,
        "anchor": "feet"
       }
      }
@@ -133,48 +133,48 @@
      "facing": "up",
      "frames": {
       "idle": {
-       "x": 155,
-       "y": 885,
-       "w": 144,
-       "h": 319,
-       "px": 71.9,
-       "py": 319.2,
+       "x": 2,
+       "y": 447,
+       "w": 72,
+       "h": 160,
+       "px": 35.9,
+       "py": 159.6,
        "anchor": "feet"
       },
       "walk1": {
-       "x": 2,
-       "y": 885,
-       "w": 149,
-       "h": 319,
-       "px": 91.9,
-       "py": 319.2,
+       "x": 491,
+       "y": 280,
+       "w": 74,
+       "h": 160,
+       "px": 46,
+       "py": 159.6,
        "anchor": "feet"
       },
       "walk2": {
-       "x": 771,
-       "y": 554,
-       "w": 153,
-       "h": 319,
-       "px": 52.2,
-       "py": 319.2,
+       "x": 331,
+       "y": 280,
+       "w": 76,
+       "h": 160,
+       "px": 26.1,
+       "py": 159.6,
        "anchor": "feet"
       },
       "walk3": {
-       "x": 303,
-       "y": 885,
-       "w": 148,
-       "h": 318,
-       "px": 56,
-       "py": 318.3,
+       "x": 144,
+       "y": 447,
+       "w": 74,
+       "h": 159,
+       "px": 28,
+       "py": 159.2,
        "anchor": "feet"
       },
       "walk4": {
-       "x": 928,
-       "y": 554,
-       "w": 153,
-       "h": 319,
-       "px": 100.3,
-       "py": 319.2,
+       "x": 411,
+       "y": 280,
+       "w": 76,
+       "h": 160,
+       "px": 50.1,
+       "py": 159.6,
        "anchor": "feet"
       }
      }
@@ -182,30 +182,30 @@
    },
    "poses": {
     "hurt": {
-     "x": 350,
+     "x": 178,
      "y": 2,
-     "w": 295,
-     "h": 524,
-     "px": 132.8,
-     "py": 523.9,
+     "w": 147,
+     "h": 262,
+     "px": 66.4,
+     "py": 261.9,
      "anchor": "feet"
     },
     "down": {
-     "x": 649,
+     "x": 329,
      "y": 2,
-     "w": 354,
-     "h": 481,
-     "px": 177.1,
-     "py": 240.6,
+     "w": 177,
+     "h": 241,
+     "px": 88.6,
+     "py": 120.3,
      "anchor": "body"
     },
     "victory": {
      "x": 2,
      "y": 2,
-     "w": 344,
-     "h": 548,
-     "px": 99,
-     "py": 548.1,
+     "w": 172,
+     "h": 274,
+     "px": 49.5,
+     "py": 274,
      "anchor": "feet"
     }
    }
@@ -213,9 +213,9 @@
   "walker_office": {
    "kind": "enemy",
    "atlas": "characters/walker_office.png",
-   "scale": 0.6938,
+   "scale": 0.3469,
    "srcHeightPx": 369,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "group": "walker",
@@ -224,46 +224,46 @@
     "idle": {
      "x": 2,
      "y": 2,
-     "w": 143,
-     "h": 256,
-     "px": 54.8,
-     "py": 256,
+     "w": 71,
+     "h": 128,
+     "px": 27.4,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
-     "y": 262,
-     "w": 164,
-     "h": 249,
-     "px": 88.5,
-     "py": 249.1,
+     "y": 134,
+     "w": 82,
+     "h": 125,
+     "px": 44.2,
+     "py": 124.5,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 170,
-     "y": 262,
-     "w": 184,
-     "h": 245,
-     "px": 112.7,
-     "py": 244.9,
+     "x": 88,
+     "y": 134,
+     "w": 92,
+     "h": 122,
+     "px": 56.4,
+     "py": 122.4,
      "anchor": "feet"
     },
     "hit": {
-     "x": 149,
+     "x": 77,
      "y": 2,
-     "w": 212,
-     "h": 254,
-     "px": 103.7,
-     "py": 253.9,
+     "w": 106,
+     "h": 127,
+     "px": 51.9,
+     "py": 127,
      "anchor": "feet"
     },
     "dead": {
      "x": 2,
-     "y": 515,
-     "w": 272,
-     "h": 178,
-     "px": 136,
-     "py": 88.8,
+     "y": 263,
+     "w": 136,
+     "h": 89,
+     "px": 68,
+     "py": 44.4,
      "anchor": "body"
     }
    }
@@ -271,57 +271,57 @@
   "walker_student": {
    "kind": "enemy",
    "atlas": "characters/walker_student.png",
-   "scale": 0.6863,
+   "scale": 0.3432,
    "srcHeightPx": 373,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "group": "walker",
    "outfit": "student",
    "frames": {
     "idle": {
-     "x": 194,
+     "x": 100,
      "y": 2,
-     "w": 135,
-     "h": 256,
-     "px": 45.3,
-     "py": 256,
+     "w": 67,
+     "h": 128,
+     "px": 22.6,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 526,
+     "x": 270,
      "y": 2,
-     "w": 170,
-     "h": 247,
-     "px": 105.7,
-     "py": 247.1,
+     "w": 85,
+     "h": 124,
+     "px": 52.8,
+     "py": 123.5,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 333,
+     "x": 171,
      "y": 2,
-     "w": 189,
-     "h": 247,
-     "px": 88.2,
-     "py": 247.1,
+     "w": 95,
+     "h": 124,
+     "px": 44.1,
+     "py": 123.5,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 188,
-     "h": 257,
-     "px": 79.6,
-     "py": 257.4,
+     "w": 94,
+     "h": 129,
+     "px": 39.8,
+     "py": 128.7,
      "anchor": "feet"
     },
     "dead": {
-     "x": 700,
+     "x": 359,
      "y": 2,
-     "w": 233,
-     "h": 230,
-     "px": 116.3,
-     "py": 115,
+     "w": 116,
+     "h": 115,
+     "px": 58.2,
+     "py": 57.5,
      "anchor": "body"
     }
    }
@@ -329,9 +329,9 @@
   "walker_shopper": {
    "kind": "enemy",
    "atlas": "characters/walker_shopper.png",
-   "scale": 0.7072,
+   "scale": 0.3536,
    "srcHeightPx": 362,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "group": "walker",
@@ -340,46 +340,46 @@
     "idle": {
      "x": 2,
      "y": 2,
-     "w": 133,
-     "h": 256,
-     "px": 55.2,
-     "py": 256,
+     "w": 66,
+     "h": 128,
+     "px": 27.6,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 139,
+     "x": 72,
      "y": 2,
-     "w": 176,
-     "h": 255,
-     "px": 118.5,
-     "py": 254.6,
+     "w": 88,
+     "h": 127,
+     "px": 59.2,
+     "py": 127.3,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 319,
+     "x": 164,
      "y": 2,
-     "w": 146,
-     "h": 255,
-     "px": 110.3,
-     "py": 254.6,
+     "w": 73,
+     "h": 127,
+     "px": 55.2,
+     "py": 127.3,
      "anchor": "feet"
     },
     "hit": {
-     "x": 469,
+     "x": 241,
      "y": 2,
-     "w": 173,
-     "h": 247,
-     "px": 87.7,
-     "py": 246.8,
+     "w": 87,
+     "h": 123,
+     "px": 43.8,
+     "py": 123.4,
      "anchor": "feet"
     },
     "dead": {
-     "x": 646,
+     "x": 332,
      "y": 2,
-     "w": 226,
-     "h": 179,
-     "px": 113.1,
-     "py": 89.5,
+     "w": 113,
+     "h": 89,
+     "px": 56.6,
+     "py": 44.7,
      "anchor": "body"
     }
    }
@@ -387,57 +387,57 @@
   "walker_tourist": {
    "kind": "enemy",
    "atlas": "characters/walker_tourist.png",
-   "scale": 0.7131,
+   "scale": 0.3565,
    "srcHeightPx": 359,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "group": "walker",
    "outfit": "tourist",
    "frames": {
     "idle": {
-     "x": 377,
+     "x": 193,
      "y": 2,
-     "w": 137,
-     "h": 256,
-     "px": 51,
-     "py": 256,
+     "w": 68,
+     "h": 128,
+     "px": 25.5,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 198,
+     "x": 102,
      "y": 2,
-     "w": 175,
-     "h": 257,
-     "px": 100.5,
-     "py": 256.7,
+     "w": 87,
+     "h": 128,
+     "px": 50.3,
+     "py": 128.4,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
      "y": 2,
-     "w": 192,
-     "h": 258,
-     "px": 85.9,
-     "py": 258.1,
+     "w": 96,
+     "h": 129,
+     "px": 43,
+     "py": 129.1,
      "anchor": "feet"
     },
     "hit": {
-     "x": 518,
+     "x": 265,
      "y": 2,
-     "w": 189,
-     "h": 252,
-     "px": 109.8,
-     "py": 251.7,
+     "w": 94,
+     "h": 126,
+     "px": 54.9,
+     "py": 125.9,
      "anchor": "feet"
     },
     "dead": {
-     "x": 711,
+     "x": 363,
      "y": 2,
-     "w": 229,
-     "h": 189,
-     "px": 114.5,
-     "py": 94.5,
+     "w": 114,
+     "h": 94,
+     "px": 57.2,
+     "py": 47.2,
      "anchor": "body"
     }
    }
@@ -445,55 +445,55 @@
   "runner": {
    "kind": "enemy",
    "atlas": "characters/runner.png",
-   "scale": 0.7111,
+   "scale": 0.3556,
    "srcHeightPx": 360,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 428,
+     "x": 344,
      "y": 2,
-     "w": 201,
-     "h": 256,
-     "px": 110.9,
-     "py": 256,
+     "w": 100,
+     "h": 128,
+     "px": 55.5,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 220,
+     "x": 238,
      "y": 2,
-     "w": 204,
-     "h": 256,
-     "px": 141.5,
-     "py": 256,
+     "w": 102,
+     "h": 128,
+     "px": 70.8,
+     "py": 128,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 633,
+     "x": 113,
      "y": 2,
-     "w": 241,
-     "h": 255,
-     "px": 195.9,
-     "py": 255.3,
+     "w": 121,
+     "h": 128,
+     "px": 98,
+     "py": 127.6,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 214,
-     "h": 271,
-     "px": 74.7,
-     "py": 270.9,
+     "w": 107,
+     "h": 135,
+     "px": 37.3,
+     "py": 135.5,
      "anchor": "feet"
     },
     "dead": {
-     "x": 878,
+     "x": 448,
      "y": 2,
-     "w": 264,
-     "h": 198,
-     "px": 131.9,
-     "py": 98.8,
+     "w": 132,
+     "h": 99,
+     "px": 66,
+     "py": 49.4,
      "anchor": "body"
     }
    }
@@ -501,55 +501,55 @@
   "crawler": {
    "kind": "enemy",
    "atlas": "characters/crawler.png",
-   "scale": 0.9078,
+   "scale": 0.4539,
    "srcHeightPx": 282,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
-     "y": 280,
-     "w": 342,
-     "h": 256,
-     "px": 195.2,
-     "py": 256,
+     "y": 143,
+     "w": 171,
+     "h": 128,
+     "px": 97.6,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
-     "y": 540,
-     "w": 356,
-     "h": 251,
-     "px": 319.1,
-     "py": 250.6,
+     "y": 275,
+     "w": 178,
+     "h": 125,
+     "px": 159.5,
+     "py": 125.3,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
-     "y": 795,
-     "w": 356,
-     "h": 240,
-     "px": 310.5,
-     "py": 239.7,
+     "y": 404,
+     "w": 178,
+     "h": 120,
+     "px": 155.2,
+     "py": 119.8,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 333,
-     "h": 274,
-     "px": 116.7,
-     "py": 274.2,
+     "w": 167,
+     "h": 137,
+     "px": 58.3,
+     "py": 137.1,
      "anchor": "feet"
     },
     "dead": {
      "x": 2,
-     "y": 1039,
-     "w": 340,
-     "h": 200,
-     "px": 170.2,
-     "py": 99.9,
+     "y": 528,
+     "w": 170,
+     "h": 100,
+     "px": 85.1,
+     "py": 49.9,
      "anchor": "body"
     }
    }
@@ -557,55 +557,55 @@
   "diner": {
    "kind": "enemy",
    "atlas": "characters/diner.png",
-   "scale": 0.7211,
+   "scale": 0.3606,
    "srcHeightPx": 355,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 200,
+     "x": 103,
      "y": 2,
-     "w": 173,
-     "h": 256,
-     "px": 89.8,
-     "py": 256,
+     "w": 87,
+     "h": 128,
+     "px": 44.9,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 377,
+     "x": 194,
      "y": 2,
-     "w": 176,
-     "h": 254,
-     "px": 128,
-     "py": 253.8,
+     "w": 88,
+     "h": 127,
+     "px": 64,
+     "py": 126.9,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 557,
+     "x": 286,
      "y": 2,
-     "w": 179,
-     "h": 252,
-     "px": 73.2,
-     "py": 252.4,
+     "w": 89,
+     "h": 126,
+     "px": 36.6,
+     "py": 126.2,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 194,
-     "h": 256,
-     "px": 115,
-     "py": 256,
+     "w": 97,
+     "h": 128,
+     "px": 57.5,
+     "py": 128,
      "anchor": "feet"
     },
     "dead": {
-     "x": 740,
+     "x": 379,
      "y": 2,
-     "w": 283,
-     "h": 206,
-     "px": 141.3,
-     "py": 103.1,
+     "w": 141,
+     "h": 103,
+     "px": 70.7,
+     "py": 51.6,
      "anchor": "body"
     }
    }
@@ -613,55 +613,55 @@
   "spitter": {
    "kind": "enemy",
    "atlas": "characters/spitter.png",
-   "scale": 0.7191,
+   "scale": 0.3596,
    "srcHeightPx": 356,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 181,
-     "y": 288,
-     "w": 163,
-     "h": 256,
-     "px": 59,
-     "py": 256,
+     "x": 94,
+     "y": 147,
+     "w": 81,
+     "h": 128,
+     "px": 29.5,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
-     "y": 288,
-     "w": 175,
-     "h": 256,
-     "px": 72.6,
-     "py": 256,
+     "y": 147,
+     "w": 88,
+     "h": 128,
+     "px": 36.3,
+     "py": 128,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 181,
+     "x": 94,
      "y": 2,
-     "w": 212,
-     "h": 257,
-     "px": 106.4,
-     "py": 256.7,
+     "w": 106,
+     "h": 128,
+     "px": 53.2,
+     "py": 128.4,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 175,
-     "h": 282,
-     "px": 92,
-     "py": 281.9,
+     "w": 88,
+     "h": 141,
+     "px": 46,
+     "py": 140.9,
      "anchor": "feet"
     },
     "dead": {
      "x": 2,
-     "y": 548,
-     "w": 270,
-     "h": 127,
-     "px": 134.8,
-     "py": 63.6,
+     "y": 279,
+     "w": 135,
+     "h": 64,
+     "px": 67.4,
+     "py": 31.8,
      "anchor": "body"
     }
    }
@@ -669,55 +669,55 @@
   "screamer": {
    "kind": "enemy",
    "atlas": "characters/screamer.png",
-   "scale": 0.6863,
+   "scale": 0.3432,
    "srcHeightPx": 373,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 2,
+     "x": 100,
      "y": 2,
-     "w": 124,
-     "h": 256,
-     "px": 51.5,
-     "py": 256,
+     "w": 62,
+     "h": 128,
+     "px": 25.7,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 668,
+     "x": 343,
      "y": 2,
-     "w": 130,
-     "h": 234,
-     "px": 101.9,
-     "py": 234,
+     "w": 65,
+     "h": 117,
+     "px": 51,
+     "py": 117,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 322,
+     "x": 166,
      "y": 2,
-     "w": 167,
-     "h": 247,
-     "px": 15.8,
-     "py": 247.1,
+     "w": 84,
+     "h": 124,
+     "px": 7.9,
+     "py": 123.5,
      "anchor": "feet"
     },
     "hit": {
-     "x": 130,
+     "x": 2,
      "y": 2,
-     "w": 188,
-     "h": 255,
-     "px": 99.9,
-     "py": 255.3,
+     "w": 94,
+     "h": 128,
+     "px": 49.9,
+     "py": 127.7,
      "anchor": "feet"
     },
     "dead": {
-     "x": 493,
+     "x": 254,
      "y": 2,
-     "w": 171,
-     "h": 234,
-     "px": 85.4,
-     "py": 117,
+     "w": 85,
+     "h": 117,
+     "px": 42.7,
+     "py": 58.5,
      "anchor": "body"
     }
    }
@@ -725,64 +725,64 @@
   "bloater": {
    "kind": "enemy",
    "atlas": "characters/bloater.png",
-   "scale": 0.7191,
+   "scale": 0.3596,
    "srcHeightPx": 356,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 226,
-     "y": 274,
-     "w": 214,
-     "h": 256,
-     "px": 100.7,
-     "py": 256,
+     "x": 473,
+     "y": 2,
+     "w": 107,
+     "h": 128,
+     "px": 50.3,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 480,
+     "x": 245,
      "y": 2,
-     "w": 219,
-     "h": 259,
-     "px": 134.5,
-     "py": 258.9,
+     "w": 110,
+     "h": 129,
+     "px": 67.2,
+     "py": 129.4,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 240,
+     "x": 123,
      "y": 2,
-     "w": 236,
-     "h": 259,
-     "px": 31.3,
-     "py": 258.9,
+     "w": 118,
+     "h": 129,
+     "px": 15.6,
+     "py": 129.4,
      "anchor": "feet"
     },
     "hit": {
-     "x": 2,
-     "y": 274,
-     "w": 220,
-     "h": 257,
-     "px": 122.6,
-     "py": 257.4,
+     "x": 359,
+     "y": 2,
+     "w": 110,
+     "h": 129,
+     "px": 61.3,
+     "py": 128.7,
      "anchor": "feet"
     },
     "dead": {
-     "x": 444,
-     "y": 274,
-     "w": 250,
-     "h": 231,
-     "px": 125.1,
-     "py": 115.4,
+     "x": 584,
+     "y": 2,
+     "w": 125,
+     "h": 115,
+     "px": 62.6,
+     "py": 57.7,
      "anchor": "body"
     },
     "swollen": {
      "x": 2,
      "y": 2,
-     "w": 234,
-     "h": 268,
-     "px": 108.2,
-     "py": 267.5,
+     "w": 117,
+     "h": 134,
+     "px": 54.1,
+     "py": 133.8,
      "anchor": "feet"
     }
    }
@@ -790,55 +790,55 @@
   "hardhat": {
    "kind": "enemy",
    "atlas": "characters/hardhat.png",
-   "scale": 0.7151,
+   "scale": 0.3575,
    "srcHeightPx": 358,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 663,
+     "x": 339,
      "y": 2,
-     "w": 198,
-     "h": 256,
-     "px": 95.1,
-     "py": 256,
+     "w": 99,
+     "h": 128,
+     "px": 47.6,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 439,
+     "x": 120,
      "y": 2,
-     "w": 220,
-     "h": 257,
-     "px": 108.3,
-     "py": 257.4,
+     "w": 110,
+     "h": 129,
+     "px": 54.2,
+     "py": 128.7,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 233,
+     "x": 234,
      "y": 2,
-     "w": 202,
-     "h": 259,
-     "px": 92.2,
-     "py": 258.9,
+     "w": 101,
+     "h": 129,
+     "px": 46.1,
+     "py": 129.4,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 227,
-     "h": 263,
-     "px": 97.6,
-     "py": 263.2,
+     "w": 114,
+     "h": 132,
+     "px": 48.8,
+     "py": 131.6,
      "anchor": "feet"
     },
     "dead": {
-     "x": 865,
+     "x": 442,
      "y": 2,
-     "w": 276,
-     "h": 189,
-     "px": 138,
-     "py": 94.4,
+     "w": 138,
+     "h": 94,
+     "px": 69,
+     "py": 47.2,
      "anchor": "body"
     }
    }
@@ -846,55 +846,55 @@
   "copci": {
    "kind": "enemy",
    "atlas": "characters/copci.png",
-   "scale": 0.7131,
+   "scale": 0.3565,
    "srcHeightPx": 359,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 767,
+     "x": 279,
      "y": 2,
-     "w": 234,
-     "h": 256,
-     "px": 122.7,
-     "py": 256,
+     "w": 117,
+     "h": 128,
+     "px": 61.3,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 279,
+     "x": 143,
      "y": 2,
-     "w": 263,
-     "h": 257,
-     "px": 172.2,
-     "py": 256.7,
+     "w": 132,
+     "h": 128,
+     "px": 86.1,
+     "py": 128.4,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 546,
+     "x": 400,
      "y": 2,
-     "w": 217,
-     "h": 257,
-     "px": 50.3,
-     "py": 256.7,
+     "w": 108,
+     "h": 128,
+     "px": 25.1,
+     "py": 128.4,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 273,
-     "h": 273,
-     "px": 118.7,
-     "py": 273.1,
+     "w": 137,
+     "h": 137,
+     "px": 59.4,
+     "py": 136.6,
      "anchor": "feet"
     },
     "dead": {
-     "x": 1005,
+     "x": 512,
      "y": 2,
-     "w": 242,
-     "h": 224,
-     "px": 121.2,
-     "py": 112,
+     "w": 121,
+     "h": 112,
+     "px": 60.6,
+     "py": 56,
      "anchor": "body"
     }
    }
@@ -902,55 +902,55 @@
   "kurye": {
    "kind": "enemy",
    "atlas": "characters/kurye.png",
-   "scale": 0.7091,
+   "scale": 0.3546,
    "srcHeightPx": 361,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
-     "y": 278,
-     "w": 217,
-     "h": 256,
-     "px": 118.4,
-     "py": 256,
+     "y": 274,
+     "w": 108,
+     "h": 128,
+     "px": 59.2,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
-     "y": 797,
-     "w": 244,
-     "h": 253,
-     "px": 120.6,
-     "py": 253.2,
+     "y": 406,
+     "w": 122,
+     "h": 127,
+     "px": 60.3,
+     "py": 126.6,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
-     "y": 538,
-     "w": 241,
-     "h": 255,
-     "px": 120.9,
-     "py": 255.3,
+     "y": 142,
+     "w": 121,
+     "h": 128,
+     "px": 60.5,
+     "py": 127.6,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 251,
-     "h": 272,
-     "px": 79.4,
-     "py": 272.3,
+     "w": 126,
+     "h": 136,
+     "px": 39.7,
+     "py": 136.2,
      "anchor": "feet"
     },
     "dead": {
      "x": 2,
-     "y": 1054,
-     "w": 262,
-     "h": 230,
-     "px": 130.8,
-     "py": 115.2,
+     "y": 537,
+     "w": 131,
+     "h": 115,
+     "px": 65.4,
+     "py": 57.6,
      "anchor": "body"
     }
    }
@@ -958,55 +958,55 @@
   "brute": {
    "kind": "enemy",
    "atlas": "characters/brute.png",
-   "scale": 0.7273,
+   "scale": 0.3636,
    "srcHeightPx": 352,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 271,
+     "x": 139,
      "y": 2,
-     "w": 220,
-     "h": 256,
-     "px": 113.5,
-     "py": 256,
+     "w": 110,
+     "h": 128,
+     "px": 56.7,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 781,
+     "x": 253,
      "y": 2,
-     "w": 252,
-     "h": 249,
-     "px": 148.4,
-     "py": 249.5,
+     "w": 126,
+     "h": 125,
+     "px": 74.2,
+     "py": 124.7,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 495,
+     "x": 383,
      "y": 2,
-     "w": 282,
-     "h": 249,
-     "px": 148.4,
-     "py": 248.7,
+     "w": 141,
+     "h": 124,
+     "px": 74.2,
+     "py": 124.4,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 265,
-     "h": 261,
-     "px": 150.5,
-     "py": 261.1,
+     "w": 133,
+     "h": 131,
+     "px": 75.3,
+     "py": 130.5,
      "anchor": "feet"
     },
     "dead": {
-     "x": 1037,
+     "x": 528,
      "y": 2,
-     "w": 285,
-     "h": 191,
-     "px": 142.5,
-     "py": 95.3,
+     "w": 143,
+     "h": 95,
+     "px": 71.3,
+     "py": 47.6,
      "anchor": "body"
     }
    }
@@ -1014,55 +1014,55 @@
   "marti": {
    "kind": "enemy",
    "atlas": "characters/marti.png",
-   "scale": 0.9846,
+   "scale": 0.4923,
    "srcHeightPx": 260,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": true,
    "frames": {
     "idle": {
      "x": 2,
-     "y": 278,
-     "w": 298,
-     "h": 256,
-     "px": 149.2,
-     "py": 128,
+     "y": 142,
+     "w": 149,
+     "h": 128,
+     "px": 74.6,
+     "py": 64,
      "anchor": "body"
     },
     "walk1": {
      "x": 2,
-     "y": 930,
-     "w": 386,
-     "h": 153,
-     "px": 193,
-     "py": 76.3,
+     "y": 474,
+     "w": 193,
+     "h": 76,
+     "px": 96.5,
+     "py": 38.2,
      "anchor": "body"
     },
     "walk2": {
      "x": 2,
-     "y": 538,
-     "w": 300,
-     "h": 206,
-     "px": 150.2,
-     "py": 102.9,
+     "y": 274,
+     "w": 150,
+     "h": 103,
+     "px": 75.1,
+     "py": 51.4,
      "anchor": "body"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 347,
-     "h": 272,
-     "px": 173.3,
-     "py": 135.9,
+     "w": 173,
+     "h": 136,
+     "px": 86.6,
+     "py": 67.9,
      "anchor": "body"
     },
     "dead": {
      "x": 2,
-     "y": 748,
-     "w": 314,
-     "h": 178,
-     "px": 157,
-     "py": 89.1,
+     "y": 381,
+     "w": 157,
+     "h": 89,
+     "px": 78.5,
+     "py": 44.6,
      "anchor": "body"
     }
    }
@@ -1070,55 +1070,55 @@
   "cayci": {
    "kind": "enemy",
    "atlas": "characters/cayci.png",
-   "scale": 0.7293,
+   "scale": 0.3647,
    "srcHeightPx": 351,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 576,
-     "y": 2,
-     "w": 151,
-     "h": 256,
-     "px": 44.1,
-     "py": 256,
+     "x": 89,
+     "y": 140,
+     "w": 75,
+     "h": 128,
+     "px": 22.1,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 406,
-     "y": 2,
-     "w": 166,
-     "h": 257,
-     "px": 104.3,
-     "py": 256.7,
+     "x": 2,
+     "y": 140,
+     "w": 83,
+     "h": 128,
+     "px": 52.1,
+     "py": 128.4,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 213,
+     "x": 110,
      "y": 2,
-     "w": 189,
-     "h": 258,
-     "px": 90.1,
-     "py": 258.2,
+     "w": 94,
+     "h": 129,
+     "px": 45,
+     "py": 129.1,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 207,
-     "h": 268,
-     "px": 82.1,
-     "py": 268.4,
+     "w": 104,
+     "h": 134,
+     "px": 41,
+     "py": 134.2,
      "anchor": "feet"
     },
     "dead": {
-     "x": 731,
-     "y": 2,
-     "w": 286,
-     "h": 142,
-     "px": 143,
-     "py": 71.1,
+     "x": 2,
+     "y": 272,
+     "w": 143,
+     "h": 71,
+     "px": 71.5,
+     "py": 35.6,
      "anchor": "body"
     }
    }
@@ -1126,55 +1126,55 @@
   "parkur": {
    "kind": "enemy",
    "atlas": "characters/parkur.png",
-   "scale": 0.7356,
+   "scale": 0.3678,
    "srcHeightPx": 348,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 272,
+     "x": 265,
      "y": 2,
-     "w": 190,
-     "h": 256,
-     "px": 72.5,
-     "py": 256,
+     "w": 95,
+     "h": 128,
+     "px": 36.2,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 715,
+     "x": 364,
      "y": 2,
-     "w": 243,
-     "h": 254,
-     "px": 15.4,
-     "py": 253.8,
+     "w": 122,
+     "h": 127,
+     "px": 7.7,
+     "py": 126.9,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 466,
+     "x": 139,
      "y": 2,
-     "w": 245,
-     "h": 255,
-     "px": 14.3,
-     "py": 255.3,
+     "w": 122,
+     "h": 128,
+     "px": 7.2,
+     "py": 127.6,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 266,
-     "h": 266,
-     "px": 132.4,
-     "py": 266.3,
+     "w": 133,
+     "h": 133,
+     "px": 66.2,
+     "py": 133.1,
      "anchor": "feet"
     },
     "dead": {
-     "x": 962,
+     "x": 490,
      "y": 2,
-     "w": 288,
-     "h": 208,
-     "px": 144.2,
-     "py": 104.1,
+     "w": 144,
+     "h": 104,
+     "px": 72.1,
+     "py": 52,
      "anchor": "body"
     }
    }
@@ -1182,55 +1182,55 @@
   "kasap": {
    "kind": "enemy",
    "atlas": "characters/kasap.png",
-   "scale": 0.7171,
+   "scale": 0.3585,
    "srcHeightPx": 357,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 404,
+     "x": 207,
      "y": 2,
-     "w": 185,
-     "h": 256,
-     "px": 73.9,
-     "py": 256,
+     "w": 93,
+     "h": 128,
+     "px": 36.9,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
      "y": 2,
-     "w": 191,
-     "h": 260,
-     "px": 107.9,
-     "py": 260.3,
+     "w": 96,
+     "h": 130,
+     "px": 54,
+     "py": 130.2,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 197,
+     "x": 102,
      "y": 2,
-     "w": 203,
-     "h": 258,
-     "px": 82.8,
-     "py": 258.2,
+     "w": 101,
+     "h": 129,
+     "px": 41.4,
+     "py": 129.1,
      "anchor": "feet"
     },
     "hit": {
-     "x": 593,
+     "x": 304,
      "y": 2,
-     "w": 201,
-     "h": 250,
-     "px": 68.1,
-     "py": 250.3,
+     "w": 100,
+     "h": 125,
+     "px": 34.1,
+     "py": 125.1,
      "anchor": "feet"
     },
     "dead": {
-     "x": 798,
+     "x": 408,
      "y": 2,
-     "w": 249,
-     "h": 216,
-     "px": 124.4,
-     "py": 107.9,
+     "w": 124,
+     "h": 108,
+     "px": 62.2,
+     "py": 54,
      "anchor": "body"
     }
    }
@@ -1238,55 +1238,55 @@
   "zehirli": {
    "kind": "enemy",
    "atlas": "characters/zehirli.png",
-   "scale": 0.7091,
+   "scale": 0.3546,
    "srcHeightPx": 361,
-   "heightPx": 256,
+   "heightPx": 128,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 188,
+     "x": 189,
      "y": 2,
-     "w": 138,
-     "h": 256,
-     "px": 50.3,
-     "py": 256,
+     "w": 69,
+     "h": 128,
+     "px": 25.2,
+     "py": 128,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 182,
-     "y": 266,
-     "w": 138,
-     "h": 255,
-     "px": 96.1,
-     "py": 255.3,
+     "x": 262,
+     "y": 2,
+     "w": 69,
+     "h": 128,
+     "px": 48,
+     "py": 127.6,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 2,
-     "y": 266,
-     "w": 176,
-     "h": 255,
-     "px": 84.4,
-     "py": 255.3,
+     "x": 97,
+     "y": 2,
+     "w": 88,
+     "h": 128,
+     "px": 42.2,
+     "py": 127.6,
      "anchor": "feet"
     },
     "hit": {
      "x": 2,
      "y": 2,
-     "w": 182,
-     "h": 260,
-     "px": 87.9,
-     "py": 259.5,
+     "w": 91,
+     "h": 130,
+     "px": 44,
+     "py": 129.8,
      "anchor": "feet"
     },
     "dead": {
-     "x": 2,
-     "y": 525,
-     "w": 248,
-     "h": 142,
-     "px": 124.1,
-     "py": 70.9,
+     "x": 335,
+     "y": 2,
+     "w": 124,
+     "h": 71,
+     "px": 62,
+     "py": 35.5,
      "anchor": "body"
     }
    }
@@ -1294,814 +1294,858 @@
   "boss_vatman": {
    "kind": "boss",
    "atlas": "characters/boss_vatman.png",
-   "scale": 1.2549,
+   "scale": 0.6275,
    "srcHeightPx": 408,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
-     "y": 1036,
-     "w": 542,
-     "h": 512,
-     "px": 209.6,
-     "py": 512,
+     "y": 524,
+     "w": 271,
+     "h": 256,
+     "px": 104.8,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
      "y": 2,
-     "w": 538,
-     "h": 513,
-     "px": 279.2,
-     "py": 513.3,
+     "w": 269,
+     "h": 257,
+     "px": 139.6,
+     "py": 256.6,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
-     "y": 519,
-     "w": 522,
-     "h": 513,
-     "px": 212.1,
-     "py": 513.3,
+     "y": 263,
+     "w": 261,
+     "h": 257,
+     "px": 106,
+     "py": 256.6,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 2005,
-     "w": 468,
-     "h": 430,
-     "px": 215.8,
-     "py": 430.4,
-     "anchor": "feet"
+     "y": 1013,
+     "w": 234,
+     "h": 215,
+     "px": 107.9,
+     "py": 215.2,
+     "anchor": "feet",
+     "poseScale": 1.13
     },
     "attack_hit": {
      "x": 2,
-     "y": 2439,
-     "w": 566,
-     "h": 409,
-     "px": 322.5,
-     "py": 409.1,
-     "anchor": "feet"
+     "y": 1232,
+     "w": 283,
+     "h": 205,
+     "px": 161.3,
+     "py": 204.5,
+     "anchor": "feet",
+     "poseScale": 1.13
     },
     "hurt": {
      "x": 2,
-     "y": 1552,
-     "w": 483,
-     "h": 449,
-     "px": 299.3,
-     "py": 449.3,
-     "anchor": "feet"
+     "y": 784,
+     "w": 242,
+     "h": 225,
+     "px": 149.6,
+     "py": 224.6,
+     "anchor": "feet",
+     "poseScale": 1.13
     },
     "dead": {
      "x": 2,
-     "y": 2852,
-     "w": 582,
-     "h": 366,
-     "px": 291.1,
-     "py": 183.2,
-     "anchor": "body"
+     "y": 1441,
+     "w": 291,
+     "h": 183,
+     "px": 145.6,
+     "py": 91.6,
+     "anchor": "body",
+     "poseScale": 1.13
     }
    }
   },
   "boss_guide": {
    "kind": "boss",
    "atlas": "characters/boss_guide.png",
-   "scale": 1.0261,
+   "scale": 0.513,
    "srcHeightPx": 499,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
-     "y": 1044,
-     "w": 443,
-     "h": 512,
-     "px": 223.2,
-     "py": 512,
+     "y": 528,
+     "w": 222,
+     "h": 256,
+     "px": 111.6,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
      "y": 2,
-     "w": 442,
-     "h": 517,
-     "px": 294.5,
-     "py": 517.1,
+     "w": 221,
+     "h": 259,
+     "px": 147.2,
+     "py": 258.6,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
-     "y": 523,
-     "w": 424,
-     "h": 517,
-     "px": 283.2,
-     "py": 517.1,
+     "y": 265,
+     "w": 212,
+     "h": 259,
+     "px": 141.6,
+     "py": 258.6,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 1931,
-     "w": 347,
-     "h": 355,
-     "px": 145.7,
-     "py": 355,
-     "anchor": "feet"
+     "y": 976,
+     "w": 173,
+     "h": 178,
+     "px": 72.8,
+     "py": 177.5,
+     "anchor": "feet",
+     "poseScale": 1.43
     },
     "attack_hit": {
      "x": 2,
-     "y": 1560,
-     "w": 383,
-     "h": 367,
-     "px": 157,
-     "py": 367.3,
-     "anchor": "feet"
+     "y": 788,
+     "w": 191,
+     "h": 184,
+     "px": 78.5,
+     "py": 183.7,
+     "anchor": "feet",
+     "poseScale": 1.43
     },
     "hurt": {
      "x": 2,
-     "y": 2290,
-     "w": 388,
-     "h": 352,
-     "px": 238,
-     "py": 351.9,
-     "anchor": "feet"
+     "y": 1158,
+     "w": 194,
+     "h": 176,
+     "px": 119,
+     "py": 176,
+     "anchor": "feet",
+     "poseScale": 1.43
     },
     "dead": {
      "x": 2,
-     "y": 2646,
-     "w": 411,
-     "h": 317,
-     "px": 205.7,
-     "py": 158.5,
-     "anchor": "body"
+     "y": 1338,
+     "w": 206,
+     "h": 159,
+     "px": 102.9,
+     "py": 79.3,
+     "anchor": "body",
+     "poseScale": 1.43
     }
    }
   },
   "boss_bride": {
    "kind": "boss",
    "atlas": "characters/boss_bride.png",
-   "scale": 1.0449,
+   "scale": 0.5224,
    "srcHeightPx": 490,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
-     "y": 1038,
-     "w": 427,
-     "h": 512,
-     "px": 226.7,
-     "py": 512,
+     "y": 524,
+     "w": 214,
+     "h": 256,
+     "px": 113.4,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
-     "y": 522,
-     "w": 451,
-     "h": 512,
-     "px": 243.5,
-     "py": 512,
+     "y": 264,
+     "w": 226,
+     "h": 256,
+     "px": 121.7,
+     "py": 256,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
      "y": 2,
-     "w": 441,
-     "h": 516,
-     "px": 226.2,
-     "py": 516.2,
+     "w": 220,
+     "h": 258,
+     "px": 113.1,
+     "py": 258.1,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 1932,
-     "w": 468,
-     "h": 374,
-     "px": 282.1,
-     "py": 374.1,
-     "anchor": "feet"
+     "y": 975,
+     "w": 234,
+     "h": 187,
+     "px": 141.1,
+     "py": 187,
+     "anchor": "feet",
+     "poseScale": 1.38
     },
     "attack_hit": {
      "x": 2,
-     "y": 2310,
-     "w": 503,
-     "h": 365,
-     "px": 212.1,
-     "py": 364.7,
-     "anchor": "feet"
+     "y": 1166,
+     "w": 251,
+     "h": 182,
+     "px": 106.1,
+     "py": 182.3,
+     "anchor": "feet",
+     "poseScale": 1.38
     },
     "hurt": {
      "x": 2,
-     "y": 1554,
-     "w": 482,
-     "h": 374,
-     "px": 157.8,
-     "py": 374.1,
-     "anchor": "feet"
+     "y": 784,
+     "w": 241,
+     "h": 187,
+     "px": 78.9,
+     "py": 187,
+     "anchor": "feet",
+     "poseScale": 1.38
     },
     "dead": {
      "x": 2,
-     "y": 2679,
-     "w": 475,
-     "h": 362,
-     "px": 237.7,
-     "py": 180.8,
-     "anchor": "body"
+     "y": 1352,
+     "w": 238,
+     "h": 181,
+     "px": 118.9,
+     "py": 90.4,
+     "anchor": "body",
+     "poseScale": 1.38
     }
    }
   },
   "boss_bloater": {
    "kind": "boss",
    "atlas": "characters/boss_bloater.png",
-   "scale": 0.9771,
+   "scale": 0.4885,
    "srcHeightPx": 524,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 423,
+     "x": 2,
      "y": 2,
-     "w": 422,
-     "h": 512,
-     "px": 203.7,
-     "py": 512,
+     "w": 211,
+     "h": 256,
+     "px": 101.9,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 849,
+     "x": 430,
      "y": 2,
-     "w": 420,
-     "h": 508,
-     "px": 216.4,
-     "py": 508.1,
+     "w": 210,
+     "h": 254,
+     "px": 108.2,
+     "py": 254,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 2,
+     "x": 217,
      "y": 2,
-     "w": 417,
-     "h": 513,
-     "px": 211.5,
-     "py": 513,
+     "w": 209,
+     "h": 256,
+     "px": 105.8,
+     "py": 256.5,
      "anchor": "feet"
     },
     "attack_windup": {
-     "x": 761,
-     "y": 519,
-     "w": 298,
-     "h": 349,
-     "px": 104.1,
-     "py": 348.8,
-     "anchor": "feet"
+     "x": 386,
+     "y": 262,
+     "w": 149,
+     "h": 174,
+     "px": 52,
+     "py": 174.4,
+     "anchor": "feet",
+     "poseScale": 1.47
     },
     "attack_hit": {
      "x": 2,
-     "y": 519,
-     "w": 376,
-     "h": 350,
-     "px": 240.9,
-     "py": 349.8,
-     "anchor": "feet"
+     "y": 262,
+     "w": 188,
+     "h": 175,
+     "px": 120.4,
+     "py": 174.9,
+     "anchor": "feet",
+     "poseScale": 1.47
     },
     "hurt": {
-     "x": 382,
-     "y": 519,
-     "w": 375,
-     "h": 349,
-     "px": 147.1,
-     "py": 348.8,
-     "anchor": "feet"
+     "x": 194,
+     "y": 262,
+     "w": 188,
+     "h": 174,
+     "px": 73.5,
+     "py": 174.4,
+     "anchor": "feet",
+     "poseScale": 1.47
     },
     "dead": {
-     "x": 1063,
-     "y": 519,
-     "w": 348,
-     "h": 338,
-     "px": 173.9,
-     "py": 169,
-     "anchor": "body"
+     "x": 539,
+     "y": 262,
+     "w": 174,
+     "h": 169,
+     "px": 87,
+     "py": 84.5,
+     "anchor": "body",
+     "poseScale": 1.47
     }
    }
   },
   "boss_taksici": {
    "kind": "boss",
    "atlas": "characters/boss_taksici.png",
-   "scale": 1.0449,
+   "scale": 0.5224,
    "srcHeightPx": 490,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
-     "x": 908,
+     "x": 460,
      "y": 2,
-     "w": 451,
-     "h": 512,
-     "px": 233.5,
-     "py": 512,
+     "w": 226,
+     "h": 256,
+     "px": 116.8,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 455,
+     "x": 231,
      "y": 2,
-     "w": 449,
-     "h": 518,
-     "px": 221.5,
-     "py": 518.3,
+     "w": 225,
+     "h": 259,
+     "px": 110.8,
+     "py": 259.1,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
      "y": 2,
-     "w": 449,
-     "h": 525,
-     "px": 200.6,
-     "py": 524.5,
+     "w": 225,
+     "h": 262,
+     "px": 100.3,
+     "py": 262.3,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 531,
-     "w": 364,
-     "h": 374,
-     "px": 167.2,
-     "py": 374.1,
-     "anchor": "feet"
+     "y": 268,
+     "w": 182,
+     "h": 187,
+     "px": 83.6,
+     "py": 187,
+     "anchor": "feet",
+     "poseScale": 1.36
     },
     "attack_hit": {
-     "x": 1054,
-     "y": 531,
-     "w": 367,
-     "h": 334,
-     "px": 229.4,
-     "py": 334.4,
-     "anchor": "feet"
+     "x": 534,
+     "y": 268,
+     "w": 183,
+     "h": 167,
+     "px": 114.7,
+     "py": 167.2,
+     "anchor": "feet",
+     "poseScale": 1.36
     },
     "hurt": {
-     "x": 612,
-     "y": 531,
-     "w": 438,
-     "h": 356,
-     "px": 205.3,
-     "py": 356.3,
-     "anchor": "feet"
+     "x": 311,
+     "y": 268,
+     "w": 219,
+     "h": 178,
+     "px": 102.7,
+     "py": 178.2,
+     "anchor": "feet",
+     "poseScale": 1.36
     },
     "dead": {
-     "x": 370,
-     "y": 531,
-     "w": 238,
-     "h": 368,
-     "px": 119.1,
-     "py": 183.9,
-     "anchor": "body"
+     "x": 188,
+     "y": 268,
+     "w": 119,
+     "h": 184,
+     "px": 59.6,
+     "py": 92,
+     "anchor": "body",
+     "poseScale": 1.36
     }
    }
   },
   "boss_kasap": {
    "kind": "boss",
    "atlas": "characters/boss_kasap.png",
-   "scale": 0.892,
+   "scale": 0.446,
    "srcHeightPx": 574,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
-     "y": 1036,
-     "w": 385,
-     "h": 512,
-     "px": 182.9,
-     "py": 512,
+     "y": 2,
+     "w": 193,
+     "h": 256,
+     "px": 91.4,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
-     "y": 519,
-     "w": 373,
-     "h": 513,
-     "px": 284.1,
-     "py": 512.9,
+     "y": 522,
+     "w": 186,
+     "h": 256,
+     "px": 142,
+     "py": 256.4,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
-     "y": 2,
-     "w": 375,
-     "h": 513,
-     "px": 237.3,
-     "py": 512.9,
+     "y": 262,
+     "w": 187,
+     "h": 256,
+     "px": 118.6,
+     "py": 256.4,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 1552,
-     "w": 326,
-     "h": 319,
-     "px": 183.3,
-     "py": 319.3,
-     "anchor": "feet"
+     "y": 782,
+     "w": 163,
+     "h": 160,
+     "px": 91.7,
+     "py": 159.7,
+     "anchor": "feet",
+     "poseScale": 1.57
     },
     "attack_hit": {
      "x": 2,
-     "y": 2188,
-     "w": 375,
-     "h": 260,
-     "px": 133.4,
-     "py": 260.5,
-     "anchor": "feet"
+     "y": 1104,
+     "w": 187,
+     "h": 130,
+     "px": 66.7,
+     "py": 130.2,
+     "anchor": "feet",
+     "poseScale": 1.57
     },
     "hurt": {
      "x": 2,
-     "y": 1875,
-     "w": 293,
-     "h": 309,
-     "px": 78.5,
-     "py": 308.6,
-     "anchor": "feet"
+     "y": 946,
+     "w": 147,
+     "h": 154,
+     "px": 39.2,
+     "py": 154.3,
+     "anchor": "feet",
+     "poseScale": 1.57
     },
     "dead": {
      "x": 2,
-     "y": 2452,
-     "w": 389,
-     "h": 252,
-     "px": 194.5,
-     "py": 125.8,
-     "anchor": "body"
+     "y": 1238,
+     "w": 194,
+     "h": 126,
+     "px": 97.2,
+     "py": 62.9,
+     "anchor": "body",
+     "poseScale": 1.57
     }
    }
   },
   "boss_spitter": {
    "kind": "boss",
    "atlas": "characters/boss_spitter.png",
-   "scale": 0.9429,
+   "scale": 0.4715,
    "srcHeightPx": 543,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
      "y": 2,
-     "w": 404,
-     "h": 512,
-     "px": 140,
-     "py": 512,
+     "w": 202,
+     "h": 256,
+     "px": 70,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 804,
+     "x": 407,
      "y": 2,
-     "w": 407,
-     "h": 500,
-     "px": 156.5,
-     "py": 499.7,
+     "w": 204,
+     "h": 250,
+     "px": 78.3,
+     "py": 249.9,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 410,
+     "x": 208,
      "y": 2,
-     "w": 390,
-     "h": 504,
-     "px": 217.8,
-     "py": 504.5,
+     "w": 195,
+     "h": 252,
+     "px": 108.9,
+     "py": 252.2,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 518,
-     "w": 301,
-     "h": 338,
-     "px": 113.6,
-     "py": 337.6,
-     "anchor": "feet"
+     "y": 262,
+     "w": 150,
+     "h": 169,
+     "px": 56.8,
+     "py": 168.8,
+     "anchor": "feet",
+     "poseScale": 1.49
     },
     "attack_hit": {
-     "x": 579,
-     "y": 518,
-     "w": 356,
-     "h": 306,
-     "px": 107.5,
-     "py": 306.4,
-     "anchor": "feet"
+     "x": 294,
+     "y": 262,
+     "w": 178,
+     "h": 153,
+     "px": 53.7,
+     "py": 153.2,
+     "anchor": "feet",
+     "poseScale": 1.49
     },
     "hurt": {
-     "x": 307,
-     "y": 518,
-     "w": 268,
-     "h": 337,
-     "px": 144.3,
-     "py": 336.6,
-     "anchor": "feet"
+     "x": 156,
+     "y": 262,
+     "w": 134,
+     "h": 168,
+     "px": 72.1,
+     "py": 168.3,
+     "anchor": "feet",
+     "poseScale": 1.49
     },
     "dead": {
-     "x": 939,
-     "y": 518,
-     "w": 377,
-     "h": 250,
-     "px": 188.6,
-     "py": 124.9,
-     "anchor": "body"
+     "x": 476,
+     "y": 262,
+     "w": 189,
+     "h": 125,
+     "px": 94.3,
+     "py": 62.5,
+     "anchor": "body",
+     "poseScale": 1.49
     }
    }
   },
   "boss_docent": {
    "kind": "boss",
    "atlas": "characters/boss_docent.png",
-   "scale": 0.9865,
+   "scale": 0.4933,
    "srcHeightPx": 519,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
-     "y": 519,
-     "w": 422,
-     "h": 512,
-     "px": 209.6,
-     "py": 512,
+     "y": 2,
+     "w": 211,
+     "h": 256,
+     "px": 104.8,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
-     "y": 1035,
-     "w": 426,
-     "h": 506,
-     "px": 219.5,
-     "py": 506.1,
+     "y": 522,
+     "w": 213,
+     "h": 253,
+     "px": 109.7,
+     "py": 253,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
-     "y": 2,
-     "w": 418,
-     "h": 513,
-     "px": 261.4,
-     "py": 513,
+     "y": 262,
+     "w": 209,
+     "h": 256,
+     "px": 130.7,
+     "py": 256.5,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 1545,
-     "w": 418,
-     "h": 353,
-     "px": 197.3,
-     "py": 353.2,
-     "anchor": "feet"
+     "y": 779,
+     "w": 209,
+     "h": 177,
+     "px": 98.7,
+     "py": 176.6,
+     "anchor": "feet",
+     "poseScale": 1.39
     },
     "attack_hit": {
      "x": 2,
-     "y": 2252,
-     "w": 496,
-     "h": 344,
-     "px": 141.6,
-     "py": 344.3,
-     "anchor": "feet"
+     "y": 1137,
+     "w": 248,
+     "h": 172,
+     "px": 70.8,
+     "py": 172.1,
+     "anchor": "feet",
+     "poseScale": 1.39
     },
     "hurt": {
      "x": 2,
-     "y": 1902,
-     "w": 402,
-     "h": 346,
-     "px": 180,
-     "py": 346.3,
-     "anchor": "feet"
+     "y": 960,
+     "w": 201,
+     "h": 173,
+     "px": 90,
+     "py": 173.1,
+     "anchor": "feet",
+     "poseScale": 1.39
     },
     "dead": {
      "x": 2,
-     "y": 2600,
-     "w": 416,
-     "h": 318,
-     "px": 208.2,
-     "py": 158.8,
-     "anchor": "body"
+     "y": 1313,
+     "w": 208,
+     "h": 159,
+     "px": 104.1,
+     "py": 79.4,
+     "anchor": "body",
+     "poseScale": 1.39
     }
    }
   },
   "boss_antiquarian": {
    "kind": "boss",
    "atlas": "characters/boss_antiquarian.png",
-   "scale": 0.8339,
+   "scale": 0.4169,
    "srcHeightPx": 614,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
      "y": 2,
-     "w": 269,
-     "h": 512,
-     "px": 125.9,
-     "py": 512,
+     "w": 135,
+     "h": 256,
+     "px": 63,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 275,
-     "y": 2,
-     "w": 310,
-     "h": 508,
-     "px": 164.7,
-     "py": 507.8,
+     "x": 2,
+     "y": 262,
+     "w": 155,
+     "h": 254,
+     "px": 82.3,
+     "py": 253.9,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 589,
-     "y": 2,
-     "w": 290,
-     "h": 507,
-     "px": 149.7,
-     "py": 507,
+     "x": 2,
+     "y": 520,
+     "w": 145,
+     "h": 253,
+     "px": 74.8,
+     "py": 253.5,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 518,
-     "w": 309,
-     "h": 299,
-     "px": 152.6,
-     "py": 298.5,
-     "anchor": "feet"
+     "y": 777,
+     "w": 154,
+     "h": 149,
+     "px": 76.3,
+     "py": 149.3,
+     "anchor": "feet",
+     "poseScale": 1.68
     },
     "attack_hit": {
      "x": 2,
-     "y": 821,
-     "w": 368,
-     "h": 276,
-     "px": 32.5,
-     "py": 276,
-     "anchor": "feet"
+     "y": 1081,
+     "w": 184,
+     "h": 138,
+     "px": 16.3,
+     "py": 138,
+     "anchor": "feet",
+     "poseScale": 1.68
     },
     "hurt": {
-     "x": 315,
-     "y": 518,
-     "w": 319,
-     "h": 294,
-     "px": 178.4,
-     "py": 294.4,
-     "anchor": "feet"
+     "x": 2,
+     "y": 930,
+     "w": 160,
+     "h": 147,
+     "px": 89.2,
+     "py": 147.2,
+     "anchor": "feet",
+     "poseScale": 1.68
     },
     "dead": {
-     "x": 374,
-     "y": 821,
-     "w": 347,
-     "h": 206,
-     "px": 173.4,
-     "py": 103,
-     "anchor": "body"
+     "x": 2,
+     "y": 1223,
+     "w": 173,
+     "h": 103,
+     "px": 86.7,
+     "py": 51.5,
+     "anchor": "body",
+     "poseScale": 1.68
     }
    }
   },
   "boss_keeper": {
    "kind": "boss",
    "atlas": "characters/boss_keeper.png",
-   "scale": 1.0364,
+   "scale": 0.5182,
    "srcHeightPx": 494,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
      "y": 2,
-     "w": 446,
-     "h": 512,
-     "px": 220.8,
-     "py": 512,
+     "w": 223,
+     "h": 256,
+     "px": 110.4,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
      "x": 2,
-     "y": 1031,
-     "w": 448,
-     "h": 508,
-     "px": 282.4,
-     "py": 507.9,
+     "y": 262,
+     "w": 224,
+     "h": 254,
+     "px": 141.2,
+     "py": 253.9,
      "anchor": "feet"
     },
     "walk2": {
      "x": 2,
-     "y": 518,
-     "w": 425,
-     "h": 509,
-     "px": 270,
-     "py": 508.9,
+     "y": 520,
+     "w": 212,
+     "h": 254,
+     "px": 135,
+     "py": 254.4,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 1543,
-     "w": 334,
-     "h": 371,
-     "px": 162.2,
-     "py": 371,
-     "anchor": "feet"
+     "y": 778,
+     "w": 167,
+     "h": 186,
+     "px": 81.1,
+     "py": 185.5,
+     "anchor": "feet",
+     "poseScale": 1.4
     },
     "attack_hit": {
      "x": 2,
-     "y": 2603,
-     "w": 481,
-     "h": 304,
-     "px": 243.6,
-     "py": 303.7,
-     "anchor": "feet"
+     "y": 1315,
+     "w": 240,
+     "h": 152,
+     "px": 121.8,
+     "py": 151.8,
+     "anchor": "feet",
+     "poseScale": 1.4
     },
     "hurt": {
      "x": 2,
-     "y": 1918,
-     "w": 436,
-     "h": 353,
-     "px": 177.7,
-     "py": 353.4,
-     "anchor": "feet"
+     "y": 968,
+     "w": 218,
+     "h": 177,
+     "px": 88.9,
+     "py": 176.7,
+     "anchor": "feet",
+     "poseScale": 1.4
     },
     "dead": {
      "x": 2,
-     "y": 2275,
-     "w": 475,
-     "h": 324,
-     "px": 237.3,
-     "py": 162.2,
-     "anchor": "body"
+     "y": 1149,
+     "w": 237,
+     "h": 162,
+     "px": 118.7,
+     "py": 81.1,
+     "anchor": "body",
+     "poseScale": 1.4
     }
    }
   },
   "boss_bigbro": {
    "kind": "boss",
    "atlas": "characters/boss_bigbro.png",
-   "scale": 1.1797,
+   "scale": 0.5899,
    "srcHeightPx": 434,
-   "heightPx": 512,
+   "heightPx": 256,
    "facing": "right",
    "flying": false,
    "frames": {
     "idle": {
      "x": 2,
      "y": 2,
-     "w": 510,
-     "h": 512,
-     "px": 250.7,
-     "py": 512,
+     "w": 255,
+     "h": 256,
+     "px": 125.3,
+     "py": 256,
      "anchor": "feet"
     },
     "walk1": {
-     "x": 516,
+     "x": 261,
      "y": 2,
-     "w": 491,
-     "h": 512,
-     "px": 310.9,
-     "py": 512,
+     "w": 245,
+     "h": 256,
+     "px": 155.4,
+     "py": 256,
      "anchor": "feet"
     },
     "walk2": {
-     "x": 1011,
+     "x": 510,
      "y": 2,
-     "w": 438,
-     "h": 510,
-     "px": 244.2,
-     "py": 509.6,
+     "w": 219,
+     "h": 255,
+     "px": 122.1,
+     "py": 254.8,
      "anchor": "feet"
     },
     "attack_windup": {
      "x": 2,
-     "y": 518,
-     "w": 477,
-     "h": 416,
-     "px": 288.4,
-     "py": 416.4,
-     "anchor": "feet"
+     "y": 262,
+     "w": 238,
+     "h": 208,
+     "px": 144.2,
+     "py": 208.2,
+     "anchor": "feet",
+     "poseScale": 1.24
     },
     "attack_hit": {
-     "x": 483,
-     "y": 518,
-     "w": 545,
-     "h": 387,
-     "px": 200,
-     "py": 386.9,
-     "anchor": "feet"
+     "x": 244,
+     "y": 262,
+     "w": 273,
+     "h": 193,
+     "px": 100,
+     "py": 193.5,
+     "anchor": "feet",
+     "poseScale": 1.24
     },
     "hurt": {
-     "x": 1453,
+     "x": 733,
      "y": 2,
-     "w": 457,
-     "h": 422,
-     "px": 191.7,
-     "py": 422.3,
-     "anchor": "feet"
+     "w": 228,
+     "h": 211,
+     "px": 95.9,
+     "py": 211.2,
+     "anchor": "feet",
+     "poseScale": 1.24
     },
     "dead": {
-     "x": 1032,
-     "y": 518,
-     "w": 578,
-     "h": 361,
-     "px": 289,
-     "py": 180.5,
-     "anchor": "body"
+     "x": 521,
+     "y": 262,
+     "w": 289,
+     "h": 180,
+     "px": 144.5,
+     "py": 90.2,
+     "anchor": "body",
+     "poseScale": 1.24
     }
    }
   }
@@ -15246,313 +15290,313 @@
  ],
  "files": {
   "characters/bloater.png": {
-   "bytes": 149975,
-   "sha256": "5b85c5bc429670a20fcaf6c4a40bc6d56733aab7f0eaf8f6eb4a51a0cd474e82",
+   "bytes": 51547,
+   "sha256": "5ff7a9e140de6775ae2ecab9ebdd70ef6138ace5518f6c6841f418206c600a33",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0421,
-    "p99": 12,
-    "max": 30
+    "over8": 0.0467,
+    "p99": 13,
+    "max": 29
    }
   },
   "characters/boss_antiquarian.png": {
-   "bytes": 323006,
-   "sha256": "a35341718e5d1ca25fa507734dc3032b498513f5b5094caf50566e4799ff923c",
+   "bytes": 108469,
+   "sha256": "d4c74feddc552c7f38b3d1a9f2950a66016daa3b55890ac41bf2e3c05a689de3",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0232,
+    "over8": 0.0245,
     "p99": 11,
-    "max": 63
+    "max": 37
    }
   },
   "characters/boss_bigbro.png": {
-   "bytes": 497423,
-   "sha256": "13bdbf99398006c39a3acf57659e45678768cfc15e99a662c0aaed6790e41d75",
+   "bytes": 169340,
+   "sha256": "ba410ccaa705d3430c20e2d71edf624bdb179141f0817e7f21a270f6f254cdab",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0312,
-    "p99": 12,
-    "max": 82
+    "over8": 0.0301,
+    "p99": 11,
+    "max": 43
    }
   },
   "characters/boss_bloater.png": {
-   "bytes": 401309,
-   "sha256": "e18fba006ed3ca838b65c0def4db3204258927a3740ad2bbdd81ee530ca79606",
+   "bytes": 132692,
+   "sha256": "3ba941f26bd12095f3a3902209a2d3d0ca8e53cea332098ef15713a89fbbd6fd",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0162,
-    "p99": 11,
-    "max": 39
+    "over8": 0.0145,
+    "p99": 10,
+    "max": 36
    }
   },
   "characters/boss_bride.png": {
-   "bytes": 578123,
-   "sha256": "606d09956a3f7e120e51c1f475c5dd76d9f43b03897e15964c14a0ccd3f49003",
+   "bytes": 187324,
+   "sha256": "ce2c5adb78fdb16e6fa9409e3a937ffcac952745300c25a84f0d274eeef30017",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0266,
+    "over8": 0.0273,
     "p99": 12,
-    "max": 33
+    "max": 32
    }
   },
   "characters/boss_docent.png": {
-   "bytes": 415298,
-   "sha256": "fa51a91fe933eead5682e76520c3c2ec007e375533e102a15547178b01f1d603",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0334,
-    "p99": 13,
-    "max": 57
-   }
-  },
-  "characters/boss_guide.png": {
-   "bytes": 436149,
-   "sha256": "629fc36c19af8d89b98898d6bc2de449a9609fd4fe01d686f05fbec69860408c",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0387,
-    "p99": 12,
-    "max": 51
-   }
-  },
-  "characters/boss_kasap.png": {
-   "bytes": 368770,
-   "sha256": "d096b3b70f7b1bc0cbfc9cb5226c8030d138bae87665e3189beb5d9d2375472b",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0258,
-    "p99": 11,
-    "max": 78
-   }
-  },
-  "characters/boss_keeper.png": {
-   "bytes": 476316,
-   "sha256": "b936d8388976620f4a3c4e0b241e7cdbbfd1bb1f0b1c31528f000fd28ea7a486",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0225,
-    "p99": 11,
-    "max": 79
-   }
-  },
-  "characters/boss_spitter.png": {
-   "bytes": 354360,
-   "sha256": "74f346779f50d6881c26a1f319e6c17034709e782ca5a33810ea3eab7b1866be",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0196,
-    "p99": 11,
-    "max": 48
-   }
-  },
-  "characters/boss_taksici.png": {
-   "bytes": 436780,
-   "sha256": "a43d68a3d1c25d257c1f8ba45e7ed0a49a91d5dbf7edd169b5e84492dec1e164",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0394,
-    "p99": 13,
-    "max": 89
-   }
-  },
-  "characters/boss_vatman.png": {
-   "bytes": 503645,
-   "sha256": "a1b4318046bf553305f8e643e89e2bf14d7c681d0208e28c3187c5eb4b4cb82b",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0242,
-    "p99": 12,
-    "max": 49
-   }
-  },
-  "characters/brute.png": {
-   "bytes": 150606,
-   "sha256": "741a77ce8d0c78940101a4eb37053be6446c2a1d55c0df031c7221a0eaf2f8d5",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0259,
-    "p99": 12,
-    "max": 51
-   }
-  },
-  "characters/cayci.png": {
-   "bytes": 96450,
-   "sha256": "44f3e7d89d9028721fc46e49525b854dd9a17fba21e620d2c8c53bf8eb394f48",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0668,
-    "p99": 15,
-    "max": 93
-   }
-  },
-  "characters/copci.png": {
-   "bytes": 135086,
-   "sha256": "e50f4a03c77230d691c99359404e11f04a4be9c3c187cdbec337e5b01363d661",
-   "encoding": "png8",
-   "colourError": {
-    "over8": 0.0515,
-    "p99": 14,
-    "max": 108
-   }
-  },
-  "characters/crawler.png": {
-   "bytes": 150747,
-   "sha256": "0db8fc4f18b6956a2fc94f64afd00a374b7348778e57acf1372ed937c2d3b7a3",
+   "bytes": 140116,
+   "sha256": "08459900e5633d7d27c9097456069a5c1922fb0a8bcdf84fe0a0e2e7fc7ee069",
    "encoding": "png8",
    "colourError": {
     "over8": 0.0349,
     "p99": 13,
-    "max": 67
+    "max": 72
+   }
+  },
+  "characters/boss_guide.png": {
+   "bytes": 148994,
+   "sha256": "4a9965323968b665a7bf7ef6f45ca4873099a3010da75a0c65b6ecd2eaa66b58",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0387,
+    "p99": 12,
+    "max": 49
+   }
+  },
+  "characters/boss_kasap.png": {
+   "bytes": 122053,
+   "sha256": "dfa0013d174c9919d7c485c9df7b18d16c147f4179ea9ed2a99525fcc13cd90c",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0266,
+    "p99": 12,
+    "max": 51
+   }
+  },
+  "characters/boss_keeper.png": {
+   "bytes": 156941,
+   "sha256": "30fa08512395b0591bdad7ed1d89ac06a5ec7c4db9cd40abf8eb10145b02a405",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0189,
+    "p99": 11,
+    "max": 46
+   }
+  },
+  "characters/boss_spitter.png": {
+   "bytes": 117428,
+   "sha256": "f10dc61e32bc3d8b4e6ba0803743e1e59c572f59bd0ae10d4a55e122d703edfd",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0177,
+    "p99": 10,
+    "max": 44
+   }
+  },
+  "characters/boss_taksici.png": {
+   "bytes": 144029,
+   "sha256": "9c79a9b79301642159ea118d69f7a581ad5422e66cc0ec25eedef9442f935953",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0364,
+    "p99": 13,
+    "max": 83
+   }
+  },
+  "characters/boss_vatman.png": {
+   "bytes": 174540,
+   "sha256": "c6fc8d935a3d6c76a50b0ebc04d96d3af461256d8a9319f8a283dc33851e864f",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0235,
+    "p99": 12,
+    "max": 43
+   }
+  },
+  "characters/brute.png": {
+   "bytes": 47930,
+   "sha256": "4ebdf9281d532280d8d432e8f61468a43a111bd29d8c5c529b91d88e006b1f66",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0189,
+    "p99": 10,
+    "max": 34
+   }
+  },
+  "characters/cayci.png": {
+   "bytes": 34394,
+   "sha256": "645a4ba2056257d9c262781c96336fd8561857d49ee45838b49669bfa4798ff7",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0647,
+    "p99": 16,
+    "max": 82
+   }
+  },
+  "characters/copci.png": {
+   "bytes": 44585,
+   "sha256": "49a03b982863fb15663cd69900a827423ace6ccb50506de6876fc35dcc102f63",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0492,
+    "p99": 14,
+    "max": 62
+   }
+  },
+  "characters/crawler.png": {
+   "bytes": 51194,
+   "sha256": "a346a86d8a2bf2f550b4fe7502b3483f9717dc777a91375914a777b9ed00f715",
+   "encoding": "png8",
+   "colourError": {
+    "over8": 0.0342,
+    "p99": 12,
+    "max": 46
    }
   },
   "characters/diner.png": {
-   "bytes": 117275,
-   "sha256": "9f65e996cd1cb9d79d02916482af46be424aca3bcec8e9fe11a7db8808c6cc77",
+   "bytes": 38688,
+   "sha256": "b99e256ad8b26c688a4d74eea0644a9243297508901b9f85fe86dd5dd64bc531",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0347,
-    "p99": 13,
-    "max": 97
+    "over8": 0.0304,
+    "p99": 12,
+    "max": 79
    }
   },
   "characters/hardhat.png": {
-   "bytes": 125285,
-   "sha256": "ded44a846aa63b89abcf29f349a30064cc7d9798a7a1fef81498683724c49c4d",
+   "bytes": 41569,
+   "sha256": "0ffd73dd92b4a33a14d1e2b36fcb8a9bd1d83faee91d8caa0b7decab0224a783",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0315,
+    "over8": 0.0308,
     "p99": 12,
-    "max": 58
+    "max": 38
    }
   },
   "characters/hero_arda.png": {
-   "bytes": 509443,
-   "sha256": "6eade5b6e59b3dc17a2cf95505049551c232ce125bf77e8998935bff3e4585b3",
+   "bytes": 171926,
+   "sha256": "606bf9d90eecc1e6d08fcd8f86bbe2ab5641389cb9619163338a0743b93b8852",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0813,
+    "over8": 0.0853,
     "p99": 15,
     "max": 74
    }
   },
   "characters/kasap.png": {
-   "bytes": 111865,
-   "sha256": "05b2b099888b5f6cc24c9cf37933f23b8f8214bc8b4aba74e18280977dff6815",
+   "bytes": 38443,
+   "sha256": "f33abbc6f1d7c5684e66f6d9d7795d7f1f193808d73e3b37c3c2ea12cfa508a8",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.027,
-    "p99": 12,
-    "max": 46
+    "over8": 0.0263,
+    "p99": 11,
+    "max": 70
    }
   },
   "characters/kurye.png": {
-   "bytes": 136613,
-   "sha256": "9e99aa30a799f3211a5b3c0e66feabd0867c6fdaf9622ad9b4edb52f3018245f",
+   "bytes": 46408,
+   "sha256": "ae9fb255888e1f4920a647b98eb933be47061d8353c76319a562c23d00cda77f",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0615,
+    "over8": 0.0683,
     "p99": 15,
-    "max": 75
+    "max": 72
    }
   },
   "characters/marti.png": {
-   "bytes": 118174,
-   "sha256": "b53564f984c131d31978f3856c75834ff9516a6513d819c49aba63bf73563a80",
+   "bytes": 41063,
+   "sha256": "a7dce9659cf6bf1d11757e148f6a1fb7aa3de43fab25bad601d148bda30cf350",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0209,
-    "p99": 11,
-    "max": 44
+    "over8": 0.0161,
+    "p99": 10,
+    "max": 49
    }
   },
   "characters/parkur.png": {
-   "bytes": 113390,
-   "sha256": "169657de0abda062393349ed5a98e102402dc506fba6c5e2978feb6e07eb358c",
+   "bytes": 40132,
+   "sha256": "2b95d79c0b5d4bad94349a52b84ddf736327176b9edc7520adc6f19e3b5e8ef9",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.068,
+    "over8": 0.0703,
     "p99": 14,
-    "max": 72
+    "max": 46
    }
   },
   "characters/runner.png": {
-   "bytes": 119731,
-   "sha256": "e8fceda7d580727132804034c48d55db541b649d85dc5b18f3bfadebde442d83",
+   "bytes": 42692,
+   "sha256": "4888d7ba560681ae712b606f1017b5d4784eec64dab1f468d710814505e38593",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0823,
-    "p99": 17,
-    "max": 67
+    "over8": 0.0931,
+    "p99": 18,
+    "max": 46
    }
   },
   "characters/screamer.png": {
-   "bytes": 91553,
-   "sha256": "20922f6039b0b3e99e8f7fa52476e1a472ebbdb3ae6d6df793a709fb111c26d8",
+   "bytes": 30763,
+   "sha256": "91822a4cafb681fac256cc3c5f0443efd6597ca432c3190b5e9f1f5214c405a3",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0642,
+    "over8": 0.0598,
     "p99": 13,
-    "max": 131
+    "max": 40
    }
   },
   "characters/spitter.png": {
-   "bytes": 111595,
-   "sha256": "2cf3eff56b800a30551c45c1d57f17924c69dee4310cf11e0ce4ce6c422c27f9",
+   "bytes": 37790,
+   "sha256": "08b1353cf098b5b1fb701cf90d81d0f38b31d15c79785fad54a2cec7bf897089",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0315,
+    "over8": 0.03,
     "p99": 12,
-    "max": 100
+    "max": 67
    }
   },
   "characters/walker_office.png": {
-   "bytes": 106556,
-   "sha256": "db0aa632b30aa29ae8f349296445dd312a9f5f1198be37af0b79313bd2b05af3",
+   "bytes": 35677,
+   "sha256": "aebd9e417bbbc81c4f74d138e7861c552812f65a301040ace34bac79620713c6",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0451,
-    "p99": 14,
-    "max": 72
+    "over8": 0.0383,
+    "p99": 13,
+    "max": 49
    }
   },
   "characters/walker_shopper.png": {
-   "bytes": 99179,
-   "sha256": "a45f496b88b4fdf2bf9317c66adc04fc84d49be87b38edacd0de20a818910c01",
+   "bytes": 33490,
+   "sha256": "fa4637dd34430520077581d569977008b93b3bbdf3de53f95fa08d42984691ac",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0549,
-    "p99": 14,
-    "max": 54
+    "over8": 0.0479,
+    "p99": 13,
+    "max": 47
    }
   },
   "characters/walker_student.png": {
-   "bytes": 106583,
-   "sha256": "ef693612bc1fdb3bbb168f4a91a0d03db87c32ea64f3240b0fcac2c4efed923a",
+   "bytes": 35789,
+   "sha256": "e3ffd9431162a777ff386d3a170046f71cad6b8d9eaefacc1b6a0aa6c1419fdb",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.048,
-    "p99": 14,
-    "max": 97
+    "over8": 0.0405,
+    "p99": 12,
+    "max": 62
    }
   },
   "characters/walker_tourist.png": {
-   "bytes": 99626,
-   "sha256": "1a725a4053a5a2e8d55317443616f23c2d80421794621e8412e75f76675e823e",
+   "bytes": 34807,
+   "sha256": "225bcad5cff7d3485a7b1356db8abf52b8aab23cfc1d507019d69bda3e7e0b8d",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.05,
+    "over8": 0.0456,
     "p99": 13,
-    "max": 99
+    "max": 42
    }
   },
   "characters/zehirli.png": {
-   "bytes": 99228,
-   "sha256": "76a8a90dd855084dd3555f0da167c3629bb9d5af027e3af0e2624137fe14c3b3",
+   "bytes": 34649,
+   "sha256": "f624db7d4422cd62ada7ea85f8ccb5228f4e011b7f0b11aecd5970f35dcd89da",
    "encoding": "png8",
    "colourError": {
-    "over8": 0.0742,
+    "over8": 0.0799,
     "p99": 16,
-    "max": 97
+    "max": 46
    }
   },
   "effects/fx_blood_splats.png": {
@@ -16586,9 +16630,9 @@
    31457280,
    41943040
   ],
-  "totalBytes": 28936710,
+  "totalBytes": 23932033,
   "categoryBytes": {
-   "characters": 7540139,
+   "characters": 2535462,
    "effects": 94749,
    "facades": 3634964,
    "ground": 2512145,

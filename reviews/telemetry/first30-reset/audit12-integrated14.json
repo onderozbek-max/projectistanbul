@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-21T13:46:48.239639+00:00",
+  "runtime_manifest_sha256": "ceda328957e8353ebd051a2be8ef5cdae16034000b436b8bc375d81fea4cdff4",
+  "runtimeFiles": 1185,
+  "snapshot": "/private/tmp/istanbul-reset-audit12-integrated14-20261120",
+  "head": "4f5361dc0f5306a0243719a8afba9382d4c9e9d3",
+  "branch": "r1/p2.1-turkish-dialogue-audit",
+  "dirty": true,
+  "source": "Source13 plus actual first-L26 service-car breathing space: existing routeRelief suppresses NEW recurring route/ambient/surge arrivals until8m beyond the real aperture. Existing enemies/finite authored actors remain live, controls/clocks/HP/XP/reward and weapon mechanics unchanged; spawn pacing explicitly changes. Later normal combat/hold remains. No new dependency/Git mutation.",
+  "changesFrom13": [
+    "js/config-levels.js",
+    "js/sim/levels.js"
+  ],
+  "previewUrls": {
+    "ownerExistingSave": "http://127.0.0.1:8828/?lang=en",
+    "isolatedFreshSave": "http://127.0.0.1:8862/?lang=en"
+  }
+}

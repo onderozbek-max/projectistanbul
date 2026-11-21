@@ -1,0 +1,85 @@
+# Audit9 · source, reproduction and evidence provenance
+
+Current immutable candidate: **8b02fbff46d1bef7db62dc3c1480fead8acd0a8d5fed2479ebb66e1efba44fdc**, 1,142 served files. [Runtime manifest](telemetry/audit9-implementation/integrated13-runtime.sha256) · [build identity](telemetry/audit9-implementation/integrated13.json) · [byte verification](telemetry/audit9-implementation/final-runtime-verification.json). Base Git HEAD `4f5361dc0f5306a0243719a8afba9382d4c9e9d3`, existing branch `r1/p2.1-turkish-dialogue-audit`, deliberately dirty. No commit/push/merge, dependency/service/SDK, engine migration or L31+ production change.
+
+Mac-local preview: **http://127.0.0.1:8801/**. This is not a remotely hosted release or physical-phone result. To restart the exact snapshot:
+
+```sh
+python3 prototype/tools/serve-snapshot.py 8801 /private/tmp/istanbul-audit9-integrated13-20261119
+```
+
+The writable prototype contains the same runtime bytes. Test root `/private/tmp/istanbul-audit9-tests13-20261119/prototype` contains independent **copies**, preventing test output from altering snapshots. Hidden art recipes/cache and existing repository art/prompt/inventory/tool resources are nonruntime test dependencies, [separately recorded](telemetry/audit9-implementation/final13-nonruntime-art-dependencies.json). Root `tools`, generated `prototype/reviews` and hidden files are excluded from runtime identity. No generated review files were present in the source11 manifest; its snapshot also verified unmodified. [Tool manifest](telemetry/audit9-implementation/final-tool-manifest.json) and [execution environment](telemetry/audit9-implementation/final-execution-environment.json) record reproducibility. This Mac uses Node26.10.0, Chrome157.0.8103.79 and existing Python/ffmpeg; nothing was installed.
+
+## Verification commands and actual results
+
+The final13 copied runtime passes **all 54 groups, zero failures and no rerun-only passes**, [full log](telemetry/audit9-implementation/integrated13-full-suite.log), [per-group logs](telemetry/audit9-implementation/final13-full-test-logs), [summary/exit](telemetry/audit9-implementation/final-tests.json). Three affected groups also pass. All32 current result cases pass: L29 win/advance, L30 loss/retry, L30 replay win and first-clear win, each in TR/EN at390×844/320×568 and100/150% text. Checks scroll the actual results body and assert the complete recap is visible above the fixed footer. Local commissioned-source checksums pass. These are desktop technical checks; actual earned rematches, the fresh source12 campaign and external acceptance have separate records.
+
+```sh
+prototype/tools/run-tests.sh progress-ui quality audit9
+prototype/tools/run-tests.sh
+shasum -a 256 -c art/commission/LOCAL-SOURCES.sha256 --quiet
+python3 prototype/tools/verify-audit9-source.py
+node prototype/tools/check-audit9-result-boundary.cjs
+```
+
+The full run used `ISTANBUL_TEST_LOG_DIR` and a stable copied runner, with existing nonruntime art/tool dependencies available. The [test-root tool manifest](telemetry/audit9-implementation/final13-test-root-tool-manifest.json) preserves the actual test copy; the current root tool manifest separately identifies final observers/reporters. Earlier source12 focused/full results remain under their original identity in [candidate12 tests](telemetry/audit9-implementation/candidate12-final-tests.json).
+
+**Last verification repair:** inspecting the actual earned L30 result caught a real recap suggestion to proceed to31, despite the correctly capped map/launch controls. Final13 changes exactly one guard in `ui-progress.js`, reusing the current localized first30-boundary copy. All1,141 other runtime files are byte-identical; the guard is inactive for L1–29 and every loss. [Machine-checked applicability](telemetry/audit9-implementation/boundary-repair-applicability.json). The fresh all30 campaign remains labelled source12. Three actual earned L30 rematches on13, a fully scrolled visible recap,32 presentation fixtures, the reward-preserving reopened map/direct31 refusal and the complete final13 suite verify the affected branch. No fresh final13 all30 campaign is claimed. [Current earned ending/return](media/R1/audit9-implementation/ending-final13-earned/index.json) · [result fixtures](telemetry/audit9-implementation/final13-result-boundary-checks.json).
+
+Four final12 earned headless policies complete all30: **138 attempts,120 clears,18 deaths,0timeouts; no ad/payment/revive/SecondWind**. The60 full-route earned-band boss cases retain four losses; separately supplied full-health-at-spawn controls clear60/60. [Position-aware120-case analysis](telemetry/audit9-implementation/final12-boss-analysis.json) adds actual initial coordinates and phase-separated damage/recovery observations and proves unchanged results. All170 targeted evolution trials and extra NailStorm/CarBomb cases retain misses and losses. [Raw command provenance](telemetry/audit9-implementation/integrated12-diagnostics-provenance.json) · [balance/limits](AUDIT9-PACING-AND-BALANCE-2026-11-19.md).
+
+## Source versions remain distinct
+
+|Version|Runtime hash|Actual use and limitation|
+|---|---|---|
+|before|`12e6e8aab915422f3de94befff1ed7abdb31f9bb78d39209ea88fa1ee7883514`|Current-at-start source including newer diner/native fixes; matched priority weapons, bosses and UI comparisons. Different from auditor81a88579.|
+|integrated4|`33b18396b5c30ad037c5e9d87e07e3ddede5e922c20785e8060237516a61de1d`|Earlier full roster/world/health work, retained historically. Not final12 footage.|
+|integrated5|`dc1c8f5a51f92e59a354764f7c96e70d7519a42bdb8f27770a250d796ada7907`|Priority contact after removing duplicate chain; later source/native work not retroactively included.|
+|integrated7|`dde8e5953f38e0b7e68a9c9f73fc0508f68408c25dc48b3dd93cfdface59d855`|Complete earlier diagnostics/world coverage. Simulation/config remains byte-identical to12.|
+|integrated8|`b7af308fce1f82d3d647a8339dd3654cb0112696f3e0a46763f0f71855aee77a`|Panel-owned scrolling, targeted evolutions and controls. Post-interruption screencasts are retained as defective visual proof.|
+|integrated9|`7331859d6d4091e11d1be09d63df115698ea2fca5d7e95593201434a7cd85ed8`|Superseded incomplete literal-zero render guard; positive subpixel dimensions still rounded to zero.|
+|integrated10|`db54f48412f8a76b88b4a8ad42a66915d6e2cda66e7ae11b5851428ed0f9c97f`|Superseded main/vignette repair; another world-cache layer exposed the subpixel root path.|
+|integrated11|`41ff3b043d34e0092a45b1457bce6ff14f9d29cb406bc764753f9c969895a4da`|Complete measured root renderability guard and non-resizing recorder. Six scene cases/UI/stress passed; partial suite/journey superseded by12.|
+|integrated12|`c6a53d2de2de99abc16c203dcd17576019e8000ef5c027532af195a795e9dc64`|Source11 plus tab-session enemy acquaintance/native ambient recency across reload, explicit profile clear. No native text/sim/config difference from11. Fresh all30 rendered journey, roster/world/native-scene films and diagnostics use this identity; final winning30 recap is superseded by13.|
+|integrated13|`8b02fbff46d1bef7db62dc3c1480fead8acd0a8d5fed2479ebb66e1efba44fdc`|Final winning30 result-boundary guard only. Full54 suite,32 rendered result cases, actual earned30 rematches/visible recap/return; unchanged source12 evidence remains labelled12.|
+
+[Exact deltas](telemetry/audit9-implementation/source-deltas-to-final13.json) establish applicability. Accepted Arda gait files remain byte-identical; only hero-contact integration changed. Later approved native/context/comic art and sparse reading work are preserved and credited to the retained narrative passes, not newly commissioned here. Source7→12 has no sim/config change, but the diagnostics were nevertheless rerun on12. Final roster/world recaptures retain their own12 identity; historical films are not relabelled. No obsolete dialogue, choice commitment, evolution identity, cover duration or boss behavior was restored.
+
+## What the recordings establish
+
+- **Rendered earned campaign:** fresh browser storage; actual Start, cards/forks, chests, spending/equipment, archive return, desktop interruption, retries and results. Disclosed automated navigation reads world state and sends ordinary pointer/key events. No `P.Input.get` replacement, stepping, power grant, imported save or injected outcome. This is assisted rendered verification, not an unfamiliar human or phone run.
+- **Headless campaigns:** real sim/Meta settlement, actual offers/finite rewards and declared policies. Banked growth withholds attributes/perks while retaining earned gear/mastery. These are not rendered, human or enjoyment proof.
+- **Roster/world/staging fixtures:** supplied positions, power, invulnerability and/or quiet crowds are stated in each index. Actual AI/contact/action/terrain/scene lifecycle runs. They are not ordinary-earned difficulty or natural offer frequency.
+- **Recorder:**390×844 JPEG frames at target10Hz with original wall timestamps and actual post-master game audio. Each image is dimension-checked; periodic layout checks reject collapsed phone content. No speedup or invented intermediate motion. Cadence/request latency limit fast-contact assessment; a recorded audio stream is not listening approval or phone performance.
+- **Review ability:** the agent inspected frames/contact sheets and technical events, not continuous motion or the audible mix. Complete normal-speed files remain available for those explicit pending gates.
+
+The earlier progressive-build journey completed30 with real earned state. Fresh8/9/10/11 attempts and failures remain versioned. Some older Chrome screencasts became clipped after a tab interruption despite correct390×844 layout metrics: they are rejected as complete full-viewport proof. The fresh final12 journey uses checked screenshot frames and **does not import those older saves**.
+
+Final12's first planned failure contains a retained controller detour before the booster, idle time, ordinary keyboard reorientation and pointer re-anchor repair. It ultimately dies to a real walker and settles actual earned rewards. The same exact source/origin/profile restarts only the controller after that finalized result. Later real melee losses, a supervised actually offered NailGun choice, and retries stay recorded. A second controller restart at the finalizedL12 result changes only actual-card selection and affordable earned gear selection on the same profile; later menu returns include full films. Early1–12 growth remains action logs/stills. The ordinary first-run automatic Second Wind occurs at46.55s inL01-attempt0. Legacy raw `assists` wording says no revives; it means no supplied/prototype revive action and is explicitly corrected here. No first-run assistance is hidden. This controller's idle/failure rate is not novice pacing or fairness. [Journey index/data](telemetry/audit9-implementation/final12-rendered-journey.json) and its raw films qualify progress precisely; an incomplete rendered journey is never replaced by a complete bot campaign.
+
+## Failures and repairs retained
+
+1. Candidate1 found a real reduced-effects omission and carry-cover obstruction; both have regressions. A first supply move targeted nonreward C, corrected to the actual finite D slot.
+2. Candidate4's running Bash file was edited, causing a parse error. Stable copied runners replace that procedure; incomplete suites remain incomplete.
+3. Candidate8's isolated suite missed hidden art dependencies and read silhouettes before completion. The reader now waits for actual `data-done` and retains all mask/hue/scale assertions. Chrome startup waits90s instead of15s. Nothing is disabled.
+4. Scene/earned controllers originally retained a stale pointer across menus, confused live dialogue with blocking pages, advanced navigation during hit-stop, or assumed L1 has `s.gen`. Corrections affect the tools; original artifacts remain. The final controller caches by game time and re-anchors through ordinary handlers.
+5. Visual review rejected clipped interruption films. Capture-induced subpixel resizing exposed a real cache error; final11/12 guard the complete root render path and safe allocations. A measured0.462×1 viewport at DPR0.001184834 exercises the regression. This is not a reported phone reproduction. The recorder also stops resizing the active game.
+6. The initial focused job referenced a removed test root; corrected170-trial runs replace that missing-module attempt. All offer misses/deaths remain. Extra useful NailStorm and known CarBomb cases supplement late examples without hiding them.
+7. Actual before/after reload reproduced missing acquaintance/ambient persistence; final12 fixes optional session history, independent native pools, urgent repeatability, explicit profile reset and denied-storage fallback.
+8. An initial history fixture accidentally named a global variable `spitter`, shadowing the existing enemy function; the fixture now uses a prefixed name. Its failures remain tool evidence, not game defects.
+
+A final technical media validator found one truncatedL20 English scene file: the audio ended1.849s before the retained viewport tail, and ffmpeg `-shortest` shortened the visual result. The original file and metadata are retained under `rejected-short-audio-tail`; a complete uninterrupted same-source recapture replaces that positive record. Five other scene cases preserve actual desktop interruption. Positive media validation checks actual duration,390×844 dimensions, audio stream presence, source, errors, hashes and real-hit intervals; it does not approve sound or motion.
+
+No phone, audible, continuous-motion artistic or unfamiliar-player result is invented. Exact remaining procedures and acceptance questions are in [external acceptance](AUDIT9-EXTERNAL-ACCEPTANCE-2026-11-19.md). No participant was contacted. The closure packet separates technical completion, earned rendered coverage, perceptual risks and the expansion gate.
+
+The interface recheck explicitly asserts actual390×844/320×568 viewport dimensions. Its legacy `width` field is the unscaled build panel's352px client width, so the final records add independent `viewportWidth/Height` and actual measured viewport/phone bounds. The original field-layout result is preserved; this is an evidence clarification, not a runtime layout change.
+
+A dedicated Nazar supplement repairs another timing qualification: the arsenal's first dodge happened during preparation. The first retake overlapped its ordinary evolution announcement and is rejected for contact inspection. The final supplied fixture waits for that announcement, then records actual contact, automatic Nazar dodge and four same-time connected discharges inside the retained interval. No forced roll or manual Dash attribution is used. [Exact trigger record](telemetry/audit9-implementation/final-nazar-trigger-summary.json).
+
+The final13 runtime is also preserved outside temporary storage in the [local archive](telemetry/audit9-implementation/audit9-runtime-8b02fbff46d1.tar.gz), with [archive hash and1142 verified members](telemetry/audit9-implementation/final-runtime-archive.json). It includes the manifest and local launch instructions, not Git history or a published release.
+
+The final reel uses original-time intervals and preserves source12 versus13 labels. A validator rejected an older baseline knife recording whose actual file was shorter than its declared interval; three fresh same-baseline priority-weapon recaptures replace that positive comparison. The original failed reel and duration investigation remain in `rejected-first-reel/`; the corrected reel clamps source intervals to actual file duration, validates each encoded segment and the complete124.317s result. It contains supplied matched comparisons and actual earned aftermath/departure/result excerpts, not a single ordinary playthrough.
+
+The first result inspection used an incorrect whole-window scroll boundary in the controller, leaving the recap's last line clipped. That partial inspection remains retained and is excluded as full-readability proof. The runtime already scrolls its own `.res-body`; the final actual earned inspection uses ordinary mouse wheel in that body and verifies the complete existing boundary text above the footer. An initial archive13 build referenced the old manifest and failed its assertion; the rejected partial is retained. The corrected final archive verifies all1,142 members against13. None of these tool failures is reported as a game regression.
+
+The last concurrent reopened-map capture also failed duration validation: actual output1.032s versus5.258s of retained viewport samples. Its original movie, metadata and failure report remain under `rejected-final13-return-audio-tail/`. A sequential recapture without another browser job produces the complete5.158s movie and rechecks the actual completed save, boundary and direct31 refusal. This replaces only the invalid positive recording, not the original evidence or the game runtime. The exact earlier suspension cause was not independently established as a player defect.

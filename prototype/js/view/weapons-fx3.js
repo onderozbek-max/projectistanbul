@@ -19,11 +19,10 @@ P.WFx3 = (function () {
       case 'cableArc': P.Sfx.play('zap', 40, { pan: pn }); break;
       case 'cableZap': ring(ev.x, ev.y, 1.2, '150,220,255'); break;
       case 'spearFire': anim.spear = 0; anim.spearA = ev.a; P.Sfx.play('spear', 60, { pan: pn }); break;
-      case 'spearHit': P.WFx.add({ k: 'impact', x: ev.x, y: ev.y, t: 0.15, T: 0.15 }); break;
+      case 'spearHit': if (!P.WAttackCues) P.WFx.add({ k: 'impact', x: ev.x, y: ev.y, t: 0.15, T: 0.15 }); break;
       case 'spearPin': pin(ev, pn); break;
       case 'extSpray': anim.ext = 0; anim.extA = ev.a; P.Sfx.play('extinguisher', 80, { pan: pn }); break;
-      case 'extTick': puffs(ev); break;
-      case 'cleaverSpin': ring(ev.x, ev.y, 2.4, '255,255,255'); break;
+      case 'cleaverCut': P.Sfx.play('swish',160); break;
       case 'cleaverChop':
         P.WFx.add({ k: 'chop', x: ev.x, y: ev.y, a: ev.a, t: 0.16, T: 0.16 });
         P.Sfx.play('cleaver', 50, { pan: pn });
@@ -35,24 +34,13 @@ P.WFx3 = (function () {
 
   function pin(ev, pn) {
     var i;
-    ring(ev.x, ev.y, 0.6, '255,230,160');
+    if (!P.WAttackCues) ring(ev.x, ev.y, Math.min(1.5, (ev.r || 1) * 0.45), '255,230,160');
     for (i = 0; i < 5; i++) P.WFx.add({ k: 'fleck', x: ev.x, y: ev.y, z: 0.4, vx: rnd(-2, 2), vy: rnd(-2, 2), vz: rnd(1, 3), t: 0.4, T: 0.4 });
     P.Sfx.play('spearPin', 60, { pan: pn });
   }
 
-  function puffs(ev) {
-    var half = ev.arc * Math.PI / 360, i, th, d;
-    for (i = 0; i < 12; i++) {
-      th = ev.a + rnd(-half, half); d = ev.range * rnd(0.3, 0.9);
-      P.WFx.add({ k: 'puff', x: ev.x + Math.cos(th) * d * 0.3, y: ev.y + Math.sin(th) * d * 0.3, z: 0.3,
-        vx: Math.cos(th) * 2.6, vy: Math.sin(th) * 2.6, vz: 0.2, r: 0.2, t: 0.35, T: 0.35 });
-    }
-  }
-
   function clusterSplit(ev) {
-    var i;
     ring(ev.x, ev.y, 0.9, '255,110,90');
-    for (i = 0; i < 3; i++) P.WFx.add({ k: 'smoke', x: ev.x, y: ev.y, z: 0.2, vz: 0.6, vx: rnd(-0.5, 0.5), vy: rnd(-0.5, 0.5), r: 0.2, t: 0.6, T: 0.6 });
   }
 
   // ---------- arm poses (hero back hand, called from WFx.heroBackHand) ----------
@@ -94,7 +82,7 @@ P.WFx3 = (function () {
   M.drawGround = function (R, s) {
     var c = R.ctx, u = R.ppm, t = performance.now() / 1000, n = 0;
     c.save();
-    P.Weapons.state(s).sprays.forEach(function (sp) { drawCone(c, R, s, sp, u); });
+    if (!P.WTier || !P.WTier.enabled) P.Weapons.state(s).sprays.forEach(function (sp) { drawCone(c, R, s, sp, u); });
     s.enemies.forEach(function (e) {
       if (n >= MAX_FOAM || e.dead || !e.st || !(e.st.foam > 0)) return;
       n++; drawFoam(c, R, e, u, t);
@@ -128,10 +116,12 @@ P.WFx3 = (function () {
     var c = R.ctx, u = R.ppm, t = performance.now() / 1000, h = s.hero, st = P.Weapons.state(s);
     c.save();
     crowns(c, R, s, u, t);
-    st.bolts.forEach(function (b) { drawBolt(c, R, b, u, t); });
-    st.spears.forEach(function (sp) { drawSpear(c, R, s, sp, u); });
-    if (h.weapons.cleaver) drawCleaver(c, R, s, u, t);
-    if (h.weapons.cyclone) drawCyclone(c, R, s, u, t);
+    if (!P.WTier || !P.WTier.enabled) {
+      st.bolts.forEach(function (b) { drawBolt(c, R, b, u, t); });
+      st.spears.forEach(function (sp) { drawSpear(c, R, s, sp, u); });
+    }
+    if (h.weapons.cleaver||h.weapons.knife) drawCleaver(c, R, s, u, t);
+    if (h.weapons.cyclone&&(!P.WTier||!P.WTier.enabled)) drawCyclone(c, R, s, u, t);
     c.restore();
   };
 
@@ -188,21 +178,10 @@ P.WFx3 = (function () {
 
   // Usta's Cleaver: blade at lv.radius, trailing swoosh arcs behind the edge.
   function drawCleaver(c, R, s, u, t) {
-    var h = s.hero, lv = P.Weapons.level(h, 'cleaver'), a = h.cleaA || 0, rad = lv.radius * u;
-    var cx = R.X(h.x), cy = R.Y(h.y + 0.2), sa = -a, k;
-    for (k = 0; k < 6; k++) {
-      c.strokeStyle = 'rgba(230,240,255,' + (0.3 * (1 - k / 6)).toFixed(3) + ')'; c.lineWidth = (0.3 - k * 0.03) * u;
-      c.beginPath(); c.arc(cx, cy, rad, sa + k * 0.12, sa + (k + 1) * 0.12, false); c.stroke();
-    }
-    c.save(); c.translate(cx, cy); c.rotate(sa);
-    c.fillStyle = '#5A3D2B'; c.strokeStyle = INK; c.lineWidth = 2.5;
-    c.fillRect(0.3 * rad, -0.07 * u, 0.3 * rad, 0.14 * u); c.strokeRect(0.3 * rad, -0.07 * u, 0.3 * rad, 0.14 * u);
-    c.fillStyle = '#B8C0CA';
-    c.beginPath(); c.moveTo(0.58 * rad, -0.14 * u); c.lineTo(rad, -0.14 * u); c.lineTo(rad + 0.1 * u, 0); c.lineTo(rad, 0.14 * u); c.lineTo(0.58 * rad, 0.14 * u); c.closePath();
-    c.fill(); c.stroke();
-    c.strokeStyle = 'rgba(255,255,255,' + (0.6 + 0.2 * Math.sin(t * 9)).toFixed(3) + ')'; c.lineWidth = 2;
-    c.beginPath(); c.moveTo(0.6 * rad, -0.1 * u); c.lineTo(rad, -0.1 * u); c.stroke();
-    c.restore();
+    var q=P.Weapons.state(s).cleaverSwing||P.Weapons.state(s).knifeSwing;if(!q||!q.active)return;
+    var h=s.hero,r=q.range*u,sa=-q.angle,previous=-(q.previous===null||q.previous===undefined?q.angle-q.side*.30:q.previous);
+    c.save();c.translate(R.X(h.x),R.Y(h.y+.2));c.strokeStyle='rgba(255,237,199,.65)';c.lineWidth=.10*u;
+    c.beginPath();c.arc(0,0,r,previous,sa,q.side>0);c.stroke();c.restore();
   }
 
   // Chain Cyclone: ring of sprocket blades at lv.radius, dashed pull radius.

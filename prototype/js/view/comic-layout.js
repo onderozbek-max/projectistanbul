@@ -1,8 +1,5 @@
-// Panel layout and fit audit (workstream D, v0.5 text-fit rewrite; split from comic.js). A panel stacks its captions
-// first (top), then its balloons, SFX and paper letters, in script order, at ONE type size. The search never
-// ellipsizes. In order: (1) type steps 18 -> 15 px at full busts, normal balloons; (2) balloons widen; (3) busts
-// shrink at 15 px; (4) hard minimum 14 -> 12 px at the smallest busts; (5) last resort: balloons may cover the busts'
-// heads (flagged as overlap). A panel that still does not fit is flagged as overflow (the audit fails it).
+// The panel geometry determines portrait sizes. Text fits above the portraits using wider balloons or a smaller font.
+// When the text needs more room, each tap reveals the next group of lines in the same panel.
 // The audit (L.audit) lays out every page panel, pop and call line the way the game does, then draws each line with
 // the loaded font and checks its ink against the text box, the body outline and the panel. Barks use L.checkBox too.
 // Stacking keeps every name tag clear of the item above, and narrows a balloon that a tail from above would cross.
@@ -13,30 +10,15 @@ P.ComicLayout = (function () {
   var AREA = { x: 12, y: 64, w: 366, h: 704 }, GAP = 6, TOP = 14, CPS = 42, MIN_BW = 96;
   var POP = { w: 390, h: 300, boxW: 212, top: 22 };
   var LAYOUTS = {
+    actionFirst: [[0,0,1,.5],[0,.5,.5,.25],[.5,.5,.5,.25],[0,.75,1,.25]],
     1: [[0, 0, 1, 1]],
     2: [[0, 0, 1, 0.5], [0, 0.5, 1, 0.5]],
     3: [[0, 0, 1, 0.46], [0, 0.46, 0.5, 0.54], [0.5, 0.46, 0.5, 0.54]],
     4: [[0, 0, 1, 0.34], [0, 0.34, 0.5, 0.33], [0.5, 0.34, 0.5, 0.33], [0, 0.67, 1, 0.33]],
-    5: [[0, 0, 1, 0.3], [0, 0.3, 0.5, 0.35], [0.5, 0.3, 0.5, 0.35], [0, 0.65, 0.5, 0.35], [0.5, 0.65, 0.5, 0.35]]
+    5: [[0, 0, 1, 0.3], [0, 0.3, 0.5, 0.35], [0.5, 0.3, 0.5, 0.35], [0, 0.65, 0.5, 0.35], [0.5, 0.65, 0.5, 0.35]],
+    conversation: [[0, 0, 1, 0.24], [0, 0.24, 0.5, 0.43], [0.5, 0.24, 0.5, 0.43], [0, 0.67, 1, 0.33]]
   };
-  var BUST_STEPS = [1, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35], PX_ALL = [18, 17, 16, 15, 14, 13, 12];
-  // The search plan, tried in order until one attempt fits (see the header comment). Strict attempts keep every tail clear
-  // of the other balloons: a balloon narrows clear of a tail, or the upper balloons take the full width ('max'). When no
-  // strict attempt fits, the legacy attempts let a tail cross a balloon; the audit counts those crossings (cross).
-  // The last resort is the only attempt that lets balloons cover a bust, and it runs after every non-overlap attempt.
-  var PLAN = (function () {
-    var plan = [], add = function (strict, wide, px, bust, overlap) { plan.push({ bust: bust, wide: wide, px: px, strict: strict, overlap: !!overlap }); };
-    function legacy(strict) {
-      [false, true].forEach(function (wide) { [18, 17, 16, 15].forEach(function (px) { add(strict, wide, px, 1); }); });
-      BUST_STEPS.slice(1).forEach(function (b) { add(strict, true, 15, b); });
-      [14, 13, 12].forEach(function (px) { BUST_STEPS.slice(3).forEach(function (b) { add(strict, true, px, b); }); });
-    }
-    legacy(true);
-    [15, 14, 13, 12].forEach(function (px) { BUST_STEPS.slice(2).forEach(function (b) { add(true, 'max', px, b); }); });
-    legacy(false);
-    add(false, 'max', 12, BUST_STEPS[BUST_STEPS.length - 1], true);
-    return plan;
-  })();
+  var PX_ALL = [18, 17, 16, 15, 14, 13, 12], BALLOON_WIDTHS = [false, true, 'max'];
   L.AREA = AREA; L.CPS = CPS; L.POP = POP;
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -52,7 +34,7 @@ P.ComicLayout = (function () {
     } else {
       if (!src) return null;
       s = { who: src.who || null, mood: src.mood || 'neutral', side: src.side, important: !!src.important,
-            text: src.text != null ? src.text : P.t(src.key), speaker: src.who ? P.t('spk.' + src.who) : '' };
+            text: src.text != null ? src.text : P.t(src.key), speaker: src.speaker != null ? src.speaker : (src.who ? P.t('spk.' + src.who) : '') };
     }
     if (o.mood) s.mood = o.mood;
     if (o.side) s.side = o.side;
@@ -64,18 +46,17 @@ P.ComicLayout = (function () {
   };
 
   // ---------- page geometry ----------
-  L.panelRect = function (n, i) {
-    var f = LAYOUTS[clamp(n, 1, 5)][i], g = 6;
+  L.panelRect = function (n, i, layout) {
+    var f = (LAYOUTS[layout] || LAYOUTS[clamp(n, 1, 5)])[i], g = 6;
     return { x: AREA.x + f[0] * AREA.w + g, y: AREA.y + f[1] * AREA.h + g, w: f[2] * AREA.w - 2 * g, h: f[3] * AREA.h - 2 * g };
   };
-  // Busts: ch = [who, mood, x (0..1), flip, scale]. Base sits near the bottom; k scales them (crowns drop).
-  function layoutBusts(p, k) {
+  // Busts: ch = [who, mood, x (0..1), flip, scale]. Base sits near the bottom of the frame.
+  function layoutBusts(p) {
     // AUDIT-6 F10: a single-panel page (the whole page) draws its busts 30% larger, so the page is not half empty.
-    // The layout search still steps them down when the balloons need the room.
     var fill = p.h > AREA.h * 0.9 ? 1.3 : 1;
     p.busts = (p.data.ch || []).map(function (ch) {
       return { who: ch[0], mood: ch[1] || 'neutral', x: clamp(ch[2], 0, 1) * p.w, base: p.h * 0.97,
-               h: Math.min(p.h * 0.92, p.h * (ch[4] || 0.6) * k * fill), flip: !!ch[3] };
+               h: Math.min(p.w * 0.76, p.h * 0.92, p.h * (ch[4] || 0.6) * 0.72 * fill), flip: !!ch[3] };
     });
   }
   function bustFor(p, who) {
@@ -136,7 +117,7 @@ P.ComicLayout = (function () {
   // Returns the balloon; clear is false when a tail of another speaker still crosses it.
   function fitSide(p, s, k, side, bw, need, g, y, top) {
     var b = balloonAt(p, s, k, side, bw, g.px, top), r, n;
-    for (n = 0; g.strict && (r = firstClash(g.tails, reach(b, y), s.who)) && n < 4; n++) {
+    for (n = 0; (r = firstClash(g.tails, reach(b, y), s.who)) && n < 4; n++) {
       bw = Math.min(bw, roomBeside(p, side, r, reach(b, y)));
       if (bw < Math.max(need, MIN_BW)) break;
       b = balloonAt(p, s, k, side, bw, g.px, top);
@@ -151,10 +132,9 @@ P.ComicLayout = (function () {
     // AUDIT-6 F10: words never break. A balloon too narrow for its longest word widens to fit it (up to the panel).
     var need = T.longest(p.c, s.caps, 'speech', g.px) + 2 * T.insets(k, s.tag).x, top = boxTop(s, y), b, alt;
     if (need > bw) bw = Math.min(p.w * 0.96, need);
-    // Kaan's tail through Arda's balloon: a strict attempt keeps this balloon on its own side if it can, else on the other
-    // side. Legacy attempts keep the place and report the crossing (blocked).
+    // Try the other side if a tail crosses the balloon's preferred position.
     b = fitSide(p, s, k, side, bw, need, g, y, top);
-    if (g.strict && !b.clear) {
+    if (!b.clear) {
       alt = fitSide(p, s, k, side === 'l' ? 'r' : 'l', bw, need, g, y, top);
       if (alt.clear) b = alt;
     }
@@ -213,9 +193,11 @@ P.ComicLayout = (function () {
     items.forEach(function (it) { if (it.kind === 'sfx' && !placeSfx(p, it, rects)) ok = false; });
     return ok;
   }
+  function letterText(d) {
+    return typeof d[1] === 'string' ? d[1] : d[1].filter(function (id) { return P.Dialogue.has(id); }).map(function (id) { return P.Dialogue.text(id); }).join(' ');
+  }
   function letterItem(p, d, g, y) {
-    var W = p.w, lw = W * 0.88, px = Math.min(g.px, 17);
-    var text = d[1].filter(function (id) { return P.Dialogue.has(id); }).map(function (id) { return P.Dialogue.text(id); }).join(' ');
+    var W = p.w, lw = W * 0.88, px = Math.min(g.px, 17), text = letterText(d);
     var f = T.measure(p.c, text, lw - 2 * T.insets('letter').x, 'hand', px), h = T.boxH(f.lines, f.lh, false, 'letter');
     return { kind: 'letter', caps: text, lines: f.lines, px: f.px, lh: f.lh, x: W * 0.06, y: y + 6, w: lw, rot: -1.2,
              dur: 0.5, len: 0, bottom: y + 6 + h };
@@ -240,21 +222,22 @@ P.ComicLayout = (function () {
   }
   // One stacking pass at size g.px. Captions first, then the rest in script order.
   function stack(p, defs, g) {
-    var order = defs.map(function (d, i) { return i; }), items = [], ok = true, y = TOP, it, c, cross = 0;
+    var order = defs.map(function (d, i) { return i; }), items = [], ok = true, y = p.data.actionTop?p.h*p.data.actionTop+8:TOP, it, c, cross = 0;
     order.sort(function (a, b) { return (defs[a][0] === 'c' ? 0 : 1) - (defs[b][0] === 'c' ? 0 : 1) || a - b; });
     g.tails = [];   // corridors of the tails stacked so far; a later balloon may not cover one (see bubbleItem)
     order.forEach(function (i) {
       it = layoutItem(p, defs[i], g, y);
       if (!it) return;
       it.src = i; items.push(it);
-      if (it.blocked) { cross++; if (g.strict) ok = false; }
+      if (it.lines && it.lines.wide) ok = false;
+      if (it.blocked) { cross++; ok = false; }
       if (it.kind === 'bubble') { c = tailCorridor(it); if (c) g.tails.push(c); }
       if (it.bottom > 0) {
         y = it.bottom + GAP;
         if (it.bottom > g.band || it.bottom > p.h - GAP) ok = false;
       }
     });
-    if (!placeSfxs(p, items) && g.strict) ok = false;   // legacy attempts keep the SFX where it lands (it may cover a balloon)
+    if (!placeSfxs(p, items)) ok = false;
     return { ok: ok, items: items, total: timeline(items), px: g.px, cross: cross };
   }
   // Words never break, so the type size is capped where the longest word of every balloon and caption still fits the widest
@@ -273,25 +256,100 @@ P.ComicLayout = (function () {
     });
     return cap;
   }
-  // Runs the plan. Sets p.items, p.total, p.px, p.busts, and the flags p.overlap / p.overflow.
-  function layoutPanel(p) {
-    var defs = p.data.it || [], res = null, last = null, chosen = null, cap = pxCap(p, defs), i, a, r;
-    for (i = 0; i < PLAN.length && !res; i++) {
-      a = PLAN[i];
-      if (a.px > cap) continue;
-      layoutBusts(p, a.bust);
-      r = stack(p, defs, { px: a.px, wide: a.wide, strict: a.strict, band: a.overlap ? p.h - GAP : textBand(p) });
-      r.overlap = !!a.overlap; last = r; chosen = a;
-      if (r.ok) res = r;
+  function fitPanel(p, defs, minPx, maxPx) {
+    var cap = Math.min(pxCap(p, defs), maxPx || PX_ALL[0]), band = textBand(p), px, i, r;
+    for (px = cap; px >= Math.min(cap, minPx); px--) {
+      for (i = 0; i < BALLOON_WIDTHS.length; i++) {
+        r = stack(p, defs, { px: px, wide: BALLOON_WIDTHS[i], band: band });
+        if (r.ok) return r;
+      }
     }
-    res = res || last;
-    layoutBusts(p, chosen.bust);
+    return r;
+  }
+  L.setStep = function (p, index) {
+    p.step = index;
+    var res = p.steps[index];
     p.items = res.items; p.total = res.total; p.px = res.px;
-    p.overlap = res.overlap; p.overflow = !res.ok; p.cross = res.cross;
-    p.T = 0; p.done = false; p.revealed = false;
+    p.T = 0; p.done = false;
+  };
+  // An unusually long line can take several steps. Keep the original speaker and split only between words.
+  function splitLine(p, d, pinned) {
+    var k = d[0];
+    if (['b', 's', 't', 'c', 'l'].indexOf(k) < 0) return [];
+    var line = k === 'l' ? { text: letterText(d) } : L.resolve(d[1]);
+    if (!line) return [];
+    var words = line.text.trim().split(/\s+/), steps = [], start = 0, end, text, piece, r, best;
+    while (start < words.length) {
+      best = null;
+      for (end = start + 1; end <= words.length; end++) {
+        text = words.slice(start, end).join(' ');
+        piece = k === 'l' ? text : Object.assign({}, line, { text: text });
+        r = fitPanel(p, [[k, piece, d[2]]].concat(pinned), 15);
+        if (!r.ok) break;
+        best = r;
+      }
+      if (!best) return [];
+      steps.push(best);
+      start = end - 1;
+    }
+    return steps;
+  }
+  // Signal bars describe the whole panel. The other items retain their script order across taps.
+  function fitSteps(p, defs) {
+    var pinned = defs.filter(function (d) { return d[0] === 'p'; });
+    var content = defs.filter(function (d) { return d[0] !== 'p'; });
+    var steps = [], from = 0, end, r, parts;
+    do {
+      for (end = content.length; end > from + 1; end--) {
+        r = fitPanel(p, content.slice(from, end).concat(pinned), 15);
+        if (r.ok) break;
+      }
+      if (end <= from + 1) r = fitPanel(p, content.slice(from, end).concat(pinned), 12);
+      parts = !r.ok && end === from + 1 ? splitLine(p, content[from], pinned) : [];
+      (parts.length ? parts : [r]).forEach(function (part) {
+        part.from = from; part.to = end;
+        steps.push(part);
+      });
+      from = end;
+    } while (from < content.length);
+    return steps;
+  }
+  function layoutPanel(p) {
+    layoutBusts(p);
+    p.steps = fitSteps(p, p.data.it || []);
+    p.revealed = false;
+    L.setStep(p, 0);
     return p;
   }
   L.layoutPanel = layoutPanel;
+
+  function alignBalloonBottoms(left, right) {
+    if (left.items.length !== 1 || right.items.length !== 1) return;
+    var a = left.items[0], b = right.items[0];
+    if (a.kind !== 'bubble' || b.kind !== 'bubble') return;
+    // Align the tails' starting height above the matching portraits. Both panels fit the lower edge already.
+    var bottom = Math.max(a.bottom, b.bottom);
+    a.y += bottom - a.bottom; a.bottom = bottom;
+    b.y += bottom - b.bottom; b.bottom = bottom;
+  }
+
+  // Match lettering for alternating speakers in the same shot when both panels fit in one step.
+  function matchPanels(left, right) {
+    if (!right || left.y !== right.y || left.w !== right.w || left.h !== right.h || left.steps.length !== 1 || right.steps.length !== 1 ||
+        left.data.bg !== right.data.bg ||
+        left.busts.length !== 1 || right.busts.length !== 1 || left.busts[0].h !== right.busts[0].h) return;
+    var px = Math.min(left.px, right.px);
+    var l = fitPanel(left, left.data.it || [], px, px), r = fitPanel(right, right.data.it || [], px, px);
+    if (!l.ok || !r.ok) return;
+    alignBalloonBottoms(l, r);
+    Object.assign(left.steps[0], l); L.setStep(left, 0);
+    Object.assign(right.steps[0], r); L.setStep(right, 0);
+  }
+  L.layoutPage = function (panels) {
+    panels.forEach(layoutPanel);
+    panels.forEach(function (p, i) { matchPanels(p, panels[i + 1]); });
+    return panels;
+  };
 
   // ---------- pops (non-blocking bust pop-ins) ----------
   // Pop geometry: the balloon hangs from the top edge; the bust's crown limits how low it may reach.
@@ -429,11 +487,18 @@ P.ComicLayout = (function () {
     var m = measureCtx(), rows = [];
     Object.keys(P.Story.pages).sort().forEach(function (id) {
       var def = P.Story.pages[id];
-      def.panels.forEach(function (pd, i) {
-        var r = L.panelRect(def.panels.length, i), p = { w: r.w, h: r.h, c: m, data: pd };
-        layoutPanel(p);
-        var rep = checkPanel(p); rep.cross = p.cross; addRep(rep, stackCheck(p));
-        rows.push(rowOf('page', id + ' #' + (i + 1), p.px, rep, p.overlap, p.overflow));
+      var panels = def.panels.map(function (pd, i) {
+        return Object.assign(L.panelRect(def.panels.length, i, def.layout), { c: m, data: pd });
+      });
+      L.layoutPage(panels).forEach(function (p, i) {
+        var rep = emptyRep(), px = PX_ALL[0], overflow = false;
+        p.steps.forEach(function (step, j) {
+          L.setStep(p, j);
+          addRep(rep, checkPanel(p)); addRep(rep, stackCheck(p));
+          rep.cross = (rep.cross || 0) + step.cross;
+          px = Math.min(px, step.px); overflow = overflow || !step.ok;
+        });
+        rows.push(rowOf('page', id + ' #' + (i + 1), px, rep, false, overflow));
       });
     });
     beatLines().forEach(function (e) {

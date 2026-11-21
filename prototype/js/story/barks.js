@@ -19,6 +19,7 @@ P.Barks = (function () {
     jokeMin: 25, jokeMax: 40,                        // joke budget: one joke line per 25-40 s of play
     envNear: 8,                                      // an env event (B.say) gets a bark only within this many m of Arda
     sightR: 7,                                       // first sighting: an active enemy of a new type within this many m
+    banterLevel: 6, banterHitGap: 8, banterHealth: 0.5, quietRadius: 5,
     // Cooldowns (s) per category, +30% on v0.5 values (act 18, dash 20, near 15, close 20, still 25, idle 25, self 22,
     // zq 25, elite 20, low 60, ult 12); env and skill are new in v0.7.
     cool: { act: 23.4, dash: 26, near: 19.5, close: 26, still: 32.5, idle: 32.5, self: 28.6, zq: 32.5, elite: 26, low: 78, ult: 15.6,
@@ -46,9 +47,10 @@ P.Barks = (function () {
     };
   }
   function newState(seed, on) {
+    var knowledge = P.Dialogue.knowledge ? P.Dialogue.knowledge() : { seen: {}, met: {} };
     return { on: on, rng: mulberry(seed), clock: 0, gap: 3, ambient: 6, q: [], act: null, bub: null, cool: {},
-             seen: {}, streak: 0, lastKillT: -99, armed: true, still: 0, lastLevel: -1, sigUntil: 0,
-             forced: null, evT: {}, starts: [], jokeGate: 12, met: {}, hero: null };
+             seen: knowledge.seen, streak: 0, lastKillT: -99, armed: true, still: 0, lastLevel: -1, sigUntil: 0,
+             forced: null, evT: {}, starts: [], jokeGate: 12, met: knowledge.met, hero: null, sim: null, hitT: -99, mourning: false };
   }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function easeOutBack(x) { var c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
@@ -57,11 +59,15 @@ P.Barks = (function () {
   function beatOf(prefix) { return prefix.replace(/\.$/, ''); }
   function avail(prefix) { return P.Dialogue.size(beatOf(prefix)) > 0; }
   function jokesOpen() { return S.clock >= S.jokeGate; }
+  // Nuri's aftermath stays quiet without hiding newly observed threats or health warnings.
+  function quietDeparture(s) { return s && s.levelIndex === 26 && s.loadout && s.loadout.kaanJoined; }
+  function departureWarning(cat) { return cat === 'fk' || cat === 'elite' || cat === 'act' || cat === 'low'; }
 
   // A line of the beat: every variant once before any repeats, never the one shown last, jokes only inside the budget
   // (P.Dialogue.line). pin: a fixed index (zombie chains). Uses this module's own view stream (S.rng).
   function pick(prefix, pin) {
-    return P.Dialogue.line(beatOf(prefix), { pin: pin, noJoke: !jokesOpen(), rng: S.rng });
+    return P.Dialogue.line(beatOf(prefix), { pin: pin,
+      noJoke: !jokesOpen() || S.sim && S.sim.levelIndex === 1 || quietDeparture(S.sim), rng: S.rng });
   }
   // Zombie chain: one index for zq, zr and zreact when the three beats match in length (else independent).
   function chainPin() {
@@ -82,7 +88,7 @@ P.Barks = (function () {
   // ---------- queue ----------
   // steps: [{who: 'arda' | 'zombie', prefix, at (s after start), z (zombie object for replies), pin}]. delay: s before it may start.
   function queue(pri, cat, steps, delay) {
-    if (!S.on || cooling(cat)) return;
+    if (!S.on || cooling(cat) || quietDeparture(S.sim) && !departureWarning(cat)) return;
     if (cat && S.q.some(function (c) { return c.cat === cat; })) return;
     S.q.push({ pri: pri, cat: cat, steps: steps, age: -(delay || 0), ttl: CFG.ttl[pri] });
   }
@@ -91,7 +97,7 @@ P.Barks = (function () {
   }
   function ageQueue(dt) {
     S.q.forEach(function (c) { c.age += dt; });
-    S.q = S.q.filter(function (c) { return c.age <= c.ttl; });
+    S.q = S.q.filter(function (c) { return c.age <= c.ttl && contextFits(c.cat, c.steps[0].z); });
   }
   function startNext() {
     var best = -1, i, c;
@@ -104,7 +110,7 @@ P.Barks = (function () {
     c = S.q.splice(best, 1)[0];
     cool(c.cat);
     S.gap = rand(CFG.gapMin, CFG.gapMax);
-    S.act = { steps: c.steps, i: -1, t: 0 };
+    S.act = { steps: c.steps, cat: c.cat, i: -1, t: 0 };
     S.starts.push(S.clock); if (S.starts.length > 200) S.starts.shift();
     advanceAct(0);
   }
@@ -112,22 +118,29 @@ P.Barks = (function () {
   // ---------- scenes and bubbles ----------
   function advanceAct(dt) {
     var a = S.act;
+    if (S.bub) return; // A reply must wait until the previous bubble has actually been read.
     a.t += dt;
-    while (a.i + 1 < a.steps.length && a.t >= a.steps[a.i + 1].at) { a.i++; showStep(a.steps[a.i]); }
+    if (a.i + 1 < a.steps.length && a.t >= a.steps[a.i + 1].at) {
+      a.i++;
+      // If a speaker vanished, abandon the exchange instead of replying to an unheard line.
+      if (!showStep(a.steps[a.i])) { S.act = null; return; }
+    }
     if (a.i + 1 >= a.steps.length) S.act = null;
   }
   function showStep(st) {
-    if (!A.ready) return;   // lettering faces still loading: skip this bark rather than measure the wrong face
+    if (!A.ready) return false;   // skip rather than measure the wrong face
     var ln = pick(st.prefix, st.pin);
-    if (!ln || (st.who === 'zombie' && (!st.z || st.z.dead))) return;
+    if (!ln || (st.who === 'zombie' && (!st.z || st.z.dead))) return false;
     if (ln.j) S.jokeGate = S.clock + rand(CFG.jokeMin, CFG.jokeMax);
     var b = makeBubble(ln, st.who);
     b.z = st.z || null;
+    b.cat = S.act.cat;
     S.bub = b;
     if (P.Sfx && P.Sfx.play) {
       if (st.who === 'zombie') P.Sfx.play('groan', 150, { voice: 'other' });
       else P.Sfx.play('speech', 55, { voice: 'arda' });
     }
+    return true;
   }
   // Wraps the line to the bubble width (caps, speech font). Zombie replies are jagged, greenish shouts. Never truncated:
   // a long line takes smaller type steps (CFG.pxs), then the bubble simply gets taller (f.ok false = audit overflow).
@@ -155,6 +168,7 @@ P.Barks = (function () {
   }
   // No signal after level 1 unless a call (callStart) or a signalRestored event says otherwise.
   function noSignal(s) {
+    if (s.dir && s.dir.call && s.dir.call.active && s.dir.call.bars > 0) return false;
     if (S.clock < S.sigUntil) return false;
     if (S.forced !== null) return !S.forced;
     return (s.levelIndex || 1) > 1;
@@ -162,32 +176,90 @@ P.Barks = (function () {
   // A menu up (level-up cards, pause, chest, down screen) owns the screen: barks wait for nothing and are dropped (see offer).
   function overlayUp() { return !!(P.UI && P.UI.isOverlay && P.UI.isOverlay()); }
   function blocked(s) {
-    return !!(P.Comic && P.Comic.active && P.Comic.active()) || !!(s.dir && s.dir.barks && s.dir.barks.cur) || overlayUp();
+    var boss = s.dir && s.dir.trialBoss;
+    var cookAttack = boss && !boss.dead && boss.bossPreset === 'cook' && (boss.ai.m === 'windup' || boss.ai.m === 'recover');
+    var call = s.dir && s.dir.call;
+    return S.mourning || cookAttack || call && (call.sub || call.queue && call.queue.length) ||
+      s.hero && s.hero.hp / s.hero.maxHp <= P.CFG.experience.health.critical ||
+      !!(P.SceneFlow && P.SceneFlow.running(s)) || !!(P.Comic && P.Comic.active && P.Comic.active()) ||
+      !!(s.dir && s.dir.barks && s.dir.barks.cur) || overlayUp();
+  }
+  function visibleSource(s, e) {
+    var h = s && s.hero;
+    return h && e && !e.dead && e.state === 'active' && (s.enemies || []).indexOf(e) >= 0 &&
+      Math.hypot(e.x - h.x, e.y - h.y) <= CFG.sightR;
+  }
+  function emitsWarning(e, type) {
+    if (type === 'eliteSpawn') return !!e.elite;
+    // The shared lob event also carries harmless tea and toxic spray: neither is acid spit.
+    if (type === 'spit') return e.type === 'spitter';
+    if (type === 'bloaterSwell') return e.type === 'bloater';
+    if (type === 'bossSlam' || type === 'summon') return !!e.boss;
+    return e.type === 'brute' || !!e.boss;
+  }
+  // Legacy action events carry origin coordinates, not an enemy id. Bind only an unambiguous
+  // living source whose body still covers that origin; never turn a remote sound into a sighting.
+  function warningSource(ev, s) {
+    var matches = (s.enemies || []).filter(function (e) {
+      if (!visibleSource(s, e) || !emitsWarning(e, ev.type)) return false;
+      if (typeof ev.x !== 'number' || typeof ev.y !== 'number') return false;
+      return Math.hypot(e.x - ev.x, e.y - ev.y) <= (e.r || 0);
+    });
+    return matches.length === 1 ? matches[0] : null;
+  }
+  function warnFrom(ev, s, pri, cat, prefix) {
+    var source = warningSource(ev, s);
+    if (source && avail(prefix)) queue(pri, cat, [{ who: 'arda', prefix: prefix, at: 0, z: source }]);
+  }
+  // Recheck at delivery and throughout an exchange: a true observation can become false while queued.
+  function contextFits(cat, target) {
+    var s = S.sim, h = s && s.hero, near, boss;
+    if (!s || !h) return false;
+    if (quietDeparture(s) && !departureWarning(cat)) return false;
+    if (cat === 'fk' || cat === 'elite' || cat === 'act') return visibleSource(s, target);
+    if (!AMBIENT[cat]) return true;
+    if ((s.levelIndex || 1) === 1) return false; // The escape, tutorial and first call own the opening.
+    near = nearestZombie(s, CFG.quietRadius);
+    if (cat === 'close') return near && near.d < 1.1;
+    boss = s.dir && s.dir.trialBoss || s.gen && s.gen.boss;
+    if (boss && !boss.dead || S.clock - S.hitT < CFG.banterHitGap || h.hp / h.maxHp <= CFG.banterHealth) return false;
+    if (cat === 'zq') return s.levelIndex >= CFG.banterLevel && target && !target.dead &&
+      target.type === 'walker' && target.state === 'active' && !target.elite && !target.lootEv &&
+      near && near.z === target && near.d >= 1.6 && near.d <= 3.2 &&
+      (s.enemies || []).filter(function (e) { return !e.dead && e.state !== 'dormant' &&
+        Math.hypot(e.x - h.x, e.y - h.y) <= CFG.quietRadius; }).length === 1;
+    if (near) return false;
+    if (cat === 'still') return S.still > 6;
+    if (cat === 'idle') return S.still > 12 && S.clock - S.lastKillT > 12;
+    return noSignal(s);
   }
   function onLevel(s) {
     var L = s.levelInfo, n = s.levelIndex, hh;
     if (!L || n == null || n === S.lastLevel) return;
     S.lastLevel = n; S.levelT = S.clock;
+    if (n === 1) return;
     hh = (L.hoodIndex < 9 ? '0' : '') + (L.hoodIndex + 1);
     if (L.stage === 1) want(3, null, B.pools.hood + hh + '.1', 1.5);
     else want(2, null, B.pools.hood + hh + '.' + L.stage, 3);
   }
   function talkToZombie(z) {
-    var pin = chainPin(), steps = [{ who: 'arda', prefix: B.pools.zq, at: 0, pin: pin }];
-    if (S.rng() < 0.45) steps.push({ who: 'zombie', prefix: B.pools.zr, at: 1.4, z: z, pin: pin }, { who: 'arda', prefix: B.pools.zreact, at: 3.0, pin: pin });
+    var pin = chainPin(), steps = [{ who: 'arda', prefix: B.pools.zq, at: 0, z: z, pin: pin }];
+    if (S.rng() < 0.45) steps.push({ who: 'zombie', prefix: B.pools.zr, at: 0, z: z, pin: pin }, { who: 'arda', prefix: B.pools.zreact, at: 0, z: z, pin: pin });
     queue(1, 'zq', steps);
   }
-  // First sighting of an enemy type this run: the first active one within CFG.sightR m of Arda (entrances the event
-  // covers too; S.met keeps each type to one line). One new type per frame.
+  // First sighting of an enemy type this tab session: the first active one within CFG.sightR m of Arda (entrances the event
+  // covers too; session-backed S.met keeps each type to one introduction). One new type per frame.
   function scanSightings(s) {
     var h = s.hero, list = s.enemies || [], i, e, k;
-    if (!h) return;
+    if (!h || S.q.some(function (c) { return c.cat === 'fk'; })) return;
     for (i = 0; i < list.length; i++) {
       e = list[i];
       if (e.dead || e.boss || e.state !== 'active') continue;
       k = fkKey(e.type, s);
       if (S.met[k] || Math.hypot(e.x - h.x, e.y - h.y) > CFG.sightR) continue;
-      S.met[k] = true; want(2, null, B.pools.fk + k + '.');
+      S.met[k] = true;
+      if (P.Dialogue.rememberEnemy) P.Dialogue.rememberEnemy(k, 'met');
+      queue(2, 'fk', [{ who: 'arda', prefix: B.pools.fk + k + '.', at: 0, z: e }]);
       return;
     }
   }
@@ -196,10 +268,12 @@ P.Barks = (function () {
     if (type !== 'marti' || !P.Fauna || !s || !s.levelInfo || !s.levelInfo.hood) return type;
     return P.Fauna.lookFor(s.levelInfo.hood.id) === 'pigeon' ? 'guvercin' : type;
   }
-  // Ambient fauna (view/fauna.js, not a sim event): the first sighting of a kind this run ('kedi': the first cat in view).
+  // Ambient fauna (view/fauna.js, not a sim event): the first sighting of a kind this tab session ('kedi': the first cat in view).
   B.fauna = function (kind) {
     if (!S || !S.on || S.met[kind]) return;
-    S.met[kind] = true; want(2, null, B.pools.fk + kind + '.');
+    S.met[kind] = true;
+    if (P.Dialogue.rememberEnemy) P.Dialogue.rememberEnemy(kind, 'met');
+    want(2, null, B.pools.fk + kind + '.');
   };
   function selfTalk() {
     var r = S.rng();
@@ -213,10 +287,10 @@ P.Barks = (function () {
     if (S.q.some(function (c) { return AMBIENT[c.cat]; })) return;
     var near = nearestZombie(s, 3.2), opts = [];
     if (near && near.d < 1.1) opts.push(function () { want(1, 'close', B.pools.close); });
-    if (near && near.d >= 1.6 && S.rng() < 0.4) opts.push(function () { talkToZombie(near.z); });
-    if (S.still > 6) opts.push(function () { want(1, 'still', B.pools.still); });
-    if (S.still > 12 && S.clock - S.lastKillT > 12) opts.push(function () { want(1, 'idle', B.pools.idle); });
-    if (noSignal(s)) opts.push(selfTalk);
+    if (near && contextFits('zq', near.z) && S.rng() < 0.4) opts.push(function () { talkToZombie(near.z); });
+    if (contextFits('still')) opts.push(function () { want(1, 'still', B.pools.still); });
+    if (contextFits('idle')) opts.push(function () { want(1, 'idle', B.pools.idle); });
+    if (contextFits('self')) opts.push(selfTalk);
     if (opts.length) opts[Math.floor(S.rng() * opts.length)]();
   }
 
@@ -226,18 +300,21 @@ P.Barks = (function () {
     var t = S.clock, k = fkKey(ev.enemy, s);
     S.streak = t - S.lastKillT <= 2.5 ? S.streak + 1 : 1;
     S.lastKillT = t;
-    if (ev.enemy && !S.seen[k]) { S.seen[k] = true; want(3, null, B.pools.fk + k + '.'); }
-    if (ev.elite && !S.seen.elite) { S.seen.elite = true; want(2, null, B.pools.fk + 'elite.'); }
+    // Encounter warnings belong to a living sighting, never to the corpse of the first kill.
+    if (ev.enemy && !S.seen[k]) { S.seen[k] = true; if (P.Dialogue.rememberEnemy) P.Dialogue.rememberEnemy(k, 'seen'); }
     [10, 25, 50, 100].forEach(function (n) { if (S.streak === n) want(2, null, B.pools.streak + n + '.'); });
   };
   H.heroHit = function (ev, s) {
+    S.hitT = S.clock;
     var mx = s.hero && s.hero.maxHp, f;
     if (!mx || ev.hp == null) return;
     f = ev.hp / mx;
     if (f <= 0.3 && S.armed) { S.armed = false; want(2, 'low', B.pools.low); }
     else if (f > 0.5) S.armed = true;
   };
-  H.pickup = function (ev) { if (ev.kind === 'simit' || ev.kind === 'medkit' || ev.kind === 'heal') want(1, null, B.pools.heal); };
+  H.pickup = function (ev) {
+    if (ev.healed > 0 && (ev.kind === 'simit' || ev.kind === 'medkit' || ev.kind === 'heal')) want(1, null, B.pools.heal);
+  };
   H.levelup = function (ev, s) {
     var n = ev.level || s.level || 1;
     want(2, null, B.pools.lvl[n <= 3 ? 0 : n <= 6 ? 1 : n <= 9 ? 2 : 3]);
@@ -260,33 +337,41 @@ P.Barks = (function () {
   H.nazarDodge = function () { if (dedupe('nazar', 2)) want(2, null, B.pools.nazar); };
   H.frenzy = function (ev) { if (ev.on) want(2, null, B.pools.frenzy); };
   H.bossIntro = function () { want(3, 'boss', B.pools.boss, 2.5); };
-  H.eliteSpawn = function () { want(2, 'elite', B.pools.elite); };
+  H.eliteSpawn = function (ev, s) { warnFrom(ev, s, 2, 'elite', B.pools.elite); };
   ['bruteRoar', 'bruteCharge', 'spit', 'bloaterSwell', 'summon', 'bossSlam'].forEach(function (t) {
-    H[t] = function () { want(1, 'act', B.pools.act + t + '.'); };
+    H[t] = function (ev, s) { warnFrom(ev, s, 1, 'act', B.pools.act + t + '.'); };
   });
   function hackPool(kind) { return B.pools.hack + (HACK_POOL[kind] || kind) + '.'; }
   H.hackStart = function (ev) { want(2, null, hackPool(ev.kind) + 'start.'); };
   H.hackDone = function (ev) { want(2, null, hackPool(ev.kind) + 'done.'); };
   H.hackFail = function (ev) { want(2, null, hackPool(ev.kind) + 'fail.'); };
-  H.eventStart = function (ev) { want(2, null, B.pools.ev + (EV_POOL[ev.kind] || ev.kind) + '.'); };
-  H.eventEnd = function (ev) { want(1, 'evend', B.pools.evend + (EV_POOL[ev.kind] || ev.kind) + '.'); };
+  H.eventStart = function (ev) {
+    if (ev.kind === 'hazard' && ev.sub !== 'car') return;
+    want(2, null, B.pools.ev + (EV_POOL[ev.kind] || ev.kind) + '.');
+  };
+  H.eventEnd = function (ev) {
+    // These lifecycles end when enemies spawn or a chest drops, not when the danger/reward is resolved.
+    if (['ambush', 'pier', 'chest', 'rescue', 'hazard'].indexOf(ev.kind) >= 0 ||
+        ['capped', 'skipped', 'failed'].indexOf(ev.result) >= 0) return;
+    want(1, 'evend', B.pools.evend + (EV_POOL[ev.kind] || ev.kind) + '.');
+  };
   // Active skills (sim skillUsed, id = shield | tea), the first sighting of each enemy type in a run (the fk pool's lines
   // read as encounters), objectives, and boss phase changes.
   H.skillUsed = function (ev) { want(2, 'skill', B.pools.skill + ev.id + '.'); };
   H.enemyEnter = function (ev, s) {
-    var k = fkKey(ev.enemy, s);
-    if (ev.enemy && !S.met[k]) { S.met[k] = true; want(2, null, B.pools.fk + k + '.'); }
+    if (s.hero) scanSightings(s);
   };
   H.objStart = function () { want(1, null, B.pools.obj + 'start.'); };
   H.objDone = function () { want(2, null, B.pools.obj + 'done.'); };
   H.objFail = function () { want(2, null, B.pools.obj + 'fail.'); };
   H.bossPhase = function () { want(2, null, B.pools.bossPhase); };
-  H.rescueStart = function () { if (dedupe('rescue', 3)) want(3, null, B.pools.rescue); };
+  H.rescueStart = function () { if (dedupe('rescueStart', 3)) want(3, null, B.pools.ev + 'rescue.'); };
   H.rescue = H.rescueStart;
-  H.rescueDone = H.rescueStart;
+  H.rescueDone = function () { if (dedupe('rescueDone', 3)) want(3, null, B.pools.rescue); };
   H.signalLost = function () { S.forced = false; S.sigUntil = 0; want(3, null, B.pools.sig[0]); };
   H.signalRestored = function () { S.forced = true; want(3, null, B.pools.sig[1]); };
   H.callStart = function () { S.sigUntil = S.clock + 25; };
+  H.bossDie = function (ev, s) { if (s.levelIndex === 25) { S.mourning = true; B.clear(); } };
   H.death = function () { B.clear(); };
   H.win = H.death;
 
@@ -309,16 +394,20 @@ P.Barks = (function () {
     dt = clamp(dt, 0, 0.1);
     S.clock += dt;
     S.hero = s.hero || null;
+    S.sim = s;
     S.still = s.hero && s.hero.moving ? 0 : S.still + dt;
     S.gap = Math.max(0, S.gap - dt);
     onLevel(s);
     ambientTick(dt, s);
     ageQueue(dt);
     if (blocked(s)) { B.clear(); return; }
+    if (S.bub && !contextFits(S.bub.cat, S.bub.z) || S.act && !contextFits(S.act.cat, S.act.steps[0].z)) {
+      S.bub = null; S.act = null;
+    }
     scanSightings(s);
     if (S.bub) {
       if (S.bub.placed) S.bub.age += dt; else S.bub.wait += dt;
-      if (S.bub.wait > CFG.waitMax) { S.bub = null; if (P.Speech) P.Speech.noteDrop(); }
+      if (S.bub.wait > CFG.waitMax) { S.bub = null; S.act = null; if (P.Speech) P.Speech.noteDrop(); }
       else if (S.bub && S.bub.placed && S.bub.age > S.bub.hold + CFG.fade) S.bub = null;
     }
     if (S.act) advanceAct(dt);
@@ -357,7 +446,11 @@ P.Barks = (function () {
     c.restore();
   };
   B.clear = function () { if (S) { S.q = []; S.act = null; S.bub = null; } };
-  B.reset = function (seed) { S = newState(seed || 1337, S ? S.on : true); P.Dialogue.reset(seed); };
+  B.reset = function (seed) {
+    var known = S && S.seen || {}, met = S && S.met || {};
+    S = newState(seed || 1337, S ? S.on : true); S.seen = known; S.met = met;
+    P.Dialogue.reset(seed, true);
+  };
   B.setEnabled = function (on) { S.on = !!on; if (!on) B.clear(); };
   B.current = function () { return S && S.bub ? { id: S.bub.id, who: S.bub.who } : null; };   // tester and audit read it
   // Dev audit (sync; needs P.ComicArt.ready): every bark line of the current language laid out the way its bubble is, then

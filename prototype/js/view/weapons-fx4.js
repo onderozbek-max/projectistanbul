@@ -1,6 +1,6 @@
 // Visuals for the v0.5 improvised weapons (workstream A). Saw blade: a spinning steel disc out and back, sparks where it is
 // caught. Manhole cover: a disc that bounces enemy to enemy. Blowtorch: a flame cone while it ticks, then a scorch that
-// burns. Olta: hook line, reel puffs, slam. Car door: a red panel that raises as a shield, flings spit back, shoves.
+// burns. Olta: hook line, reel, slam. Car door: a red panel that raises as a shield, flings spit back, shoves.
 // Slingshot: steel marbles, a gold ring on a lucky shot. Chainsaw: a held bar, a faint sector of the sweep while revving.
 // Mod pops (usta, shards, chain, stick, echo, cloud). Mastery moves: screen lettering plus one shape per family (ground:
 // spin, quake, lake, triple, boost, leviathan, blade ring, inferno, wall, rampage; air: rain, storm, swarm, volley).
@@ -16,7 +16,6 @@ P.WFx4 = (function () {
   function add(p) { if (fx.length < MAX_FX) fx.push(p); }
   function part(p) { P.WFx.add(p); }
   function ring(x, y, r, col, t) { part({ k: 'shock', x: x, y: y, r: r, t: t, T: t, col: col }); }
-  function puff(x, y, r, t, vx, vy) { part({ k: 'puff', x: x, y: y, z: 0.2, vx: vx || 0, vy: vy || 0, vz: 0.2, r: r, t: t, T: t }); }
   function pop(r, col, t) { return function (ev) { ring(ev.x, ev.y, r || ev.r, col, t); }; }
   function shake(a) { if (P.Fx && P.Fx.addTrauma) P.Fx.addTrauma(a); }
   function letter(x, y, text) { if (P.Fx && P.Fx.letter) P.Fx.letter(x, y, text); }
@@ -42,6 +41,7 @@ P.WFx4 = (function () {
   function sawThrow(ev, s) {
     var i, d;
     cue('swish', 90, s, ev.x);
+    if (P.WTier && P.WTier.enabled) return;
     for (i = 1; i <= 4; i++) {
       d = ev.range * i / 5;
       part({ k: 'speed', x: ev.x + Math.cos(ev.a) * d, y: ev.y + Math.sin(ev.a) * d, a: ev.a, len: 0.5, t: 0.18, T: 0.18 });
@@ -59,23 +59,15 @@ P.WFx4 = (function () {
     sparks(ev.x, ev.y, 6, 3, 0.35);
   }
   function manholeThrow(ev, s) {
-    var i;
     cue('lob', 90, s, ev.x);
-    for (i = 0; i < 3; i++) puff(ev.x + rnd(-0.2, 0.2), ev.y + rnd(-0.2, 0.2), 0.15, 0.35, rnd(-0.3, 0.3), rnd(0.3, 0.6));
+    sparks(ev.x, ev.y, 3, 1.8, 0.17);
   }
   function manholeBounce(ev, s) {
     cue('click', 40, s, ev.x);
-    ring(ev.x, ev.y, 0.4, '255,255,255', 0.2);
+    if (!P.WAttackCues) ring(ev.x, ev.y, ev.r || 0.4, ev.r ? GOLD : BLUE, ev.r ? 0.26 : 0.2);
     sparks(ev.x, ev.y, 2, 2, 0.2);
   }
-  function torchJet(ev, s) {
-    var i, half = ev.arc * Math.PI / 360, th;
-    cue('burn', 150, s, ev.x);
-    for (i = 0; i < 3; i++) {
-      th = ev.a + rnd(-half, half);
-      part({ k: 'fire', x: ev.x + Math.cos(th) * 0.5, y: ev.y + Math.sin(th) * 0.5, r: 0.25, t: 0.3, T: 0.35 });
-    }
-  }
+  function torchJet(ev, s) { cue('burn', 150, s, ev.x); }
   function scorchSizzle(ev, s) { cue('hiss', 150, s, ev.x); add({ k: 'sizzle', x: ev.x, y: ev.y, r: ev.r, t: ev.T, T: ev.T }); }
   function oltaCast(ev, s) {
     var a = Math.atan2(ev.ty - ev.y, ev.tx - ev.x), i, d;
@@ -90,30 +82,33 @@ P.WFx4 = (function () {
     cue('slam', 60, s, ev.x);
     shake(ev.sig ? 0.3 : 0.2);
     ring(ev.x, ev.y, ev.r * 1.2, GOLD, 0.35);
-    for (i = 0; i < 6; i++) {
-      a = i / 6 * TAU;
-      puff(ev.x + Math.cos(a) * ev.r * 0.5, ev.y + Math.sin(a) * ev.r * 0.5, 0.25, rnd(0.5, 0.8), Math.cos(a) * 1.2, Math.sin(a) * 1.2);
-    }
     for (i = 0; i < 4; i++) {
       a = rnd(0, TAU); sp = rnd(3, 5);
       part({ k: 'debris', x: ev.x, y: ev.y, z: 0.1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: rnd(3, 5), rot: rnd(0, 6), vr: rnd(-14, 14), t: 0.7, T: 0.7 });
     }
   }
-  function doorRaise(ev, s) { cue('swish', 120, s, ev.x); ring(ev.x, ev.y, ev.radius * 0.9, '255,255,255', 0.25); }
-  function doorShove(ev) {
-    var dx = ev.x - ev.hx, dy = ev.y - ev.hy, d = Math.hypot(dx, dy) || 1;
-    part({ k: 'fleck', x: ev.x, y: ev.y, z: 0.3, vx: dx / d * 2.5, vy: dy / d * 2.5, vz: 2, t: 0.25, T: 0.25 });
+  function doorRaise(ev, s) { cue('swish', 120, s, ev.x); }
+  function doorBash(ev, s) {
+    if (ev.n) P.Sfx.play('hit', 125, { kind: 'blunt', pan: P.WFx.pan(s, ev.x), vol: .68, rate: 1 - ev.grade * .025 });
+    if (ev.first && ev.grade >= 3 && P.Feel) P.Feel.hitStop('heavy');
   }
-  function doorDrop(ev, s) { cue('doorSlam', 200, s, ev.x); puff(ev.x, ev.y, 0.2, 0.3); }
+  function doorThrow(ev, s) { P.Sfx.play('lob', 0, { pan: P.WFx.pan(s, ev.x), rate: .88 }); }
+  function doorDrop(ev, s) { if (!ev.tossed) cue('doorSlam', 200, s, ev.x); }
+  function doorLand(ev, s) {
+    P.Sfx.play('bruteStomp', 130, { pan: P.WFx.pan(s, ev.x), rate: .88 - ev.grade * .035, vol: ev.n ? 1 : .68 });
+    ring(ev.x, ev.y, ev.r, ev.grade === 6 ? BLUE : GOLD, .36);
+    sparks(ev.x, ev.y, 5 + ev.grade, 2.9, .34);
+    if (P.Feel && ev.n) P.Feel.hitStop('heavy');
+  }
   function spitReflect(ev, s) {
     cue('spitHit', 80, s, ev.x);
     ring(ev.x, ev.y, 0.45, '255,230,160', 0.25);
     sparks(ev.x, ev.y, 4, 3, 0.3, Math.atan2(ev.y0 - ev.y, ev.x0 - ev.x), 0.4);
   }
   function slingPull(ev, s) {
-    var i;
     cue('swish', 90, s, ev.x);
-    for (i = 1; i <= 3; i++) puff(ev.x - Math.cos(ev.a) * 0.15 * i, ev.y - Math.sin(ev.a) * 0.15 * i, 0.12, 0.25);
+    part({ k: 'speed', x: ev.x - Math.cos(ev.a) * 0.25, y: ev.y - Math.sin(ev.a) * 0.25,
+      a: ev.a, len: 0.34, t: 0.12, T: 0.12 });
   }
   // A lucky shot (two marbles on one enemy in a volley) flashes gold; a plain hit is a small tink.
   function marbleHit(ev, s) {
@@ -127,12 +122,16 @@ P.WFx4 = (function () {
     ring(ev.x, ev.y, 0.3, '255,255,255', 0.2);
   }
   function sawRev(ev, s) { cue('chain', 200, s, ev.x); shake(ev.sig ? 0.25 : 0.1); sparks(ev.x, ev.y, 3, 2, 0.25, ev.a, 0.6); }
-  function sawGrind(ev, s) { cue('cleaver', 60, s, ev.x); sparks(ev.x, ev.y, 3, 2.5, 0.25, ev.a, 0.9); }
-  // A rev that hit nothing sputters: a hiss and a puff from Arda. A rev that hit stays quiet here.
+  function sawGrind(ev, s) {
+    var grade = ev.grade || 1;
+    cue('cleaver', 85, s, ev.x);
+    sparks(ev.x, ev.y, 3 + Math.floor(grade / 2), 1.8 + grade * .37, .26 + grade * .025, ev.a + Math.PI / 2, 0.47);
+  }
+  // The bar gives a brief mechanical kick when it stalls.
   function sawStall(ev, s) {
     if (!ev.stalled) return;
     cue('hiss', 120, s, ev.x);
-    puff(ev.x, ev.y, 0.25, 0.4);
+    sparks(ev.x, ev.y, 2, 1.2, 0.15);
   }
   // Mastery move: the family's lettering (screen centre, 1.2 s), a family shape at the point (1 s), a small shake.
   function masteryMove(ev, s) {
@@ -152,14 +151,14 @@ P.WFx4 = (function () {
     }
   }
   function modCloud(ev) { add({ k: 'cloud', x: ev.x, y: ev.y, r: ev.r, t: 0.8, T: 0.8 }); }
-  function oltaReel(ev) { puff(ev.x, ev.y, 0.15, 0.3); }
 
   var EV = {
     sawThrow: sawThrow, sawReturn: sawReturn, sawCatch: sawCatch, sparkBurst: sparkBurst,
     sawRev: sawRev, sawGrind: sawGrind, sawStall: sawStall,
+    marbleFork: pop(0.39, GOLD, 0.22),
     manholeThrow: manholeThrow, manholeBounce: manholeBounce, torchJet: torchJet, scorchSizzle: scorchSizzle,
-    oltaCast: oltaCast, oltaSet: pop(0.35, '255,230,160', 0.2), oltaReel: oltaReel, oltaSlam: oltaSlam,
-    doorRaise: doorRaise, doorShove: doorShove, doorDrop: doorDrop, spitReflect: spitReflect,
+    oltaCast: oltaCast, oltaSet: pop(0.35, '255,230,160', 0.2), oltaReel: pop(0.26, BLUE, 0.16), oltaSlam: oltaSlam,
+    doorRaise: doorRaise, doorBash: doorBash, doorThrow: doorThrow, doorDrop: doorDrop, doorSlam: doorLand, spitReflect: spitReflect,
     slingPull: slingPull, marbleHit: marbleHit,
     masteryMove: masteryMove, modUsta: modUsta, modShards: modShards, modCloud: modCloud,
     modChain: pop(0, ROSE, 0.25), modStick: pop(0.5, VIOLET, 0.2), modStickBoom: pop(0, '255,170,70', 0.3),
@@ -178,7 +177,7 @@ P.WFx4 = (function () {
     (s.zones || []).forEach(function (z) { if (z.kind === 'scorch') char(c, R, z, t); });
     warnings(c, R, W.landings || [], 'sparks', 'rgba(255,209,102,0.75)');
     warnings(c, R, W.landings || [], 'reflect', 'rgba(255,230,160,0.75)');
-    if (W.rev) revSector(c, R, s, W.rev);
+    if (W.rev && (!P.WTier || !P.WTier.enabled)) revSector(c, R, s, W.rev);
     c.restore();
   };
 
@@ -224,18 +223,13 @@ P.WFx4 = (function () {
     c.fill();
   }
 
-  // Stain: a ring on the ground and two wisps that rise while it burns.
-  function sizzle(c, R, f, t) {
-    var u = R.ppm, X = R.X(f.x), Y = R.Y(f.y), rr = f.r * u, a = Math.min(1, f.t / 0.4), k, wy;
-    c.strokeStyle = 'rgba(255,255,255,' + (0.45 * a).toFixed(3) + ')'; c.lineWidth = 2;
-    c.beginPath(); c.ellipse(X, Y, rr, rr * 0.5, 0, 0, TAU); c.stroke();
-    c.fillStyle = 'rgba(235,245,255,' + (0.6 * a).toFixed(3) + ')'; c.beginPath();
-    for (k = 0; k < 2; k++) {
-      wy = ((t * 1.3 + k * 0.5) % 1) * 0.6 * rr;
-      c.moveTo(X + (k ? 1 : -1) * rr * 0.4 + 0.08 * u, Y - wy);
-      c.arc(X + (k ? 1 : -1) * rr * 0.4, Y - wy, 0.08 * u, 0, TAU);
-    }
-    c.fill();
+  // Broken ember edges describe the scorch at floor level.
+  function sizzle(c, R, f) {
+    var u = R.ppm, X = R.X(f.x), Y = R.Y(f.y), rr = f.r * u, a = Math.min(1, f.t / 0.4);
+    c.strokeStyle = 'rgba(249,133,60,' + (0.79 * a).toFixed(3) + ')'; c.lineWidth = 2;
+    c.beginPath(); c.ellipse(X, Y, rr, rr * 0.5, 0, 0.30, 1.29); c.stroke();
+    c.beginPath(); c.ellipse(X, Y, rr, rr * 0.5, 0, 2.09, 3.19); c.stroke();
+    c.beginPath(); c.ellipse(X, Y, rr, rr * 0.5, 0, 4.11, 5.33); c.stroke();
   }
 
   function cloud(c, R, f) {
@@ -289,18 +283,18 @@ P.WFx4 = (function () {
   }
   // Inferno: flame tongues fanning out from the point, flickering as the move plays out.
   function flames(c, X, Y, rr, q, n) {
-    var k, a, L, bx, by;
-    c.fillStyle = 'rgba(255,140,60,' + ((1 - q) * 0.8).toFixed(3) + ')'; c.beginPath();
+    var k, a, h, bx, by;
     for (k = 0; k < n; k++) {
       a = k * TAU / n;
-      L = rr * (0.35 + 0.15 * Math.sin(k * 1.7 + q * 9)) * (1 - q * 0.5);
-      bx = X + Math.cos(a) * rr * 0.35; by = Y + Math.sin(a) * rr * 0.175;
-      c.moveTo(bx - 0.12 * rr, by);
-      c.lineTo(bx + Math.cos(a) * L, by + Math.sin(a) * L * 0.5);
-      c.lineTo(bx + 0.12 * rr, by);
+      h = rr * (0.42 + 0.13 * Math.sin(k * 1.7 + q * 5)) * (1 - q * 0.5);
+      bx = X + Math.cos(a) * rr * (0.35 + q * 0.25); by = Y + Math.sin(a) * rr * 0.28;
+      c.fillStyle = 'rgba(233,76,40,' + (1 - q).toFixed(3) + ')';
+      P.FireAnimPrim.tongue(c, bx, by, rr * 0.12, h, Math.cos(a) * rr * 0.09);
+      c.fillStyle = 'rgba(255,186,78,' + (1 - q).toFixed(3) + ')';
+      P.FireAnimPrim.tongue(c, bx, by, rr * 0.06, h * 0.65, Math.cos(a) * rr * 0.05);
     }
-    c.fill();
   }
+
   // Door wall: a ring of short red panels standing around the point; they swell and fade.
   function wallPanels(c, X, Y, rr, q, n) {
     var k, a, r0 = rr * (0.5 + 0.3 * q);
@@ -339,13 +333,14 @@ P.WFx4 = (function () {
   M.drawAir = function (R, s) {
     var c = R.ctx, W = P.Weapons.state(s), t = performance.now() / 1000;
     c.save();
-    (W.blades || []).forEach(function (bl) { blade(c, R, bl, t); });
-    (W.manholes || []).forEach(function (mh) { manhole(c, R, mh, t); });
-    (W.torches || []).forEach(function (bo) { flameJet(c, R, s, bo, t); });
-    (W.hooks || []).forEach(function (hk) { hook(c, R, s, hk); });
-    (W.doors || []).forEach(function (u) { door(c, R, s, u); });
-    (W.marbles || []).forEach(function (p) { marble(c, R, p); });
-    if (W.rev) held(c, R, s, W.rev, t);
+    if (!P.WTier || !P.WTier.enabled) {
+      (W.blades || []).forEach(function (bl) { blade(c, R, bl, t); });
+      (W.manholes || []).forEach(function (mh) { manhole(c, R, mh, t); });
+      (W.hooks || []).forEach(function (hk) { hook(c, R, s, hk); });
+      (W.doors || []).forEach(function (u) { door(c, R, s, u); });
+      (W.marbles || []).forEach(function (p) { marble(c, R, p); });
+      if (W.rev) held(c, R, s, W.rev, t);
+    }
     falling(c, R, W.landings || []);
     fx.forEach(function (f) { if (f.k === 'mastery') airMove(c, R, f, t); });
     c.restore();
@@ -395,17 +390,6 @@ P.WFx4 = (function () {
     c.beginPath(); c.arc(X, Y, rr, 0, TAU); c.fillStyle = STEEL; c.fill();
     c.strokeStyle = INK; c.lineWidth = 2; c.stroke();
     c.beginPath(); c.arc(X, Y, rr * 0.5, -2.4, -0.9); c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.5; c.stroke();
-  }
-
-  // Blowtorch: while the jet ticks, a flame cone from Arda (orange outer, pale core), breathing by 5 percent.
-  function flameJet(c, R, s, bo, t) {
-    var h = s.hero, rr = bo.range * R.ppm, X = R.X(h.x), Y = R.Y(h.y + 0.2), half = bo.arc * Math.PI / 360, base = -bo.a,
-      k = 1 + ((P.Settings && P.Settings.reduceFlash) ? 0 : 0.05 * Math.sin(Math.floor(t * 3) / 3 * 30));   // breathing held to 3 steps a second
-    if (bo.done) return;
-    c.beginPath(); c.moveTo(X, Y); c.arc(X, Y, rr * k, base - half, base + half); c.closePath();
-    c.fillStyle = 'rgba(255,120,30,0.35)'; c.fill();
-    c.beginPath(); c.moveTo(X, Y); c.arc(X, Y, rr * 0.6 * k, base - half * 0.7, base + half * 0.7); c.closePath();
-    c.fillStyle = 'rgba(255,220,120,0.5)'; c.fill();
   }
 
   // Olta: a taut line from Arda to the hook; during the cast the line runs out to the target.

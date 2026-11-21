@@ -5,14 +5,14 @@
 // Usage: node prototype/tools/check-objective-strings.js
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
+const { ROOT, indexScripts } = require('./lib-load');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const NOT_LOADED = /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|gear|stats|arsenal)\.js$/;
 
 // A node-side localStorage, as in test-meta.js (meta-save.js reads it at call time).
 const store = {};
 globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
-const FILES = [...read('index.html').matchAll(/<script src="([^"]+)"/g)].map(m => m[1]).filter(f => !NOT_LOADED.test(f));
+const FILES = indexScripts().filter(f => !NOT_LOADED.test(f));
 FILES.forEach(f => vm.runInThisContext(read(f), { filename: f }));
 const P = globalThis.P;
 

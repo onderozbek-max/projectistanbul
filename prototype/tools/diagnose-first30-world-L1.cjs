@@ -1,0 +1,9 @@
+// Observe the exact original supplied L1 world-action fixture without changing runtime behavior.
+'use strict';const fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
+let code=fs.readFileSync(path.join(__dirname,'capture-audit8.cjs'),'utf8');
+const anchor='await start(b,level);await b.evaluate(`(()=>{${worldSource}prepareWorld(${level});';
+const spy=String.raw`(()=>{window.largePaths=[];const C=CanvasRenderingContext2D.prototype;let points=[],shape=[];const begin=C.beginPath;C.beginPath=function(){points=[];shape=[];return begin.apply(this,arguments);};for(const name of['moveTo','lineTo']){const fn=C[name];C[name]=function(x,y){const m=this.getTransform();points.push([m.a*x+m.c*y+m.e,m.b*x+m.d*y+m.f]);shape.push([name,x,y]);return fn.apply(this,arguments);};}for(const name of['fill','stroke']){const fn=C[name];C[name]=function(){if(points.length>1){const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),min=Math.min(...xs),max=Math.max(...xs),lo=Math.min(...ys),hi=Math.max(...ys);if(max-min>10&&max-min<250&&hi-lo>450&&max>0&&min<390&&hi>0&&lo<844&&largePaths.length<40)largePaths.push({name,fill:this.fillStyle,stroke:this.strokeStyle,bounds:[min,lo,max,hi],shape,stack:new Error().stack});}return fn.apply(this,arguments);};}})()`;
+if(!code.includes(anchor))throw Error('World setup changed');
+code=code.replace(anchor,'await start(b,level);await b.evaluate('+JSON.stringify(spy)+');await b.evaluate(`(()=>{${worldSource}prepareWorld(${level});');
+code=code.replace("return{opened};","fs.writeFileSync(path.join(out,'large-paths.json'),JSON.stringify(await b.evaluate('({paths:largePaths,cold:P.ColdOpen.active(),state:P.debug.state,hero:P.debug.sim.hero,ws:P.debug.sim.ws})'),null,2));return{opened};");
+const m=new Module(path.join(__dirname,'reset-world-L1-diagnose-runtime.cjs'),module);m.filename=path.join(__dirname,'reset-world-L1-diagnose-runtime.cjs');m.paths=module.paths;m._compile(code,m.filename);

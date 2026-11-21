@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Tests for prepare-art.js and lib-art-image.js.
 //   node prototype/tools/test-prepare-art.js           synthetic tests + checks on prototype/assets/art
-//   node prototype/tools/test-prepare-art.js --full    also rebuilds into a temp dir and compares every file hash (about 2 minutes)
+//   node prototype/tools/test-prepare-art.js --full    also rebuilds into a temp dir and compares pixels plus manifest data
 // Exit code 1 when any test fails.
 'use strict';
 const fs = require('fs');
@@ -146,6 +146,11 @@ let manifest = null;
 try { manifest = readManifest(); } catch (e) { manifest = null; results.push({ name: 'manifest present', ok: false, info: e.message }); }
 
 if (manifest) {
+  test('direct-file render index matches the JSON manifest', () => {
+    const content = fs.readFileSync(path.join(ART, 'manifest-local.js'), 'utf8');
+    need(content === require('./art-manifest-local')(manifest), 'rebuild the local index from manifest.json');
+    return 'same render entries';
+  });
   test('file existence, sizes and sha256 match the manifest', () => {
     let n = 0;
     for (const [rel, meta] of Object.entries(manifest.files)) {
@@ -163,7 +168,7 @@ if (manifest) {
       if (e.isDirectory()) walk(p);
       else {
         const rel = path.relative(ART, p);
-        if (!manifest.files[rel] && !['manifest.json', '.cache.json', '.gitignore'].includes(rel)) stray.push(rel);
+        if (!manifest.files[rel] && !['manifest.json', 'manifest-local.js', '.cache.json', '.gitignore'].includes(rel)) stray.push(rel);
       } } };
     walk(ART);
     need(stray.length === 0, `stray files: ${stray.slice(0, 5).join(', ')}`);
@@ -216,7 +221,7 @@ if (manifest) {
     return `${pairs} rect pairs checked`;
   });
 
-  test('characters: one scale per entity, idle frame height matches heightPx', () => {
+  test('characters: packing scale matches the idle reference height', () => {
     let n = 0;
     for (const [id, e] of Object.entries(manifest.characters)) {
       need(typeof e.scale === 'number' && e.scale > 0, `${id}: no scale`);
@@ -225,6 +230,34 @@ if (manifest) {
       n++;
     }
     return `${n} characters`;
+  });
+
+  test('bosses: action sheets preserve body size about the frame pivot', () => {
+    const { calibrateBossFrames } = require('./lib-art-frames');
+    let n = 0;
+    for (const [id, entry] of Object.entries(manifest.characters)) {
+      if (entry.kind !== 'boss') continue;
+      const frames = JSON.parse(JSON.stringify(entry.frames));
+      for (const frame of Object.values(frames)) delete frame.poseScale;
+      calibrateBossFrames(id, frames);
+      for (const [role, frame] of Object.entries(entry.frames)) {
+        need(frame.poseScale === frames[role].poseScale, `${id}: ${role} does not match the importer`);
+        if (role === 'dead') continue;
+        const height = frame.h * (frame.poseScale || 1) / entry.heightPx;
+        need(height >= .79 && height <= 1.12, `${id}: ${role} renders at ${Math.round(height * 100)}% of idle height`);
+      }
+      n++;
+    }
+    return `${n} atlases`;
+  });
+
+  test('characters: decoded atlas budget is at most 25 MiB', () => {
+    const bytes = Object.values(manifest.characters).reduce((sum, e) => {
+      const { w, h } = pngSize(path.join(ART, e.atlas));
+      return sum + 4 * w * h;
+    }, 0);
+    need(bytes <= 25 * 1024 * 1024, `character atlases decode to ${bytes} bytes`);
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MiB decoded`;
   });
 
   test('manifest rows cover the inventory: every prompt output has a source row', () => {
@@ -249,7 +282,7 @@ if (manifest) {
     const catSum = Object.values(manifest.budget.categoryBytes).reduce((a, b) => a + b, 0);
     need(catSum === manifest.budget.totalBytes, 'category sums do not add up to the total');
     // the directory total also holds manifest.json and .gitignore (the cache is git-ignored but still on disk)
-    const dir = ['manifest.json', '.gitignore', '.cache.json'].reduce((a, f) => a + fs.statSync(path.join(ART, f)).size, sum);
+    const dir = ['manifest.json', 'manifest-local.js', '.gitignore', '.cache.json'].reduce((a, f) => a + fs.statSync(path.join(ART, f)).size, sum);
     need(dir < manifest.budget.limitBytes, `directory ${dir} bytes over limit ${manifest.budget.limitBytes}`);
     const mib = (dir / (1024 * 1024)).toFixed(2);
     const [lo, hi] = manifest.budget.goalBytes.map(b => (b / (1024 * 1024)).toFixed(0));
@@ -264,20 +297,35 @@ if (manifest) {
   });
 }
 
-// ---------- optional: full rebuild into a temp dir, compare every hash
+// ---------- optional: full rebuild into a temp dir
+
+function sameAsset(file, a, b) {
+  if (a.equals(b)) return true;
+  if (!file.endsWith('.png')) return false;
+  // Node's zlib version can change compressed bytes without changing the pixels.
+  const before = L.readPng(a), after = L.readPng(b);
+  return before.w === after.w && before.h === after.h && Buffer.from(before.rgba).equals(Buffer.from(after.rgba));
+}
+
+function manifestLayout(manifest) {
+  const { files, budget, ...layout } = manifest;
+  layout.files = Object.fromEntries(Object.entries(files).map(([file, { bytes, sha256, ...encoding }]) => [file, encoding]));
+  layout.budget = { limitBytes: budget.limitBytes, goalBytes: budget.goalBytes };
+  return JSON.stringify(layout);
+}
 
 if (process.argv.includes('--full')) {
-  test('full rebuild is byte-identical to prototype/assets/art', () => {
+  test('full rebuild matches the shipped art and layout', () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'art-det-'));
-    const r = spawnSync(process.execPath, [path.join(TOOLS, 'prepare-art.js'), '--force', `--dst=${tmp}`], { encoding: 'utf8', maxBuffer: 1 << 26 });
-    need(r.status === 0, `prepare-art exit ${r.status}: ${r.stderr.slice(0, 300)}`);
-    const list = dir => { const out = []; const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-      const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else out.push(path.relative(dir, p)); } }; walk(dir); return out.filter(f => f !== '.cache.json').sort(); };
-    const a = list(ART), b = list(tmp);
-    need(a.join('\n') === b.join('\n'), 'file lists differ');
-    for (const f of a) need(sha256(fs.readFileSync(path.join(ART, f))) === sha256(fs.readFileSync(path.join(tmp, f))), `${f} differs between builds`);
-    fs.rmSync(tmp, { recursive: true, force: true });
-    return `${a.length} files identical`;
+    try {
+      const r = spawnSync(process.execPath, [path.join(TOOLS, 'prepare-art.js'), '--force', `--dst=${tmp}`], { encoding: 'utf8', maxBuffer: 1 << 26 });
+      need(r.status === 0, `prepare-art exit ${r.status}: ${r.stderr.slice(0, 300)}`);
+      const rebuilt = JSON.parse(fs.readFileSync(path.join(tmp, 'manifest.json'), 'utf8'));
+      need(manifestLayout(manifest) === manifestLayout(rebuilt), 'manifest layout differs');
+      const files = Object.keys(manifest.files);
+      for (const f of files) need(sameAsset(f, fs.readFileSync(path.join(ART, f)), fs.readFileSync(path.join(tmp, f))), `${f} differs between builds`);
+      return `${files.length} assets matched`;
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   });
 }
 

@@ -40,7 +40,7 @@ P.Moments = (function () {
   M.onEvent = function (ev, s) {
     switch (ev.type) {
       case 'dash': dash(ev); break;
-      case 'kill': streakCount(s); if (ev.crit) crit(ev); break;
+      case 'kill': if (!s.weaponLab) streakCount(s); if (ev.crit) crit(ev); break;
       case 'frenzy': if (ev.on) M.streakN = 0; break;      // the sim restarts its streak when frenzy starts
       case 'nearMiss': ripple(ev); break;
       case 'explode': shock(ev, 0); break;

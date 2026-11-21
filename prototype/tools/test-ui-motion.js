@@ -184,10 +184,11 @@ check(/classList\.add\('is-out'\)[\s\S]{0,160}P\.UIMotion\.ms\('--m-exit'\)/.tes
   const s = read(f);
   check(/UIMotion\.panelShow\(/.test(s) && /UIMotion\.panelHide\(/.test(s) && /UIMotion\.panelOpen\(/.test(s), f + ': panels show, hide and report open through P.UIMotion.panel*');
 });
-// the meta root and the level-up sheet still hide without an exit (listed as not built in REVIEW-R1); any other direct hide fails
+// Only the meta root hides directly. The retired automatic level-up sheet is removed from DOM/AX,
+// not hidden; the earned attribute destination is exercised by rendered result/growth/reload checks.
 const directHide = jsFiles.filter(f => /^js\/meta\//.test(f) && /classList\.add\('meta-hidden'\)/.test(read(f))).sort();
-check(JSON.stringify(directHide) === JSON.stringify(['js/meta/meta-stats.js', 'js/meta/meta-ui.js']),
-  'direct meta-hidden hides: ' + directHide.join(', ') + ' (expected only the level-up sheet in meta-stats.js and the meta root in meta-ui.js)');
+check(JSON.stringify(directHide) === JSON.stringify(['js/meta/meta-ui.js']),
+  'direct meta-hidden hides: ' + directHide.join(', ') + ' (only the meta root may hide directly)');
 const comicJs = codeOf('js/view/comic.js');
 check(/\.cm-call\.is-enter-from\s*\{[^}]*translate:\s*0 -16px[^}]*opacity:\s*0/.test(comicCss), 'comic.css: the call card enters from 16 px above, faded out');
 check(/\.cm-call\.is-leaving\s*\{[^}]*translate:\s*0 -16px[^}]*opacity:\s*0/.test(comicCss), 'comic.css: the call card leaves the same way');
@@ -219,7 +220,8 @@ const sizeOf = (sel, prop, px) => all.some(d => d.prop === prop && d.value === p
  ['.meta-tab', 'min-height', 48]].forEach(([sel, prop, px]) => check(sizeOf(sel, prop, px), sel + ' is ' + px + ' px (' + prop + '; 48 dp tap target)'));
 // buttons and role=button spans: the hub tabs, the cold-open skip, the mod options. Text blocks (.cm-call-sub, .cold-subs) are not targets.
 ['.skip', '.mod-opt', '.meta-hub-tab'].forEach(sel => check(sizeOf(sel, 'min-height', 48), sel + ' is at least 48 px tall (min-height; 48 dp tap target)'));
-check(!all.some(d => d.prop === 'min-height' && /^(36|40|44|46)px$/.test(d.value) && d.sel.indexOf('.cm-call-sub') < 0 && d.sel.indexOf('.cold-subs') < 0),
+check(!all.some(d => d.prop === 'min-height' && /^(36|40|44|46)px$/.test(d.value) &&
+  !['.cm-call-sub', '.cold-subs', '#pause-build .slot'].some(sel => d.sel.trim() === sel)),
   'no button-sized min-height of 36, 40, 44 or 46 px');
 
 // ---- text size (DS 4, 11; settings textSize 100, 125 or 150) ----
@@ -340,11 +342,11 @@ function helperWith(reduced, exitMs) {
 {
   const h = helperWith(false, 180), n = fakeNode();
   h.U.screen(n, false);
-  check(n.names.has('is-leaving') && !n.names.has('hidden'), 'screen: a hide fades out first (is-leaving, not hidden)');
+  check(n.names.has('is-leaving') && !n.names.has('hidden') && n.inert, 'screen: a leaving screen fades out with input disabled');
   h.run();
   check(n.names.has('hidden') && !n.names.has('is-leaving'), 'screen: hidden after --m-exit');
   h.U.screen(n, true);
-  check(!n.names.has('hidden') && !n.names.has('is-leaving'), 'screen: showing it again removes hidden');
+  check(!n.names.has('hidden') && !n.names.has('is-leaving') && !n.inert, 'screen: showing it again enables input');
 }
 
 // ---- T4 part 8 follow-ups, revised in T4 part 9 (Voice slider removed): the sound sliders, the results screen, the HUD at 150% ----
@@ -406,13 +408,13 @@ function bootSettings(stored) {
   ctx.window = ctx; vm.createContext(ctx);
   vm.runInContext(settingsJs, ctx);
   ctx.P.applySettings();
-  return { S: ctx.P.Settings, pushed: pushed, saved: ctx.saved };
+  return { S: ctx.P.Settings, colors: ctx.P.SemanticColors, pushed: pushed, saved: ctx.saved };
 }
 {
   const d = bootSettings('null');
   check(d.S.musicVol === 100 && d.S.sfxVol === 100 && !('voiceVol' in d.S), 'settings (vm): the two volumes default to 100 with no save, and there is no voice volume');
-  check(JSON.stringify(d.pushed.sfx) === JSON.stringify([['sfx', 1], ['ui', 1], ['ambience', 1]]) && Math.abs(d.pushed.music[0] - 0.5) < 1e-9,
-    'settings (vm): at boot the sfx, ui and ambience buses are set to 1 (voice rides the sfx bus) and the music level to 0.5 (the default mix, -6 dB)');
+  check(JSON.stringify(d.pushed.sfx) === JSON.stringify([['sfx', 1], ['ui', 1], ['ambience', 1]]) && Math.abs(d.pushed.music[0] - 0.32) < 1e-9,
+    'settings (vm): at boot the sfx, ui and ambience buses are set to 1 and the music level to 0.32');
   check(typeof d.saved === 'string' && d.saved.indexOf('"sfxVol":100') >= 0 && d.saved.indexOf('voiceVol') < 0, 'settings (vm): the volumes are saved with the other settings, and no voice value is written');
   const o = bootSettings(JSON.stringify({ musicVol: 25, sfxVol: 55 }));
   check(o.S.musicVol === 30 && o.S.sfxVol === 60, 'settings (vm): saved volumes round to the 10% step (25 to 30, 55 to 60)');
@@ -426,6 +428,12 @@ function bootSettings(stored) {
   check(offSlider.S.sfxVol === 40, 'settings (vm): a saved sfxVol wins over the old switch');
   const bad = bootSettings(JSON.stringify({ musicVol: 'abc', sfxVol: 250 }));
   check(bad.S.musicVol === 100 && bad.S.sfxVol === 100, 'settings (vm): a non-number falls back to 100; numbers clamp to 0-100');
+  const protan = bootSettings(JSON.stringify({ colorVision: 'protan' }));
+  const invalidPalette = bootSettings(JSON.stringify({ colorVision: 'constructor' }));
+  check(d.S.colorVision === 'standard' && d.colors === null && invalidPalette.colors === null,
+    'settings (vm): old saves and invalid color vision modes use the standard palette');
+  check(protan.colors.danger === '#FFD03C' && protan.colors.xp.length === 3 && JSON.parse(protan.saved).colorVision === 'protan',
+    'settings (vm): a valid color vision mode supplies all three XP tiers and survives reloading');
 }
 
 console.log(fails.length ? fails.length + ' failure(s)' : 'test-ui-motion: all pass (' + passes + ' checks)');

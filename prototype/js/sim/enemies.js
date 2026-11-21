@@ -247,7 +247,7 @@ P.Enemies.onContact = function (s, e) {
     if (!e.ai.hit) {
       e.ai.hit = true;
       var u = e.ai.dir;
-      P.Combat.damageHero(s, e.ai.dmg, e.type);
+      P.Combat.damageHero(s, e.ai.dmg, e.bossPreset || e.type, e);
       P.Combat.pushHero(s, u.x, u.y, e.ai.kb);
       s.events.push({ type: 'bruteHit', x: e.x, y: e.y });
     }
@@ -257,8 +257,13 @@ P.Enemies.onContact = function (s, e) {
 };
 
 // ---------- bloater burst: toxic cloud, damage to zombies and hero, chain via killEnemy ----------
+P.Enemies.bloaterPressure = function (s) {
+  return s.routeTrial && P.CFG.levels.bloaterPressure.levels.indexOf(s.levelIndex) >= 0;
+};
+
 P.Enemies.burst = function (s, e) {
   if (e.burstDone) return;
+  var staged = !e.boss && P.Enemies.bloaterPressure(s);
   e.burstDone = true;
   var B = P.CFG.enemies.bloater, h = s.hero, hr = P.CFG.hero.radius;
   var def = e.boss ? P.CFG.bosses.bloater.burst : e.mini ? B.mini : B;
@@ -267,13 +272,16 @@ P.Enemies.burst = function (s, e) {
   s.events.push({ type: 'bloaterPop', x: e.x, y: e.y, r: R, mini: !!e.mini, boss: !!e.boss, chainFrom: e.id });
   s.zones.push({ kind: 'toxic', x: e.x, y: e.y, r: cloud.r, t: cloud.t, T: cloud.t, dps: cloud.dps,
     heroDps: cloud.heroDps, tick: 0, hit: {} });
+  var reachesHero = dist(h, e) - hr <= R;
+  if (staged && reachesHero && (s.bloaterDamageAt == null || s.t - s.bloaterDamageAt >= P.CFG.levels.bloaterPressure.recovery) &&
+      P.Combat.damageHero(s, dmgMul(s, null, def.heroDmg), 'bloater') > 0) s.bloaterDamageAt = s.t;
   for (var i = 0; i < s.enemies.length; i++) {
     var o = s.enemies[i];
     if (o === e || o.dead) continue;
     var dx = o.x - e.x, dy = o.y - e.y, d = Math.hypot(dx, dy);
     if (d - o.r <= R) P.Combat.damageEnemy(s, o, def.enemyDmg, dx / (d || 1), dy / (d || 1), B.shove, false, 'bloater');
   }
-  if (dist(h, e) - hr <= R) P.Combat.damageHero(s, dmgMul(s, null, def.heroDmg), 'bloater');
+  if (!staged && dist(h, e) - hr <= R) P.Combat.damageHero(s, dmgMul(s, null, def.heroDmg), 'bloater');
 };
 
 // Acid/toxic zone ticks: the hero takes heroDps over time (every contactInterval), armor applies.
@@ -325,7 +333,8 @@ P.Enemies.ring = function (s, x, y, r, T, then, col, extra) {
 // Lob an acid glob from (x0, y0) to (tx, ty) over `dur` seconds. Lands as a puddle (zone 'acid').
 P.Enemies.lob = function (s, src, tx, ty, o, dur, dmg, cause) {
   s.enemyShots.push({ x0: src.x, y0: src.y, x: src.x, y: src.y, tx: tx, ty: ty, t: 0, dur: dur, kind: 'acid',
-    dmg: dmg, r: o.r, puddleT: o.puddleT, puddleDps: o.puddleDps, cause: cause || 'spitter', zone: o.zone || 'acid' });
+    dmg: dmg, r: o.r, puddleT: o.puddleT, puddleDps: o.puddleDps, cause: cause || 'spitter', zone: o.zone || 'acid',
+    attacker: P.Combat.actorIdentity(src) });
   s.events.push({ type: 'spit', x: src.x, y: src.y, tx: tx, ty: ty, dur: dur });
 };
 
@@ -335,7 +344,7 @@ function landGlob(s, q) {
   if (q.zone === 'toxic') P.Enemies.toxicPool(s, q.tx, q.ty, q.r, q.puddleT, q.puddleDps);   // v0.6: zehirli cloud
   else P.Enemies.puddle(s, q.tx, q.ty, q.r, q.puddleT, q.puddleDps);
   s.events.push({ type: 'spitLand', x: q.tx, y: q.ty, r: q.r });
-  if (q.dmg > 0 && dist(h, q) - P.CFG.hero.radius <= q.r) P.Combat.damageHero(s, q.dmg, q.cause);
+  if (q.dmg > 0 && dist(h, q) - P.CFG.hero.radius <= q.r) P.Combat.damageHero(s, q.dmg, q.cause, q.attacker);
 }
 
 // Acid puddle (enemies take DoT too; the hero takes heroDps while inside).
@@ -351,9 +360,21 @@ P.Enemies.toxicPool = function (s, x, y, r, T, dps) {
 P.Enemies.onTele = function (s, tg) {
   var h = s.hero, hr = P.CFG.hero.radius;
   if (P.Enemies3.onTele(s, tg)) return;                      // v0.7: boss swings and smashes
-  if (tg.then === 'stomp') {
+  if (tg.then === 'galataWeight') {
+    P.GalataTrial.dropWeight(s, tg);
+  } else if (tg.then === 'switchRails') {
+    P.Bosses.hitRails(s, tg);
+  } else if (tg.then === 'dockCarts') {
+    P.KarakoyBoss.launch(s, tg);
+  } else if (tg.then === 'bridgeCast' || tg.then === 'bridgeNet') {
+    P.BridgeBoss.resolve(s, tg);
+  } else if (tg.then === 'captainSpice') {
+    P.EminonuBoss.land(s, tg);
+  } else if (tg.then === 'districtTram') {
+    P.IstiklalTrial.bossTram(s, tg);
+  } else if (tg.then === 'stomp') {
     s.events.push({ type: 'bruteStomp', x: tg.x, y: tg.y, r: tg.r });
-    if (dist(h, tg) - hr <= tg.r) { P.Combat.damageHero(s, tg.dmg, 'brute'); P.Combat.pushHero(s, h.x - tg.x, h.y - tg.y, tg.kb); }
+    if (dist(h, tg) - hr <= tg.r) { P.Combat.damageHero(s, tg.dmg, 'brute', tg.owner); P.Combat.pushHero(s, h.x - tg.x, h.y - tg.y, tg.kb); }
   } else if (tg.then === 'puddle') {
     P.Enemies.puddle(s, tg.x, tg.y, tg.r, tg.T2, tg.dps);
     s.events.push({ type: 'spitLand', x: tg.x, y: tg.y, r: tg.r });
@@ -364,7 +385,7 @@ P.Enemies.onTele = function (s, tg) {
     s.events.push({ type: 'toxicPool', x: tg.x, y: tg.y, r: tg.r });
   } else if (tg.then === 'slam') {
     s.events.push({ type: 'bossSlam', x: tg.x, y: tg.y, r: tg.r });
-    if (dist(h, tg) - hr <= tg.r) { P.Combat.damageHero(s, tg.dmg, 'bloater'); P.Combat.pushHero(s, h.x - tg.x, h.y - tg.y, tg.shove); }
+    if (dist(h, tg) - hr <= tg.r) { P.Combat.damageHero(s, tg.dmg, 'bloater', tg.owner); P.Combat.pushHero(s, h.x - tg.x, h.y - tg.y, tg.shove); }
   } else if (tg.then === 'summon') {
     summon(s, tg);
   } else if (tg.then === 'scream') {
@@ -381,10 +402,13 @@ P.Enemies.onTele = function (s, tg) {
 // Boss adds: kind2 = zombie type; mini = mini bloaters (smaller, weaker burst).
 function summon(s, tg) {
   var M = P.CFG.enemies.bloater.mini, df = s.diff ? s.diff.hp : 1;
-  for (var i = 0; i < tg.n; i++) {
+  var limited = P.Levels.earlyNormal(s) && s.gen.arena, n = tg.n;
+  if (limited) n = Math.min(n, P.CFG.levels.istiklalRoute.bossSummons - (s.gen.summoned || 0));
+  for (var i = 0; i < n; i++) {
     var a = (i / tg.n) * Math.PI * 2 + s.rng.ai.range(0, 0.6);
     var e = P.Combat.spawnEnemy(s, tg.kind2 || 'walker', tg.x + Math.cos(a) * tg.r, tg.y + Math.sin(a) * tg.r, { skin: tg.skin, bossAdd: true });
     if (!e) break;                                         // D-056: the field is full
+    if (limited) s.gen.summoned = (s.gen.summoned || 0) + 1;
     if (tg.mini) { e.mini = true; e.hp = M.hp * df; e.maxHp = e.hp; e.r = M.radius; }
   }
   s.events.push({ type: 'summon', x: tg.x, y: tg.y });

@@ -11,6 +11,53 @@
 
 ## 1. Ses nedir?
 
+### 2026-11-19 — güncel Türkçe yönü (D-121, öneri)
+
+Sahibin bu turdaki referansları **Leyla ile Mecnun ve Gibi**. Önceki üçlü referansın
+yerini Türkçe metinde bu yön alır: gündelik bir alışkanlığı saçma koşullarda sürdürmek,
+karakterlerin aynı durumu farklı ciddiyetlerle ele alması ve kısa, kuru karşılıklar.
+Dizilerden replik, karakter ya da sahne kopyalanmaz. Hedef, alıntı tanımanın değil,
+Arda'yı ve yanındakileri tanımanın verdiği gülme duygusu.
+
+- Her sahnede bir istek, bir engel ve değişen bir şey olsun. Sırf sonraki semti tarif etmek yetmez.
+- Bir karakter ancak gördüğü veya kendisine söylenen şeyi bilir. Soruya cevap, şakadan önce gelir.
+- Eşya almak onu kullanmak değildir; olayın süresinin bitmesi tehlikenin geçmesi değildir.
+- Şaka güvenli bir anda korkuyu veya küçük bir sosyal hesabı açığa çıkarır. Kayıp şakaya çevrilmez.
+- Çizgi roman bilgi kadar ilişki de ilerletir. Bir sonraki sayfa için hep aynı sinyal kesintisine yaslanılmaz.
+- Altyazı, yüz ifadesi, arka plan ve ses aynı duyguyu taşımalı. Endişe gülümseyen portreyle verilmez.
+
+Bu turun kapsamı ve açık kalan sonraki-bölüm sorunları:
+[uçtan uca inceleme](../reviews/TR-END-TO-END-AUDIT-2026-11-19.md).
+Yeni satırlar inceleme taslağıdır; test başarısı edebî kalite veya oyuncu beğenisi onayı değildir.
+
+### 2026-11-16 çalışma yönü — sahibin son isteği, D-100 önerisi
+
+Sahip bütün Türkçe diyaloğun denetlenmesini ve gerektiğinde yeniden yazılmasını istedi.
+Referansları **Leyla ile Mecnun, South Park, Rick and Morty**: gündelik bir derdin absürt
+koşullarda sürmesi, karakterlerin birbirinin mantığını bozması, kısa ve kuru karşılıklar.
+Bunlar replik ya da karakter taklidi için değil, komedinin nasıl kurulacağı için referans.
+Eski metnin tamamı ve değişiklikler `reviews/TR-DIALOGUE-AUDIT-2026-11-16.md` üzerinden okunabilir.
+
+- **Önce anın derdi.** Arda çıkış arar, annesine ulaşmaya çalışır, korkar. Espri bunun içinden çıkar.
+- **Replik cevap versin.** Bir soru sorulduysa sonraki balon cevap, kaçamak cevap veya anlaşılır bir kesinti olmalı.
+- **Her cümle espri değil.** Uyarılar açık kalır. Kaptan, Ahmet Abi ve boş ev sahnelerinde şaka aramayız.
+- **Arda öğrenci; anlatıcı stand-up sunucusu değil.** İç ses kısa bir gözlem ya da kendine söylediği söz olur.
+  Kopuk bilmece listesi yerine yalnızlık, korku ve arada kötü durumda kurulan küçük bir mantık kullanılır.
+- **Kaan sıcak ve karşılık veren biri.** Her cümlesine yemek benzetmesi eklenmez. Acı çekince sesi kısalabilir.
+- **Anne ilgisini bir iş yaptırarak gösterir.** Yemek sorusu bir motif; her telefon aynı mont şakasına bağlanmaz.
+- **Baba talimatla ilgilenir; Mila kısa konuşur.** İkisinin de başka karakterlerden kopyalanmış espri ritmi olmaz.
+- **Altyazı paneli tekrar tarif etmez.** Gerekli yer/zaman bilgisi, görünmeyen bir ses veya geçiş verir.
+- **Oyuncunun gördüğünü inkâr etmeyiz.** Sinyal kutusu scooter değildir; alarm kurulduğunda susmaz;
+  bir düşman ilk görüldüğünde öldüğünü söylemeyiz. Belirsiz sonuçlu olayda başarı ilan etmeyiz.
+- **`j: 1` gerçek espri işaretidir.** Bu işaret oyundaki espri bekleme süresini çalıştırır.
+  Oran testini geçmek için şakayı düz cümle diye işaretlemeyiz; havuza işe yarayan düz cümleler yazarız.
+
+Bu çalışma D-052'deki bilmece havuzunu ve bazı eski onaylı satırları **yeni inceleme taslağıyla**
+değiştirir. Önceki onay yeni satıra taşınmaz (`ok: 1` kaldırılır). Sokak ağzı ve hafif küfür
+tamamen çıkarılmaz. Aşağıdaki eski örnekler tarihsel bağlamdır; yeni taslak için yukarıdaki yön
+ve güncel diyalog dosyaları esas alınır. Eski istisnaların kuralını genişletmeden, artık metni
+kalmamış altı satırın lint istisnası kaldırıldı. Lead/sahip kabulü henüz verilmiş sayılmaz.
+
 **Shaun of the Dead.** Soğukkanlı, komik, iğneleyici, ciddi yüzle. Dünya yıkılıyor ama Arda hâlâ annesinin ütü fişini düşünüyor.
 Komik olan **durumdur**, kelime oyunu değil: korkmuş bir çocuk, korkusunu küçük bir cümleyle örtüyor.
 
@@ -346,3 +393,24 @@ Makine tarafından okunan liste: **[tools/dialogue-banned.json](../prototype/too
 4. **Mila ve Ada yeni beat'leri: ONAYLI.**
 5. **Yerli editör: ONAYLI** (Opus ilk inceleme, sonra siz).
 6. **Yasak liste: ONAYLI.** `check-banned.js` "dombili" sözcüğünü *review* listesinde işaretler; editör, adın bir isim olarak kaldığını doğrular.
+
+## 10. Anlatı netliği — ikinci geçiş (2026-11-16, inceleme taslağı)
+
+Her konuşmada kimin neyi bildiği belli olmalı. Telefonun kesilmesi, daha önce verilmiş
+bilgiyi unutturmaz: aile Sarıyer'dedir; Arda eve babasının notunu almak için gider.
+Yeni bir arama ilişkiye veya olaylara bir şey eklemeli. Kaan'ın birlikte yürüme kararı,
+kaptanıyla bağı ve kaybı üzerinden anlaşılmalı. Espri, karakterin gördüğü şeye veya
+karşısındakinin son sözüne cevap vermeli; yas ve korkunun ardından mutlaka şaka gelmez.
+Gizem, cümlenin ne demek olduğunda değil, karakterlerin henüz öğrenemediği olayda kalır.
+
+Güncel oyun sıralı metin: [ikinci geçiş okuması](../reviews/TR-NARRATIVE-READTHROUGH-2026-11-16.md).
+
+## 11. Sahne bağlamı — 2026-11-19 (inceleme taslağı)
+
+Repliği, tetiklendiği anda oku. Zombiyi görmek, saldırısını yaşamış olmak değildir.
+Bir olayın süresi dolunca tehlike bitmiş sayılmaz. Kaan'ın ısırık sorusu ile Arda'nın
+cevabı artık L18 girişinde peş peşe gelir. İlk kaçışta korku ve eve ulaşma isteği
+öndedir; zombiyle tanışma sohbeti açılmaz. Sonraki şakalar da yolunu açmaya çalışan,
+korkan birinden gelir. Anlatıcı kutuları ve düşünceler konuşma sesi çıkarmaz;
+sessiz sahnelerde yalnızca o sahne için seçilmiş giriş müziği kalır.
+[İki dilli bağlam incelemesi](../reviews/NARRATIVE-CONTEXT-AUDIT-2026-11-19.md).

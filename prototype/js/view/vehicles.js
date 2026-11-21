@@ -1,8 +1,8 @@
 // Vehicles (view only). One tram drawing, used three ways: the idle car on level 1 (render-world drawTram), the car rushing
 // through the tram-box lane (events-fx 'tramRush', drawAir) and the tram landmark in generated hoods (istanbul-landmarks.js).
-// Look: Istanbul nostalgic tram. Red body with a cream roof stripe, a row of windows down each side, a dark windscreen,
+// Look: Istanbul nostalgic tram. Red body with a broad cream roof, shallow red sides, a dark windscreen,
 // a headlamp, a route plate and a brass bell at the front, a rear end face with two lamps, bogies and wheels at the sides,
-// a soft shadow and a pantograph on the roof. Top-down 3/4: the roof is raised by the car height, so the rear end face shows
+// a soft shadow and a pantograph on the roof. Roof-first overhead view: the roof is raised by the car height, so the rear end face shows
 // under it. The body is painted once per size and scale (paintCar, cached); the pantograph, the lamps and the sway are live.
 //
 // OPACITY RULES (T4 part 11). The tram vehicle is always fully opaque (alpha 1):
@@ -37,51 +37,49 @@ P.Vehicles = (function () {
     if (line) { c.strokeStyle = INK; c.lineWidth = line; c.stroke(); }
   }
 
-  // The car in metres: origin at the roof's top-left (the front of the car is the top edge, the rear end face is the bottom),
-  // w wide, L long (roof), hg the car height (the rear end face and the ground sit hg below the roof). Paints into a context
-  // whose transform already maps metres to pixels; line widths are in metres.
+  // Local metres: the front roof edge is the origin and the tracks run down the canvas.
   function paintCar(c, w, L, hg) {
-    var i, y;
     c.lineJoin = 'round';
-    // soft shadow on the ground, offset to the lower right (light from the upper left)
-    rrect(c, 0.2, hg + 0.16, w + 0.22, L + 0.12, 0.45); c.fillStyle = 'rgba(0,0,0,0.16)'; c.fill();
-    rrect(c, 0.1, hg + 0.06, w + 0.12, L + 0.04, 0.4); c.fillStyle = 'rgba(0,0,0,0.22)'; c.fill();
-    // bogies: two per side, four wheels each, sticking out past the body at ground level
-    for (i = 0; i < 2; i++) {
-      y = L * (i ? 0.78 : 0.22) + hg;
-      [-0.2, w + 0.08].forEach(function (x) {
-        [-0.36, 0.36].forEach(function (dy) { fillRr(c, x, y + dy - 0.23, 0.14, 0.46, 0.04, '#1E1F25', 0.012); });
-      });
+    rrect(c, 0.13, hg + 0.12, w + 0.18, L + 0.1, 0.45); c.fillStyle = 'rgba(20,21,31,0.19)'; c.fill();
+    rrect(c, 0.09, hg + 0.04, w + 0.09, L + 0.04, 0.4); c.fillStyle = 'rgba(20,21,31,0.22)'; c.fill();
+    for (var i = 0; i < 2; i++) {
+      var y = L * (i ? 0.78 : 0.22) + hg;
+      fillRr(c, -0.08, y - 0.35, w + 0.16, 0.7, 0.16, INK, 0);
     }
-    // body: rear end face and sides in the dark red, then the roof on top (the extrusion is the band from roof to ground)
-    fillRr(c, 0, 0, w, L + hg, 0.34, RED_DARK, 0.045);
-    fillRr(c, 0.14, L + hg - 0.13, w - 0.28, 0.09, 0.04, '#2B2B2B', 0);                         // rear bumper
-    dot(c, 0.32, L + hg * 0.45, 0.085, '#E0523A', 0.02); dot(c, w - 0.32, L + hg * 0.45, 0.085, '#E0523A', 0.02);
-    dot(c, 0.3, L + hg * 0.45 - 0.02, 0.03, '#FFD6C8', 0); dot(c, w - 0.34, L + hg * 0.45 - 0.02, 0.03, '#FFD6C8', 0);
-    fillRr(c, 0, 0, w, L, 0.34, RED, 0.05);                                                       // roof and upper body
-    fillRr(c, w / 2 - 0.15, 0.55, 0.3, L - 1.1, 0.04, CREAM, 0.022);                               // cream roof stripe
-    c.fillStyle = 'rgba(20,21,31,0.18)'; c.fillRect(w / 2 - 0.15, 0.55, 0.012, L - 1.1); c.fillRect(w / 2 + 0.14, 0.55, 0.012, L - 1.1);
-    c.fillStyle = 'rgba(255,255,255,0.2)'; c.fillRect(0.05, 0.1, 0.06, L - 0.2);                  // light from the left
-    c.fillStyle = 'rgba(20,21,31,0.2)'; c.fillRect(w - 0.12, 0.1, 0.1, L - 0.2);                  // shade on the right
-    // windows: a row of bays down each side (dark glass, a light glint)
-    var n = Math.max(4, Math.floor((L - 1.4) / 1.0));
-    for (i = 0; i < n; i++) {
-      y = 0.9 + i * ((L - 1.8) / n);
-      [0.1, w - 0.27].forEach(function (x) {
-        fillRr(c, x, y, 0.17, (L - 1.8) / n - 0.2, 0.03, GLASS, 0.018);
-        c.fillStyle = 'rgba(160,200,220,0.5)'; c.fillRect(x + 0.03, y + 0.06, 0.04, 0.22);
-      });
-    }
-    // bellows joint across the middle
-    fillRr(c, 0.14, L * 0.5 - 0.1, w - 0.28, 0.2, 0.03, '#2B2B2B', 0.012);
-    // front: windscreen with a glint, a headlamp in the nose, the route plate and a brass bell
-    fillRr(c, 0.32, 0.16, w - 0.64, 0.4, 0.1, GLASS, 0.03);
-    c.fillStyle = 'rgba(255,255,255,0.22)';
-    c.beginPath(); c.moveTo(0.5, 0.22); c.lineTo(0.85, 0.22); c.lineTo(0.62, 0.5); c.lineTo(0.42, 0.5); c.closePath(); c.fill();
-    dot(c, w / 2, 0.07, 0.1, '#FFF1C4', 0.025);
-    fillRr(c, w / 2 - 0.22, 0.64, 0.44, 0.14, 0.02, CREAM, 0.018);
-    [-0.12, 0, 0.12].forEach(function (dx) { dot(c, w / 2 + dx, 0.71, 0.03, INK, 0); });
-    dot(c, w - 0.22, 0.7, 0.08, BRASS, 0.02);
+    fillRr(c, 0, 0, w, L + hg, 0.39, RED_DARK, 0.055);
+    fillRr(c, 0.1, L + hg - 0.12, w - 0.2, 0.12, 0.05, INK, 0.015);
+    fillRr(c, 0, 0, w, L + hg * 0.55, 0.39, RED, 0.04);
+    var roof = c.createLinearGradient(0, 0, w, 0);
+    roof.addColorStop(0, '#A78F79');
+    roof.addColorStop(0.26, CREAM);
+    roof.addColorStop(0.62, '#EFE5D1');
+    roof.addColorStop(1, '#977D6C');
+    fillRr(c, 0.12, 0.55, w - 0.24, L - 1.1, 0.3, roof, 0.045);
+    fillRr(c, 0.38, 0.67, 0.045, L - 1.35, 0.02, 'rgba(255,255,255,0.48)', 0);
+    [0.18, 0.43, 0.68, 0.86].forEach(function (pos) {
+      c.fillStyle = 'rgba(105,82,65,0.24)'; c.fillRect(0.24, L * pos, w - 0.48, 0.022);
+      c.fillStyle = 'rgba(255,255,255,0.34)'; c.fillRect(0.24, L * pos + 0.022, w - 0.48, 0.035);
+    });
+    [0.24, 0.57, 0.75].forEach(function (pos) {
+      fillRr(c, w / 2 - 0.27, L * pos, 0.54, 0.37, 0.07, '#B09B83', 0.026);
+      fillRr(c, w / 2 - 0.21, L * pos + 0.06, 0.42, 0.055, 0.03, '#EDE0C9', 0);
+    });
+    cab(c, w, L, hg);
+  }
+
+  function cab(c, w, L, hg) {
+    fillRr(c, 0.21, 0.13, w - 0.42, 0.51, 0.13, CREAM, 0.026);
+    fillRr(c, 0.21, L - 0.64, w - 0.42, 0.56, 0.13, CREAM, 0.026);
+    fillRr(c, 0.27, 0.16, w - 0.54, 0.45, 0.12, GLASS, 0.03);
+    fillRr(c, 0.27, L - 0.6, w - 0.54, 0.48, 0.12, GLASS, 0.035);
+    [0.23, L - 0.53].forEach(function (y) {
+      c.fillStyle = 'rgba(210,228,241,0.25)';
+      c.beginPath(); c.moveTo(0.47, y); c.lineTo(0.92, y); c.lineTo(0.62, y + 0.28); c.lineTo(0.42, y + 0.28); c.fill();
+      fillRr(c, w / 2 - 0.035, y - 0.03, 0.07, 0.39, 0.025, CREAM, 0);
+    });
+    dot(c, w / 2, 0.11, 0.1, '#FFE9AF', 0.025);
+    dot(c, w / 2 + 0.38, 0.09, 0.065, BRASS, 0.018);
+    [0.32, w - 0.32].forEach(function (x) { dot(c, x, L + hg * 0.38, 0.084, '#FF8E76', 0.02); });
   }
 
   // Bake cache: one canvas per car size and scale, with PAD of margin on every side (the shadow and the wheels).
@@ -112,15 +110,12 @@ P.Vehicles = (function () {
   }
 
   // Live parts: the pantograph (rocks on its springs; still under Reduce motion), a contact flash, and the head lamp glow.
-  // art: the raster tram carries its own pantograph, so the live one is not stroked (the contact flash and the lamp still are).
-  function live(R, x, yF, L, w, o, art) {
+  function live(R, x, yF, L, o) {
     var c = R.ctx, u = R.ppm, t = o.t || 0, sway = o.sway || 0, cx = R.X(x) + sway, px, py, flick, a;
     px = cx + (rm() ? 0 : Math.sin(t * (o.speed ? 38 : 1.3)) * (o.speed ? 1.6 : 0.8)); py = R.Y(yF - L * 0.35);
-    if (!art) {
-      c.strokeStyle = INK; c.lineWidth = 2.4; c.beginPath(); c.moveTo(px - 0.35 * u, py + 0.3 * u); c.lineTo(px, py - 0.05 * u); c.lineTo(px + 0.35 * u, py + 0.3 * u); c.stroke();
-      c.strokeStyle = '#7D848F'; c.lineWidth = 1.2; c.stroke();
-      c.strokeStyle = INK; c.lineWidth = 3.2; c.beginPath(); c.moveTo(px - 0.5 * u, py - 0.05 * u); c.lineTo(px + 0.5 * u, py - 0.05 * u); c.stroke();
-    }
+    c.strokeStyle = INK; c.lineWidth = 2.4; c.beginPath(); c.moveTo(px - 0.35 * u, py + 0.3 * u); c.lineTo(px, py - 0.05 * u); c.lineTo(px + 0.35 * u, py + 0.3 * u); c.stroke();
+    c.strokeStyle = '#7D848F'; c.lineWidth = 1.2; c.stroke();
+    c.strokeStyle = INK; c.lineWidth = 3.2; c.beginPath(); c.moveTo(px - 0.5 * u, py - 0.05 * u); c.lineTo(px + 0.5 * u, py - 0.05 * u); c.stroke();
     flick = Math.sin(t * 2.1) * Math.sin(t * 5.3 + 1);                                             // contact flash now and then
     c.globalCompositeOperation = 'lighter';
     if (!rm() && (o.speed || flick > 0.82)) { a = o.speed ? 0.8 : (flick - 0.82) * 5; glow(c, px, py - 0.05 * u, 0.5 * u, '170,225,255', a); }
@@ -131,34 +126,90 @@ P.Vehicles = (function () {
   // A tram car from yR (rear, the lower edge on screen) to yF (front, the upper edge), centred on x, w wide.
   // o: { t (s), sway (px), speed (0..1), lamp 'r,g,b' }. Always opaque (see the header).
   V.drawCar = function (R, x, yR, yF, w, o) {
-    var c = R.ctx, L = yF - yR, sway = (o && o.sway) || 0, art = !!(P.ArtRasterItems && P.ArtRasterItems.tram(R, x, yR, yF, w, sway)), k, cv, s;
+    o = o || {};
+    var c = R.ctx, L = yF - yR, u = R.ppm, sway = o.sway || 0;
     c.save(); c.globalAlpha = 1;
-    if (!art) {   // raster off, or not ready: the code-painted body (the raster tram draws in P.ArtRasterItems.tram)
-      k = bucket(R.ppm); cv = bodyCanvas(w, L, k); s = R.ppm / k;
-      c.drawImage(cv, R.X(x - w / 2 - PAD) + sway, R.Y(yF + PAD), cv.width * s, cv.height * s);
+    if (P.StreetArt && P.StreetArt.tram(c, R.X(x) + sway, R.Y((yR + yF) / 2), w * u, L * u, o.heading)) {
+      c.globalCompositeOperation = 'lighter';
+      var a = o.heading || 0, front = L * u / 2;
+      glow(c, R.X(x) + sway + Math.sin(a) * front, R.Y((yR + yF) / 2) - Math.cos(a) * front,
+        .66 * u, o.lamp || '255,236,190', .52);
+    } else {
+      var k = bucket(u), cv = bodyCanvas(w, L, k), scale = u / k;
+      c.drawImage(cv, R.X(x - w / 2 - PAD) + sway, R.Y(yF + PAD), cv.width * scale, cv.height * scale);
+      live(R, x, yF, L, o);
     }
-    live(R, x, yF, L, w, o || {}, art);
     c.restore();
   };
   // The same car as a landmark painter: fills a w x h metre canvas (top = front), used by istanbul-landmarks tramP.
   V.paintBox = function (c, w, h) {
+    if (P.StreetArt && P.StreetArt.tram(c, w / 2, h / 2, w, h)) return;
     c.save(); c.translate(PAD, PAD); paintCar(c, w - 2 * PAD, h - HGT() - 2 * PAD, HGT()); c.restore();
   };
 
   // ---------- the tram-box rush ----------
   V.reset = function () { rush = null; };
+
+  var FIGURES = ['walker_student', 'walker_shopper', 'runner', 'walker_office', 'crawler', 'walker_tourist'];
+  var WALK = ['walk1', 'walk2'];
+  function sceneAge(s, pass) { return pass.elapsed + (pass.endedAt === undefined ? 0 : s.t - pass.endedAt); }
+  function drawCrowd(R, s, crowd) {
+    var t = sceneAge(s, crowd), c = R.ctx, C = P.CFG.levels.tramStop;
+    var sweep = t - C.gatherT, end = C.sweepT + C.returnT + 0.3;
+    if (sweep >= end) return;
+    var speed = (crowd.y1 - crowd.y0 + C.frontLead) / C.sweepT;
+    for (var row = 7; row >= 0; row--) {
+      for (var col = 0; col < 4; col++) {
+        var i = row * 4 + col, id = FIGURES[(i + row * 3) % FIGURES.length], sign = col < 2 ? -1 : 1;
+        var delay = (row % 4) * 0.14 + (col % 2) * 0.08;
+        var walk = t - delay;
+        if (walk < 0) continue;
+        var p = Math.min(1, walk / (C.gatherT - delay - 0.12)), left = 1 - p * p * (3 - 2 * p);
+        var side = col === 0 || col === 3, dx = sign * (side ? 7.4 + (row % 3) * 0.34 : 2.1), dy = (col === 1 ? 1 : -1);
+        var wiggle = rm() ? 0 : (0.07 + left * 0.07) * Math.sin(t * 3 + i);
+        var x = crowd.x + (col - 1.5) * crowd.w * 0.23 + dx * left + wiggle;
+        var y = crowd.y0 + 1.35 + row * 1.04 + Math.sin(i * 3) * 0.20;
+        var entryY = side ? y + (row % 2 ? 1.4 : -1.6) : crowd.y0 + (dy > 0 ? 22 : -13);
+        y += (entryY - y) * left;
+        var impact = sweep - (y - crowd.y0 + C.frontLead) / speed;
+        var dead = impact >= 0, q = Math.min(1, Math.max(0, impact / 0.44));
+        if (dead) { x += sign * (0.18 + (1 - (1 - q) * (1 - q)) * 1.25); y -= Math.sin(q * Math.PI) * 0.33; }
+        var alpha = dead ? Math.min(0.95, (end - sweep) * 1.1) : 1;
+        var screen = R.toScreen(x, y);
+        if (screen.x < -R.ppm || screen.x > R.W + R.ppm || screen.y < -R.ppm || screen.y > R.H + R.ppm) continue;
+        crowdFigure(c, R, id, x, y, i, t, dead, sign, alpha);
+      }
+    }
+  }
+
+  function crowdFigure(c, R, id, x, y, i, t, dead, sign, alpha) {
+    var art = P.ArtRaster, frame = dead ? 'dead' : rm() ? 'idle' : WALK[Math.floor(t * 9 + i * 0.7) % WALK.length];
+    var sprite = art && art.entry('characters', id), u = R.ppm;
+    var X = R.X(x), Y = R.Y(y);
+    c.save(); c.globalAlpha = alpha;
+    c.beginPath(); c.ellipse(X, Y, u * 0.25, u * 0.13, 0, 0, Math.PI * 2); c.fillStyle = 'rgba(22,25,31,.42)'; c.fill();
+    if (!sprite || !art.draw(c, 'characters', id, frame, X, Y, u * (0.81 + (i % 3) * 0.08) / sprite.heightPx,
+      { mirror: sign < 0, rot: dead ? sign * 0.30 : 0, alpha: alpha })) {
+      c.beginPath(); c.ellipse(X, Y - (dead ? 0.05 : 0.27) * u, u * (dead ? 0.32 : 0.17), u * (dead ? 0.12 : 0.37), 0, 0, Math.PI * 2);
+      c.fillStyle = i % 2 ? '#A9A572' : '#787655'; c.fill();
+    }
+    c.restore();
+  }
   V.rush = function (ev) {
     var k = C();
-    rush = { x: ev.x, y0: ev.y0, y1: ev.y1, w: (ev.w || 2.8) + 0.4, at: now() };
-    if (P.Feel) P.Feel.kick(1, 0, k.kick);
+    rush = { x: ev.x, y0: ev.y0, y1: ev.y1, w: (ev.w || 2.8) + 0.4, at: ev.simTime === undefined ? now() : ev.simTime,
+      scene: ev.staged ? ev : null, timed: ev.staged || ev.simTime !== undefined, T: ev.sweep || k.sweepT, lead: ev.frontLead || 3 };
+    if (P.Feel) P.Feel.kick(1, 0, ev.sweep ? k.kick * 0.42 : k.kick);
   };
-  function frontAt(r, el) { return r.y0 - 3 + (r.y1 - r.y0) / C().sweepT * el; }
 
   V.drawAir = function (R, s) {
     var r = rush, k = C(), t = now(), el, yF, yR, i, sx;
+    var H = s.gen && s.gen.tramControl;
+    if (H && H.crowd) drawCrowd(R, s, H.crowd);
     if (!r) return;
-    el = t - r.at; yF = frontAt(r, el); yR = yF - k.len;
-    if (yR > r.y1 + 8 || el > 2) { rush = null; return; }
+    el = r.scene ? sceneAge(s, r.scene) - P.CFG.levels.tramStop.gatherT : (r.timed ? s.t : t) - r.at;
+    yF = r.y0 - r.lead + (r.y1 - r.y0 + (r.timed ? r.lead : 0)) * el / r.T; yR = yF - k.len;
+    if (yR > r.y1 + 8 || el > r.T + 2.5) { rush = null; return; }
     if (P.Feel && !rm()) {
       for (i = 0; i < k.sparkN; i++) {
         sx = r.x + (i & 1 ? 1 : -1) * (r.w / 2 - 0.35);
@@ -169,11 +220,11 @@ P.Vehicles = (function () {
         P.Feel.emit({ k: 'dust', x: r.x + sx * (r.w / 2 + 0.1), y: yF - Math.random() * k.len, z: 0.05, vx: sx * (2 + Math.random() * 2), vy: 0, vz: 0.3, r: 0.22, t: 0.5, T: 0.5 });
       }
     }
-    for (i = 0; i < 3; i++) {                                                                       // speed streaks trailing the car
+    for (i = 0; !r.timed && i < 3; i++) {                                                            // speed streaks trailing the car
       R.ctx.fillStyle = 'rgba(255,255,255,' + (0.16 - i * 0.04) + ')';
       R.ctx.fillRect(R.X(r.x - r.w / 2 + 0.4 + i * (r.w - 0.8) / 2) - 1, R.Y(yR), 2, 4 * R.ppm);
     }
-    V.drawCar(R, r.x, yR, yF, r.w, { t: t, speed: 1, lamp: '255,70,50', sway: rm() ? 0 : Math.sin(t * 60) * 1.2 });
+    V.drawCar(R, r.x, yR, yF, r.w, { t: t, speed: r.timed ? 0 : 1, lamp: r.timed ? '255,223,170' : '255,70,50', sway: rm() || r.timed ? 0 : Math.sin(t * 60) * 1.2 });
   };
 
   return V;

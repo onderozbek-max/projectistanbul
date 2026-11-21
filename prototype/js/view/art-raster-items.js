@@ -1,4 +1,4 @@
-// Raster props, vehicles, pickups, effects and weapon cards behind ?art=raster (D-066). View only: the simulation never reads it,
+// Raster props, vehicles, pickups, effects and weapon cards (D-066). View only: the simulation never reads it,
 // and it never reads P.Quality. Every entry point is a guarded hook: it returns false (and draws nothing) when the flag is off,
 // the category is not ready, the id has no mapping, or the handoff keeps that element procedural (IMPLEMENTATION-HANDOFF.md).
 // The caller then keeps its code art, so the flag-off draw-call log is unchanged. Atlases load on first use (P.ArtRaster.rect),
@@ -7,7 +7,6 @@
 // Entry points (P.ArtRasterItems):
 //   block(R, kind, x, y, o)   a street block or a sidewalk slot (istanbul-props.js M.draw). The hood comes from o.theme (blocks)
 //                             or o.rt (dressing). o.w, o.h are the sim footprint in metres (blocks). Vehicles draw here too.
-//   tram(R, x, yR, yF, w)     the tram body (vehicles.js drawCar). The art has its own pantograph: the caller skips its live one.
 //   xp(c, X, Y, value, u)     an XP gem (render.js drawDrops). Replaces the green diamond and its glint.
 //   pickup(c, kind, X, Y, px) a consumable or objective icon inside its glow ring (consumables.js drawAt). px = icon size.
 //   fxPart(R, p, a)           a blood splat (kind splat), a rubble chip (shard) or a dust puff (dust) (render.js).
@@ -39,10 +38,7 @@ P.ArtRasterItems = (function () {
       baharat: ['spicestall', 'spicesacks'], kiosk: ['ticketkiosk', 'tostkiosk'], antique: ['antiquestand'], mangal: ['barbecue'],
       hali: ['kilim', 'rolledcarpets'], lx_boat: ['mooredboat', 'fishingboat'], lx_truck: ['truck'], meyhane: ['mezetable']
     },
-    tram: 'tram_red',
     across: 0.6,                                        // share of a vehicle's art height that is its footprint breadth (measured on the art)
-    tramShadow: 0.2, tramShadowDx: 0.12,                // the code tram's ground shadow (alpha, offset in m, lower right)
-    tramPadW: 0.2, tramPadL: 0.1,                       // the shadow's extra breadth and length (m) round the body
     xpM: { small: 0.42, medium: 0.5, large: 0.6 },      // XP gem size, tip to tip (m)
     xpMedAt: 4, xpLargeAt: 9,                           // XP values (combat.js: enemy xp x (1 + xpPct)) at which the size steps up
     splatK: 2.6, splatSmallAt: 0.2, splatLargeAt: 0.5,  // blood decal width per metre of radius; the cell follows the radius
@@ -127,24 +123,40 @@ P.ArtRasterItems = (function () {
     if (!R || !R.ctx || !o) return false;
     return vehicleDraw(R, kind, x, y, o) || propDraw(R, kind, x, y, o);
   };
-  // The tram body from the rear edge yR to the front yF (metres), w wide, shifted sway px (the rush). The art is the whole tram,
-  // pantograph included, and has no ground shadow: the code tram's soft shadow is painted first, lower right, as before.
-  I.tram = function (R, x, yR, yF, w, sway) {
-    var r, c = R.ctx, L = yF - yR, u = R.ppm, X = R.X(x) + (sway || 0), Y = R.Y((yR + yF) / 2);
-    if (!on(VEH)) return false;
-    r = A.rect(VEH, K.tram, 'frame');
-    if (!r) return false;
-    c.save();
-    c.fillStyle = 'rgba(0,0,0,' + K.tramShadow + ')';
-    c.fillRect(X + K.tramShadowDx * u - (w + K.tramPadW) * u / 2, Y + K.tramShadowDx * u - (L + K.tramPadL) * u / 2,
-      (w + K.tramPadW) * u, (L + K.tramPadL) * u);
-    c.restore();
-    return place(c, r, X, Y, L * u / r.sw, w * u / (r.sh * K.across), Math.PI / 2, 1);
+  var STREET_STALL = {
+    book: ['beyazit', 'bookstall'], spice: ['eminonu', 'spicestall'], fish: ['eminonu', 'fishcrate'],
+    carpet: ['kapalicarsi', 'rolledcarpets'], textile: ['kapalicarsi', 'rolledcarpets'],
+    leather: ['halic', 'antiquestand'], lamp: ['kapalicarsi', 'brasslantern'],
+    souvenir: ['halic', 'antiquestand'], fasil: ['karakoy', 'pastrystall']
   };
-
+  I.streetStall = function (R, it) {
+    if (!on(PROPS)) return false;
+    var kind = it.kind.split(':')[1], src = STREET_STALL[kind];
+    if (kind === 'music' && P.Props) { P.Props.draw('music', R, it.side * 5.55, it.y0 + 1, {}); return true; }
+    if (!src) return false;
+    var r = A.rect(PROPS, src[0], 'items.' + src[1] + '.cells.a');
+    if (!r) return false;
+    var k = 2.1 * R.ppm / Math.max(r.sw, r.sh);
+    return place(R.ctx, r, R.X(it.side * 5.55) + (r.sw / 2 - r.px) * k,
+      R.Y(it.y0 + 1) + (r.sh / 2 - r.py) * k, k, k, 0, 1);
+  };
   // ---- pickups ----
+  function readableXp(c, X, Y, size, fill, large) {
+    var h = size * 0.43, w = size * 0.25;
+    c.fillStyle = fill; c.strokeStyle = '#14151F'; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(X, Y - h); c.lineTo(X + w, Y);
+    c.lineTo(X, Y + h); c.lineTo(X - w, Y); c.closePath(); c.fill(); c.stroke();
+    if (large) {
+      var d = size * 0.13, x = X + size * 0.31, y = Y - size * 0.25;
+      c.strokeStyle = '#FFFFFF'; c.lineWidth = 1.5; c.beginPath();
+      c.moveTo(x - d, y); c.lineTo(x + d, y); c.moveTo(x, y - d); c.lineTo(x, y + d); c.stroke();
+    }
+    return true;
+  }
   I.xp = function (c, X, Y, value, u) {
+    var colors = P.SemanticColors;
     var tier = value >= K.xpLargeAt ? 'large' : value >= K.xpMedAt ? 'medium' : 'small', r;
+    if (colors) return readableXp(c, X, Y, K.xpM[tier] * u, colors.xp[tier === 'large' ? 2 : tier === 'medium' ? 1 : 0], tier === 'large');
     if (!on(PK)) return false;
     r = A.rect(PK, 'pk_xp_droplets', XPF[tier]);
     return !!r && fit(c, r, X, Y, K.xpM[tier] * u);
@@ -154,6 +166,15 @@ P.ArtRasterItems = (function () {
     if (!name || !on(PK)) return false;
     r = A.rect(PK, LOOT, name);
     return !!r && fit(c, r, X, Y, px);
+  };
+  I.chest = function (c, x, y, px, open) {
+    if (!on(PK)) return false;
+    var closed = A.rect(PK, LOOT, 'chest_closed'), raised = A.rect(PK, LOOT, 'chest_open');
+    if (!closed) return false;
+    if (!raised) open = 0;
+    if (open < 1) fit(c, closed, x, y - px * .34, px, 1 - open);
+    if (open > 0) fit(c, raised, x, y - px * .47, px, open);
+    return true;
   };
 
   // ---- effects ----
@@ -201,7 +222,7 @@ P.ArtRasterItems = (function () {
   function iconSource(id, lv) {
     var evo = P.CFG.evolutions && P.CFG.evolutions[id];
     if (evo) return [WPN, evo.from, 'evolutions.' + id + '.icon'];
-    if (A.entry(WPN, id)) return [WPN, id, lv >= 1 && lv <= TIER.length ? TIER[lv - 1] : 'icon'];
+    if (A.entry(WPN, id)) return [WPN, id, 'icon'];
     if (A.rect(PK, 'pk_passive_icons', id)) return [PK, 'pk_passive_icons', id];
     return null;
   }
@@ -209,14 +230,25 @@ P.ArtRasterItems = (function () {
     var src, u;
     if (!on(WPN) || typeof id !== 'string') return '';
     src = iconSource(id, lv);
+    if (src && typeof location !== 'undefined' && location.protocol === 'file:') return localIcon(src, px);
     u = src ? cellUrl(src[0], src[1], src[2], Math.round(px * K.iconDpr)) : null;
     return u ? '<img src="' + u + '" alt="" width="' + px + '" height="' + px + '">' : '';
   };
+  // Local canvases can draw file images but cannot export their pixels. Clip the atlas in the DOM instead.
+  function localIcon(src, px) {
+    var r = A.rect(src[0], src[1], src[2]);
+    if (!r) return '';
+    var k = px / Math.max(r.sw, r.sh), w = r.sw * k, h = r.sh * k;
+    return '<span style="display:inline-grid;place-items:center;width:' + px + 'px;height:' + px + 'px">' +
+      '<span style="position:relative;overflow:hidden;width:' + w + 'px;height:' + h + 'px">' +
+      '<img alt="" src="' + r.img.src.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '" style="position:absolute;max-width:none;max-height:none;' +
+      'width:' + r.img.naturalWidth * k + 'px;height:' + r.img.naturalHeight * k + 'px;left:' + -r.sx * k + 'px;top:' + -r.sy * k + 'px"></span></span>';
+  }
   // Cards and HUD slots are built once, so an icon whose atlas is still decoding is retried (K.iconRetry) and swapped in when it
   // arrives. Until then the box shows the code icon. Flag off: no retry, the code icon only (the same markup as before).
   I.iconInto = function (box, id, lv, px, tries) {
     var html = I.icon(id, lv, px), n = tries || 0;
-    box.innerHTML = html || P.Icons.svg(id, px);
+    box.innerHTML = html || (A.enabled() ? '<span class="art-icon-pending" aria-hidden="true"></span>' : P.Icons.svg(id, px));
     if (!html && on(WPN) && n < K.iconRetry.max) {
       setTimeout(function () { if (box.isConnected) I.iconInto(box, id, lv, px, n + 1); }, K.iconRetry.ms);
     }

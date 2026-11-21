@@ -14,6 +14,7 @@
 
   // Pose for a damage source id: the named lists first, then its synergy tag, else POSE.fallback (blunt).
   function poseFor(src) {
+    if (src === 'chainsaw' || src === 'grinder') return 'sawn';
     var keys = ['fire', 'electric', 'blade', 'explosion', 'blunt'], i, list, tag;
     for (i = 0; i < keys.length; i++) {
       list = POSE[keys[i]] || [];
@@ -38,7 +39,7 @@
     return { dx: f * slide, dy: 0, rot: -f * 0.35 * e(-a * 16), char: false };
   }
 
-  // Death collapse, shared by every pose (design-system 7: a short fall, then the ash). Corpse age a in s, 0.45 s in all:
+  // Death collapse, shared by every pose (design-system 7). Corpse age a in s, 0.45 s in all:
   // 1 hit-back: the body squashes and is shoved along the blow; 2 knees buckle: it folds forward (ease-in) and drops;
   // 3 settle: a landing squash and a small bounce; 4 shadow: the contact shadow shrinks as it folds, then holds.
   // Returns fall (0..1, the lying angle), sx, sy (squash about the feet), push (m along the blow), lift (m up), shadow (0..1).
@@ -75,14 +76,36 @@
   function draw(Rd, rec, a) {
     var c = Rd.ctx, u = Rd.ppm, f = rec.dx >= 0 ? 1 : -1, X = Rd.X(rec.x), Y = Rd.Y(rec.y - 0.2);
     var fade = clamp01((a - (rec.dur - POSE.fade)) / POSE.fade), k = 0.5 + 0.5 * fade, x = extraOf(rec.pose, a, f, rec.etype), st = collapseOf(a);
+    var motion;
+    if (P.EnemyDeathMotion) {
+      motion = rec.swingAir ? P.EnemyDeathMotion.swungBody(rec, a) : P.EnemyDeathMotion.body(rec.pose === 'sawn' ? 'blade' : rec.pose, a, f);
+      x = motion.extra; st = motion.shape;
+      if (rec.swingAir) P.EnemyDeathMotion.groundBurst(c, X + x.dx * u, Y + motion.groundY * u, u, motion.landing, rec.swingAir.strength);
+      else P.EnemyDeathMotion.accent(c, rec.pose, a, X + x.dx * u, Y + x.dy * u, u, f);
+    }
     var alpha = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
     var p = { x: rec.x, y: rec.y, dx: rec.dx, dy: rec.dy, etype: rec.etype, variant: rec.variant, skin: rec.skin, id: rec.id, fling: false, t: 0, T: 1,
       pose: rec.pose, fall: st.fall, alpha: alpha };
-    shadowOf(Rd, rec, X, Y, u, st.shadow * alpha);
+    shadowOf(Rd, rec, rec.swingAir && motion ? X + x.dx * u : X, rec.swingAir && motion ? Y + motion.groundY * u : Y, u, st.shadow * alpha);
+    if (rec.pose === 'sawn' && (!P.Settings || !P.Settings.reduceMotion)) { splitBody(Rd, p, X, Y, u, a, f); return; }
     if (x.char && charredBody(Rd, p, fade, x, st, f, X, Y, u)) return;
     c.save(); applyPose(c, X, Y, u, f, x, st);
     baseCorpse(Rd, p);
     c.restore();
+  }
+
+  // Each piece of the fallen sprite settles close to the point where the chain caught it.
+  function splitBody(Rd, p, X, Y, u, age, facing) {
+    var c = Rd.ctx, q = Math.min(1, age / .34), push = 1 - (1 - q) * (1 - q);
+    var lift = Math.sin(Math.PI * q) * .12 * u, cut = X + facing * .12 * u;
+    p.pose = 'blade';
+    p.fall = .80 + q * .20;
+    for (var side = -1; side <= 1; side += 2) {
+      c.save(); c.translate(side * .22 * push * u, side === facing ? -lift : 0);
+      c.beginPath(); c.rect(side < 0 ? cut - 3 * u : cut, Y - 3 * u, 3 * u, 5 * u); c.clip();
+      baseCorpse(Rd, p);
+      c.restore();
+    }
   }
 
   // Charred pose (fire, explosion): the body is drawn into a small scratch canvas, scorched there, then blitted. source-atop

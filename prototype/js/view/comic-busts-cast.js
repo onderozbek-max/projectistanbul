@@ -48,7 +48,7 @@ P.ComicCast = (function () {
     zombie: { skin: '#9EAB7F', skinS: '#7A8A60', hair: '#3B3B2A', hairS: '#23231A', brow: '#23231A', eyes: '#2A2F22',
               style: 'matted', top: 'torn', topC: '#5B6E7E', topS: '#44535F', zombie: true, fw: 1.02, sw: 1 }
   };
-  SPEC.friend = SPEC.kaan;
+  SPEC.friend = SPEC.stranger;
   C.spec = function (who) { return SPEC[who] || SPEC.stranger; };
   C.ids = function () { return Object.keys(SPEC); };
 

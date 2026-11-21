@@ -14,6 +14,7 @@ P.SkillsFx = (function () {
   function rnd(a, b) { return a + Math.random() * (b - a); }
   function noop() {}
 
+  F.evolutionActive = function () {return !!evo;};
   F.reset = function () {
     ghosts = []; trail = []; ult = null; eye = null; banner = null; evo = null; vac = null; ghostT = 0; pops = [];
     slipSeen = []; slipDone = false;
@@ -36,15 +37,18 @@ P.SkillsFx = (function () {
         break;
       case 'ult': if (ev.id === 'convoy' || ev.id === 'horn' || ev.id === 'tackle') startSweep(ev); else startUlt(ev); break;
       case 'tackleStab': stabFx(ev, pn); break;
-      case 'ultReady': P.Fx.letter(h.x, h.y + 1.4, P.t('ult.ready')); P.Sfx.play('ultReady', 300); break;
-      case 'frenzy': if (ev.on) { showBanner('frenzy.on', 1.2); P.Sfx.play('frenzy', 300); } break;
+      case 'ultReady':
+        var ultName = P.UI && P.UI.ultName ? P.UI.ultName(P.Skills.ultId(s)) : P.t('ult.name');
+        P.Fx.letter(h.x, h.y + 1.4, P.t('ui.hud.ult.ready', { name: ultName })); P.Sfx.play('ultReady', 300); break;
+      // The persistent gold streak meter and existing moving trail own frenzy; no screen-wide headline.
+      case 'frenzy': if (ev.on) P.Sfx.play('frenzy', 300); break;
       case 'nazarDodge':
         eye = { t: 0.35, T: 0.35 };
         P.Fx.letter(h.x, h.y + 1.3, P.t('nazar.dodge'));
         P.Sfx.play('nazar', 120, { pan: pn });
         break;
       case 'vacuum': vac = { x: ev.x, y: ev.y, r: ev.r, t: 0.45, T: 0.45 }; P.Sfx.play('magnet', 200, { pan: pn }); break;
-      case 'evolve': evo = { from: ev.from, to: ev.to, t: ev.T, T: ev.T }; P.Sfx.play('evolve'); P.Fx.addTrauma(0.3); break;
+      case 'evolve': evo = { from: ev.from, to: ev.to, t: .65, T: .65 }; P.Sfx.play('evolve'); P.Fx.addTrauma(0.3); break;
       // W2 active skills: the cast banner and cue, the bubble pop when the shield takes a hit.
       case 'skillUsed':
         showBanner('skill.' + ev.id, 1.0);
@@ -54,6 +58,9 @@ P.SkillsFx = (function () {
         pops.push({ x: ev.x, y: ev.y, t: POP_T, T: POP_T });
         P.Fx.letter(ev.x, ev.y + 1.2, P.t('shield.block'));
         P.Sfx.play('nazar', 150, { pan: pn });
+        break;
+      case 'shieldDown':
+        pops.push({ x: ev.x, y: ev.y, t: POP_T, T: POP_T, expired: true });
         break;
     }
   };
@@ -222,6 +229,13 @@ P.SkillsFx = (function () {
     if (P.Skills.frenzyOn(s)) {
       c.strokeStyle = 'rgba(' + GOLD + ',' + (0.28 + 0.08 * Math.sin(t * 3)).toFixed(3) + ')'; c.lineWidth = 3;
       c.beginPath(); c.ellipse(R.X(h.x), R.Y(h.y), 0.6 * u, 0.25 * u, 0, 0, Math.PI * 2); c.stroke();
+      var expand=P.Settings && P.Settings.reduceMotion?.35:(t*.8)%1;
+      c.strokeStyle='#F4CF85'; c.globalAlpha=.62; c.lineWidth=2;
+      [-1,1].forEach(function (side) {
+        var x=R.X(h.x)+side*(.38+.24*expand)*u, y=R.Y(h.y)-.85*u;
+        c.beginPath(); c.moveTo(x-side*.13*u,y-.13*u); c.lineTo(x,y); c.lineTo(x-side*.13*u,y+.13*u); c.stroke();
+      });
+      c.globalAlpha=1;
     }
     if (vac) {
       var p = 1 - vac.t / vac.T;
@@ -234,7 +248,7 @@ P.SkillsFx = (function () {
   // W2 active skills: the simit bubble while the shield is up (a pop ring on each block), the dashed tea aura while the
   // tea is steeping. The aura radius is the sim's slow radius, so what you see is what slows.
   function drawActive(c, R, s, u, t) {
-    var a = P.Skills.hud(s).active, h = s.hero, X = R.X(h.x), Y = R.Y(h.y), q, p;
+    var a = P.Skills.hud(s).active, h = s.hero, X = R.X(h.x), Y = R.Y(h.y), q, p, pulse;
     if (a && a.on && a.id === 'shield') {
       c.fillStyle = 'rgba(' + GOLD + ',0.12)';
       c.strokeStyle = 'rgba(' + GOLD + ',' + (0.55 + 0.15 * Math.sin(t * 4)).toFixed(3) + ')'; c.lineWidth = 3;
@@ -247,22 +261,23 @@ P.SkillsFx = (function () {
       c.setLineDash([]);
     }
     for (q = 0; q < pops.length; q++) {
-      p = 1 - pops[q].t / pops[q].T;
-      c.strokeStyle = 'rgba(' + GOLD + ',' + (0.8 * (1 - p)).toFixed(3) + ')'; c.lineWidth = 3;
-      c.beginPath(); c.arc(R.X(pops[q].x), R.Y(pops[q].y), BUBBLE_R * u * (1 + 0.4 * p), 0, Math.PI * 2); c.stroke();
+      pulse = pops[q]; p = 1 - pulse.t / pulse.T;
+      c.strokeStyle = 'rgba(' + GOLD + ',' + ((pulse.expired ? 0.5 : 0.8) * (1 - p)).toFixed(3) + ')';
+      c.lineWidth = pulse.expired ? 2 : 3;
+      c.beginPath(); c.arc(R.X(pulse.x), R.Y(pulse.y), BUBBLE_R * u * (1 + (pulse.expired ? -0.4 : 0.4) * p), 0, Math.PI * 2); c.stroke();
     }
   }
 
   // Ultimate: dashed damage area, blue-white rays and the giant eye that opens in the first 12% of its time.
   function drawUlt(c, R, u, t) {
     var p = 1 - ult.t / ult.T, X = R.X(ult.x), Y = R.Y(ult.y), open = Math.min(1, p / 0.12), a = open * Math.min(1, (1 - p) * 4);
-    var w = ult.hw * 2 * u, hgt = ult.hh * 2 * u, eyeR = ult.hw * u * 0.5 * open, k, ang, L;
+    var w = ult.hw * 2 * u, hgt = ult.hh * 2 * u, eyeR = .40 * u * open, k, ang, L;
     c.strokeStyle = 'rgba(' + BLUE + ',' + (0.5 * a).toFixed(3) + ')'; c.lineWidth = 3;
     c.setLineDash([10, 8]); c.lineDashOffset = -t * 40;
     c.strokeRect(X - w / 2, Y - hgt / 2, w, hgt); c.setLineDash([]);
     c.save(); c.globalCompositeOperation = 'lighter';
     for (k = 0; k < 12; k++) {
-      ang = k * Math.PI / 6 + t * 0.4; L = (0.6 + 0.4 * Math.sin(t * 5 + k)) * ult.hw * u;
+      ang = k * Math.PI / 6 + t * 0.4; L = (.55 + .20 * Math.sin(t * 5 + k)) * u;
       c.strokeStyle = 'rgba(' + BLUE + ',' + (0.35 * a).toFixed(3) + ')'; c.lineWidth = 6;
       c.beginPath(); c.moveTo(X + Math.cos(ang) * eyeR * 0.9, Y + Math.sin(ang) * eyeR * 0.9); c.lineTo(X + Math.cos(ang) * L, Y + Math.sin(ang) * L); c.stroke();
     }
@@ -294,36 +309,13 @@ P.SkillsFx = (function () {
 
   // 1.6 s: fade in the dark vignette, ink rays spin, the new weapon icon pops on a badge, then the names.
   function drawEvo(c, R, e) {
-    var p = 1 - e.t / e.T, W = R.W, H = R.H, cx = W / 2, cy = H * 0.44, k, sc, sz, im;
-    var dark = Math.min(1, p / 0.15) * (p > 0.85 ? (1 - p) / 0.15 : 1);
-    c.save();
-    c.fillStyle = 'rgba(8,9,16,' + (0.82 * dark).toFixed(3) + ')'; c.fillRect(0, 0, W, H);
-    c.save(); c.translate(cx, cy); c.rotate(p * 0.8);
-    c.fillStyle = 'rgba(' + GOLD + ',' + (0.22 * dark).toFixed(3) + ')';
-    for (k = 0; k < 14; k++) {
-      c.rotate(Math.PI * 2 / 14);
-      c.beginPath(); c.moveTo(0, 0); c.lineTo(-W * 0.05, -H); c.lineTo(W * 0.05, -H); c.closePath(); c.fill();
-    }
-    c.restore();
-    if (p > 0.2) {
-      sc = 0.6 + 0.6 * Math.min(1, (p - 0.2) / 0.4); sz = 150 * sc;
-      c.globalAlpha = dark;
-      c.fillStyle = '#FFF4D6'; c.strokeStyle = INK; c.lineWidth = 6;
-      c.beginPath(); c.arc(cx, cy, sz * 0.62, 0, Math.PI * 2); c.fill(); c.stroke();
-      im = icon(e.to);
-      if (im && im.complete) c.drawImage(im, cx - sz / 2, cy - sz / 2, sz, sz);
-      c.globalAlpha = 1;
-    }
-    c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
-    c.font = 'italic 900 ' + Math.round(H * 0.06) + 'px "CM Bangers", Bangers, Impact, sans-serif';
-    c.lineWidth = 8; c.strokeStyle = INK; c.fillStyle = '#FFD166';
-    c.strokeText(P.t('evo.title'), cx, H * 0.2); c.fillText(P.t('evo.title'), cx, H * 0.2);
-    c.font = 'italic 900 ' + Math.round(H * 0.045) + 'px "CM Bangers", Bangers, Impact, sans-serif';
-    c.lineWidth = 6; c.strokeText(P.t('item.' + e.to), cx, H * 0.66); c.fillStyle = '#FFFFFF'; c.fillText(P.t('item.' + e.to), cx, H * 0.66);
-    c.font = '600 16px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.lineWidth = 3;
-    var line = P.t('evo.from', { from: P.t('item.' + e.from), to: P.t('item.' + e.to) });
-    c.strokeText(line, cx, H * 0.73); c.fillStyle = 'rgba(255,255,255,0.8)'; c.fillText(line, cx, H * 0.73);
-    c.restore();
+    var p=1-e.t/e.T,w=Math.min(R.W-24,264),x=(R.W-w)/2,y=174,im=icon(e.to);
+    c.save();c.globalAlpha=Math.min(1,p*8,(1-p)*6);c.fillStyle='#14151F';
+    c.beginPath();c.roundRect(x,y,w,52,10);c.fill();
+    if(im&&im.complete)c.drawImage(im,x+8,y+6,40,40);
+    c.textAlign='left';c.textBaseline='middle';c.fillStyle='#FFD166';
+    c.font='700 15px "CM Comic Relief", sans-serif';
+    c.fillText(P.t('item.'+e.to),x+56,y+26,w-64);c.restore();
   }
 
   function icon(id) {

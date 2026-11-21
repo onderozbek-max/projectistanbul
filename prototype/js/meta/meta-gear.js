@@ -10,14 +10,7 @@ P.Meta.Gear = (function () {
   var CHEV = '<svg viewBox="0 0 24 24"><path d="M9 5 L16 12 L9 19" fill="none" stroke="#14151F" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var NAZAR = '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17" fill="#1B4965" stroke="#14151F" stroke-width="2.5"/>' +
     '<circle cx="24" cy="24" r="9" fill="#F4EBDD" stroke="#14151F" stroke-width="2"/><circle cx="24" cy="24" r="4" fill="#14151F"/></svg>';
-  var BUST = '<svg viewBox="0 0 160 190"><ellipse cx="80" cy="181" rx="62" ry="8" fill="#000" opacity=".35"/>' +
-    '<path d="M22 186 C24 130 42 112 80 112 C118 112 136 130 138 186 Z" fill="#1B4965" stroke="#14151F" stroke-width="4" stroke-linejoin="round"/>' +
-    '<path d="M56 116 Q80 132 104 116 L104 128 Q80 142 56 128 Z" fill="#14151F" opacity=".35"/>' +
-    '<rect x="70" y="96" width="20" height="22" fill="#D9A07A" stroke="#14151F" stroke-width="3"/>' +
-    '<ellipse cx="80" cy="66" rx="32" ry="36" fill="#E8B88A" stroke="#14151F" stroke-width="4"/>' +
-    '<path d="M46 62 Q44 26 80 24 Q118 26 114 62 Q106 40 80 42 Q56 40 46 62 Z" fill="#14151F"/>' +
-    '<circle cx="68" cy="68" r="3.4" fill="#14151F"/><circle cx="92" cy="68" r="3.4" fill="#14151F"/>' +
-    '<path d="M70 84 Q80 92 90 84" stroke="#14151F" stroke-width="3" fill="none" stroke-linecap="round"/></svg>';
+
 
   function el(tag, cls, parent) {
     var n = document.createElement(tag);
@@ -46,7 +39,13 @@ P.Meta.Gear = (function () {
     buildHead();
     stage = el('div', 'meta-gstage', root);
     bust = el('div', 'meta-bust', stage);
-    bust.innerHTML = BUST;
+    var canvas = el('canvas', '', bust); canvas.width = 320; canvas.height = 380;
+    var frame = P.ArtRaster.rect('characters', 'hero_arda', 'front.idle');
+    if (frame) {
+      var size = 350 / frame.sh;
+      canvas.getContext('2d').drawImage(frame.img, frame.sx, frame.sy, frame.sw, frame.sh,
+        (320 - frame.sw * size) / 2, 380 - frame.sh * size, frame.sw * size, frame.sh * size);
+    }
     M.SLOTS.forEach(function (slot) { slotBtn[slot.id] = buildSlot(slot); });
     sumEl = el('div', 'meta-gsum', root);
     buildDetail();
@@ -118,19 +117,22 @@ P.Meta.Gear = (function () {
     detName.textContent = t('meta.item.' + id);
     Array.prototype.forEach.call(detPips.children, function (p, k) { p.className = k < (owned ? lvl : 0) ? 'on' : ''; });
     renderStatRows(id, lvl, owned);
-    detHint.textContent = owned ? '' : t('meta.gear.unlockHint', { hood: unlockHood(id) });
+    detHint.textContent = owned ? t(equipped ? 'meta.gear.activeNext' : 'meta.gear.ownedReady') : t('meta.gear.unlockHint', { hood: unlockHood(id) });
     detAct.disabled = !owned || (equipped && lvl >= max);
     detAct.classList.toggle('is-need', owned && equipped && lvl < max && coins < cost);
     detAct.textContent = !owned ? t('meta.gear.locked') : !equipped ? t('meta.gear.equip') :
       lvl >= max ? t('meta.gear.max') : t('meta.gear.upgrade', { n: cost });
   }
-  // Stat preview: current value -> next level (owned items only). Locked items show their level-1 values.
+  // Alternatives compare with the equipped slot. An equipped item previews its next upgrade.
   function renderStatRows(id, lvl, owned) {
-    var max = M.CFG.gear.maxLevel, keys = Object.keys(M.ITEMS[id].stats), cur = M.itemStats(id, Math.max(1, lvl));
-    var nxt = M.itemStats(id, Math.min(max, lvl + 1));
-    detStats.innerHTML = keys.map(function (k) {
-      var to = !owned || lvl >= max ? '' : '<i>→</i><b class="is-next">' + pct(nxt[k]) + '</b>';
-      return '<div class="meta-gd-row"><span>' + t('meta.stat.' + k) + '</span><b>' + pct(cur[k]) + '</b>' + to + '</div>';
+    var equipped = M.equippedIn(slotOf(sel).id), upgrading = equipped === id;
+    var cur = M.itemStats(equipped, M.itemLevel(equipped));
+    var next = M.itemStats(id, upgrading ? Math.min(M.CFG.gear.maxLevel, lvl + 1) : Math.max(1, lvl));
+    var keys = STAT_KEYS.filter(function (k) { return cur[k] || next[k]; });
+    var heading = upgrading ? 'exp.gear.upgrade' : 'exp.gear.compare';
+    detStats.innerHTML = '<p class="meta-gd-hint">' + t(heading, { name: t('meta.item.' + equipped) }) + '</p>' + keys.map(function (k) {
+      var to = upgrading && lvl >= M.CFG.gear.maxLevel ? '' : '<i>→</i><b class="is-next">' + pct(next[k] || 0) + '</b>';
+      return '<div class="meta-gd-row"><span>' + t('meta.stat.' + k) + '</span><b>' + pct(cur[k] || 0) + '</b>' + to + '</div>';
     }).join('');
     detStats.classList.toggle('is-locked', !owned);
   }

@@ -3,15 +3,14 @@
 // It owns its DOM: a stylesheet, the objective row under the HUD, markers for crates, the civilian, the booster and
 // terminals, night and rain tints for run modifiers, and a panel in #scr-results (objective, bonus, unlock previews;
 // the star goals are drawn by screens.js from P.Objectives.goals).
-// Telemetry: one 'objective' event per level when its outcome is final.
 P.ObjectivesHud = (function () {
-  var H = {}, el = {}, marks = [], lastSim = null, startT = 0, reported = null, resSim = null;
+  var H = {}, el = {}, marks = [], lastSim = null, startT = 0, resSim = null;
   var IN_RUN = { play: 1, storyRun: 1, exit: 1, cards: 1, chest: 1, paused: 1, down: 1 };
   var CSS = [
     '.obj-row{position:absolute;left:12px;right:12px;z-index:5;pointer-events:none;background:rgba(20,21,31,.74);color:#F4EBDD;',
     'border-radius:12px;padding:6px 10px;font:600 calc(12px * var(--ui-text, 1))/1.25 var(--body)}',
     '.obj-tag{display:inline-block;background:#E9A23B;color:#14151F;border-radius:4px;padding:0 5px;margin-right:6px;font-size:calc(10px * var(--ui-text, 1))}',
-    '.obj-row.ok .obj-tag{background:#5BB37A}.obj-row.bad .obj-tag{background:#C94A3A}',
+    '.obj-row.ok .obj-tag{background:#5BB37A}.obj-row.missed .obj-tag{background:#D4C9B8}',
     '.obj-line{opacity:.85;margin-left:4px}',
     '.obj-bar{height:4px;background:rgba(244,235,221,.2);border-radius:2px;margin-top:5px;overflow:hidden}',
     '.obj-fill{display:block;height:100%;width:0;background:#E9A23B;transition:width var(--m-enter) linear}',
@@ -30,9 +29,7 @@ P.ObjectivesHud = (function () {
     '.obj-rain.still{animation:none}',
     '.obj-res{margin:8px 0;padding:10px 12px;background:rgba(20,21,31,.06);border-radius:10px;font:calc(14px * var(--ui-text, 1))/1.35 var(--body);color:#14151F}',
     '.obj-res h4{margin:0 0 4px;font-size:calc(14px * var(--ui-text, 1));letter-spacing:.06em;opacity:.7}',
-    '.obj-chips{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}',
-    '.obj-chip{border-radius:999px;padding:2px 8px;font-size:calc(14px * var(--ui-text, 1));background:rgba(20,21,31,.12)}',
-    '.obj-chip.on{background:#E9A23B;color:#14151F}',
+    '.obj-res-summary{color:#E4DAC9;font:700 calc(13px * var(--ui-text, 1))/1.3 var(--body);margin:5px 0;overflow-wrap:anywhere}',
     '.obj-un{display:flex;gap:6px;align-items:baseline;margin-top:3px}.obj-un b{font-size:calc(14px * var(--ui-text, 1));opacity:.7;min-width:72px}',
     '.obj-un em{font-style:normal;opacity:.8;font-size:calc(14px * var(--ui-text, 1))}',
     '.hc-plan{margin-top:6px;font:600 calc(14px * var(--ui-text, 1))/1.3 var(--body);opacity:.95}',
@@ -46,6 +43,7 @@ P.ObjectivesHud = (function () {
   }
   function tx(k, v) { return P.t(k, v); }
   function show(node, on) { node.style.display = on ? '' : 'none'; }
+  function updateText(node, text) { if (node.textContent !== text) node.textContent = text; }
   function still() { return !!(P.Settings && P.Settings.reduceMotion); }
 
   // Lazy DOM build (phone must exist). Idempotent.
@@ -73,45 +71,66 @@ P.ObjectivesHud = (function () {
     return marks[i];
   }
 
-  // Markers: each unfinished item on screen sits at its point. Off screen, it sticks to the nearest edge with its distance.
+  function nextFishingLine(items, hero) {
+    var next = null, best = Infinity;
+    items.forEach(function (item) {
+      if (item.done) return;
+      var d = Math.hypot(item.x - hero.x, item.y - hero.y);
+      if (d < best) { best = d; next = item; }
+    });
+    return next ? [next] : [];
+  }
+
+  // Markers: a priority fishing line on the bridge, or each unfinished item for other objectives.
   function drawMarkers(sim) {
+    var R = P.Render;
+    if (!R || !R.cam || !P.Fx || R.cam !== P.Fx.cam) {
+      marks.forEach(function (node) { show(node, false); });
+      return;
+    }
     var items = P.Objectives.items(sim), n = 0, h = sim.hero, c;
-    var W = 390, top = 130, bot = 800, m = 24;
+    if (sim.obj && sim.obj.id === 'collect.cut') items = nextFishingLine(items, h);
+    if (P.MilestoneFx) items = P.MilestoneFx.markers(sim, items);
+    var hud = P.Speech && P.Speech.domRect && P.Speech.domRect('#hud');
+    var W = 390, top = hud ? Math.max(130, hud.y + hud.h + 18) : 130, bot = 800, m = 24;
     items.forEach(function (it) {
       var p, x, y, off, d, node, ch, letter;
       if (it.done) return;
-      p = P.Render && P.Render.toScreen ? P.Render.toScreen(it.x, it.y) : null;
+      p = R.toScreen(it.x, it.y);
       if (!p) return;
       x = p.x; y = p.y;
       off = x < m || x > W - m || y < top || y > bot;
       x = Math.max(m, Math.min(W - m, x)); y = Math.max(top, Math.min(bot, y));
       node = mark(n++);
+      show(node, true);
       node.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
       ch = it.label || it.kind;   // the label names the variant: Hat (cut), Panjur (gate), Araba (cart)
-      letter = tx('obj.marker.' + ch).charAt(0);
-      node.textContent = letter;
-      node.className = 'obj-mark' + (off ? ' edge' : '');
+      letter = it.required ? '◆' : tx('obj.marker.' + ch).charAt(0);
+      var cls = 'obj-mark' + (off ? ' edge' : '') + (it.required ? ' required' : ''), distance = '';
       if (off) {
         d = Math.round(Math.hypot(it.x - h.x, it.y - h.y));
-        node.innerHTML = '';
-        node.appendChild(document.createTextNode(letter));
-        node.appendChild(make('i', null, tx('obj.marker.m', { n: d })));
+        distance = tx('obj.marker.m', { n: d });
+      }
+      if (node.className !== cls || node.textContent !== letter + distance) {
+        node.className = cls; node.textContent = letter;
+        if (distance) node.appendChild(make('i', null, distance));
       }
     });
-    for (c = n; c < marks.length; c++) marks[c].style.transform = 'translate(-999px,-999px)';
+    for (c = n; c < marks.length; c++) show(marks[c], false);
   }
 
   function updateRow(sim, st) {
     var cls = 'obj-row';   // placed by the HUD layout (row 2); no per-frame top (AUDIT-7 U1)
     if (st.state === 'done') cls += ' ok';
-    if (st.state === 'failed') cls += ' bad';
+    if (st.state === 'failed') cls += ' missed';
     if (st.hp !== null && st.hp < 0.35) cls += ' warn';
-    if (lastSim !== sim) { lastSim = sim; startT = performance.now(); reported = null; }
+    if (lastSim !== sim) { lastSim = sim; startT = performance.now(); }
     if (performance.now() - startT < 2600) cls += ' obj-start';
     el.row.className = cls;
-    el.tag.textContent = st.state === 'done' ? tx('obj.state.done') : st.state === 'failed' ? tx('obj.state.failed') : tx('obj.tag');
-    el.title.textContent = tx(st.title);
-    el.line.textContent = tx(st.line, st.vars);
+    updateText(el.tag, st.state === 'done' ? tx('obj.state.done') : st.state === 'failed' ? tx('obj.state.failed') : tx('obj.tag'));
+    updateText(el.title, tx(st.title));
+    updateText(el.line, st.state === 'failed' || st.state === 'done' ? '' : tx(st.line, st.vars));
+    show(el.bar, st.state !== 'failed' && st.state !== 'done');
     el.fill.style.width = (Math.max(0, Math.min(1, st.frac || 0)) * 100).toFixed(1) + '%';
     show(el.row, true);
   }
@@ -121,45 +140,34 @@ P.ObjectivesHud = (function () {
     show(el.dark, !!(on && mod.dark));
     show(el.rain, !!(on && mod.id === 'rain'));
     el.rain.className = 'obj-rain' + (still() ? ' still' : '');
-    if (on) { el.mod.textContent = tx('hmod.' + mod.id + '.name'); show(el.mod, true); } else show(el.mod, false);
+    if (on) { updateText(el.mod, tx('hmod.' + mod.id + '.name')); show(el.mod, true); } else show(el.mod, false);
   }
 
-  function telemetry(sim, st) {
-    var key = sim.seed + ':' + sim.levelIndex + ':' + st.state;
-    if (st.state === 'active' || reported === key || !P.Tel) return;
-    reported = key;
-    P.Tel.log('objective', { level_id: sim.levelInfo.id, objective: st.id, result: st.state, t_s: +sim.runT.toFixed(1) });
+  function resultBonus(host, st, won) {
+    var criteria = document.getElementById('res-criteria'), old = host.querySelector('.obj-res-summary');
+    if (old) old.remove();
+    if (!st || !criteria) return;
+    var key = !st.done ? 'obj.res.bonusNo' : won ? 'obj.res.bonusYes' : 'obj.res.bonusNeedsClear';
+    var text = tx('obj.res.title') + ' · ' + tx(key, { n: st.bonus });
+    criteria.after(make('p', 'obj-res-summary', text));
   }
 
-  // Results panel (under the star criteria that screens.js draws): the objective, its bonus, and what the next level brings.
-  function resultsPanel(sim, state) {
-    var host = document.getElementById('scr-results'), rn, box, st, won, list;
+  // Keep the optional reward by the clear result and the next unlocks below the run summary.
+  function resultsPanel(sim) {
+    var host = document.getElementById('scr-results'), rn, box, list;
     if (!host || resSim === sim) return;   // one panel per finished run (a retry is a new sim object)
     resSim = sim;
-    won = sim.mode === 'won';
-    st = P.Objectives.results(sim);
+    var won = sim.mode === 'won';
+    resultBonus(host, P.Objectives.results(sim), won);
+    Array.prototype.slice.call(host.querySelectorAll('.obj-res')).forEach(function (n) { n.remove(); });
+    if (!won || !P.Progress) return;
+    list = P.Progress.unlockPreview(sim.levelIndex);
+    if (!list.length) return;
     box = make('div', 'obj-res');
-    box.appendChild(make('h4', null, tx('obj.res.title')));
-    if (st) {
-      box.appendChild(make('div', null, tx(st.title) + ' · ' + tx(st.line, st.vars)));
-      box.appendChild(chipRow([[st.done ? tx('obj.res.bonusYes', { n: st.bonus }) : tx('obj.res.bonusNo'), st.done]]));
-    } else box.appendChild(make('div', null, tx('obj.res.none')));
-    if (won && P.Progress) {
-      list = P.Progress.unlockPreview(sim.levelIndex);
-      box.appendChild(make('h4', null, tx('unlock.title') + ' · ' + tx('unlock.next')));
-      if (!list.length) box.appendChild(make('div', null, tx('unlock.none')));
-      list.slice(0, 4).forEach(function (u) { box.appendChild(unlockRow(u)); });
-    }
+    box.appendChild(make('h4', null, tx('unlock.title') + ' · ' + tx('unlock.next')));
+    list.slice(0, 4).forEach(function (u) { box.appendChild(unlockRow(u)); });
     rn = document.getElementById('res-run');
-    Array.prototype.slice.call(host.querySelectorAll('.obj-res')).forEach(function (n) { n.parentNode.removeChild(n); });
     if (rn && rn.parentNode) rn.parentNode.insertBefore(box, rn.nextSibling); else host.appendChild(box);
-  }
-
-  // Chip row: [label, on] pairs. "on" chips are the goals that were met.
-  function chipRow(pairs) {
-    var row = make('div', 'obj-chips');
-    pairs.forEach(function (p) { row.appendChild(make('span', 'obj-chip' + (p[1] ? ' on' : ''), p[0])); });
-    return row;
   }
 
   // String lookup with a fallback: a key without text in the current or the EN table shows the raw id.
@@ -185,15 +193,15 @@ P.ObjectivesHud = (function () {
   H.update = function () {
     var dbg = window.P && P.debug, sim = dbg && dbg.sim, state = dbg && dbg.state, st;
     if (!build() || !sim || !sim.levelInfo) return;
-    if (state === 'results') { show(el.row, false); show(el.dark, false); show(el.rain, false); resultsPanel(sim, state); return; }
+    if (state === 'results') { show(el.row, false); show(el.dark, false); show(el.rain, false); show(el.layer, false); resultsPanel(sim); return; }
     if (!IN_RUN[state]) { show(el.row, false); show(el.dark, false); show(el.rain, false); show(el.mod, false); el.layer.style.display = 'none'; return; }
     el.layer.style.display = '';
     tints(sim, state);
     pulsePrompt(sim);
     st = P.Objectives.status(sim);
     if (!st) { show(el.row, false); el.layer.style.display = 'none'; return; }
-    updateRow(sim, st);
-    telemetry(sim, st);
+    if (st.state === 'failed' || st.state === 'done') show(el.mod, false);
+    if (sim.milestone && !sim.milestone.open) show(el.row, false); else updateRow(sim, st);
     drawMarkers(sim);
   };
 

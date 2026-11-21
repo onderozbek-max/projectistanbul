@@ -1,0 +1,16 @@
+{
+  "candidate": "ceda328957e8353ebd051a2be8ef5cdae16034000b436b8bc375d81fea4cdff4",
+  "retainedAcceptedMovement": {
+    "hero-motion.js": true,
+    "hero-footwork.js": true,
+    "hero-body.js": true,
+    "actor-rig.js": true,
+    "art-rig.js": true,
+    "hero-attacks.js": true
+  },
+  "changedUpperBodyAdapter": "HeroContact/Sprites connect existing authored movement to actual action; no lower gait rewrite.",
+  "nativeDialogueFiles": 28,
+  "approvedAssetFiles": 336,
+  "audioFiles": 482,
+  "basis": "Exact14 two-file change from13 (config-levels and sim/levels) affects L26 arrivals only. Accepted six rig/gait,28 native,336 asset and482 audio files remain baseline-identical. Not a claim all14 sim/config identical12."
+}

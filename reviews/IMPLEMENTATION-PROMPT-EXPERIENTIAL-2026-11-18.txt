@@ -1,0 +1,23 @@
+Implement the complete experiential-quality PRD packet for Project Istanbul's active JS prototype, first 30 Bölüms:
+
+Entry point: reviews/PRD-EXPERIENTIAL-QUALITY-2026-11-18.md
+Required appendices:
+- reviews/PRD-EXPERIENTIAL-COMBAT-2026-11-18.md
+- reviews/PRD-EXPERIENTIAL-SCENES-2026-11-18.md
+- reviews/PRD-EXPERIENTIAL-ACCEPTANCE-2026-11-18.md
+
+The owner approved the direction, including optional monetization and a fully viable free progression path. No level may require ads or payment. This is a whole-experience brief: E01–E14 are all in scope. Boss polish is one component, not a substitute for the rest.
+
+Read AGENTS.md and docs/handoff-codex.md first. Reconcile the packet with current source, the latest REVIEW-R1 checkpoint, the holistic H01–H18 brief, pass 7 and the latest native TR/EN dialogue audits. Retain working fixes. Do not restore outdated dialogue, choice commitment, evolution attribution, cover duration or boss behavior from older reports. Record each requirement as retain-and-verify, extend or missing before changing it.
+
+Complete the work autonomously through the acceptance stage. Use a coherent reference slice internally, then carry its quality across all required coverage: hero locomotion; all enemies actually spawned; 17 base weapons and 18 evolutions; all ten bosses; all 30 world-action beats; four major story sequences; interactions/health/state feedback; camera and sound; progression/pause/results/return; interruption/accessibility/performance; fair monetization presentation. Do not hand back only the reference slice or an impressive boss clip.
+
+Follow the specific staging and physical-action requirements. A bobbing sprite is not articulated locomotion, a floating arc is not a convincing knife swing, a progress ring is not a physical interaction, a colored overlay is not sufficient dramatic direction, and a passing assertion is not evidence of fun. Keep view and sim truthful and separate. Preserve responsive one-thumb controls and automatic attacks. Do not silently alter mechanics to fit an animation.
+
+Implement the scene lifecycle contract, including true event triggers, shared gameplay-clock suspension only for protected scenes, live control for ordinary world beats, coherent skip/retry/background behavior and exactly-once result settlement. Preserve current canonical knowledge, independent native dialogue, approved illustrated assets and first-clear choice/relationship facts. Do not add new plot branches or future-character spoilers.
+
+Validate using the acceptance appendix: meaningful focused tests, the final full suite in the background, earned free campaigns, boss power/policy comparisons, evolution impact evidence, all-30 pacing review, normal-speed indexed visual/audio captures, and physical phone/uncoached-player checks where actually available. Clearly label supplied/debug fixtures, missing hardware/player evidence and source provenance. Never substitute desktop emulation for phone proof or bot wins for player enjoyment. Finish independent work when an external evidence gate is unavailable; provide the exact remaining checklist.
+
+Deliver reviews/EXPERIENTIAL-IMPLEMENTATION-2026-11-18.md with the E01–E14 matrix, complete roster/level/scene coverage, evidence links, source/build manifest, tests and balance outcomes, deviations and honest limitations. Update REVIEW-R1 and necessary proposed decision/source-of-truth notes. State whether the build is ready for a fresh independent first-30 audit and list any blockers. Do not self-certify masterpiece/Hades parity or approval to expand.
+
+No new dependency, paid service, real ad/IAP integration, engine migration, automatic commit/push/merge, unsolicited messages to other chats or production beyond L30 is authorized by this handoff. Use the existing approved asset workflow. Prepare a concrete proposal only when genuinely outside the authorized scope; routine implementation choices do not need repeated approval. The expansion-readiness gate remains in effect.

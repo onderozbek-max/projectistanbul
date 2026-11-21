@@ -87,5 +87,80 @@ section('telemetry never changes the save', () => {
   M.onTel = (event, fields) => log.push(Object.assign({ event }, fields));
 });
 
+section('run outcomes survive replay and storage recovery', () => {
+  M.reset();
+  const win = { runId: 'test-win', outcome: 'win', won: true, levelIndex: 1, stars: 2, coins: 20, tally: {} };
+  const original = M.onResults(win), paid = M.state().coins;
+  ok(M.Save.read().pending.runId === win.runId && M.Save.read().unlocked === 2, 'win and unlock are saved with the recap');
+  const scrap = P.CFG.rewards.hurdaBase * P.CFG.rewards.firstClearMult;
+  ok(original.reward.hurda === scrap && M.Save.read().hurda === scrap, 'the saved Hurda payout matches the first-clear recap');
+  ok(M.onResults(win).reward.total === original.reward.total && M.state().coins === paid,
+    'a duplicate win callback pays once');
+  M.takePending();
+  const quit = { runId: 'test-quit', outcome: 'quit', levelIndex: 2, coins: 37, tally: { kills: 20 } };
+  M.onResults(quit);
+  const retained = Math.floor(37 * P.CFG.rewards.loseKeep);
+  ok(M.Save.read().coins === paid + retained && !M.Save.read().pending, 'quit keeps the amount promised by the pause menu');
+  M.onResults({ runId: 'test-restart', outcome: 'restart', levelIndex: 2, coins: 91 });
+  M.onResults(win);
+  M.onResults(quit);
+  ok(M.state().coins === paid + retained && M.state().hurda === scrap, 'restart discards its loot and replaying earlier outcomes adds nothing');
+  localStorage.setItem(M.Save.KEY, '{invalid');
+  const recovered = M.Save.read();
+  ok(recovered.unlocked === 2 && recovered.coins === paid + retained, 'a damaged primary save recovers the previous valid save');
+});
+
+section('page exit telemetry distinguishes finished and interrupted runs', () => {
+  const fs = require('node:fs'), vm = require('node:vm'), store = new Map(), page = {};
+  const sandbox = { P: { Settings: { installId: 'test-install' } },
+    window: { addEventListener: (event, handler) => { page[event] = handler; } },
+    document: { addEventListener() {} }, setTimeout, clearTimeout,
+    localStorage: { getItem: id => store.get(id), setItem: (id, text) => store.set(id, text) } };
+  vm.runInNewContext(fs.readFileSync(require.resolve('../js/view/telemetry.js'), 'utf8'), sandbox);
+  const T = sandbox.P.Tel, level = { id: 'H01-L1' }, saved = () => JSON.parse(store.get('nsi.tel.v1'));
+  const finished = T.startRun(1, level, 'normal');
+  T.log('level_start'); T.log('level_end', { result: 'win' });
+  ok(saved().length === 2, 'terminal events are saved immediately');
+  page.pagehide({ persisted: false });
+  ok(!saved().some(e => e.event === 'run_interrupted'), 'leaving after a finished run never records an interruption');
+  const live = T.startRun(1, level, 'normal');
+  T.log('level_start');
+  page.pagehide({ persisted: true });
+  ok(!saved().some(e => e.event === 'run_interrupted'), 'moving an open run to the browser back cache keeps it open');
+  page.pagehide({ persisted: false });
+  const rows = saved();
+  ok(finished !== live && rows.at(-1).event === 'run_interrupted' && rows.at(-1).run_id === live &&
+    new Set(rows.map(e => e.event_id)).size === rows.length, 'exiting the live run records an identifiable interruption once');
+});
+
+section('playtest report groups gameplay and ignores repeat downloads', () => {
+  const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+  const { execFileSync } = require('node:child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'istanbul-playtest-'));
+  try {
+    const input = path.join(dir, 'fixture.jsonl');
+    const run = { run_id: 'sample-attempt', build: 'fixture', level: 1, level_id: 'H01-L1', install_id: 'test-install', session_id: 'sample-session' };
+    const rows = [
+      { ...run, event: 'level_start' }, { ...run, event: 'first_move' },
+      { ...run, event: 'card_offered', cards: ['w:knife', 'w:nailgun'] }, { ...run, event: 'card_chosen', chosen: 'w:knife', t_s: 12 },
+      { ...run, event: 'level_end', result: 'win' },
+      { ...run, run_id: 'sample-next', level: 2, level_id: 'H01-L2', event: 'level_start' },
+      { ...run, run_id: 'sample-next', level: 2, level_id: 'H01-L2', event: 'run_interrupted' },
+      { event: 'bench_result', session_id: 'bench-private', build: 'fixture', art: 'raster', scene: 'crowd',
+        frame_ms: { p50: 22, p95: 39 }, cap_frame_ms: { p95: 39 }, peak_enemies_drawn: 200, enemy_cap: 200,
+        memory: { estimated_graphics_peak_bytes: 24 * 1024 * 1024 }, audio: [{ audible: ['run_calm', 'boss'] }] },
+    ].map((event, i) => ({ ...event, event_id: String(i), ts: new Date(i * 1000).toISOString() }));
+    fs.writeFileSync(input, rows.map(row => JSON.stringify(row)).join('\n') + '\n{bad\n');
+    const report = execFileSync(process.execPath, [require.resolve('./playtest-report.js'), input, input], { encoding: 'utf8' });
+    ok(/8 unique records.*8 duplicates and 2 unreadable/.test(report) && /separate: 1 scene results/.test(report), 'reports deduplicate copied records and separate benchmarks');
+    ok(/2\. Older or partial/.test(report) && /including 1 who started L2/.test(report), 'level outcomes keep progression linked within a session');
+    ok(/Median active play time to first L1 pick: 12\.0s/.test(report) && /\| w:knife \| 1 \| 1 \|/.test(report) &&
+      /\| H01-L2 \| normal \| 1 \| 0 \| 0 \| 0 \| 0 \| 1 \| 0 \|/.test(report), 'reports use offered cards, observed time and the recorded page exit');
+    ok(!report.includes(run.install_id) && !report.includes(run.run_id), 'report output omits individual install and run IDs');
+    ok(report.includes('| 1 | fixture | raster | crowd | 22 / 39 | 39 | 200 / 200 | 24.0 | Tracks overlapped |') &&
+      !report.includes('bench-private'), 'benchmark rows show the load, frame times and sampled music without printing session IDs');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 console.log(fails ? 'test-tel: ' + fails + ' failure(s), ' + passes + ' passed' : 'test-tel: all ' + passes + ' checks pass');
 process.exit(fails ? 1 : 0);

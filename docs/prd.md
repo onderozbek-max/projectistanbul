@@ -59,7 +59,7 @@ Mila/Ada as playable heroes, PvP, guilds, live events, Remote Config backend
 | Passives | Running Shoes, Leather Jacket, Work Gloves, Energy Drink, First Aid Kit (D-017) + Nazar Charm, Magnet (D-030) | weapons-skills.md §6.1 |
 | Evolutions | Five approved (D-030): Usta's Cleaver, Nail Storm, Cluster Bomb, Chain Cyclone, Wedding Finale | weapons-skills.md §7.1; content-catalog.md §10.3 |
 | Enemies | Walker, Runner, Crawler, Brute, Spitter, Exploder, Tourist, Fisherman (+ Elite variants) | content-catalog.md §5 |
-| Bosses | Stage-5 boss of each hood H01–H06: The Vatman (L5), Tour Guide (L10), The Bride (L15), Big Fisherman (L20), The Captain (L25), The Ticket Man (L30) | journey.md §2, §5 |
+| Bosses | Stage-5 boss of each hood H01–H06: The Vatman (L5), The Tower Keeper (L10), The Bride (L15), Big Fisherman (L20), The Captain (L25), The Ticket Man (L30) | journey.md §2, §5 |
 | Story | Level 1 cold open (in-engine); comic pages after each hood boss (D-028); bust pop-ins; Mom's calls; banter barks | story-presentation.md, narrative.md, level-001 |
 | Meta | Hero levels, Survival Skills (Arda + Kaan), Workshop weapon mastery (cap M5), 4 gear slots + merge, 4 currencies, stars, world route map | game-design.md §8.1–8.7 |
 

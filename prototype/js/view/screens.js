@@ -7,6 +7,7 @@ P.Screens = (function () {
   var OVERLAYS = ['scr-cards', 'scr-chest', 'scr-pause', 'scr-settings', 'scr-down'];
   S.show = function (id) {
     ALL.forEach(function (x) { P.UIMotion.screen($(x), x === id); });   // fade in and out (css/motion.css, ui-motion.js)
+    if (id === 'scr-title' && P.UI && P.UI.titleStart) P.UI.titleStart();
     if (P.UI && P.UI.setOverlay) P.UI.setOverlay(OVERLAYS.indexOf(id) >= 0);
   };
   S.hideAll = function () { S.show(null); };
@@ -17,7 +18,7 @@ P.Screens = (function () {
 
   // The item's icon in box d: the raster icon when it is decoded (D-066), else the code icon (art-raster-items.js iconInto retries).
   function artIcon(d, item, lv, px) {
-    if (P.ArtRasterItems) P.ArtRasterItems.iconInto(d, item, lv, px);
+    if (P.ArtRasterItems) P.ArtRasterItems.iconInto(d, item, item === 'knife' ? 0 : lv, px);
     else d.innerHTML = P.Icons.svg(item, px);
   }
   // lv: a weapon card shows its tier art at that level (D-066, raster on); the slots and the other cards show the clean icon.
@@ -66,11 +67,7 @@ P.Screens = (function () {
   }
   // Weapon slot tags: mastery chip plus one chip per picked mod. Null when there is nothing to show.
   function slotTags(s, item) {
-    if (!P.Progression.isWeapon(item)) return null;
-    var t = mk('div', 'slot-tags'), mc = masteryChip(s, item, null, 'chip small mastery');
-    if (mc) t.appendChild(mc);
-    ((s.hero.mods || {})[famOf(s, item, null)] || []).forEach(function (id) { t.appendChild(modChip(id, 'chip small mod-chip')); });
-    return t.childNodes.length ? t : null;
+    return P.BuildInspection.tags(s, item);
   }
   // Stat rows (name, from -> to) into el; shared by the level-up cards and the chest reveal.
   function fillStats(el, lines) {
@@ -85,21 +82,21 @@ P.Screens = (function () {
     });
     return el;
   }
-  // Chest reveal tags (inside #chest-info, shown after the open beat): mastery chip, MOD badge, chosen mod.
+  // The mastery chip describes a bonus independent of the choice in this crate.
   function chestTags(s, card, info) {
     var t = info.querySelector('.chest-tags');
     if (!t) { t = mk('div', 'chest-tags'); info.appendChild(t); }
     t.innerHTML = '';
     var mc = masteryChip(s, card.item, card.evo); if (mc) t.appendChild(mc);
-    if (card.fork) t.appendChild(mk('span', 'badge mod', P.t('card.mod')));
-    var pick = card.mods && card.mods[card.pick || 0];
-    if (pick) t.appendChild(modChip(pick, 'chip mod-chip chosen'));
   }
   // Card offer state (AUDIT-7 U3, CR-3). gen counts offers on screen; curOffer is the one on screen; Reroll is refused
   // while a pick beat runs. A pick hands onPick the card looked up by id in curOffer, and a pick whose offer was replaced
   // during the beat is dropped (no stale card is applied after a reroll).
-  var gen = 0, curOffer = null, canReroll = false, rr = null;
-  function setRerollLock(on) { if (rr) rr.disabled = !!on || !canReroll; }
+  var gen = 0, curOffer = null, canReroll = false, rr = null, focusButton = null;
+  function setRerollLock(on) {
+    if (rr) rr.disabled = !!on || !canReroll;
+    if (focusButton) focusButton.disabled = !!on || !canReroll;
+  }
   function liveCard(c) {
     var cs = curOffer ? curOffer.cards : [], i;
     for (i = 0; i < cs.length; i++) if (cs[i].id === c.id) return cs[i];
@@ -117,22 +114,15 @@ P.Screens = (function () {
       if (live) onPick(live);
     }, P.UIMotion.wait('--m-select'));
   }
-  // Fork options (AUDIT-7 U2): the mods as two 44 pt buttons in the card's chip line. A tap on one picks it and the card.
-  // Their descriptions are in the long-press sheet. onSub(i) runs on a sub-button click.
+  // Fork choices are separate buttons, with the effect visible before the pick.
   function modRow(c, onSub) {
     var wrap = mk('div', 'mods'), row = mk('div', 'mods-row'), opts = [];
-    function mark() {
-      opts.forEach(function (o, j) { var on = j === (c.pick || 0); o.classList.toggle('is-pick', on); o.setAttribute('aria-pressed', String(on)); });
-    }
+    function mark() { opts.forEach(function (o, j) { var on = j === c.pick; o.classList.toggle('is-pick', on); o.setAttribute('aria-pressed', String(on)); }); }
     (c.mods || []).forEach(function (id, i) {
-      var o = mk('span', 'mod-opt');
-      o.setAttribute('role', 'button'); o.tabIndex = 0;
+      var o = mk('button', 'mod-opt'); o.type = 'button';
       o.appendChild(mk('span', 'mod-name', P.t('mod.' + id)));
+      o.appendChild(mk('span', 'mod-desc', P.t('moddesc.' + id)));
       o.addEventListener('click', function (e) { e.stopPropagation(); onSub(i); mark(); });
-      o.addEventListener('keydown', function (e) {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault(); e.stopPropagation(); o.click();
-      });
       opts.push(o); row.appendChild(o);
     });
     mark(); wrap.appendChild(row);
@@ -183,6 +173,7 @@ P.Screens = (function () {
   }
   function cardEffect(c) {
     if (c.id[0] === 'f') return cardText(c);
+    if (c.id[0] === 'w' && (c.next === 1 || c.evo || c.fork)) return P.t('desc.' + c.item);
     var items = c.id[0] === 'w' ? weaponDeltas(c) : passiveDeltas(c);
     return items.length ? items.slice(0, 2).join(' · ') : cardText(c);
   }
@@ -218,7 +209,16 @@ P.Screens = (function () {
       if (!id) return null;
       name = P.t('item.' + id); need = evoNeeds(s, id);
       if (long) return { icons: [id], cls: need ? '' : 'ready', text: (P.Weapons.evoHint && P.Weapons.evoHint(c.item, s)) || name };
-      return need ? { icons: [id], cls: '', text: P.t('card.evoLeft', { name: name, n: need }) }
+      E = P.CFG.evolutions[id];
+      var missing = [];
+      if ((h.weapons[c.item] || 0) < P.CFG.maxItemLevel) {
+        var rank = P.t('card.needRank', { n: P.CFG.maxItemLevel });
+        missing.push(rank === 'card.needRank' ? P.t('evo.need.level', { lv: P.CFG.maxItemLevel }) : rank);
+      }
+      if (E.passive && !h.passives[E.passive]) missing.push(P.t('item.' + E.passive));
+      if (E.terrain && !P.Weapons6.seen(s, E.from, E.terrain)) missing.push(P.t('terrain.' + E.terrain));
+      if (E.terrain && !P.Weapons6.evoUnlocked(s, id)) missing.push(P.t('card.detailsUnlock'));
+      return need ? { icons: [id], cls: '', text: missing.join(' + ') }
         : { icons: [id], cls: 'ready', text: P.t('card.evoReady', { name: name }) };
     }
     if (c.id[0] === 'p') {
@@ -240,7 +240,7 @@ P.Screens = (function () {
     return ch;
   }
   function cardBadge(c, kind) {
-    var key = c.evo ? 'evo.label' : c.fork ? 'card.mod' : (c.next === 1 && kind !== 'f') ? 'ui.cards.new' : null;
+    var key = c.evo ? 'evo.label' : c.fork ? 'card.mod' : c.recipe ? 'card.recipePick' : (c.next === 1 && kind !== 'f') ? 'ui.cards.new' : null;
     return key ? mk('span', 'badge' + (c.evo ? ' evo' : c.fork ? ' mod' : ''), P.t(key)) : null;
   }
   // Long press (450 ms) opens the detail sheet and cancels the pick; a short tap picks (AUDIT-7 U2).
@@ -259,7 +259,8 @@ P.Screens = (function () {
   }
   // One level-up card: icon (with its badge), then the three text lines.
   function buildCard(s, c, i, scripted, box, onPick) {
-    var kind = c.id[0], b = document.createElement('button'), face = mk('div', 'card-face'), body = mk('div', 'card-body'), l1 = mk('div', 'card-l1');
+    var kind = c.id[0], fork = !!(c.fork && c.mods && c.mods.length), b = document.createElement(fork ? 'div' : 'button');
+    var face = mk('div', 'card-face'), body = mk('div', 'card-body'), l1 = mk('div', 'card-l1');
     b.className = 'card kind-' + kind + (scripted && i === 0 ? ' highlight' : '') + (c.fork ? ' fork' : '') + (c.evo ? ' evo' : '');
     b.style.animationDelay = P.UIMotion.stagger(i) + 'ms';
     face.appendChild(iconBox(c.item, 'icon', c.next));
@@ -268,22 +269,33 @@ P.Screens = (function () {
     if (kind !== 'f') l1.appendChild(pips(c.next - 1, c.next));
     body.appendChild(l1);
     body.appendChild(mk('div', 'fx', cardEffect(c)));
-    var chip = c.fork && c.mods && c.mods.length
+    if (fork) c.pick = -1;
+    var chip = fork
       ? modRow(c, function (k) { if (box.dataset.locked) return; c.pick = k; pickCard(box, b, c, onPick); })
       : cardChip(s, c);
     if (chip) body.appendChild(chip);
     b.appendChild(face); b.appendChild(body);
-    longPress(b, function () { showInfo(s, c); }, function () { pickCard(box, b, c, onPick); });
+    if (fork) {
+      var details = mk('button', 'link card-details', P.t('ui.cards.details'));
+      details.onclick = function () { if (!box.dataset.locked) showInfo(s, c, details); };
+      body.appendChild(details);
+    } else longPress(b, function () { showInfo(s, c, b); }, function () { pickCard(box, b, c, onPick); });
     return b;
   }
 
   // ---------- card detail sheet (AUDIT-7 U2): every stat row, the full text, the recipe or the fork's two options ----------
-  function hideInfo() { $('card-info').classList.add('hidden'); }
-  function showInfo(s, c) {
-    var root = $('card-info'), kind = c.id[0], chip = $('ci-chip'), desc = cardText(c), info, mc;
+  function hideInfo() { $('card-info').classList.add('hidden'); $('cards-content').inert = false; }
+  function showInfo(s, c, anchor) {
+    var root = $('card-info'), kind = c.id[0], chip = $('ci-chip'), desc = cardText(c), close = $('btn-ci-close'), info, mc;
     $('ci-type').textContent = P.t('card.type.' + kind) + (c.fork ? ' · ' + P.t('card.mod') : '');
     $('ci-name').textContent = P.t('item.' + c.item);
     if (c.evo) desc = P.t('evo.from', { from: P.t('item.' + c.evo), to: P.t('item.' + c.item) }) + '\n' + desc;
+    if (kind === 'w') {
+      var category = P.Stats.categoryOf(c.item), tag = P.Weapons.tagOf(c.item);
+      if (category) desc += '\n' + P.t('card.training.' + category);
+      if (tag) desc += ' · ' + P.t('card.impact.' + tag);
+      desc += '\n' + P.t(P.Combat.isHeavy(c.item) ? 'card.heavy.yes' : 'card.heavy.no', { perk: P.t('tree.str.1.name') });
+    }
     (c.mods || []).forEach(function (id) { desc += '\n' + P.t('mod.' + id) + ': ' + P.t('moddesc.' + id); });
     $('ci-desc').textContent = desc;
     fillStats($('ci-stats'), P.Progression.statLines(c));
@@ -291,20 +303,27 @@ P.Screens = (function () {
     mc = masteryChip(s, c.item, c.evo, 'chip mastery'); if (mc) chip.appendChild(mc);
     info = chipInfo(s, c, true);
     if (info) chip.appendChild(document.createTextNode((mc ? ' ' : '') + info.text));
-    $('btn-ci-close').onclick = hideInfo;
-    root.onclick = function (e) { if (e.target === root) hideInfo(); };
-    root.classList.remove('hidden');
+    function dismiss() { hideInfo(); if (anchor && anchor.isConnected) anchor.focus({ preventScroll: true }); }
+    close.onclick = dismiss;
+    root.onclick = function (e) { if (e.target === root) dismiss(); };
+    root.onkeydown = function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); dismiss(); }
+      if (e.key === 'Tab') { e.preventDefault(); close.focus({ preventScroll: true }); }
+    };
+    $('cards-content').inert = true; root.classList.remove('hidden'); close.focus({ preventScroll: true });
   }
 
   S.buildSlots = function (s, container, split) {
     container.innerHTML = '';
     var h = s.hero, add = function (item, lv) {
-      var d = document.createElement('div'); d.className = 'slot' + (item ? ' filled' : '');
+      var d = document.createElement(item ? 'button' : 'div'); d.className = 'slot' + (item ? ' filled' : '');
       if (item) {
-        d.classList.add(P.Progression.isWeapon(item) ? 'kind-w' : 'kind-p'); artIcon(d, item, 0, 28);
+        d.classList.add(P.Progression.isWeapon(item) ? 'kind-w' : 'kind-p');
+        var icon = mk('span', 'slot-icon'); d.appendChild(icon); artIcon(icon, item, 0, 28);
         d.title = P.t('item.' + item);
         var sm = document.createElement('small'); sm.textContent = lv; d.appendChild(sm);
         var tags = slotTags(s, item); if (tags) d.appendChild(tags);
+        P.BuildInspection.bind(d, s, item, container);
       }
       container.appendChild(d);
     };
@@ -319,8 +338,10 @@ P.Screens = (function () {
   };
 
   S.showCards = function (s, offer, onPick, onReroll) {
-    gen++; curOffer = offer; hideInfo();   // a new offer on screen: picks from the previous one are dropped (CR-3)
+    var sameScroll=$('scr-cards').scrollTop,samePlan=$('cards-plan')&&$('cards-plan').open,freshOffer=curOffer!==offer; gen++; curOffer = offer; hideInfo();   // a new offer on screen: picks from the previous one are dropped (CR-3)
     $('cards-title').textContent = P.t('lvb.title', { n: s.level });
+    var step = P.UIProgress.liveRecipe(P.Progression.buildState(s), offer);
+    $('cards-recipe').classList.toggle('hidden', !step); $('cards-recipe').textContent = step ? P.t('pause.focus', { step: step }) : '';
     $('cards-sub').textContent = P.t('ui.cards.sub', { n: s.level }) + ' · ' + P.t('ui.cards.hold');
     $('cards-tut').classList.toggle('hidden', !offer.scripted);
     var box = $('cards'); box.innerHTML = ''; delete box.dataset.locked; box.classList.remove('has-pick');
@@ -330,16 +351,26 @@ P.Screens = (function () {
     rr.textContent = P.t('ui.cards.reroll', { n: s.rerolls });
     rr.disabled = !canReroll;
     rr.onclick = function () { if (box.dataset.locked || !canReroll) return; onReroll(); };   // refused during a pick beat
-    var ad = $('btn-reroll-ad');
-    ad.innerHTML = ''; ad.appendChild(document.createTextNode(P.t('ui.cards.rerollAd')));
-    var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = P.t('ui.cards.ad'); ad.appendChild(tag);
-    ad.title = P.t('ui.res.notInProto');
+    focusButton = $('btn-reroll-focus');
+    if (focusButton) {
+      var target = canReroll && P.Progression.focusCandidate(s);
+      var focus = target && !offer.cards.some(function (c) { return c.id === target.id; }) && s.recipeFocus;
+      focusButton.classList.toggle('hidden', !focus);
+      focusButton.disabled = !focus;
+      if (focus) {
+        var key = target.evo || target.id[0] === 'p' ? 'ui.cards.focusItem' : 'ui.cards.focusRank';
+        focusButton.textContent = P.t(key, { item: P.t('item.' + target.item), rank: target.next });
+      }
+      focusButton.onclick = function () { if (focus && !box.dataset.locked && canReroll) onReroll(focus); };
+    }
     var bp = $('cards-build'); bp.innerHTML = '';
     var cap = document.createElement('p'); cap.className = 'caption';
     cap.textContent = P.t('ui.cards.build', { w: Object.keys(s.hero.weapons).length, p: Object.keys(s.hero.passives).length });
     var slots = document.createElement('div'); slots.className = 'slots';
     bp.appendChild(cap); bp.appendChild(slots); S.buildSlots(s, slots, true);
+    P.ExperienceUI.cards(s, bp, function () { S.showCards(s, offer, onPick, onReroll); });if(!freshOffer&&$('cards-plan'))$('cards-plan').open=samePlan;
     S.show('scr-cards');
+    if(freshOffer){$('scr-cards').scrollTop=0;$('cards-title').tabIndex=-1;$('cards-title').focus({preventScroll:true});}else $('scr-cards').scrollTop=sameScroll;
   };
 
   // {hood, n (district number), s (stage)} for journey-aware labels.
@@ -351,10 +382,18 @@ P.Screens = (function () {
 
   S.showPause = function (s) {
     $('pause-level').textContent = P.t('ui.pause.level', S.levelVars(s, { t: P.UI.fmt(s.runT) }));
+    var step = P.UIProgress.liveRecipe(P.Progression.buildState(s)), goal = P.UI.routeContext(s);
+    $('pause-objective').textContent = goal || P.t(s.levelIndex <= 30 ? 'slice.goal.' + s.levelIndex : 'route.exit');
+    $('pause-health').textContent = P.t('pause.health', { hp: Math.ceil(s.hero.hp), max: Math.round(s.hero.maxHp) });
+    $('pause-recipe').classList.toggle('hidden', !step);
+    $('pause-recipe').textContent = step ? P.t('pause.focus', { step: step }) : '';
+    $('pause-options').open = false;
     $('pause-quit-note').textContent = P.t('ui.pause.quitNote', { p: S.keepPct() });
     $('btn-export').classList.toggle('hidden', !S.devTools());
-    S.buildSlots(s, $('pause-build'), false);
+    S.buildSlots(s, $('pause-build'), true);
+    if (P.ExperienceUI) P.ExperienceUI.pause(s);
     S.show('scr-pause');
+    $('btn-resume').focus({ preventScroll: true });
   };
 
   // Settings rows (AUDIT-6 F5). Every change persists, pushes to the live hooks (P.applySettings) and redraws the list.
@@ -397,6 +436,15 @@ P.Screens = (function () {
     row(P.t('ui.set.subs'), toggle('subs'));
     row(P.t('ui.set.reduceMotion'), toggle('reduceMotion'));
     row(P.t('ui.set.reduceFlash'), toggle('reduceFlash'));
+    var colors = document.createElement('select');
+    colors.className = 'color-vision'; colors.setAttribute('aria-label', P.t('ui.set.colorVision'));
+    P.SettingSteps.colorVision.forEach(function (key) {
+      var option = mk('option', '', P.t('ui.set.colorVision.' + key));
+      option.value = key; colors.appendChild(option);
+    });
+    colors.value = P.Settings.colorVision;
+    colors.onchange = function () { P.Settings.colorVision = colors.value; P.saveSettings(); P.applySettings(); };
+    row(P.t('ui.set.colorVision'), colors);
     row(P.t('ui.set.shake'), step('shake', P.SettingSteps.shake, function (v) { return '%' + v; }));
     row(P.t('ui.set.textSize'), step('textSize', P.SettingSteps.text, function (v) { return '%' + v; }));
     row(P.t('ui.set.dmgNumbers'), toggle('dmgNumbers'));
@@ -409,39 +457,37 @@ P.Screens = (function () {
     S.show('scr-settings');
   };
 
-  // Cause card art (AUDIT-6 F4): the killer as a zombie figure from P.Sprites; a canister blast keeps the skull.
-  var KILLER_VARIANT = { walker: 0, diner: 1, runner: 3, crawler: 4 };
-  function killerArt(box, cause) {
-    box.innerHTML = '';
-    var sp = P.Sprites, v = KILLER_VARIANT[cause];
-    if (v === undefined && cause !== 'canister') v = 0;   // any other zombie kind reads as a walker; a blast keeps the skull
-    if (v === undefined || !sp || !sp.person || !sp.palette) { box.innerHTML = P.Icons.svg('skull', 44); return; }
-    var dpr = Math.min(window.devicePixelRatio || 1, 2), cv = document.createElement('canvas'), c, pal = sp.palette(v, true);
+  function killerArt(box, actor) {
+    box.innerHTML = P.Icons.svg('skull', 44);
+    if (!actor || !P.ArtRasterChars) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), cv = document.createElement('canvas'), c;
     cv.width = 72 * dpr; cv.height = 72 * dpr; cv.style.width = '72px'; cv.style.height = '72px';
     c = cv.getContext('2d'); c.scale(dpr, dpr);
-    sp.person(c, 36, 70, { u: 30, face: -1, phase: 0.4, zombie: true, skin: pal.skin, shirt: pal.shirt, pants: pal.pants,
-      hair: pal.hair, arms: 'reach', eyes: '#DDF5D0', blood: 1 });
-    box.appendChild(cv);
+    var marker = box.firstChild;
+    function paint(tries) {
+      if (box.firstChild !== marker) return;
+      if (P.ArtRasterChars.portrait(c, actor, 36, 71, 69)) box.replaceChildren(cv);
+      else if (tries < 12 && P.ArtRaster.enabled()) setTimeout(function () { paint(tries + 1); }, 100);
+    }
+    paint(0);
   }
-  // Down screen: cause card, then the revive and give-up choices in fixed labels (AUDIT-6 F4). The caller holds the
-  // 0.8 s beat before this runs (main.js). handlers: { revive(kind), giveUp() }.
   S.showDown = function (s, handlers) {
     $('down-survived').textContent = P.t('ui.down.survived', S.levelVars(s, { t: P.UI.fmt(s.runT) }));
     var dl = P.Dialogue.line('down.arda');   // view RNG only; a rotating Arda line above the cause card
     $('down-line').textContent = dl ? dl.t : '';
-    var cause = s.deathCause || 'walker';
-    killerArt($('down-icon'), cause);
-    $('down-cause').textContent = P.t('cause.' + cause);
-    // A cause with no tip string falls back to the generic tip (never a raw key on screen).
+    var cause = s.deathCause, actor = s.deathActor;
+    killerArt($('down-icon'), actor || (P.CFG.enemies[cause] && cause !== 'walker' ? { type: cause } : null));
+    var key = actor && actor.boss && actor.nameKey || 'cause.' + cause, name = P.t(key);
+    $('down-cause').textContent = name === key ? P.t('ui.down.causeUnknown') : name;
+    var pressureKey = 'cause.' + s.deathPressure, pressure = P.t(pressureKey);
+    $('down-pressure').textContent = pressure === pressureKey ? '' : P.t('ui.down.pressure', { cause: pressure });
     var tipKey = 'tip.' + cause, tip = P.t(tipKey);
     $('down-tip').textContent = tip !== tipKey ? tip : P.t('ui.down.tipGeneric');
-    $('btn-revive-ad').textContent = P.t('ui.down.reviveAd');
-    $('btn-revive-gold').textContent = P.t('ui.down.reviveGold');
+    $('btn-revive').textContent = P.t('ui.down.revive');
     $('down-note').textContent = P.t('ui.down.note');
-    $('btn-revive-ad').disabled = $('btn-revive-gold').disabled = s.reviveUsed;
-    $('btn-revive-ad').onclick = function () { handlers.revive('ad'); };
-    $('btn-revive-gold').onclick = function () { handlers.revive('gold'); };
-    $('btn-giveup').textContent = P.t('ui.down.giveUp', { p: S.keepPct() });
+    $('btn-revive').disabled = s.reviveUsed;
+    $('btn-revive').onclick = handlers.revive;
+    $('btn-giveup').textContent = P.t('ui.down.giveUp', { p: s.runMode === 'nightshift' ? 100 : S.keepPct() });
     $('btn-giveup').onclick = handlers.giveUp;
     $('down-revive').classList.toggle('hidden', !!(P.Modifiers && P.Modifiers.reviveBlocked && P.Modifiers.reviveBlocked(s)));   // daily Iron: no revive choices (AUDIT-7 CR-1)
     S.show('scr-down');
@@ -461,6 +507,7 @@ P.Screens = (function () {
     var ns = r.mode === 'nightshift';
     $('res-title').textContent = P.t(ns ? (r.win ? 'ui.ns.done' : 'ui.ns.over') : r.win ? 'ui.res.clear' : 'ui.res.fail');
     $('btn-next').classList.toggle('hidden', !r.win || !r.hasNext);
+    $('btn-res-growth').classList.toggle('hidden', !r.meta || !P.Meta || !P.Meta.hasGrowth || !P.Meta.hasGrowth());
     var st = $('res-stars'); st.innerHTML = ''; st.classList.toggle('hidden', ns);
     var sizes = r.stars.length > 3 ? [40, 52, 52, 40] : [48, 56, 48];
     if (!ns) sizes.forEach(function (sz, i) {
@@ -478,120 +525,75 @@ P.Screens = (function () {
       if (g.hp && !g.on && r.win) crit.appendChild(document.createTextNode(' ' + P.t('ui.res.endedAt', { n: r.hpPct })));
       if (i < goals.length - 1) crit.appendChild(document.createTextNode(' · '));
     });
+    if (P.ExperienceUI) P.ExperienceUI.result(r);
     var rw = $('res-rewards'); rw.innerHTML = '';
     function kv(parent, k, v) { var d = document.createElement('div'); d.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b = document.createElement('span'); b.textContent = v; d.appendChild(a); d.appendChild(b); parent.appendChild(d); return b; }
     var jetonTail = r.firstClear ? P.t('ui.res.firstClear') : r.win ? '' : P.t('ui.res.partial');
     P.UIMotion.countUp(kv(rw, P.t('ui.res.jeton'), ''), r.jeton, function (v) { return '+' + v + ' ' + jetonTail; });   // count-up, tap to finish
-    if (r.win) P.UIMotion.countUp(kv(rw, P.t('ui.res.hurda'), ''), r.hurda, function (v) { return '+' + v; });
+    if (r.hurda > 0) P.UIMotion.countUp(kv(rw, P.t('ui.res.hurda'), ''), r.hurda, function (v) { return '+' + v; });
     if (r.firstClear) kv(rw, P.t('ui.res.gear'), P.t('ui.res.commonGear'));
     if (P.UIProgress) P.UIProgress.results(r);   // level headline, power strip, run recap and the walk (ui-progress.js)
     if (P.ModesUI) P.ModesUI.results(r, rw, kv);   // Nightmare and Night Shift rows (view/modes-ui.js)
-    var db = $('btn-double'); db.innerHTML = ''; db.appendChild(document.createTextNode(P.t('ui.res.double')));
-    var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = P.t('ui.cards.ad') + ' · ' + P.t('ui.res.notInProto'); db.appendChild(tg);
-    db.classList.toggle('hidden', !r.win || ns);
     S.show('scr-results');
   };
 
-  // Mini Chest: wooden crate with brass bands (canvas). lid 0..1 = closed..open.
-  S.chestShape = function (c, X, Y, s, lid) {
-    var INK = '#14151F';
-    c.save(); c.translate(X, Y);
-    c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(0, 0.05 * s, 0.75 * s, 0.18 * s, 0, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#8B4A22'; c.strokeStyle = INK; c.lineWidth = Math.max(2, s * 0.06);
-    c.beginPath(); c.rect(-0.6 * s, -0.7 * s, 1.2 * s, 0.7 * s); c.fill(); c.stroke();
-    c.fillStyle = '#E9A23B'; c.fillRect(-0.6 * s, -0.42 * s, 1.2 * s, 0.1 * s); c.strokeRect(-0.6 * s, -0.42 * s, 1.2 * s, 0.1 * s);
-    c.fillRect(-0.12 * s, -0.5 * s, 0.24 * s, 0.24 * s); c.strokeRect(-0.12 * s, -0.5 * s, 0.24 * s, 0.24 * s);
-    c.save(); c.translate(0, -0.7 * s); c.rotate(-lid * 1.9 * 0.5); c.translate(0, -lid * 0.25 * s);
-    c.fillStyle = '#A65A2A'; c.beginPath(); c.moveTo(-0.62 * s, 0); c.lineTo(-0.62 * s, -0.22 * s); c.quadraticCurveTo(0, -0.5 * s, 0.62 * s, -0.22 * s); c.lineTo(0.62 * s, 0); c.closePath(); c.fill(); c.stroke();
-    c.fillStyle = '#E9A23B'; c.fillRect(-0.08 * s, -0.36 * s, 0.16 * s, 0.36 * s); c.strokeRect(-0.08 * s, -0.36 * s, 0.16 * s, 0.36 * s);
-    c.restore();
-    c.fillStyle = 'rgba(255,255,255,0.3)'; c.fillRect(-0.5 * s, -0.62 * s, 0.08 * s, 0.5 * s);
+  // One illustrated chest for ground pickups and the reward reveal.
+  S.chestShape = function (c, X, Y, s, lid, state) {
+    c.save();
+    var locked = state === 'guarded', art = P.ArtRasterItems;
+    if (locked) c.globalAlpha *= .58;
+    var ready = art && art.chest(c, X, Y, 1.58 * s, lid);
+    if (!ready) P.ConsumablesIcons.draw(c, 'star', X, Y - .38 * s, .47 * s, locked ? '#AFB4BD' : '#FFD166', '#14151F');
     c.restore();
   };
 
-  // Chest opening (wow beat): drop, 3 shakes, burst of rays, item rises, stats, tap to continue.
-  S.showChest = function (s, card, onDone) {
-    var scr = $('scr-chest'), cv = $('chest-canvas'), info = $('chest-info'), c = cv.getContext('2d');
-    var dpr = Math.min(window.devicePixelRatio || 1, 2), W = 390, H = 520, t0 = performance.now(), done = false, sh = 0;
-    cv.width = W * dpr; cv.height = H * dpr;
-    info.classList.remove('in');
+  function chestReward(s, card, info) {
     $('chest-icon').className = 'icon kind-' + (P.Progression.isWeapon(card.item) ? 'w' : card.id[0] === 'f' ? 'f' : 'p');
-    $('chest-icon').innerHTML = P.Icons.svg(card.item, 72);
+    artIcon($('chest-icon'), card.item, card.next, 72);
     $('chest-name').textContent = P.t('item.' + card.item);
     $('chest-level').textContent = card.next ? P.t('chest.level', { n: card.next }) : '';
     chestTags(s, card, info);
     fillStats($('chest-stats'), P.Progression.statLines(card));
-    var rm = (P.Settings && P.Settings.reduceMotion), OPEN = rm ? 0.1 : 1.5;
-    S.show('scr-chest'); P.Sfx.play('chestDrop');
-    function frame(now) {
-      if (done) return;
-      var t = (now - t0) / 1000;
-      c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
-      var cx = W / 2, cy = 475, drop = Math.min(1, t / 0.35), bounce = drop < 1 ? -300 * (1 - drop) * (1 - drop) : 0;
-      var shake = 0;
-      if (t > 0.45 && t < OPEN) { var k = Math.floor((t - 0.45) / 0.33); if (k !== sh) { sh = k; P.Sfx.play('chestShake'); } shake = Math.sin(t * 60) * (4 + k * 3); }
-      var open = t >= OPEN ? Math.min(1, (t - OPEN) / 0.25) : 0;
-      if (open > 0) {
-        if (!S._opened) { S._opened = true; P.Sfx.play('chestOpen'); setTimeout(function () { info.classList.add('in'); }, P.UIMotion.wait('--m-enter')); }
-        c.save(); c.translate(cx, cy - 60); c.rotate(t * 0.6); c.globalCompositeOperation = 'lighter';
-        for (var i = 0; i < 14; i++) {
-          c.rotate(Math.PI * 2 / 14); var g = c.createLinearGradient(0, 0, 0, -330);
-          g.addColorStop(0, 'rgba(255,209,102,' + (0.55 * open) + ')'); g.addColorStop(1, 'rgba(255,209,102,0)');
-          c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.lineTo(-26, -330); c.lineTo(26, -330); c.closePath(); c.fill();
-        }
-        c.restore();
-        var rg = c.createRadialGradient(cx, cy - 60, 0, cx, cy - 60, 140); rg.addColorStop(0, 'rgba(255,250,220,' + (0.9 * open) + ')'); rg.addColorStop(1, 'rgba(255,200,80,0)');
-        c.fillStyle = rg; c.fillRect(0, 0, W, H);
-      }
-      S.chestShape(c, cx + shake, cy + bounce, 110, open);
-      requestAnimationFrame(frame);
+  }
+  S.showChest = function (s, card, onDone) {
+    var scr = $('scr-chest'), cv = $('chest-canvas'), info = $('chest-info'), next = $('btn-chest-continue'), choices = $('chest-choices');
+    var actions = $('chest-actions'), hint = $('chest-choice-hint');
+    var showBeat = !P.Settings.reduceMotion, done = false, shown = false;
+    cv.classList.toggle('hidden', !showBeat); info.classList.remove('in'); info.inert = true; info.scrollTop = 0;
+    actions.classList.add('hidden'); hint.classList.toggle('hidden', !card.fork);
+    if (card.fork) card.pick = -1;
+    chestReward(s, card, info); choices.innerHTML = '';
+    next.disabled = !!card.fork;
+    if (card.fork) choices.appendChild(modRow(card, function (pick) { card.pick = pick; next.disabled = false; }));
+    function reveal() {
+      if (shown) return;
+      shown = true; scr.onclick = null; info.inert = false; info.classList.add('in'); actions.classList.remove('hidden'); P.Sfx.play('chestOpen');
+      if (card.fork) hint.tabIndex = -1;
+      (card.fork ? hint : next).focus({ preventScroll: true });
     }
-    S._opened = false;
-    requestAnimationFrame(frame);
-    // A tap during the beat jumps to the reveal and the next tap continues, so the beat never holds input for long.
-    scr.onclick = function () {
-      if (done) return;
-      var ready = OPEN + P.UIMotion.ms('--m-beat') / 1000;
-      if ((performance.now() - t0) / 1000 < ready) { t0 = performance.now() - ready * 1000; return; }
-      done = true; scr.onclick = null; P.Sfx.play('pick'); onDone(card);
+    S.show('scr-chest');
+    next.onclick = function () {
+      if (done || !shown || next.disabled) return;
+      done = true; P.Sfx.play('pick'); onDone(card);
     };
+    if (showBeat) animateChest(cv, reveal, scr, card.evo ? 1 : 2.3); else reveal();
   };
-
-  S.drawKeyArt = function (canvas) {
-    var dpr = Math.min(window.devicePixelRatio || 1, 2), w = 358, h = 472, c = canvas.getContext('2d'), sp = P.Sprites;
-    canvas.width = w * dpr; canvas.height = h * dpr; c.scale(dpr, dpr);
-    var g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#1B2A4A'); g.addColorStop(0.42, '#C2512E'); g.addColorStop(0.62, '#3A2033'); g.addColorStop(1, '#14151F');
-    c.fillStyle = g; c.fillRect(0, 0, w, h);
-    c.fillStyle = 'rgba(255,209,102,0.9)'; c.beginPath(); c.arc(250, 150, 34, 0, Math.PI * 2); c.fill();
-    c.fillStyle = '#1A1424';
-    c.beginPath(); c.moveTo(0, 230);
-    [[30, 220], [60, 228], [80, 200], [96, 200], [110, 150], [118, 120], [126, 150], [140, 200], [170, 210], [200, 185], [230, 200], [260, 192], [300, 210], [330, 196], [358, 205], [358, 300], [0, 300]].forEach(function (p) { c.lineTo(p[0], p[1]); });
-    c.fill();
-    c.fillStyle = '#14151F';
-    for (var x = -10; x < w; x += 52) { var bh = 120 + ((x * 37) % 70); c.fillRect(x, h - bh - 150, 50, bh + 20); }
-    c.fillStyle = 'rgba(255,190,110,0.75)';
-    for (var y = 0; y < 5; y++) for (var x2 = -4; x2 < w; x2 += 52) if (((x2 + 8) * 7 + y * 13) % 5 > 1) c.fillRect(x2 + 10 + (y % 2) * 16, h - 255 + y * 22, 8, 11);
-    c.fillStyle = '#2A2C35'; c.fillRect(0, h - 150, w, 150);
-    c.strokeStyle = '#8A8F98'; c.lineWidth = 2; c.beginPath(); c.moveTo(150, h - 150); c.lineTo(110, h); c.moveTo(208, h - 150); c.lineTo(248, h); c.stroke();
-    c.fillStyle = '#D7263D'; c.strokeStyle = '#14151F'; c.lineWidth = 3;
-    c.fillRect(150, h - 228, 120, 70); c.strokeRect(150, h - 228, 120, 70);
-    c.fillStyle = '#FFE2A8'; for (var k = 0; k < 4; k++) c.fillRect(158 + k * 28, h - 218, 20, 22);
-    c.fillStyle = '#14151F'; c.fillRect(150, h - 162, 120, 6);
-    var horde = [];
-    for (var i = 0; i < 22; i++) horde.push({ x: 20 + ((i * 71) % 320), y: h - 150 + 10 + ((i * 29) % 70), v: i % 8 });
-    horde.sort(function (a, b) { return a.y - b.y; });
-    horde.forEach(function (z, i) {
-      var u = 26 + (z.y - (h - 150)) * 0.25, pal = sp.palette(z.v, true);
-      sp.shadow(c, z.x, z.y, u);
-      sp.person(c, z.x, z.y, { u: u, face: z.x < 179 ? 1 : -1, phase: i, zombie: true, skin: pal.skin, shirt: pal.shirt, pants: pal.pants, hair: pal.hair, arms: 'reach', eyes: i % 5 ? '#DDF5D0' : '#FF5A3D', blood: 1 + i % 3 });
-    });
-    var hg = c.createRadialGradient(179, h - 40, 0, 179, h - 40, 90); hg.addColorStop(0, 'rgba(61,220,255,0.25)'); hg.addColorStop(1, 'rgba(61,220,255,0)');
-    c.fillStyle = hg; c.fillRect(80, h - 140, 200, 140);
-    c.strokeStyle = '#3DDCFF'; c.lineWidth = 3.5; c.beginPath(); c.ellipse(179, h - 22, 26, 10, 0, 0, Math.PI * 2); c.stroke();
-    sp.person(c, 179, h - 22, { u: 62, face: 1, phase: 0.6, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712', arms: 'knife', knifeA: -0.5 });
-    var v = c.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.75); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)');
-    c.fillStyle = v; c.fillRect(0, 0, w, h);
-  };
+  function animateChest(cv, reveal, scr, speed) {
+    var c = cv.getContext('2d'), dpr = Math.min(window.devicePixelRatio || 1, 2), W = 390, H = 520, t0 = performance.now(), sh = 0;
+    cv.width = W * dpr; cv.height = H * dpr; P.Sfx.play('chestDrop');
+    scr.onclick = function () { t0 = performance.now() - 1750; };
+    function frame(now) {
+      var t = (now - t0) * speed / 1000, drop = Math.max(0, 1 - t / 0.35), open = Math.min(1, Math.max(0, (t - 1.35) / 0.35));
+      c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+      if (!sh && t > .52 && t < 1.35) { sh = 1; P.Sfx.play('chestShake'); }
+      var halo = c.createRadialGradient(195, 395, 10, 195, 395, 170);
+      halo.addColorStop(0, 'rgba(255,237,185,' + (0.8 * open) + ')'); halo.addColorStop(1, 'rgba(255,200,80,0)');
+      c.fillStyle = halo; c.fillRect(0, 0, W, H);
+      S.chestShape(c, 195 + (sh && !open ? Math.sin(t * 49) * 6 : 0), 475 - 300 * drop * drop, 110, open);
+      if (open >= 1) reveal(); else requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
 
   return S;
 })();

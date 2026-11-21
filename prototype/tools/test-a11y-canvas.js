@@ -33,7 +33,7 @@ const sc = sandbox({ ArtRig: { TAU: Math.PI * 2, INK: '#14151F' }, ArtChars: {},
 sc.P.CFG = { feel: { enemyFlashGap: 0.34, hitFlash: 0.06 }, view: {} };
 load(sc, 'js/view/sprites.js');
 const S = sc.P.Sprites, Pset = sc.P.Settings;
-ok(S && typeof S.flashOk === 'function' && typeof S.flashForce === 'function', 'sprites.js exposes flashOk and flashForce');
+ok(S && typeof S.flashOk === 'function', 'sprites.js exposes the shared flash budget');
 clock = 10;
 const first5 = [0, 0, 0, 0, 0].map(() => S.flashOk(clock)).filter(Boolean).length;
 ok(first5 === 2, 'budget: five hit starts at one instant grant exactly 2, the hit pool (got ' + first5 + ')');
@@ -60,10 +60,13 @@ clock = 20; Pset.reduceFlash = true;
 ok(S.flashOk(20) === false && S.flashOk(20, 'moment') === false && S.flashStarts(20) === 0, 'Reduce flashing: flashOk refuses both pools and counts nothing');
 Pset.reduceFlash = false;
 
-// Forced starts (the heartbeat) count as hits, so two of them use up the hit pool; a moment still gets a slot.
-clock = 30; S.flashForce(30); S.flashForce(30.1);
-ok(S.flashOk(30.2) === false, 'forced heartbeat starts count as hits: two use up the hit pool');
-ok(S.flashOk(30.2, 'moment') === true && S.flashOk(30.3, 'moment') === false, 'forced heartbeat: a moment takes the last slot, and a fourth start is refused');
+// A low-HP warning stays steady when other effects already fill the flash budget.
+load(sc, 'js/view/fx.js');
+clock = 30; S.flashOk(clock); S.flashOk(clock); S.flashOk(clock, 'moment');
+clock += 0.1;
+ok(sc.P.Fx.heartbeat(clock) === 0.5 && S.flashStarts(clock) === 3, 'heartbeat stays steady when the hit and moment pools are full');
+clock += 1.6;
+ok(sc.P.Fx.heartbeat(clock) > 0.5 && S.flashStarts(clock) === 1, 'heartbeat resumes using one slot when the budget clears');
 
 // A crowd: 25 enemies hit at one instant get 2 white flashes, not 25.
 clock = 40;
@@ -110,8 +113,6 @@ function momentsMix(rf) {
   const MP = mc.P, MS = MP.Sprites, grantT = [];
   const okReal = MS.flashOk;                              // every grant is counted at the budget, with its pool kind
   MS.flashOk = (now, kind) => { const g = okReal(now, kind); if (g) grantT.push(clock); return g; };
-  const forceReal = MS.flashForce;
-  MS.flashForce = (now) => { forceReal(now); grantT.push(clock); };
   const sim = { t: 0, mode: 'play', levelIndex: 6, levelInfo: { hood: { name: 'X' } }, hero: { x: 0, y: 40, hp: 20, maxHp: 100 }, enemies: [] };
   let attempts = 0;
   for (let i = 0; i < 4 * 120; i++) {                       // 4 s at 1/120 s steps
@@ -120,6 +121,7 @@ function momentsMix(rf) {
     if (i % 2 === 0) { attempts++; MP.Moments.onEvent({ type: 'kill', crit: true, x: 0, y: 40 }, sim); }
     if (i % 3 === 0) { attempts++; MP.Moments.onEvent({ type: 'hit', boss: true, id: i, x: 0, y: 40, src: 'x' }, sim); }
     if (i % 5 === 0) { attempts++; MP.Moments.onEvent({ type: 'nearMiss', x: 0, y: 40 }, sim); }
+    MP.Fx.heartbeat(clock);
   }
   return { worst: countIn1s(grantT), grants: grantT.length, attempts, starts: MP.Moments.active().starts };
 }
@@ -135,7 +137,7 @@ function momentsMix(rf) {
 
 // Flash reserve (T4 part 15): a crowd flood of hit starts (six enemies, a prop, a hero hit and a blast every 1/120 s, each a new object)
 // against moment asks (crit kills, heavy hits and near misses, each on its own gap). Every ask is recorded with its pool. The window never
-// holds more than 3 starts or more than 2 hits. With no forced beats in the mix, a moment is refused only when a moment started in the second before, so each refused ask
+// holds more than 3 starts or more than 2 hits. A moment is refused only when a moment started in the second before, so each refused ask
 // has a moment start within the previous second. Under Reduce flashing nothing starts at all.
 function floodMix(rf) {
   const fx = sandbox({ ArtRig: { TAU: Math.PI * 2, INK: '#14151F' }, ArtChars: {}, ArtEnemies: { def: () => ({}) } });
@@ -282,6 +284,24 @@ const momRates = { 'low.pulseHz': momCfg.low.pulseHz, 'ripple.wobbleHz': momCfg.
 Object.keys(momRates).forEach((k) => { if (!(momRates[k] <= 3)) { fails++; console.log('FAIL moments rate above 3 Hz: ' + k + ' = ' + momRates[k]); } });
 ok(momTrig === 4, 'moments: the trig audit finds the four time terms (pulse, ripple wobble, ribbon spring, confetti flip) (got ' + momTrig + ')');
 
+const starScene = sandbox();
+['js/view/weapon-sil-prim.js', 'js/view/weapon-action-fx.js'].forEach(file => vm.runInContext(read(file), starScene, { filename: file }));
+function burstGeometry(grade, reduce) {
+  const dots = [], gradients = [];
+  const ctx = { beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, fill() {},
+    arc(x, y, radius) { dots.push(radius); },
+    createRadialGradient() { gradients.push(true); return { addColorStop() {} }; } };
+  starScene.P.Settings.reduceMotion = reduce;
+  starScene.P.WSil.drawFirework(ctx, { X: x => x, Y: y => y, ppm: 32 },
+    { x: 4, y: 5, r: 2, grade, col: 1, t: 0.34, T: 0.68 });
+  return { dots, gradients };
+}
+const earlyBurst = burstGeometry(1, false), largeBurst = burstGeometry(6, false), calmBurst = burstGeometry(6, true);
+ok(largeBurst.dots.length > earlyBurst.dots.length && calmBurst.dots.length < largeBurst.dots.length,
+  'higher-rank fireworks add stars and Reduce Motion thins the burst');
+ok([earlyBurst, largeBurst, calmBurst].every(mark => !mark.gradients.length && mark.dots.every(r => r > 0 && r < 4)),
+  'fireworks use local star points rather than broad flash discs');
+
 // Wiring: each flash source takes a budget slot, and each flicker reads a Reduce flag.
 const has = (f, re) => re.test(read(f));
 const count = (f, re) => (read(f).match(re) || []).length;
@@ -290,9 +310,9 @@ const wiring = [
   ['hero hit flash takes a budget slot', has('js/view/fx.js', /heroFlashGap && flashGo\(\)/)],
   ['edge pulse takes a budget slot', has('js/view/fx.js', /edgePulseGap && flashGo\(\)/)],
   ['blast disc takes a budget slot', has('js/view/fx.js', /if \(flashGo\(\)\) F\.parts\.push\(\{ kind: 'flash'/)],
-  ['burst disc takes a budget slot', has('js/view/weapons-fx2.js', /if \(P\.Fx\.flashGo\(\)\) flashes\.push/)],
-  ['the low-HP heartbeat is counted against the budget', has('js/view/render.js', /countHeartbeat\(performance\.now\(\) \/ 1000\)/)],
-  ['the heartbeat is steady under Reduce flashing', has('js/view/render.js', /reduceFlash\)? \? 0\.5/)],
+  ['rocket bursts use the star renderer', has('js/view/weapons-fx2.js', /fireworks\.forEach\(function \(f\) \{ P\.WSil\.drawFirework/)],
+  ['render reads the budgeted low-HP heartbeat', has('js/view/render.js', /P\.Fx\.heartbeat\(performance\.now\(\) \/ 1000\)/)],
+  ['the heartbeat is steady under Reduce flashing', has('js/view/fx.js', /reduceFlash\) return 0\.5/)],
   ['screen shake is zero under Reduce motion and scaled by the shake setting', has('js/view/fx.js', /var sh = rm \? 0 : c\.trauma \* c\.trauma \* shk;/)],
   ['camera kick is scaled by the shake setting', has('js/view/fx.js', /c\.ox \+= \(c\.kx \|\| 0\) \* shk/)],
   ['camera kick is off under Reduce motion', has('js/view/feel.js', /F\.kick = function[\s\S]{0,120}if \(rm\(\)\) return;/)],
@@ -308,10 +328,10 @@ const wiring = [
   // T4 part 13: signature moments. Each bright start takes a budget slot, and each Reduce flag is read where its moment starts.
   ['dash tear takes a budget slot', has('js/view/moments-screen.js', /S\.tear = function \(\) \{ if \(go\(\)\)/)],
   ['dash ghosts and tear are off under Reduce motion and Reduce flashing', has('js/view/moments.js', /if \(rm\(\) \|\| rf\(\)\) return;\s*M\.starts\.dash\+\+/)],
-  ['kill-streak mark takes a budget slot, and a waiting word retries through the budget', has('js/view/moments-screen.js', /if \(go\(\)\) showStreak\(n, true\)/) && has('js/view/moments-screen.js', /else if \(go\(\)\) showStreak\(S\.pending\.n, true\)/)],
-  ['kill-streak word is steady and wipe-free under Reduce flashing', has('js/view/moments-screen.js', /if \(rf\(\)\) \{ showStreak\(n, false\); return; \}/)],
-  ['kill-streak ink wipe is off under Reduce motion', has('js/view/moments-screen.js', /if \(wipe && !rm\(\)\) S\.wipe/)],
-  ['kill-streak word does not pop under Reduce motion or Reduce flashing', has('js/view/moments-screen.js', /sc = rm\(\) \|\| rf\(\) \? 1 :/)],
+  ['kill-streak mark takes a budget slot, and a waiting badge retries through the budget', has('js/view/moments-screen.js', /if \(go\(\)\) showStreak\(n\)/) && has('js/view/moments-screen.js', /else if \(go\(\)\) showStreak\(S\.pending\.n\)/)],
+  ['Reduce flashing displays the steady kill-streak badge without a flash budget slot', has('js/view/moments-screen.js', /if \(rf\(\)\) \{ showStreak\(n\); return; \}/)],
+  ['kill-streak badge uses fixed bounds and only fades out', has('js/view/moments-screen.js', /function drawWord[\s\S]*?h = 26,[\s\S]*?c\.globalAlpha = clamp01\(\(w\.T - w\.age\) \/ k\.fadeT\);/) &&
+    !has('js/view/moments-screen.js', /S\.wipe|function drawWord(?:(?!function drawConfetti)[\s\S])*c\.(scale|rotate)\(/)],
   ['crit burst takes a budget slot and at most one per gap', has('js/view/moments.js', /function crit\(ev\) \{[\s\S]{0,260}!go\(\)\) return;/)],
   ['crit burst is off under Reduce motion and Reduce flashing', has('js/view/moments.js', /function crit\(ev\) \{\s*var k = C\(\)\.crit;\s*if \(rm\(\) \|\| rf\(\)/)],
   ['impact starburst takes a budget slot and at most one per gap', has('js/view/moments.js', /function impact\(ev\) \{[\s\S]{0,260}!go\(\)\) return;/)],

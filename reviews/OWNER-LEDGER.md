@@ -12,8 +12,20 @@ Rules for reading it:
 
 ## 1. Working rules and preferences
 
+**2026-11-16, follow-up:** Owner asks for another pass so every dialogue is clear, carries
+the narrative and sustains dark humor/atmosphere and interest. Explicit permission to revise
+in-game lines and add necessary dialogue/comic content without disrupting play. Implemented
+as the local D-103 proposal; see `TR-NARRATIVE-PASS2-2026-11-16.md`.
+
+**2026-11-16:** Owner requests a complete audit and necessary revamp of Turkish dialogue:
+natural Turkish that makes sense, comedy informed by Leyla ile Mecnun / South Park /
+Rick and Morty without forcing it, and coherent comic-book exchanges that build involvement.
+Local revision and comparison: `TR-DIALOGUE-AUDIT-2026-11-16.md`; D-100 remains proposed.
+This is a new whole-script revision request, including previously approved wording where needed.
+
 | date | item | status | where |
 |---|---|---|---|
+| 2026-11-16 | Use current ImageGen art and place vehicles and scenery in the gameplay perspective across existing and future Bölüms. Retired artwork must stay out of ordinary play. | CAPTURED | docs/design-system.md §12.1; AGENTS.md |
 | 2026-11-08 | "Whatever you recommend" or "I pre-approve your suggestion" delegates the call. Decide, log the decision, and say so. | CAPTURED | docs/handoff-codex.md section 4 |
 | 2026-11-08 | Commit and push only when he says so. Pushing to his GitHub repo was allowed. Do not push to main or merge without asking. | CAPTURED | docs/handoff-codex.md sections 1 and 4 |
 | 2026-11-08 | He plays on an iPhone and does not read code. Phone problems come as screenshots and telemetry pastes. | CAPTURED | docs/handoff-codex.md sections 1 and 4 |
@@ -262,3 +274,43 @@ Rules for reading it:
 - Telemetry pasted on 2026-11-14 contains install and session identifiers and a device user-agent string. Do not commit those values.
 - No passwords, API keys or tokens were found in the owner messages.
 - reviews/owner-messages-archive.md (2026-11-14): the telemetry paste and the pasted assistant text are omitted, and marked in place. A scan of the archive found no tokens, passwords, keys or emails. The Apple team ID and the GitHub repo URL are kept as typed; the owner should decide whether they stay in the repo.
+
+### 2026-11-18 · English dialogue audit
+
+Owner: “can you now do the same audit for the english dialogue?”
+Applied the established whole-script clarity, continuity and restrained dark-comedy brief
+to native English dialogue. See `reviews/EN-DIALOGUE-AUDIT-2026-11-18.md`.
+
+### 2026-11-18 · Experiential quality PRD and optional monetization
+
+Owner: “i agree with you on everything you said including monetization push back you made.” Requested another detailed PRD for the implementation agent covering the ten discussed concerns and adjacent factors, with specific cutscene direction; this chat serves as creative game designer/strategist.
+
+Captured direction: expressive hero/enemy motion; physical object interactions; clear damage/healing/navigation; visible dramatic states on mute; distinct fair bosses; legible enemy roles; earned player/enemy progression; optional monetization with a viable independent free path; engaging action for every weapon; specific in-world story transitions. No level is designated as an ad/payment dependency. The owner requested the PRD here, not gameplay changes or a message to the running implementation chat.
+
+Delivered [the experiential PRD](PRD-EXPERIENTIAL-QUALITY-2026-11-18.md), required combat/scene/acceptance appendices and a [copy/paste implementation prompt](IMPLEMENTATION-PROMPT-EXPERIENTIAL-2026-11-18.txt). D-115 distinguishes approved direction from proposed detailed production choices. First-30 independent review and the expansion gate remain in effect.
+
+### 2026-11-18 · Animation effort after audit 8
+
+Owner reports visible progress in Arda's movement and asks whether additional refinement has sufficient value. He considers highly detailed regular-zombie animation low priority and says bosses should move with Arda's level of fine-grained detail. He agrees with the remaining nine-item audit responses, including the existing optional-monetization agreement. He has not sent new work to the implementation chat and asks what the next handoff should say.
+
+Captured preference: preserve Arda's gains and prioritize detailed boss acting; keep ordinary enemies understandable without a universal animation overhaul. Creative recommendation for the next pass: treat current hero locomotion as the working baseline with targeted defect repair, retain ordinary-enemy role/tell checks, complete the full interaction/health/weapon/level/progression/story corrections, and defer the three new gameplay proposals. The baseline/deferral are recommendations in response to his question, not a claim that he explicitly signed off every detail or that the game has final artistic acceptance.
+
+Updated [the execution brief](AUDIT8-IMPLEMENTATION-BRIEF-2026-11-18.md) and [single handoff prompt](IMPLEMENTATION-PROMPT-AUDIT8-2026-11-18.txt); D-117 records the priority. Documentation only; no runtime changes or messages to the implementation chat.
+
+
+### 2026-11-19 · End-to-end Turkish narrative direction
+
+Owner requested a complete Turkish script audit: an engaging story, causal clarity, balanced satire with **Leyla ile Mecnun and Gibi** as the current Turkish references, dialogue as a competitive advantage, compelling comic storytelling/artwork and high-quality reading effects. Creative freedom is authorized within the existing project scope. This latest Turkish reference pair supersedes the earlier Turkish South Park/Rick and Morty emphasis; it does not authorize imitation, guardrail changes or post-L30 production.
+
+[Audit, revisions, later blockers and verification limits](TR-END-TO-END-AUDIT-2026-11-19.md). Proposed D-121 records the implemented first-30/shared-content corrections. No commit/push/merge or expansion approval is implied.
+
+### 2026-11-19 · End-to-end English narrative direction
+
+Owner: “now do the same audit and improvements for english. the english versions vibes are southpark, rick and morty style from comedic point of view”. This carries forward the end-to-end story, causal clarity, compelling comic dialogue/art and reading-audio brief. English is authored natively from shared scene intent, with original satire and absurd reasoning; the Turkish references remain Leyla ile Mecnun / Gibi.
+
+[English audit, implemented revisions and verification limits](EN-END-TO-END-AUDIT-2026-11-19.md) · [complete before/after inventory](EN-END-TO-END-CHANGES-2026-11-19.md). Proposed D-122 records the first-30/shared-content pass, preserving the shared art/audio improvements and the later-production gate. No commit/push/merge is implied.
+
+
+### 2026-11-20 · Execute all of Audit11
+
+Owner supplied the complete pasted instruction, “Implement and verify the ENTIRE Audit11 across the existing first30 levels.” All seven concrete findings and affected reset/weapon/scene/interaction/progression/narrative scope are authorized for local implementation through inspection, revision and integrated verification. Routine internal milestones are not approval gates. Preserve current cast, Arda locomotion, native scripts, truthful geometry and saves; retain losses/outliers and separate technical, presentation and player validation. No beyond30 production, new dependency/service, paid purchases, engine migration, real monetization or commit/push/merge. [Implementation/evidence status](AUDIT11-IMPLEMENTATION-2026-11-20.md).

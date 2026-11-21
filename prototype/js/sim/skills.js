@@ -65,6 +65,7 @@ function tryDash(s, S, input) {
   if (m > 0.2) { dx /= m; dy /= m; } else {
     dx = h.fx; dy = h.fy; m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
   }
+  if (P.StreetWeapon) P.StreetWeapon.dashDrop(s, dx, dy);
   S.dash = { dx: dx, dy: dy, t: 0, T: D.time, speed: D.dist / D.time };
   S.nearMissDone = false;
   h.dashCd = dashCooldown(s); h.dashCdMax = h.dashCd; h.iframes = D.iframes; h.dashing = true;
@@ -103,10 +104,12 @@ function perkSlipstream(s, d) {
 
 function stepDash(s, S, dt) {
   var h = s.hero, d = S.dash;
+  var x = h.x, y = h.y;
   d.t += dt;
   var adv = Math.min(dt, d.T - (d.t - dt));
   h.x += d.dx * d.speed * adv; h.y += d.dy * d.speed * adv;
   clampHero(s);
+  if (s.kaanSupport) P.KaanSupport.dashPast(s, x, y);
   if (perkOn(s, 'pace.2')) perkSlipstream(s, d);
   if (d.t >= d.T) { S.dash = null; h.dashing = false; }
 }
@@ -429,7 +432,7 @@ P.Skills.hud = function (s) {
     frenzy: S.frenzyT > 0, frenzyFrac: Math.min(1, S.frenzyT / P.CFG.skills.frenzy.time), threshold: P.Skills.frenzyThreshold(s),
     streak: S.streak,
     active: { id: P.Skills.activeId(s), on: a.t > 0, onFrac: a.T > 0 ? a.t / a.T : 0,
-      ready: a.cd <= 0 && !(a.t > 0), cdFrac: a.cdT > 0 ? 1 - a.cd / a.cdT : 1 } };
+      ready: a.cd <= 0 && !(a.t > 0), cdFrac: a.cdT > 0 ? 1 - a.cd / a.cdT : 1, cdS: Math.ceil(Math.max(0, a.cd)) } };
 };
 
 // ---------- P.Status: applied by weapons; E2 uses speedMul / rooted in enemy movement ----------

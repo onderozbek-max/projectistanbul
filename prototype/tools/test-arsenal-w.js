@@ -116,7 +116,7 @@ function depthUnits() {
 // Synergy tags: every wfire and area-damage event carries a tag from P.CFG.tagNames (Lane A reads them).
 const TAGGED = ['wfire', 'swing', 'nailFire', 'canisterThrow', 'blast', 'clusterSplit', 'sledgeSlam', 'flaskShatter', 'poolBurn',
   'rocketBurst', 'sparkBurst', 'manholeBounce', 'scorchSizzle', 'torchJet', 'forgeStain', 'oltaCast', 'oltaSet', 'oltaSlam',
-  'oltaHaul', 'doorShove', 'doorSlam', 'cableArc', 'cableZap', 'extSpray', 'extTick', 'cleaverChop', 'cyclone', 'spearHit',
+  'oltaHaul', 'doorBash', 'doorSlam', 'cableArc', 'cableZap', 'extSpray', 'extTick', 'cleaverChop', 'cyclone', 'spearHit',
   'sawCatch', 'sawRev', 'sawGrind', 'sawStall', 'grinderStack', 'stormZap', 'netLink', 'lakeMerge', 'arcZap', 'areaHit', 'marbleHit'];
 function tagUnits() {
   const s = newSim(216, 11);

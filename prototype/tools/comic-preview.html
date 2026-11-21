@@ -109,6 +109,7 @@
 <script src="../js/view/art-rig.js"></script>
 <script src="../js/view/art-characters.js"></script>
 <script src="../js/view/portraits.js"></script>
+<script src="../js/view/comic-raster.js"></script>
 <script src="../js/view/comic-busts.js"></script>
 <script src="../js/view/comic-busts-hair.js"></script>
 <script src="../js/view/comic-busts-cast.js"></script>
@@ -319,6 +320,11 @@
     $('lang').textContent = 'Language: ' + P.lang.toUpperCase();
     document.documentElement.lang = P.lang;
   };
+  var initialPage = new URLSearchParams(location.search).get('page');
+  if (initialPage && Object.prototype.hasOwnProperty.call(P.Story.pages, initialPage)) {
+    $('pageSel').value = initialPage;
+    $('openPage').click();
+  }
 })();
 </script>
 </body>

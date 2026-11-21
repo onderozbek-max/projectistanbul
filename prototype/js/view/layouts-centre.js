@@ -4,14 +4,20 @@
 P.LayoutsCentre = (function () {
   var H = P.Props.h, PAL = ['#C0392B', '#2E6E8E', '#C9A227', '#2E7D4F'], GREEN = ['#2E7D4F', '#6A9E3A', '#7CB342'];
   var RECIPE = {};
+  var stopArt = P.ArtRaster && P.ArtRaster.enabled() ? new Image() : null;
+  if (stopArt) stopArt.src = new URL('../../assets/istiklal/istiklal_stop_shelter_railside.png', document.currentScript.src).href;
   function pal(v) { return PAL[v % PAL.length]; }
 
   RECIPE.tram_stop = function (c, X, Y, s) {
-    H.shadow(c, X, Y, 1.4 * s, 0.6 * s);
-    H.rc(c, X, Y, 2.8 * s, 2.4 * s, '#C9C2B0', 1.5);
-    H.rc(c, X, Y - 0.2 * s, 2.2 * s, 0.9 * s, '#9FC6D6', 1.5);
-    H.rc(c, X, Y - 0.85 * s, 2.8 * s, 0.25 * s, '#4A525C', 1.5);
-    H.rc(c, X - 1.0 * s, Y + 0.6 * s, 0.8 * s, 0.25 * s, '#7A5530', 1);
+    H.shadow(c, X, Y, 0.85 * s, 1.55 * s);
+    if (stopArt && stopArt.naturalWidth) {
+      c.drawImage(stopArt, 119, 10, 185, 608, X - 0.86 * s, Y - 3.00 * s, 1.65 * s, 4.55 * s);
+      return;
+    }
+    if (stopArt && P.StreetArt) { P.StreetArt.footprint(c, X, Y, 1.5 * s, 3.1 * s); return; }
+    H.rc(c, X, Y + 0.97 * s, 1.35 * s, 1.15 * s, '#B3CDD2', 1.5);
+    H.rc(c, X, Y - 1.03 * s, 1.57 * s, 3.64 * s, '#4A525C', 1.5);
+    H.ln(c, X, Y - 2.74 * s, X, Y + 0.65 * s, '#6B7580', 1.5);
   };
 
   RECIPE.tea = function (c, X, Y, s, v) {
@@ -56,6 +62,7 @@ P.LayoutsCentre = (function () {
   };
 
   RECIPE.shelter = function (c, X, Y, s) {
+    if (stopArt && stopArt.naturalWidth) { RECIPE.tram_stop(c, X, Y, s); return; }
     H.shadow(c, X, Y, 1.3 * s, 0.6 * s);
     H.box(c, X, Y, 2.6 * s, 1.6 * s, 0.9 * s, '#9FC6D6', '#4A525C');
     H.rc(c, X, Y - 1.2 * s, 2.8 * s, 0.3 * s, '#3A3E45', 1.5);
@@ -112,7 +119,10 @@ P.LayoutsCentre = (function () {
     'shelter', 'cart1', 'cart2', 'gate', 'grill', 'garden', 'garden1', 'drums', 'mooring'];
   SPECS.forEach(function (name) {
     var m = name.match(/(\d)$/), v = m ? +m[1] : 0, fn = RECIPE[name.replace(/\d$/, '')];
-    P.Props.reg('cm_' + name, function (c, X, Y, s) { fn(c, X, Y, s, v); });
+    P.Props.reg('cm_' + name, function (c, X, Y, s, o) {
+      if (P.StreetArt && P.StreetArt.cover(name.replace(/\d$/, ''), c, X, Y, s, o || {})) return;
+      fn(c, X, Y, s, v);
+    });
   });
   return { specs: SPECS };
 })();

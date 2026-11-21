@@ -105,7 +105,7 @@ section('Tackle & Stab in the sim', () => {
 
 section('Bond page strings: EN and TR for every key', () => {
   const keys = ['tree.page.bondOn', 'bond.kaan', 'bond.mila', 'bond.ada', 'bond.soon', 'bond.meter', 'bond.t25.name', 'bond.t25.desc', 'bond.t50.name',
-    'bond.t50.desc', 'bond.later.name', 'bond.later.desc', 'bond.hint', 'bond.joined', 'bond.gain', 'bond.reached', 'ars.ultNeedBond', 'ult.tackle',
+    'bond.t50.desc', 'bond.hint', 'bond.joined', 'bond.gain', 'bond.reached', 'ars.ultNeedBond', 'ult.tackle',
     'ult.tackle.name', 'ult.tackle.desc', 'ult.tackle.hud'];
   keys.forEach(k => ok(P.STR.tr[k] && P.STR.en[k], 'TR and EN text for ' + k));
 });

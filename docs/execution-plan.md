@@ -160,6 +160,22 @@ Workstreams are the owner's list, in the recommended order. Each task ends with 
 
 Order: T0 and T1 now; T2 next (owner pick); T3 and T4 follow the pick; T5 runs in parallel and needs only owner decisions. Risks: the art pick slips (mitigation: cap at three samples, one review round); effects hurt frame time (mitigation: budget set before T4, numbers in every packet).
 
+#### Combat animation and playtest analysis (2026-11-15)
+
+The owner named Hades as the look-and-feel reference for combat animation and weapon interactions. Start with a playable İstiklal comparison on the current prototype. Give Arda distinct poses for the Döner Knife and Nail Gun, align the pose, weapon effect, contact sound and enemy reaction, and show one existing weapon-environment interaction. Include a boss attack so players can read the warning and recovery. Compare phone-size clips at the same damage and attack timing. Watch whether players can identify the weapon, read the danger and explain the interaction during a real fight. Use that review to set the standard for the other weapons and later districts. Check crowded iPhone play, Reduce Motion and the existing flash limit.
+
+Alongside the run-outcome work, propose stable run and event IDs, reliable build and level labels, and explicit outcomes for quitting, restarting and interrupted sessions. Use the existing local exports to report the first-session steps, losses and quits by level section, upgrade choices out of offers, and whether players start another run. Report scripted benchmarks separately from ordinary play. Establish a baseline before testing combat changes with new players. Use their feedback alongside the event counts to explain why they stopped, continued or preferred a weapon.
+
+#### Independent review before redesigning Bölüms 31–100
+
+Review the current build of Bölüms 1–30 before starting Kapalıçarşı. Give Astra a specific build and a fresh save. Use the [prior gamer audit](../reviews/GAMER-AUDIT-L01-L30-2026-11-16.md), the [implementation record](../reviews/REVIEW-R1.md) and fresh uncoached iPhone sessions to check the decisions that later districts will inherit.
+
+- Check the full run from first move through boss, reward and next-run choice. Compare routes from each of the six districts. Can players find the required objective, feel the change in pace, understand what their actions unlocked and learn the boss through its attacks?
+- Check whether Arda's movement and enemy reactions distinguish weapons in crowds, whether ranks and evolutions change how a build plays, and whether combat, dialogue and cutscenes fit together at phone size.
+- Review the art and placement rules in ordinary play and cutscenes. Look at intended viewing angle, world anchors, and behavior when artwork is missing. Report observed phone performance, audio, controls and save recovery alongside the design findings.
+
+Each finding should identify the build, scene and player effect, with a recommendation and a way to verify it. Flag decisions that would force multiple districts to be rebuilt if deferred. Resolve and retest those on Bölüms 1–30 before starting 31–35. Record what can safely be polished later in the R1 review. Work on known issues in Bölüms 1–30 can proceed during the review.
+
 ## 5. Review Protocol
 
 ### 5.1 Files

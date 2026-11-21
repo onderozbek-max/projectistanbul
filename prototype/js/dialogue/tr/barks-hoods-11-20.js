@@ -8,12 +8,12 @@ Object.assign(P.DLG.tr, {
   ],
   "BK.hd11.2": [
     { t: "Sis suyun üstünde. Duvarlarda renk.", ok: 1 },
-    { t: "Pembe, sarı, mavi. Biri zevkli olmuş.", j: 1, ok: 1 },
+    { t: "Evler rengârenk. Benim yüzümün rengi kalmamış.", j: 1 },
     { t: "Kafe sandalyeleri merdivende dizili.", ok: 1 },
   ],
   "BK.hd11.3": [
-    { t: "Antika her yerde. Alıcı yok.", ok: 1 },
-    { t: "Raflar sokağı kapatmış. Sıkış bakalım.", j: 1, ok: 1 },
+    { t: "Antika eşyalar kaldırıma taşmış." },
+    { t: "Yan yanayım, yine geçemiyorum. Raflara yol veriyorum.", j: 1 },
     { t: "Mangal devrilmiş, ateş yayılıyor.", ok: 1 },
   ],
   "BK.hd11.4": [
@@ -23,38 +23,38 @@ Object.assign(P.DLG.tr, {
   ],
   "BK.hd11.5": [
     { t: "Balat iskelesi. Lamba hâlâ sallanıyor.", ok: 1 },
-    { t: "Yağmur iskelede. Ayaklar kayıyor.", ok: 1 },
+    { t: "İskele yağmurdan kaygan. Ayağını sağlam bas." },
     { t: "Eşya yağıyor. İndirim değil bu.", j: 1, ok: 1 },
   ],
   "BK.hd12.1": [
     { t: "Yenikapı'nın altı zifiri karanlık. Fenerim zayıf, ben de.", ok: 1 },
     { t: "Merdivenin başında biri dikiliyor. Kıpırdamıyor. Hiç.", ok: 1 },
-    { t: "Tünelde her ses yankılanıyor. Fısıldıyorum: fıs fıs.", ok: 1 },
+    { t: "Fısıltım bile yankılanıyor. Sessiz geçeyim." },
   ],
   "BK.hd12.2": [
     { t: "Yürüyen merdiven durmuş. Adı üstünde, yürüyorum.", j: 1, ok: 1 },
-    { t: "Fener altı metre aydınlatıyor. Ötesi korku filmi.", ok: 1 },
-    { t: "Gişe kapalı, turnike açık. İlk bedava metro yolculuğum.", ok: 1 },
+    { t: "Fenerin aydınlatmadığı yere basmayayım." },
+    { t: "Turnike açık. Ötesi karanlık." },
   ],
   "BK.hd12.3": [
-    { t: "Telefonda bir çubuk... Yok, ekran çiziği çıktı.", ok: 1 },
+    { t: "Sinyal var sandım. Ekranın çiziğiymiş.", j: 1 },
     { t: "Elektrikler gitti. Zifiri karanlık. Harika, gerçekten.", ok: 1 },
     { t: "Karanlıkta ayak sesleri. Benimkiler. Galiba.", ok: 1 },
   ],
   "BK.hd12.4": [
-    { t: "Tünel yankı yapıyor. Sesimi kısayım. Kısayım. Kısayım.", ok: 1 },
-    { t: "Merdiven sıra sıra. Her basamakta bir zombi, oh ne güzel.", ok: 1 },
+    { t: "Sesim tünelden geri geliyor. Fısıldayayım." },
+    { t: "Merdiven dolu. Başına ulaşmamız lazım." },
     { t: "Basamakları sayıyorum. On iki basamak, on iki zombi.", ok: 1 },
   ],
   "BK.hd12.5": [
     { t: "Akşam Kalabalığı! Hepsi aynı trene binecek. Klasik.", j: 1, ok: 1 },
-    { t: "Peron dolu. Mesai çıkışı gibi, sadece daha az kokulu.", ok: 1 },
-    { t: "Herkes bana bakıyor. Sahne korkum vardı, şimdi tam oldu.", ok: 1 },
+    { t: "Peron dolmuş. İleride boşluk var mı göremiyorum." },
+    { t: "Hepsi bana döndü. Kaan, dikkat et." },
   ],
   "BK.hd13.1": [
     { t: "Samatya sabahı. Denize bakarsam zombileri görmem, değil mi?", j: 1, ok: 1 },
     { t: "Sahil serin, gün ağarıyor. Kıyamet manzarayı bozamamış.", ok: 1 },
-    { t: "Deniz sakin. Dalga sesi, bir de hırıltı. Belgesel gibi.", ok: 1 },
+    { t: "Denizin sesi geliyor. Arada da bir hırıltı." },
   ],
   "BK.hd13.2": [
     { t: "Battaniyeler yerde. Piknik yarıda kalmış, köfteler sahipsiz.", ok: 1 },
@@ -63,12 +63,12 @@ Object.assign(P.DLG.tr, {
   ],
   "BK.hd13.3": [
     { t: "Kedi tıslıyor. Zombiye değil, bana. Saygı duyuyorum.", j: 1, ok: 1 },
-    { t: "Güneş doğuyor, zombiler gölgede. Vampir mi bunlar?", ok: 1 },
+    { t: "Güneş doğdu. Karanlıkta görmediklerim ortaya çıktı." },
     { t: "Kedi tıslıyor. Kediler bilir, bir şey var.", ok: 1 },
   ],
   "BK.hd13.4": [
     { t: "Denize itince sürükleniyorlar. Yüzme bilmiyorlar, ben de.", ok: 1 },
-    { t: "Deniz duvarı yüksek. Kenarda durma Arda, klişe olma.", ok: 1 },
+    { t: "Deniz duvarı yüksek. Kenarda durmayayım." },
     { t: "Dalgalar yükseldi. Ayakkabım ıslanırsa kıyamete küserim.", ok: 1 },
   ],
   "BK.hd13.5": [
@@ -83,12 +83,12 @@ Object.assign(P.DLG.tr, {
   ],
   "BK.hd14.2": [
     { t: "Çay bahçesi. Çay yok, zombi var. Bu bahçe bitmiş.", j: 1, ok: 1 },
-    { t: "Bahçe çiçek açmış. Sulayan yok ama inatla açıyor. Saygı.", ok: 1 },
+    { t: "Çiçekler hâlâ yerinde. Ezmeden geçeyim." },
     { t: "Kuşlar ötüyor, zombiler susuyor. Ters dünya.", ok: 1 },
   ],
   "BK.hd14.3": [
     { t: "Anahtar lazım. Kapıcılık da bana kaldı, maaşsız.", j: 1, ok: 1 },
-    { t: "Üç anahtar lazım. Neden hep üç? Kim yazıyor bu oyunu?", ok: 1 },
+    { t: "Şu kapının anahtarları ayrı ayrı saklanmış." },
     { t: "Anahtarlar dağılmış. Annemin evdeki çekmecesi gibi.", ok: 1 },
   ],
   "BK.hd14.4": [
@@ -104,17 +104,17 @@ Object.assign(P.DLG.tr, {
   "BK.hd15.1": [
     { t: "Kazlıçeşme. Çimler yeşil, sabah serin, zombiler sırılsıklam.", j: 1, ok: 1 },
     { t: "Sabah koşucuları hâlâ koşuyor. Ölmüşler ama bırakmamışlar.", ok: 1 },
-    { t: "Deniz rüzgârı tuzlu. Burnum akıyor, hayat da.", ok: 1 },
+    { t: "Denizden rüzgâr geliyor. Biraz ayıldım." },
   ],
   "BK.hd15.2": [
-    { t: "Fıskiyeler dönüyor. Bahçıvan gitmiş, sistem otomatik.", j: 1, ok: 1 },
-    { t: "Çimler ıslak. Her adımda vıcık vıcık. Ayakkabım ağlıyor.", ok: 1 },
-    { t: "Bankta biri oturuyor. Başını kaldırmıyor. Telefondadır.", ok: 1 },
+    { t: "Fıskiyeler çalışıyor. Dünyada aksayan bir ben varım.", j: 1 },
+    { t: "Çimler sırılsıklam. Ayakkabılarım su aldı." },
+    { t: "Bankta biri oturuyor. Yüzünü göremiyorum." },
   ],
   "BK.hd15.3": [
     { t: "Koşucular grup halinde. Ben onlardan kaçarak spor yapıyorum.", j: 1, ok: 1 },
     { t: "Islak yolda elektrik çıtırdıyor. Bekle, yoksa kızarırsın.", ok: 1 },
-    { t: "Fıskiyeler sırayla dönüyor. Bekle, sıra bize gelsin.", ok: 1 },
+    { t: "Fıskiyeler sırayla dönüyor. Aradan geçebilirim." },
   ],
   "BK.hd15.4": [
     { t: "Bu sabaha zombisiz bir serpme kahvaltı yakışırdı.", ok: 1 },
@@ -123,8 +123,8 @@ Object.assign(P.DLG.tr, {
   ],
   "BK.hd15.5": [
     { t: "Hortumcu! Hortum mu silah mı? Bahçe sulamada çığır açmış.", j: 1, ok: 1 },
-    { t: "Hortumdan asit fışkırıyor! Bu bahçeye ne gübre attılar?", ok: 1 },
-    { t: "Hortum uzanıyor. Ucunda biri var. Ucunda hep biri olur.", ok: 1 },
+    { t: "Hortumdan asit geliyor! Islak yere basma." },
+    { t: "Hortumu kaldırdı. Savuracağı yere bak." },
   ],
   "BK.hd16.1": [
     { t: "Zeytinburnu. Bidonlar rengârenk. Kıyamet bile renkli burada.", j: 1, ok: 1 },
@@ -134,11 +134,11 @@ Object.assign(P.DLG.tr, {
   "BK.hd16.2": [
     { t: "Yürüyen bant beni taşıyor. Kariyerimdeki ilk ilerleme.", j: 1, ok: 1 },
     { t: "Balyalar kule gibi. Biri devrilirse hepsi gider.", ok: 1 },
-    { t: "Bant kayıyor, ayakkabım kayıyor, moralim kayıyor.", ok: 1 },
+    { t: "Bant kayıyor. Yan tarafa geçmem lazım." },
   ],
   "BK.hd16.3": [
     { t: "Boya kokusu kafamı yaktı. Renkleri duymaya başladım.", j: 1, ok: 1 },
-    { t: "Zombiler bantta taşınıyor. Seri üretim zombi, çağın sonu.", ok: 1 },
+    { t: "Bantta zombiler de var. Üstüme taşınıyorlar." },
     { t: "Bantta tek bir ayakkabı. Sahibini merak etmiyorum.", ok: 1 },
   ],
   "BK.hd16.4": [
@@ -152,18 +152,18 @@ Object.assign(P.DLG.tr, {
     { t: "Usta bağırıyor: 'Vardiya bitmedi!' Bizimki de bitmiyor.", ok: 1 },
   ],
   "BK.hd17.1": [
-    { t: "Bakırköy Çarşısı. Alışveriş yok, sadece kaçış. Dev indirim.", j: 1, ok: 1 },
-    { t: "Tavan camından toz huzmeleri iniyor. Müzik klibi gibi.", ok: 1 },
-    { t: "Kepenkler yarım. Çarşıdaki tek ses benim ayak seslerim.", ok: 1 },
+    { t: "İndirim tabelası duruyor. Bugün canımı kurtarsam yeter.", j: 1 },
+    { t: "Cam tavandan ışık giriyor. Tozdan zor görüyorum." },
+    { t: "Kepenkler yarı kapalı. Ayak sesimiz yankılanıyor." },
   ],
   "BK.hd17.2": [
-    { t: "Eski lisemin yanındayım. Zil hâlâ çalıyor, travmam da.", ok: 1 },
+    { t: "Eski lisem. Zili duyar duymaz tanıdım." },
     { t: "Dükkânlar kapalı. Vitrindeki kıyafetler benden yaşlı.", ok: 1 },
-    { t: "Bu çarşı hiç değişmemiş. Pastel, tozlu ve beni yargılıyor.", ok: 1 },
+    { t: "Şu vitrini hatırlıyorum. Hâlâ aynı kıyafetler var." },
   ],
   "BK.hd17.3": [
     { t: "Okul zili çaldı. Yine geç kaldım. Kıyamet değiştirmedi.", j: 1, ok: 1 },
-    { t: "Zil çalınca zombiler dönüyor. Bizim sınıftan disiplinli.", j: 1, ok: 1 },
+    { t: "Zil çalınca zombiler buraya dönüyor." },
     { t: "Zil sesi kulağıma yapıştı. Teneffüs ne zaman?!", ok: 1 },
   ],
   "BK.hd17.4": [
@@ -173,12 +173,12 @@ Object.assign(P.DLG.tr, {
   ],
   "BK.hd17.5": [
     { t: "Müdür megafonu açtı. Lise kabuslarım canlı yayında.", j: 1, ok: 1 },
-    { t: "Müdürün kapısı kapalı. Arkadan bağırış. Nostalji yaptım.", ok: 1 },
-    { t: "Müdürün odası. Her hafta bu kapıda beklerdim. Sabıkalıyım.", ok: 1 },
+    { t: "Müdürün kapısı kapalı. İçeriden ses geliyor." },
+    { t: "Müdürün odası. Yine bu kapının önünde bekliyorum." },
   ],
   "BK.hd18.1": [
-    { t: "Sahil yürüyüşü. Bomboş. Sadece dondurmacı zili. Ürkütücü.", j: 1, ok: 1 },
-    { t: "Palmiyeler sallanıyor. Burası İstanbul mu, tatil broşürü mü?", ok: 1 },
+    { t: "Sahil boş. Sadece dondurmacının zili duyuluyor." },
+    { t: "Palmiye, deniz, yürüyüş. Tatilin bu kadarı bana fazla.", j: 1 },
     { t: "Bisiklet yolu boş. Zil de yok, bisikletçi de.", ok: 1 },
   ],
   "BK.hd18.2": [
@@ -192,8 +192,8 @@ Object.assign(P.DLG.tr, {
     { t: "Zil çalıyor. Artık zil sesine terliyorum.", ok: 1 },
   ],
   "BK.hd18.4": [
-    { t: "Deniz bize bakıyor, biz denize. Kimse bir şey demiyor.", ok: 1 },
-    { t: "Bisikletler yerde. Pedal hâlâ dönüyor. Ürkütücü bir şiir.", ok: 1 },
+    { t: "Bir an denize baktım. Yine de hırıltıları duyuyorum." },
+    { t: "Yerde bir bisiklet var. Pedalı hâlâ dönüyor." },
     { t: "Bisiklet yolu kalabalık. Hepsi ters yönde. Tabii ki.", ok: 1 },
   ],
   "BK.hd18.5": [
@@ -202,14 +202,14 @@ Object.assign(P.DLG.tr, {
     { t: "Dondurmacı zili bırakmıyor. Kafamın içinde de çalıyor.", ok: 1 },
   ],
   "BK.hd19.1": [
-    { t: "Marina. Yatlar duruyor, zenginler çoktan kaçmış.", j: 1, ok: 1 },
+    { t: "Yatlar duruyor. Anahtarları da üstünde bıraksalardı.", j: 1 },
     { t: "Direkler sabah ışığında parlıyor. Kartpostal gibi, zombili.", ok: 1 },
     { t: "Rüzgâr yok ama halatlar ötüyor. Burası da tekin değil.", ok: 1 },
   ],
   "BK.hd19.2": [
     { t: "Tahtalar sallanıyor. Deniz tutmasını karada yaşıyorum.", j: 1, ok: 1 },
     { t: "Pontonlar kayıyor. Her adım bir piyango.", ok: 1 },
-    { t: "Yüzen tahtalar. Dengeni koru Arda, yüzme bilmiyorsun.", ok: 1 },
+    { t: "Tahtaların arası açılıyor. Ayağım sıkışmasın." },
   ],
   "BK.hd19.3": [
     { t: "Halatlar ağ gibi, zombiler balık gibi takılıyor. Rast gele!", ok: 1 },
@@ -217,28 +217,28 @@ Object.assign(P.DLG.tr, {
     { t: "Pontonların altında dalga sesi. Ya da başka bir şey. Neyse.", ok: 1 },
   ],
   "BK.hd19.4": [
-    { t: "Eve bir kilometre. Annem misafir sevmez, zombileri hiç.", j: 1, ok: 1 },
+    { t: "Eve bir kilometre. Peşimdekileri misafir diye alamam.", j: 1 },
     { t: "Halata takılan zombiler bağırıyor. Ben de bağırırdım.", ok: 1 },
     { t: "Halat ağı iş görüyor. Takılan gidiyor, biz kurtuluyoruz.", ok: 1 },
   ],
   "BK.hd19.5": [
-    { t: "Yat sahibi! Yatı var, derdi var. Zenginler de ağlarmış.", j: 1, ok: 1 },
+    { t: "Rıhtım benim diyor. Abi, kalmaya gelmedik zaten.", j: 1 },
     { t: "Güvertede biri bizi izliyor. Yukarıdan bakmayı seviyor.", ok: 1 },
     { t: "Zincir sallanıyor. Yat sahibi geliyor, hesap soracak.", ok: 1 },
   ],
   "BK.hd20.1": [
     { t: "Ataköy. Bej binalar, mavi panjurlar. Evim! Zombili ama evim.", ok: 1 },
     { t: "Apartmanın kapısı tanıdık. Kolu hâlâ yapış yapış.", ok: 1 },
-    { t: "Lobiden kahve kokusu... Yok, umut kokusuymuş. Yanıldım.", ok: 1 },
+    { t: "Apartmanın kokusu bile aynı. Bir an her şeyi unuttum." },
   ],
   "BK.hd20.2": [
-    { t: "Çamaşır ipleri. Annem görse 'mont giy' derdi. Giydim!", j: 1, ok: 1 },
+    { t: "Mont için eve dönüyorum desem annem normal karşılar.", j: 1 },
     { t: "Merdiven boşluğu uzun. Asansör yine bozuk, tabii ki.", ok: 1 },
     { t: "Kapı aralık. Balkondan ses geliyor. Komşu teyze olmasın.", ok: 1 },
   ],
   "BK.hd20.3": [
-    { t: "Fırın kokusu. Ahmet Abi'nin ekmeği. Gözüm doldu, dumandan.", ok: 1 },
-    { t: "Her sabah kapıcıya selam verirdim. Bugün de veririm. Selam!", ok: 1 },
+    { t: "Fırından ekmek kokusu geliyor. Ahmet Abi aklıma geldi." },
+    { t: "Ahmet Abi her sabah bu kapıda olurdu." },
     { t: "Bu merdivenleri koşarak inerdim. Yine de geç kalırdım.", ok: 1 },
   ],
   "BK.hd20.4": [
@@ -247,7 +247,7 @@ Object.assign(P.DLG.tr, {
     { t: "Avlu sessiz. Kapıcının anahtarları yerde. Hiç iyi değil.", ok: 1 },
   ],
   "BK.hd20.5": [
-    { t: "Ahmet Abi! Ekmek sepetini kalkan yapsam kızar mısın?", ok: 1 },
+    { t: "Ahmet Abi, sepeti bırak. Benim, Arda." },
     { t: "Ahmet Abi, benim, Arda. Hani hep 'mont giy' derdin?", ok: 1 },
     { t: "Ahmet Abi... Ekmekler hâlâ sıcak mı abi?", ok: 1 },
   ],

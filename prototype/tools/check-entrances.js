@@ -6,11 +6,10 @@
 // Usage: node prototype/tools/check-entrances.js [--seeds=6] [--secs=30]
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
+const { ROOT, indexScripts } = require('./lib-load');
 // Same module list as bot.js: index.html's sim scripts (view, story and flow files excluded).
 const NOT_SIM = /^js\/(view|story|dialogue)\/|^js\/main\.js$|^js\/meta\/meta-(ui|map|hub|gear|stats|arsenal|collect|daily|save)\.js$/;
-const FILES = [...fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAll(/<script src="([^"]+)"/g)]
-  .map(m => m[1]).filter(f => !NOT_SIM.test(f));
+const FILES = indexScripts().filter(f => !NOT_SIM.test(f));
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const P = globalThis.P;
 const args = Object.fromEntries(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v === undefined ? true : v]));

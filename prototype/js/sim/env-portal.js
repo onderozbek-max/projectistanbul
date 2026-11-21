@@ -79,6 +79,8 @@ function spillPortal(s, p, dt) {
 
 P.EnvPortal.step = function (s, dt) {
   var E = s.env, C = P.CFG.env.portal, h = s.hero, list = E.portals, i, p;
+  var early = P.Levels.earlyNormal(s), respite = P.Levels.tramRespite(s) || P.Levels.routeRelief(s);
+  if (early && (s.props.shutterOpen || s.gen.arena)) return;
   for (i = 0; i < list.length; i++) {
     p = list[i];
     if (p.state === 'open') {
@@ -86,8 +88,8 @@ P.EnvPortal.step = function (s, dt) {
       if (p.t >= p.T) { p.state = 'spill'; p.t = 0; }
     } else if (p.state === 'spill') {
       spillPortal(s, p, dt);
-    } else {
-      if (h.y < p.y - C.behind) p.passed = false;
+    } else if (!respite) {
+      if (!early && h.y < p.y - C.behind) p.passed = false;
       if (p.passed || h.y < p.y - C.ahead || h.y > p.y + C.past || activePortals(E) >= C.maxActive) continue;
       p.passed = true;
       if (E.rng.chance(C.chance)) openPortal(s, p);

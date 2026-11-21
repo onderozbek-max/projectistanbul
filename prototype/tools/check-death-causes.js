@@ -41,7 +41,10 @@ function scene(type, steps, boss) {
   const s = P.createSim(4242, { levelIndex: 2, loadout: { modifiers: [] } });
   P.startPlay(s);
   const h = s.hero;
-  if (boss) P.Bosses.spawn(s, type, h.x, h.y + 6, { nameKey: 'boss.' + type, hoodIdx: 0, skin: 'waiter', hoodId: null });
+  if (boss) {
+    const def = P.CFG.bosses[type], archetype = def.base || (P.CFG.enemies[type] ? type : 'brute');
+    P.Bosses.spawn(s, type, h.x, h.y + 6, { nameKey: 'boss.' + type, hoodIdx: 0, skin: 'waiter', preset: type, archetype });
+  }
   else P.Combat.spawnEnemy(s, type, h.x, h.y + 6, { skin: 'waiter' });
   for (let k = 0; k < steps && s.mode !== 'dead'; k++) P.stepSim(s, 1 / 60);
 }

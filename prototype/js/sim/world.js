@@ -60,6 +60,7 @@ P.World.clampWalk = function (p, r, props) {
 P.World.clampGeo = function (p, r, props) {
   var g = props.geo, bl = g.blocks, i;
   for (i = 0; i < bl.length; i++) P.World.pushOutRect(p, r, bl[i].rc);
+  if (props.routeEdges) for (i = 0; i < props.routeEdges.length; i++) P.World.pushOutRect(p, r, props.routeEdges[i]);
   p.x = Math.min(Math.max(p.x, g.xMin + r), g.xMax - r);
   var top = props.shutterOpen ? g.length - r : g.exitY - r;
   p.y = Math.min(Math.max(p.y, r), top);
@@ -75,6 +76,7 @@ P.World.clampHero = function (s, h) {
       P.World.clampWalk(h, P.CFG.hero.radius, s.props);
     }
     h.x = Math.min(Math.max(h.x, -hx), hx);
+    if (s.milestone) P.RouteMilestones.clamp(s, h);
   }
 };
 

@@ -108,11 +108,18 @@ P.LayoutFx = (function () {
   // lx_wall: shop frontage along the chicane, with dark shop windows and coloured fascia strips.
   function wall(c, X, Y, s, o) {
     var w = (o.w || 11.4) * s, d = (o.h || 1.2) * s, hg = 1.0 * s, n = Math.max(2, Math.round(w / (2.5 * s))), i, wx;
-    H.box(c, X, Y, w, d, hg, '#D8CFC0', '#A99E8C');
+    var front = Y + d / 2, bay = w / n, roof = Y - hg;
+    H.shadow(c, X, Y, w * 0.53, d * 0.62);
+    H.box(c, X, Y, w, d, hg, '#6D6460', '#A99E8C');
+    H.rc(c, X, front - hg * 0.96, w, hg * 0.12, '#D8C3A6', 1);
+    H.rc(c, X, front - hg * 0.08, w, hg * 0.14, '#736C65', 1);
     for (i = 0; i < n; i++) {
-      wx = X - w / 2 + (i + 0.5) * w / n;
-      H.rc(c, wx, Y + d / 2 - hg / 2, w / n * 0.5, hg * 0.5, '#3B3A40', 1);
-      H.rc(c, wx, Y + d / 2 - hg * 0.9, w / n * 0.7, hg * 0.1, AWN[(i + (o.k || 0)) % AWN.length], 0);
+      wx = X - w / 2 + (i + 0.5) * bay;
+      H.ln(c, wx - bay * 0.38, roof - d * 0.4, wx - bay * 0.38, roof + d * 0.34, '#8B7F74', 1);
+      H.rc(c, wx, front - hg * 0.47, bay * 0.69, hg * 0.64, '#D9BE93', 1);
+      H.rc(c, wx, front - hg * 0.47, bay * 0.59, hg * 0.49, i % 2 ? '#344451' : '#44625F', 1);
+      H.ln(c, wx, front - hg * 0.70, wx, front - hg * 0.24, '#1F2E37', 1);
+      H.rc(c, wx, front - hg * 0.78, bay * 0.75, hg * 0.12, AWN[(i + (o.k || 0)) % AWN.length], 1);
     }
   }
 

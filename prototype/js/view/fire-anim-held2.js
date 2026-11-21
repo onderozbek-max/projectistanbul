@@ -44,16 +44,16 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   // ---------- Sawblade (Testere Diski): sidearm frisbee throw, catch pose on return ----------
   var SAW_REL = 0.18, SAW_BACK = 0.68;
   H.sawblade = { T: 0.8, rel: SAW_REL, back: SAW_BACK, held: function (F, G, k) {
-    var t = k.t, fwd, lat, up = 0, spin = t * 10, inHand = t < SAW_REL || t >= SAW_BACK;
-    if (t < 0.1) { fwd = M.lerp(0.1, -0.2, M.eo(t / 0.1)); lat = M.lerp(0, -0.22, M.eo(t / 0.1)); }
+    var t = k.t, fwd, lat, up = 0, spin = t * 10, caught = k.f.catchDisc, inHand = caught || t < SAW_REL;
+    if (caught) { fwd = M.lerp(0.26, 0.12, k.p); lat = 0.08; spin = 3 - M.eo(k.p) * 2; }
+    else if (t < 0.1) { fwd = M.lerp(0.1, -0.2, M.eo(t / 0.1)); lat = M.lerp(0, -0.22, M.eo(t / 0.1)); }
     else if (t < SAW_REL) { var r = M.ei((t - 0.1) / 0.08); fwd = M.lerp(-0.2, 0.3, r); lat = M.lerp(-0.22, 0, r); spin = 6; }
     else if (t < 0.3) { var f1 = M.seg(t, SAW_REL, 0.3); fwd = M.lerp(0.3, 0.2, f1); lat = M.lerp(0, 0.12, f1); }
-    else if (t < SAW_BACK) { fwd = 0.2; lat = 0.12; up = -0.1; }
-    else { var q = M.seg(t, SAW_BACK, 0.8); fwd = M.lerp(0.2, 0.26, q); lat = 0.12 - 0.04 * q; up = M.lerp(-0.1, 0.02, q); spin = (t - SAW_BACK) * -6 + 3; }
+    else { fwd = 0.2; lat = 0.12; up = -0.1; }
     arms(F, G, G.pt(0, 0, fwd, up, lat), G.pt(1, 2, 0.1, -0.2, -0.06));
     if (inHand) {
       var d = G.pt(3, 0, fwd + 0.05, up, lat);
-      sawDisc(F, d.x, d.y, G.ang, spin, 0.19, 0.6);
+      sawDisc(F, d.x, d.y, G.ang, spin, 0.19 * (1 + 0.045 * (k.lv - 1)), 0.6);
     }
     hands(F);
   } };
@@ -130,7 +130,7 @@ P.FireAnimHeld = P.FireAnimHeld || {};
     arms(F, G, hm, G.pt(1, 2, 0.14, -0.12, -0.04));
     c = F.c;
     M.limb(F, hm.x, hm.y, tipx, tipy, '#4B3621', 0.02);
-    if (t >= 0.2) {
+    if (t >= 0.2 && !(P.WTier && P.WTier.enabled)) {
       dist = D * M.eo(lf) * (1 - 0.35 * reel);
       lx = tipx + Math.cos(G.ang) * dist; ly = tipy + Math.sin(G.ang) * dist + 0.35 * Math.sin(Math.PI * lf) * (1 - reel);
       c.beginPath(); c.moveTo(F.R.X(tipx), F.R.Y(tipy));
@@ -150,6 +150,12 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   // ---------- Car door shield (Araba Kapısı): raise, then shove forward ----------
   H.cardoor = { T: 0.4, held: function (F, G, k) {
     var t = k.t, dfwd, dup, c, C, g, al;
+    if (P.WTier && P.WTier.enabled) {
+      var reach = 0.29 + (k.f.press || 0) * 0.26;
+      arms(F, G, G.pt(0, 2, reach, 0.09, 0.17), G.pt(1, 2, reach, 0.05, -0.17));
+      hands(F);
+      return;
+    }
     if (t < 0.14) { dfwd = 0.12; dup = M.lerp(-0.25, 0.1, M.eo(t / 0.14)); }
     else if (t < 0.22) { var s = M.ei((t - 0.14) / 0.08); dfwd = M.lerp(0.12, 0.5, s); dup = 0.1 - 0.02 * s; }
     else { var r = M.eo(M.seg(t, 0.22, 0.4)); dfwd = M.lerp(0.5, 0.2, r); dup = M.lerp(0.08, 0, r); }
@@ -202,22 +208,35 @@ P.FireAnimHeld = P.FireAnimHeld || {};
 
   // ---------- Chainsaw (Motorlu Testere): rev vibration, cut thrust; `rev` is the idle revving pose ----------
   function saw(F, G, k, rev) {
-    var t = k.t, kick = 0, vib = rev && !F.rm ? 0.012 : 0;
-    if (!rev) {                                          // wind back, thrust through the cut, ease home
+    var contact=k.f.contact,biting=contact&&contact.src==='chainsaw',t = k.t, kick = 0, vib = rev && !F.rm ? (biting?.018:.007) : 0;
+    var bar = P.CFG.weapons.chainsaw.range - .65;
+    if (rev) kick = .055 + .075 * Math.sin(Math.PI * k.p)-(biting?.065:0);
+    if(k.f.release)kick=.1*(1-M.clamp01(t/.20));
+    else if (!rev) {                                      // wind back, thrust through the cut, ease home
       if (t < 0.05) kick = -0.06 * M.eo(t / 0.05);
       else if (t < 0.12) kick = M.lerp(-0.06, 0.1, M.ei((t - 0.05) / 0.07));
       else kick = M.lerp(0.1, 0, M.eo(M.seg(t, 0.12, 0.3)));
     }
-    var vx = vib ? M.rnd(-vib, vib) : 0, vy = vib ? M.rnd(-vib, vib) : 0, c, ph = rev ? (t * 3.7) % 1 : (t * 2) % 1, i;
+    var calm=F.rm||P.Settings&&P.Settings.reduceFlash;
+    var vx = !calm&&vib ? Math.sin(t*113)*vib : 0, vy = !calm&&vib ? Math.cos(t*91)*vib : 0, c, ph = rev ? (t * (biting?2.4:4.8)) % 1 : (t * 2) % 1, i;
     arms(F, G, G.pt(0, 2, 0.1 + kick + vx, -0.03 + vy, 0.04), G.pt(1, 2, 0.2 + kick + vx, -0.03 + vy, -0.04));
     c = F.c; M.begin(F, HK.mx, HK.my, G.ang);
-    M.rr(c, -0.26, -0.075, 0.28, 0.15, 0.04); M.ink(F, '#E8662C', 1.8);
+    M.rr(c, -0.28, -0.105, 0.32, 0.21, 0.04); M.ink(F, '#E8662C', 1.8);
+    c.beginPath();c.ellipse(-.18,-.015,.065,.065,0,0,Math.PI*2);M.ink(F,'#3C3E45',1.5);
+    M.rr(c,-.20,-.18,.16,.075,.025);M.ink(F,'#222731',1.5);
     c.fillStyle = '#2B2B2B'; c.fillRect(-0.3, -0.03, 0.05, 0.06); c.fillRect(-0.12, -0.1, 0.05, 0.03);
-    c.beginPath(); c.rect(0.02, -0.015, 0.4, 0.03); M.ink(F, '#B8C0CA', 1.4);
-    c.beginPath(); c.arc(0.42, 0, 0.016, 0, TAU); M.ink(F, '#B8C0CA', 1.2);
-    if (rev) { c.fillStyle = 'rgba(200,210,220,0.22)'; c.fillRect(0.02, -0.035, 0.4, 0.07); }
-    c.fillStyle = '#2B2B2B';
-    for (i = 0; i < 10; i++) c.fillRect(0.02 + ((i / 10 + ph) % 1) * 0.4, -0.024, 0.014, 0.01);
+    M.rr(c, 0.02, -0.038, bar, 0.076, 0.026); M.ink(F, '#B8C9CE', 1.6);
+    if (rev) { c.fillStyle = '#B86F38'; c.fillRect(0.045, -0.009, bar - 0.055, 0.018); }
+    c.fillStyle = '#26242B';
+    if (F.rm) ph = 0;
+    for (i = 0; i < 11; i++) {
+      var top = 0.02 + ((i / 11 + ph) % 1) * (bar - 0.03);
+      var bottom = 0.02 + ((i / 11 + 1 - ph) % 1) * (bar - 0.03);
+      c.fillStyle = '#232432';
+      c.fillRect(top, -0.055, 0.026, 0.022); c.fillRect(bottom, 0.033, 0.026, 0.022);
+      c.fillStyle = '#E9EEE1';
+      c.fillRect(top, -0.053, 0.011, 0.011); c.fillRect(bottom + .014, 0.044, 0.011, 0.008);
+    }
     M.end(F);
     if (rev && !F.rm) {                                  // vibration ticks beside the housing
       c.strokeStyle = INK; c.lineWidth = 1.8; c.lineCap = 'round';

@@ -1,10 +1,10 @@
 // Music checks that run without a browser.
 //  1. The player (js/view/music.js) in a vm sandbox with a fake Audio, AudioContext, clock, timers and document:
 //     the slot manifest in prepare-music.js (ids, loop vs one-shot, the per-track gain, replay of a finished stinger, no
-//     restart of a finished stinger on tap or on show, no seek of a track still fading out), the iOS route (every track
+//     restart of a finished stinger on tap or on show), the iOS route (every track
 //     through Web Audio, gains that really change, one source per element), the file:// fallback, the scene sequence
-//     (title, map, run, boss, results, rapid repeats, hide and show, stop), and the regressions: a layer that stopped
-//     while its calm track went on (drift), a track interrupted while loading (AbortError), a start the browser blocked.
+//     (title, map, run, boss, results, rapid repeats, hide and show, stop), and the regressions: overlapping tracks,
+//     a track interrupted while loading (AbortError), and a start the browser blocked.
 //  2. Names and lengths: the files in prototype/audio/music/ (prepared files must have the exact slot length;
 //     placeholders are reported, not failed) and the owner's drop folder README.
 //  3. prepare-music.js on synthetic sine input in the OS temp folder: a loop and a stinger are written at exact
@@ -22,7 +22,7 @@ function ok(c, m) { if (!c) { fails++; console.log('FAIL ' + m); } }
 function warn(m) { warns++; console.log('WARN ' + m); }
 const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0 && spawnSync('ffprobe', ['-version']).status === 0;
 const quick = process.argv.includes('--quick');
-const TICK_MS = 50, FADE_MS = 1200, SLACK_MS = 100;   // the player's tick, its crossfade length, and the timing slack
+const TICK_MS = 50, FADE_MS = 1200;   // the player's tick and fade length
 const VOL = 0.7;                                      // the player's default music level (before settings)
 
 // ---- 1. player behaviour in a sandbox
@@ -37,7 +37,7 @@ function loadPlayer(opts) {
   opts = opts || {};
   let clock = 1000;
   const timers = [], timeouts = [], docListeners = {}, watchers = [], made = [];
-  const flags = { block: false, slow: false };
+  const flags = { block: false, slow: false, gesture: false };
   const doc = { currentScript: null, hidden: false, addEventListener: (ev, fn) => { docListeners[ev] = fn; } };
   class FakeAudio {
     constructor(src) {
@@ -50,6 +50,10 @@ function loadPlayer(opts) {
     play() {
       this.plays++;
       if (flags.block) return Promise.reject(Object.assign(new Error('blocked'), { name: 'NotAllowedError' }));
+      if (opts.iosGestureAudio) {
+        if (!flags.gesture && !this.authorized) return Promise.reject(Object.assign(new Error('gesture required'), { name: 'NotAllowedError' }));
+        if (flags.gesture) this.authorized = true;
+      }
       this.paused = false; this.ended = false;
       if (flags.slow) return new Promise((res, rej) => { this._rej = rej; });
       return Promise.resolve();
@@ -78,7 +82,8 @@ function loadPlayer(opts) {
     setInterval: fn => { timers.push(fn); return timers.length; }, clearInterval: () => {},
     setTimeout: (fn, ms) => { timeouts.push({ at: clock + (ms || 0), fn, done: false }); return timeouts.length; },
     clearTimeout: id => { if (timeouts[id - 1]) timeouts[id - 1].done = true; },
-    document: doc, location: { protocol: opts.file ? 'file:' : 'http:' }
+    document: doc, location: { protocol: opts.file ? 'file:' : 'http:' },
+    navigator: opts.iosGestureAudio ? { userAgent: 'iPhone Safari' } : undefined
   };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/view/music.js'), 'utf8'), ctx, { filename: 'js/view/music.js' });
@@ -108,11 +113,32 @@ function loadPlayer(opts) {
   };
 }
 const idOf = e => e.src.split('/').pop().replace(/\.mp3$/, '');
-const songOf = id => (id === 'run_calm' || id === 'run_intense') ? 'run' : id;
 
 const manifest = prep.SLOTS;
 const musicSrc = fs.readFileSync(path.join(ROOT, 'js/view/music.js'), 'utf8');
 ok(!/\bfetch\s*\(|decodeAudioData/.test(musicSrc), 'music.js uses no fetch or decodeAudioData (must work over file://)');
+
+{
+  const p = loadPlayer({ moving: true });
+  const s = { hero: { x: 0, y: 0 }, enemies: [] };
+  const crowd = Array.from({ length: 14 }, () => ({ x: 2, y: 2, state: 'active' }));
+  function score(seconds) { for (let i = 0; i < seconds * 2; i++) { p.M.score(s, 0.5); p.advance(0.5); } }
+  p.M.play('run_calm');
+  s.enemies = crowd; score(3);
+  ok(p.M.current() === 'run_calm', 'Pressure needs four sustained seconds');
+  s.enemies = []; score(2);
+  s.enemies = crowd; score(4);
+  ok(p.M.current() === 'run_intense', 'Sustained near crowd cues intense');
+  const calmAt = p.el('run_calm').currentTime;
+  s.enemies = []; score(8);
+  ok(p.M.current() === 'run_intense', 'Intense cue holds at least twelve seconds');
+  score(4);
+  ok(p.M.current() === 'run_calm' && p.el('run_calm').currentTime > calmAt, 'Calm loop resumes its playhead');
+  p.M.play('boss'); s.enemies = crowd; score(8);
+  ok(p.M.current() === 'boss', 'Threat sampling never overrides the boss cue');
+  p.M.stop(0.55); score(8);
+  ok(p.M.current() === null, 'Threat sampling respects a silent aftermath');
+}
 
 {
   const p = loadPlayer();
@@ -127,7 +153,7 @@ ok(!/\bfetch\s*\(|decodeAudioData/.test(musicSrc), 'music.js uses no fetch or de
   }
   const r = loadPlayer();
   r.M.play('run_calm');
-  ok(r.el('run_intense') && r.el('run_intense').loop === true, 'run_intense layer loops with run_calm');
+  ok(!r.el('run_intense'), 'run_calm plays without a second track');
 }
 
 { // stinger: replay after it has finished, and no restart on tap
@@ -165,15 +191,6 @@ for (const route of [false, true]) { // per-track gain: comic sits at -2 dB, the
   ok(Math.abs(q.heard(q.el('title')) - VOL) < 0.005, 'title has no trim' + tag + ' (' + q.heard(q.el('title')).toFixed(3) + ')');
 }
 
-{ // a track still fading out is not rewound when it is played again
-  const p = loadPlayer();
-  p.M.play('title'); p.advance(3);
-  const t = p.el('title'); t.currentTime = 42;
-  p.M.play('map'); p.advance(0.2);
-  p.M.play('title');
-  ok(t.currentTime === 42, 'a replayed track still fading out keeps its position (' + t.currentTime + ')');
-}
-
 // ---- 1b. the iOS route: element volume is not used, gains are real
 
 {
@@ -186,20 +203,6 @@ for (const route of [false, true]) { // per-track gain: comic sits at -2 dB, the
   h.advance(2);
   ok(Math.abs(h.heard(t) - VOL) < 0.005, 'route: the fade-in reaches the music level (' + h.heard(t).toFixed(3) + ')');
   ok(h.actx.sources === 1 && h.actx.dupes === 0, 'route: one source node per element');
-}
-
-{ // the run pair on the route: at intensity 0 the layer is silent, at 1 the calm stem is silent, the power sum is constant
-  const h = loadPlayer({ route: true }), M = h.M;
-  M.play('run_calm'); h.advance(2.5);
-  const c = h.el('run_calm'), i = h.el('run_intense');
-  ok(h.heard(c) > 0.69 && h.heard(i) < 0.001, 'route: at intensity 0 only calm is audible (calm ' + h.heard(c).toFixed(3) + ', intense ' + h.heard(i).toFixed(3) + ')');
-  for (const x of [0.5, 1]) {
-    M.intensity(x); h.advance(2.6);
-    const sum = h.heard(c) ** 2 + h.heard(i) ** 2;
-    ok(Math.abs(sum - VOL * VOL) < 0.01, 'route: equal power at intensity ' + x + ' (sum ' + sum.toFixed(3) + ')');
-  }
-  ok(h.heard(c) < 0.001 && Math.abs(h.heard(i) - VOL) < 0.005, 'route: at intensity 1 only intense is audible');
-  ok(h.actx.sources === 2, 'route: the pair has two source nodes, one each');
 }
 
 { // ducking reaches the gain on the route (the element volume would be ignored on iOS)
@@ -245,7 +248,7 @@ for (const route of [false, true]) { // per-track gain: comic sits at -2 dB, the
     setInterval: fn => { timers.push(fn); return timers.length; }, clearInterval() {}, setTimeout: () => 0, clearTimeout() {},
     document: doc, location: { protocol: 'http:' }, Audio: SAudio };
   vm.createContext(sbx);
-  for (const f of ['js/view/sfx-bank.js', 'js/view/sfx-bank2.js', 'js/view/sfx.js', 'js/view/music.js']) {
+  for (const f of [...require('./lib-sfx').RECIPE_SCRIPTS, 'js/view/sfx.js', 'js/view/music.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sbx, { filename: f });
   }
   const P = sbx.P;
@@ -274,73 +277,48 @@ for (const route of [false, true]) { // per-track gain: comic sits at -2 dB, the
 function sequence(name, o) {
   const h = loadPlayer(o), M = h.M;
   M.unlock();                                             // main.js calls unlock() on Start: this attaches the tap and show listeners
-  let lastChange = -1e9, overlap = null;
-  const audibleSongs = () => {
-    const s = new Set();
-    h.made.forEach(e => { if (h.heard(e) > 0.001) s.add(songOf(idOf(e))); });
-    return s;
-  };
-  // At most one song is audible, except during the FADE seconds after a change of track.
-  h.watch(() => {
-    const songs = audibleSongs(), since = h.now() - lastChange;
-    if (songs.size > 1 && since > FADE_MS + SLACK_MS && !overlap) overlap = [...songs].join(' + ') + ' audible ' + (since / 1000).toFixed(2) + ' s after the last change';
-  });
-  // A change of track. The outgoing tracks must fade, not cut: half way through the crossfade each is quieter than it was.
-  // quick: no wait (for rapid changes, which are measured by the overlap check only).
-  const change = (fn, quick) => {
-    const before = h.made.filter(e => h.heard(e) > 0.1).map(e => ({ id: idOf(e), g: h.heard(e) }));
-    lastChange = h.now(); fn();
-    if (quick) return;
-    h.advance(0.6);
-    before.forEach(b => {
-      if (songOf(b.id) === songOf(M.current() || '')) return;
-      const g = h.heard(h.el(b.id));
-      ok(g < 0.8 * b.g, name + ': ' + b.id + ' fades out after a change (' + g.toFixed(3) + ' from ' + b.g.toFixed(3) + ')');
-    });
-  };
-  const running = () => h.made.filter(e => !e.paused && !e.ended).map(idOf).sort();
-  // Settles, then checks the current track and that exactly the expected elements run (a run is two stems of one song).
+  let overlap = null;
+  function checkAudio() {
+    const audible = h.made.filter(e => h.heard(e) > 0).map(idOf);
+    if (audible.length > 1) overlap = audible.join(' + ');
+  }
+  h.watch(checkAudio);
+  const change = fn => { fn(); checkAudio(); };
   function settle(label, current, want, sec) {
     h.advance(sec || FADE_MS / 1000 + 0.6);
-    const got = running(), wantSorted = want.slice().sort();
+    const running = h.made.filter(e => !e.paused && !e.ended).map(idOf);
     ok(M.current() === current, name + '/' + label + ': current is ' + current + ' (got ' + M.current() + ')');
-    ok(JSON.stringify(got) === JSON.stringify(wantSorted), name + '/' + label + ': running ' + JSON.stringify(got) + ', want ' + JSON.stringify(wantSorted));
-    if (want.length === 2) {
-      const a = h.el('run_calm'), b = h.el('run_intense');
-      ok(Math.abs(a.currentTime - b.currentTime) < 0.1, name + '/' + label + ': the run stems are in step (' + a.currentTime.toFixed(2) + ', ' + b.currentTime.toFixed(2) + ')');
-      const sum = h.heard(a) ** 2 + h.heard(b) ** 2;
-      ok(Math.abs(sum - VOL * VOL) < 0.01, name + '/' + label + ': the run stems keep equal power (' + sum.toFixed(3) + ')');
-    }
+    ok(running.join() === want.join(), name + '/' + label + ': running ' + running + ', want ' + want);
+    ok(M.audibleTracks().join() === want.join(), name + '/' + label + ': telemetry reports audible tracks');
   }
   const endStinger = id => { const e = h.el(id); e.ended = true; e.paused = true; };
 
   change(() => M.play('title'));                          settle('title', 'title', ['title'], 2.5);
   change(() => M.play('map'));                            settle('map', 'map', ['map']);
-  change(() => M.play('run_calm'));                       settle('run', 'run_calm', ['run_calm', 'run_intense']);
-  M.intensity(0.8);                                       settle('run, intensity 0.8', 'run_calm', ['run_calm', 'run_intense'], 2.6);
+  change(() => M.play('run_calm'));                       settle('run', 'run_calm', ['run_calm']);
   change(() => M.play('boss'));                           settle('boss', 'boss', ['boss']);
-  change(() => M.play('run_calm'));                       settle('run after boss', 'run_calm', ['run_calm', 'run_intense']);
+  change(() => M.play('run_calm'));                       settle('run after boss', 'run_calm', ['run_calm']);
   change(() => { M.play('run_calm'); M.play('run_calm'); M.play('run_calm'); });
-                                                          settle('repeated play', 'run_calm', ['run_calm', 'run_intense']);
-  change(() => M.play('map'), true); h.advance(0.2);
-  change(() => M.play('run_calm'), true); h.advance(0.2);
-  change(() => M.play('map'), true); h.advance(0.2);
-  change(() => M.play('boss'), true);                     settle('rapid changes', 'boss', ['boss']);
+                                                          settle('repeated play', 'run_calm', ['run_calm']);
+  change(() => M.play('map')); h.advance(0.2);
+  change(() => M.play('run_calm')); h.advance(0.2);
+  change(() => M.play('map')); h.advance(0.2);
+  change(() => M.play('boss'));                     settle('rapid changes', 'boss', ['boss']);
   change(() => M.play('victory')); h.advance(1.0); endStinger('victory');
                                                           settle('victory', 'victory', []);
   h.setHidden(true); h.advance(2);                        settle('hidden after the stinger', 'victory', []);
   h.setHidden(false);                                     settle('shown again: a finished stinger stays finished', 'victory', []);
   change(() => M.play('map'));                            settle('results to map', 'map', ['map']);
-  change(() => M.play('run_calm'));                       settle('map to run', 'run_calm', ['run_calm', 'run_intense']);
+  change(() => M.play('run_calm'));                       settle('map to run', 'run_calm', ['run_calm']);
   h.setHidden(true); h.advance(3);                        settle('hidden mid-run: silent', 'run_calm', []);
-  h.setHidden(false);                                     settle('shown mid-run: the pair resumes in step', 'run_calm', ['run_calm', 'run_intense']);
+  h.setHidden(false);                                     settle('shown mid-run: the track resumes', 'run_calm', ['run_calm']);
   change(() => M.play('defeat')); h.advance(1.0); endStinger('defeat');
                                                           settle('defeat', 'defeat', []);
   change(() => M.play('comic'));                          settle('comic', 'comic', ['comic']);
   change(() => M.stop());                                 settle('stop', null, []);
   change(() => M.play('title'));                          settle('title again', 'title', ['title']);
 
-  ok(overlap === null, name + ': one song at a time outside the crossfade (' + (overlap || 'no overlap') + ')');
+  ok(overlap === null, name + ': one song at a time including scene changes (' + (overlap || 'no overlap') + ')');
   ok(new Set(h.made.map(idOf)).size === h.made.length, name + ': one element per track id');
   if (o.route) {
     ok(h.actx.dupes === 0, name + ': no element gets a second source node');
@@ -354,13 +332,13 @@ sequence('element volume', { route: false, moving: true });
 sequence('web audio route', { route: true, moving: true });
 sequence('web audio route, iOS ignores element volume', { route: true, moving: true, iosVolume: true });
 
-{ // regression: the layer stopped while its calm track went on; a restart must not leave the stems apart
+{ // A new scene preempts a pending stop fade.
   const h = loadPlayer({ route: true, moving: true }), M = h.M;
-  M.play('run_calm'); h.advance(3);          // intensity 0: the layer sits at zero and is not running on its own
-  M.play('boss'); h.advance(0.5);
-  M.play('run_calm'); h.advance(0.3);
-  const d = Math.abs(h.el('run_calm').currentTime - h.el('run_intense').currentTime);
-  ok(d < 0.1, 'a run restarted within the crossfade keeps both stems at one position (apart by ' + d.toFixed(2) + ' s)');
+  M.play('run_calm'); h.advance(2);
+  M.stop(); h.advance(0.5);
+  ok(h.heard(h.el('run_calm')) > 0, 'stop alone fades out');
+  M.play('boss');
+  ok(h.el('run_calm').paused && h.heard(h.el('run_calm')) === 0, 'next track cancels an outgoing fade');
 }
 
 // The browser reports a rejected play() a microtask later, so this one waits for the promise callbacks to run.
@@ -370,7 +348,7 @@ pending.push((async () => { // regression: a track interrupted while loading (pa
   const h = loadPlayer(), M = h.M;
   h.flags.slow = true;
   M.play('map'); h.advance(0.5);
-  M.play('title'); h.advance(2);             // the map fades out and is paused while its play() is still pending
+  M.play('title'); h.advance(2);             // the map is paused while its play() is still pending
   await microtasks();
   h.flags.slow = false;
   M.play('map'); h.advance(0.1);
@@ -381,10 +359,10 @@ pending.push((async () => { // regression: a track interrupted while loading (pa
   const h = loadPlayer({ route: true }), M = h.M;
   h.flags.block = true;
   M.play('run_calm'); h.advance(0.2);
-  ok(h.el('run_calm').paused && h.el('run_intense').paused, 'blocked: both stems wait for a gesture');
+  ok(h.el('run_calm').paused, 'blocked: the track waits for a gesture');
   h.flags.block = false;
   h.advance(0.7);
-  ok(!h.el('run_calm').paused && !h.el('run_intense').paused, 'blocked: both stems start once the browser allows playback, without a tap');
+  ok(!h.el('run_calm').paused, 'blocked: the track starts once the browser allows playback, without a tap');
 }
 
 { // the context is resumed when iOS interrupts it, on a tap
@@ -395,6 +373,20 @@ pending.push((async () => { // regression: a track interrupted while loading (pa
   h.tap();
   ok(h.actx.resumes > 0 && h.actx.state === 'running', 'an interrupted context is resumed on a tap');
 }
+
+pending.push((async () => {
+  const h = loadPlayer({ route: true, moving: true, iosGestureAudio: true }), M = h.M;
+  h.flags.gesture = true;
+  M.unlock();
+  M.play('run_calm');
+  h.flags.gesture = false;
+  await microtasks();
+  const boss = h.el('boss');
+  ok(boss && boss.paused && boss.authorized && h.heard(boss) === 0, 'iPhone: a tap primes a silent boss track and parks it');
+  M.play('boss');
+  h.advance(2);
+  ok(M.playing() && h.heard(boss) > 0 && h.el('run_calm').paused, 'iPhone: boss starts without another tap and the route music is paused');
+})());
 
 // ---- 2. files and the drop folder
 
@@ -422,7 +414,7 @@ if (hasFfmpeg) {
     }
   }
   if (lens.run_calm !== undefined && lens.run_intense !== undefined && Math.abs(lens.run_calm - lens.run_intense) > 0.01) {
-    warn('run_calm (' + lens.run_calm.toFixed(3) + ' s) and run_intense (' + lens.run_intense.toFixed(3) + ' s) differ: the layers will drift');
+    warn('run_calm (' + lens.run_calm.toFixed(3) + ' s) and run_intense (' + lens.run_intense.toFixed(3) + ' s) differ in length');
   }
 }
 
@@ -440,14 +432,15 @@ if (hasFfmpeg && !quick) {
   try {
     const src = path.join(tmp, 'src'), dst = path.join(tmp, 'music'), backup = path.join(tmp, 'music-procedural');
     fs.mkdirSync(src); fs.mkdirSync(dst);
-    synth(path.join(src, 'comic.wav'), 121.5, 48000, 220.3);      // exactly target + crossfade, 48 kHz source
+    // Lossless compressed fixtures keep the real durations without filling the temporary volume.
+    synth(path.join(src, 'comic.flac'), 121.5, 48000, 220.3);     // exactly target + crossfade, 48 kHz source
     synth(path.join(src, 'victory.mp3'), 22, 44100, 330.7);       // longer than 20 s: trimmed
-    synth(path.join(src, 'map.wav'), 100, 44100, 110.1);          // too short for a 150 s loop
+    synth(path.join(src, 'map.flac'), 100, 44100, 110.1);         // too short for a 150 s loop
     synth(path.join(src, 'Title.wav'), 10, 44100, 220.1);         // wrong case: ignored with a note
     synth(path.join(dst, 'boss.mp3'), 3, 44100, 150.2);           // an untagged placeholder to back up (the shipped boss.mp3 is prepared now)
     const rep = prep.prepare({ src, dst, backup, only: ['comic', 'victory', 'map', 'boss'] });
     const row = id => rep.rows.find(r => r.id === id);
-    ok(row('comic') && row('comic').status === 'written', 'comic is written from a 121.5 s source');
+    ok(row('comic') && row('comic').status === 'written', 'comic is written from a 121.5 s source (' + (row('comic')?.note || 'no detail') + ')');
     ok(row('victory') && row('victory').status === 'written', 'victory is written and trimmed');
     ok(row('map') && row('map').status === 'rejected' && /too short/.test(row('map').note), 'map (100 s) is rejected as too short');
     ok(row('boss') && row('boss').status === 'placeholder', 'boss with no source is left as the placeholder');

@@ -9,6 +9,14 @@ P.Hero.speed = function (s) {
 
 P.Progression = {};
 
+// Logical earned-choice boundary shared with the scene owner. UI/settings never influence this rule.
+P.Progression.choiceCanWait=function(s){
+  if(!s.pendingLevels&&!s.pendingChests)return false;
+  var b=s.dir.trialBoss||s.gen&&s.gen.boss,a=b&&!b.dead&&b.ai;
+  if(!a||b.exposed||['pause','stall','recover','walk'].indexOf(a.m)>=0)return false;
+  return s.pendingChoiceAt!==undefined&&s.t-s.pendingChoiceAt<P.CFG.experience.choiceMaxDelay;
+};
+
 // Level-up heal + douse (kolonya): fire near Arda goes out.
 P.Progression.levelHeal = function (s) {
   var h = s.hero, lv = h.passives.kolonya || 0, K = P.CFG.passives.kolonya;
@@ -31,6 +39,7 @@ P.Progression.addXp = function (s, v) {
   while (s.xp >= P.xpNeed(s.level)) {
     s.xp -= P.xpNeed(s.level);
     s.level++;
+    if(!s.pendingLevels&&!s.pendingChests)s.pendingChoiceAt=s.t;
     s.pendingLevels++;
     s.levelUps.push(s.runT);
     s.events.push({ type: 'levelup', level: s.level });
@@ -51,8 +60,8 @@ P.Progression.unlocked = function (s, kind, id) {
 };
 
 // Evolution eligible for a chest: base weapon at max level + paired passive owned. Oldest-owned first.
-P.Progression.evolutionFor = function (s) {
-  var h = s.hero, max = P.CFG.maxItemLevel, evo = h.evolved || {}, owned = Object.keys(h.weapons);
+P.Progression.evolutionFor = function (s, focus) {
+  var h = s.hero, max = P.CFG.maxItemLevel, evo = h.evolved || {}, owned = focus ? [focus] : Object.keys(h.weapons);
   for (var i = 0; i < owned.length; i++) {
     var base = owned[i];
     if ((h.weapons[base] || 0) < max || evo[base]) continue;
@@ -125,7 +134,62 @@ P.Progression.scriptedFirst = function (s) {
 };
 
 // Every other first offer opens with the starter weapon's upgrade, then weighted picks, so it varies by seed and level.
-P.Progression.makeOffer = function (s) {
+// One slot supports the build the player has already invested in. The other two keep the normal draw.
+function recipeChoice(s, pool, focus) {
+  if (!s.recipeAssistance || !s.recipeFocus) return null;
+  var current = P.Progression.buildState(s);
+  var early = s.levelIndex <= P.CFG.cards.earlyRecipeThrough;
+  if (!current || current.status === 'evolved') return null;
+  var missing = !current.paired && current.rank >= P.CFG.maxItemLevel - 1;
+  var firstPartner = missing && s.levelIndex >= P.CFG.cards.partnerOfferFrom && !(s.recipePartnerOffered && s.recipePartnerOffered[current.weapon]);
+  var opening = s.levelIndex <= P.CFG.cards.entryBuildThrough && current.rank === 1 && s.cardPicks <= 2 && s.cardPicks > 0;
+  var invested = s.levelIndex <= P.CFG.cards.entryBuildThrough && current.rank >= 2;
+  var seenPartner = s.recipePartnerOffered && s.recipePartnerOffered[current.weapon];
+  if (!(early || focus || opening || invested || firstPartner || current.rank >= 3 && current.paired)) return null;
+  var evo = P.Progression.evolutionFor(s, focus || current.weapon);
+  if (evo) return evo;
+  var partner = current.rank >= 3 && !current.paired && (early || focus || !seenPartner);
+  var key = (partner ? 'p:' + current.passive : 'w:' + current.weapon);
+  var pick = pool.findIndex(function (c) { return c.id === key; });
+  if (pick < 0) return null;
+  return pool.splice(pick, 1)[0];
+}
+
+P.Progression.buildState = function (s) {
+  var h = s.hero, base = s.recipeFocus, E, id;
+  if (!base) return null;
+  for (id in P.CFG.evolutions) {
+    E = P.CFG.evolutions[id];
+    if (E.from === base && E.passive) break;
+  }
+  if (!E || E.from !== base || !E.passive) return null;
+  var paired = h.passives[E.passive] > 0, evolved = !!(h.evolved && h.evolved[base]);
+  var rank = evolved ? P.CFG.maxItemLevel : h.weapons[base] || 0;
+  return { weapon: base, rank: rank, passive: E.passive, paired: paired, evo: evolved ? h.evolved[base] : id,
+    status: evolved ? 'evolved' : rank < P.CFG.maxItemLevel ? 'rank_low' : paired ? 'ready' : 'passive_missing' };
+};
+
+P.Progression.focusCandidate = function (s) {
+  var focus = s.recipeFocus;
+  if (s.rerolls <= 0 || !focus || s.levelIndex <= P.CFG.cards.earlyRecipeThrough) return null;
+  return recipeChoice(s, P.Progression.candidates(s), focus);
+};
+P.Progression.rerollFocus = function (s) {
+  return P.Progression.focusCandidate(s) ? s.recipeFocus : null;
+};
+
+function starterAlternatives(s, pool, picks) {
+  var C = P.CFG.cards;
+  if (!s.recipeAssistance || s.levelIndex > C.entryBuildThrough || s.cardPicks !== 0) return;
+  C.entryBuilds.forEach(function (group) {
+    if (picks.length >= C.count) return;
+    var ids = group.filter(function (id) { return pool.some(function (c) { return c.id === 'w:' + id; }); });
+    var id = s.levelIndex <= C.earlyRecipeThrough || ids.length < 2 ? ids[0] : ids[s.rng.cards.int(0, ids.length - 1)];
+    if (id) picks.push(pool.splice(pool.findIndex(function (c) { return c.id === 'w:' + id; }), 1)[0]);
+  });
+}
+
+P.Progression.makeOffer = function (s, focus) {
   var C = P.CFG, rng = s.rng.cards, picks = [], pool = P.Progression.candidates(s), start, i;
   if (s.cardPicks === 0 && P.Progression.scriptedFirst(s)) {
     picks = C.scriptedFirstCard.map(function (id) { return P.Progression.cardFor(s, id); });
@@ -134,6 +198,20 @@ P.Progression.makeOffer = function (s) {
   if (s.cardPicks === 0) {
     start = 'w:' + ((s.loadout && s.loadout.startWeapon) || C.pool.signature);
     for (i = 0; i < pool.length; i++) if (pool[i].id === start) { picks.push(pool.splice(i, 1)[0]); break; }
+  }
+  var recipe = recipeChoice(s, pool, focus === s.recipeFocus ? focus : null);
+  if (recipe) {
+    recipe.recipe = true; picks.push(recipe);
+    if (recipe.id.indexOf('p:') === 0 && s.levelIndex >= C.cards.partnerOfferFrom) {
+      if (!s.recipePartnerOffered) s.recipePartnerOffered = {};
+      s.recipePartnerOffered[s.recipeFocus] = true;
+    }
+  }
+  starterAlternatives(s, pool, picks);
+  if (s.recipeAssistance && s.levelIndex <= C.cards.entryBuildThrough && !s.survivalOffered &&
+      picks.length < C.cards.count && s.hero.hp < s.hero.maxHp * C.cards.survivalChoiceAt) {
+    var heal = pool.findIndex(function (c) { return c.item === 'medkit'; });
+    if (heal >= 0) { picks.push(pool.splice(heal, 1)[0]); s.survivalOffered = true; }
   }
   while (picks.length < C.cards.count && pool.length) {
     var total = pool.reduce(function (a, b) { return a + b.w; }, 0), r = rng.next() * total, i = 0;
@@ -164,14 +242,24 @@ P.Progression.evolve = function (s, card) {
   h.evolved = h.evolved || {};
   h.evolved[card.evo] = card.item;
   P.Weapons.onAcquire(s, card.item);
+  s.evolvedAt = s.runT;
+  if (!s.evolutionUse) s.evolutionUse = {};
+  s.evolutionUse[card.item] = { acquired_s: +s.runT.toFixed(1), first_hit_s: null, last_hit_s: null, hits: 0,
+    acquired_phase:s.gen&&s.gen.boss&&!s.gen.boss.dead?'boss':s.dir.hold.active?'hold':s.milestone&&!s.milestone.open?'route':s.props.shutterOpen?'exit':'approach',
+    first_attack_s:null,first_effect_s: null, last_effect_s: null, damage: 0, control: {} };
   s.events.push({ type: 'evolve', from: card.evo, to: card.item, T: P.CFG.evoCutsceneT });
 };
 
-P.Progression.choose = function (s, card) {
+P.Progression.choose = function (s, card, fromChest) {
   var h = s.hero, parts = card.id.split(':'), pc = P.CFG.passives;
   if (card.evo) P.Progression.evolve(s, card);
   else if (parts[0] === 'w') {
     h.weapons[card.item] = card.next;
+    var opening = s.recipeAssistance && s.levelIndex <= P.CFG.cards.entryBuildThrough;
+    var evolved = h.evolved && h.evolved[s.recipeFocus];
+    if (opening && s.cardPicks === 0 && !fromChest) s.recipeFocus = card.item;
+    else if ((!fromChest || !opening || !s.recipeFocus || evolved) && card.next > 1 && (!s.recipeFocus || evolved ||
+        card.next > (h.weapons[s.recipeFocus] || 0))) s.recipeFocus = card.item;
     if (card.next === 1) P.Weapons.onAcquire(s, card.item);
     if (card.fork) P.Progression.pickMod(s, card);
   }
@@ -185,6 +273,15 @@ P.Progression.choose = function (s, card) {
   s.cardPicks++;
   s.pendingLevels--;
   s.events.push({ type: 'cardChosen', id: card.id, item: card.item, level: card.next, evo: card.evo || null });
+};
+
+// An explicit pause-screen choice changes only the existing recipe aid, never owned power or attacks.
+P.Progression.setBuildPlan = function (s, id) {
+  if (!s.recipeAssistance || P.CFG.arsenal.weapons.indexOf(id) < 0 || !(s.hero.weapons[id] > 0) ||
+      s.hero.evolved && s.hero.evolved[id]) return false;
+  s.recipeFocus = id;
+  s.events.push({ type: 'buildPlan', weapon: id, rank: s.hero.weapons[id] });
+  return true;
 };
 
 // ---------- card text: stat rows built from config (C.weapons[id].stats) ----------
@@ -213,7 +310,13 @@ function weaponStats(card) {
     if (!a && ((fmt === 'bool' && !vb) || (fmt === 'rate' && vb === 1))) return;
     out.push({ k: st[0], a: a ? fmtVal(fmt, va, ref) : null, b: fmtVal(fmt, vb, ref) });
   });
-  return out.slice(0, 3);
+  out = out.slice(0, 3);
+  if (cfg.cooldown > 0) {
+    var prev = a && Math.round(cfg.cooldown * (a.cdMult || 1) * 100) / 100;
+    var next = Math.round(cfg.cooldown * (b.cdMult || 1) * 100) / 100;
+    out.push({ k: 'stat.cd.base', a: prev && prev !== next ? prev + ' s' : null, b: next + ' s' });
+  }
+  return out;
 }
 
 function passiveStats(item, lv) {
@@ -221,7 +324,7 @@ function passiveStats(item, lv) {
   if (lv === 0) return [];
   switch (item) {
     case 'shoes': return [['stat.speed', '+' + pct(lv * pc.shoes.movePct)]];
-    case 'jacket': return [['stat.armor', '-' + Math.min(pc.jacket.armorCap, lv * pc.jacket.armorPerLevel)], ['stat.maxHp', '+' + Math.max(0, lv - 3) * pc.jacket.hpFromLevel4]];
+    case 'jacket': return [['stat.damageReduction', '+' + Math.min(pc.jacket.armorCap, lv * pc.jacket.armorPerLevel)], ['stat.maxHp', '+' + Math.max(0, lv - 3) * pc.jacket.hpFromLevel4]];
     case 'gloves': return [['stat.dmg', '+' + pct(lv * pc.gloves.might)], ['stat.kb', '+' + pct(lv * pc.gloves.knockbackPct)]];
     case 'energy': return [['stat.cd', '-' + pct(lv * pc.energy.cdr)]];
     case 'medkit': return [['stat.regen', (lv * pc.medkit.regenPerLevel).toFixed(1) + '/s'], ['stat.heal', '+' + pc.medkit.healOnPick]];
@@ -273,6 +376,12 @@ P.Progression.shock = function (s) {
 P.Progression.chestReward = function (s) {
   var evo = P.Progression.evolutionFor(s);
   if (evo) return evo;
+  // The existing route crate can complete an invested recipe before the boss, rather than scattering its reward.
+  var build=P.Progression.buildState(s);
+  if (build && build.rank>=3 && build.status!=='evolved') {
+    var recipe=recipeChoice(s,P.Progression.candidates(s),build.weapon);
+    if (recipe) return recipe;
+  }
   var all = P.Progression.candidates(s), up = all.filter(function (c) { return c.next > 1; });
   var pool = up.length ? up : all;
   if (!pool.length) return { id: 'f:simit', item: 'simit', next: 0 };
@@ -281,7 +390,7 @@ P.Progression.chestReward = function (s) {
 
 P.Progression.openChest = function (s, card) {
   s.pendingLevels++;
-  P.Progression.choose(s, card);
+  P.Progression.choose(s, card, true);
   s.cardPicks--;
   s.pendingChests--; s.chestsOpened++;
   s.events.push({ type: 'chestOpened', item: card.item, level: card.next, evo: card.evo || null });

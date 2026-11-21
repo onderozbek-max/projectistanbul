@@ -3,7 +3,7 @@ P.BridgeProps = (function () {
   // [sheet x, sheet y, width, height, anchor x, anchor y, optional metres per pixel]
   var FRAMES = {
     bin: [[152,66,208,379,104,338],[662,65,212,381,106,340],[152,577,208,382,104,341],[564,603,408,329,243,164]],
-    bollard: [[157,62,198,387,99,347],[669,62,198,387,99,347],[157,574,198,387,99,347],[668,573,199,389,99,348]],
+    bollard: [[30,31,169,158,84.5,136],[235,31,168,158,84,136],[439,31,169,158,84.5,136]],
     fishingline: [[67,110,378,291,189,145],[578,130,380,252,190,126],[65,606,382,323,191,161],[577,619,381,297,190,148]],
     lanternstring: [[60,57,391,397,194.712,334.378,0.0175006],[572,57,391,397,194.712,334.378,0.0175006],[60,569,391,397,194.712,334.378,0.0175006],[577,564,382,408,191.394,338.159,0.0177993]],
     rodholder: [[100,52,311,408,150,374],[610,52,315,408,150,374],[100,566,311,404,150,371],[654,564,227,407,96,370]],
@@ -12,7 +12,7 @@ P.BridgeProps = (function () {
   };
   var BODY_SCALE = { bin: 1 / 282, crates: 0.7 / 258 };
   var LINE_LENGTH = [430, 430, 434, 437];
-  var SOLIDS = { bollard: 'bollard', bin: 'bin', crates: 'tacklecrate', barrier: 'stairbarrier' };
+  var SOLIDS = { bin: 'bin', crates: 'tacklecrate', barrier: 'stairbarrier' };
   var images = {}, pending = 0;
 
   function load() {
@@ -21,7 +21,8 @@ P.BridgeProps = (function () {
       pending++;
       image.onload = function () { images[name] = image; pending--; };
       image.onerror = function () { pending--; };
-      image.src = new URL('../../assets/bridge/' + name + '.png', document.currentScript.src).href;
+      var file = name === 'bollard' ? 'bollard-v2' : name;
+      image.src = new URL('../../assets/bridge/' + file + '.png', document.currentScript.src).href;
     });
   }
 
@@ -34,18 +35,12 @@ P.BridgeProps = (function () {
   }
 
   function drawBlock(R, kind, x, y, o) {
-    var name = SOLIDS[kind], v, f, sx, sy;
+    if (kind === 'bollard') return drawBollard(R, x, y, o);
+    var name = SOLIDS[kind], v, sx, sy;
     if (!name || !o.w || !o.h || !images[name]) return false;
     // Barrier art follows the long axis of the collision rectangle. Its rotated view is for a north-south footprint.
-    var count = kind === 'bollard' ? 4 : 3;
-    v = kind === 'barrier' && o.h > o.w ? 3 : Math.min(count - 1, Math.floor((o.v || 0) * count));
-    f = FRAMES[name][v];
-    if (kind === 'bollard') {
-      // Fit the base to each block's footprint. The 0.60 m bridge posts keep the standard 0.90 m height.
-      sx = o.w / f[2];
-      sy = (0.9 + o.h / 2) / f[3];
-      y -= o.h / 2 - (f[3] - f[5]) * sy;
-    } else if (kind === 'barrier') {
+    v = kind === 'barrier' && o.h > o.w ? 3 : Math.min(2, Math.floor((o.v || 0) * 3));
+    if (kind === 'barrier') {
       sx = (v === 3 ? o.h : o.w) / FRAMES.stairbarrier[0][2];
       sy = 1 / 151;
     } else {
@@ -53,6 +48,18 @@ P.BridgeProps = (function () {
     }
     P.Props.h.shadow(R.ctx, R.X(x), R.Y(y), o.w * R.ppm / 2, o.h * R.ppm * 0.3);
     return paint(R, name, v, x, y, sx, sy);
+  }
+
+  function drawBollard(R, x, y, o) {
+    var frames = FRAMES.bollard, w = o.w || P.CFG.levels.kinds.bollard[0], h = o.h || w;
+    var variant = o.v == null ? (o.k || 0) % frames.length : Math.min(frames.length - 1, Math.floor(o.v * frames.length));
+    var scale = w / frames[variant][2], c = R.ctx;
+    P.Props.h.shadow(c, R.X(x), R.Y(y), w * R.ppm / 2, h * R.ppm * .3);
+    if (!paint(R, 'bollard', variant, x, y, scale, scale) && o.w) {
+      // A footprint remains visible if the sprite is still loading or unavailable.
+      P.Props.h.ell(c, R.X(x), R.Y(y), w * R.ppm / 2, h * R.ppm / 2, '#414B50', 1.5);
+    }
+    return true;
   }
 
   function drawRail(R, s, y0, y1) {

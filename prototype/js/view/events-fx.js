@@ -24,8 +24,18 @@ P.EventsFx = (function () {
   EV.drawGround = function (R, s) {
     var t = performance.now() / 1000;
     (s.ev ? s.ev.list : []).forEach(function (ev) { drawEvent(R, s, ev, t); });
-    s.hacks.forEach(function (H) { drawHack(R, H, t); });
+    s.hacks.forEach(function (H) { drawHack(R, H, t, s.hero, s); });
+    if (s.obj && s.obj.id === 'defend.cart' && (s.obj.state === 'active' || s.tramRhythm)) drawSignalCart(R, s.obj.b, s.tramRhythm);
   };
+
+  function drawSignalCart(R, b, required) {
+    var c = R.ctx, X = R.X(b.x), Y = R.Y(b.y), u = R.ppm;
+    if (X < -4 * u || X > R.W + 4 * u || Y < -4 * u || Y > R.H + 4 * u) return;
+    if (b.up < 1) drawZone(R, { x: b.x, y: b.y, prog: b.up, inside: b.uploading },
+      required ? C.levels.routeMilestones.cart.ringR : C.objectives.types.defend.r, required && b.contested ? DANGER : SIGNAL);
+    P.Props.draw('kestane', R, b.x, b.y);
+    P.ConsumablesIcons.draw(c, 'link', X, Y - 1.25 * u, 0.27 * u, '#7CC7FF', '#14151F');
+  }
 
   function drawEvent(R, s, ev, t) {
     switch (ev.kind) {
@@ -74,9 +84,7 @@ P.EventsFx = (function () {
   // Guarded chest box (the guard is an elite enemy next to it).
   function drawChest(R, ev) {
     if (!ev.guard || ev.guard.dead) return;
-    var X = R.X(ev.x), Y = R.Y(ev.y), w = 0.45 * R.ppm;
-    R.ctx.fillStyle = 'rgba(150,96,50,0.95)'; R.ctx.fillRect(X - w, Y - w * 0.6, w * 2, w * 1.2);
-    R.ctx.strokeStyle = GOLD + '0.9)'; R.ctx.lineWidth = 2; R.ctx.strokeRect(X - w, Y - w * 0.6, w * 2, w * 1.2);
+    P.Consumables.chest(R.ctx, R.X(ev.x), R.Y(ev.y), R.ppm, 0, true);
   }
 
   // Burning car: a blinking marker whose rate rises as the fuse runs down.
@@ -103,11 +111,27 @@ P.EventsFx = (function () {
   }
 
   // Hack terminal: idle dashed ring, active solid ring with a progress arc, done faded; alarm pulse; tram box.
-  function drawHack(R, H, t) {
-    var c = R.ctx, X = R.X(H.x), Y = R.Y(H.y), r = C.hack.r * R.ppm;
-    P.ConsumablesZone.draw(R, H, t);   // the ring, the rim that fills, the link icon, PAUSED and the completion pop (T4 part 10)
+  function drawHack(R, H, t, hero, s) {
+    if (H.tram) return;
+    var c = R.ctx, X = R.X(H.x), Y = R.Y(H.y), r = H.r * R.ppm;
+    var required=P.RouteMilestones&&P.RouteMilestones.target(s), localWork=required&&Math.hypot(hero.x-required[0],hero.y-required[1])<7;
+    var relevant=!localWork||Math.hypot(H.x-required[0],H.y-required[1])<=H.r||H.state==='active';
+    if (relevant && (!P.StreetInvitations || H.state === 'done' || P.StreetInvitations.nearRing(hero, H)))
+      P.ConsumablesZone.draw(R, H, t);   // the ring, the rim that fills, the link icon, PAUSED and the completion pop (T4 part 10)
+    if (H.liveTram && (H.crossing || H.state !== 'done' && Math.abs(hero.y - H.y) <= C.levels.tramCrossing.reserve)) crossingLane(R, H);
     if (H.alarm > 0) { c.strokeStyle = DANGER + (0.5 + 0.4 * Math.sin(t * 9)) + ')'; c.lineWidth = 4; c.beginPath(); c.arc(X, Y, r * 1.1, 0, Math.PI * 2); c.stroke(); }
     if (H.rush > 0) tramLane(R, H, t);
+  }
+
+  function crossingLane(R, H) {
+    var p = H.crossing ? H.crossing.pass : P.Hack.crossingLane(H), c = R.ctx, x0 = R.X(p.x - p.w / 2), x1 = R.X(p.x + p.w / 2);
+    var top = R.Y(p.y1), bottom = R.Y(p.y0), active = !!H.crossing;
+    c.save();
+    c.fillStyle = active ? DANGER + '0.27)' : GOLD + '0.12)';
+    c.fillRect(x0, top, x1 - x0, bottom - top);
+    c.strokeStyle = active ? DANGER + '0.95)' : GOLD + '0.9)';
+    c.lineWidth = 2.5; c.setLineDash(active ? [] : [7, 6]); c.strokeRect(x0, top, x1 - x0, bottom - top);
+    c.restore();
   }
 
   // Tram-box lane (T4 part 11): the telegraph of the tram crush. Only this lane is translucent (the tram itself is opaque, see
@@ -117,9 +141,10 @@ P.EventsFx = (function () {
   // sim's (H.rush counts down from hack.tram.rushT); nothing here changes it.
   var LANE = { step: 2.4, speed: 0.8, icon: 0.85 };
   function tramLane(R, H, t) {
-    var c = R.ctx, T = C.hack.tram, u = R.ppm, len = H.lane || T.len, x0 = H.x - T.w / 2, x1 = H.x + T.w / 2, y0 = H.y - T.back, y1 = H.y + len;
-    var X0 = R.X(x0), X1 = R.X(x1), Yt = R.Y(y1), Yb = R.Y(y0), W = X1 - X0, Hh = Yb - Yt, ew = 0.3 * u, i, sy, off, yy, cx = R.X(H.x);
-    var rm = !!(P.Settings && P.Settings.reduceMotion), frac = clamp01(H.rush / T.rushT);
+    var c = R.ctx, T = C.hack.tram, u = R.ppm, len = H.lane || T.len, trackX = H.trackX === undefined ? H.x : H.trackX;
+    var x0 = trackX - T.w / 2, x1 = trackX + T.w / 2, y0 = H.y - T.back, y1 = H.y + len;
+    var X0 = R.X(x0), X1 = R.X(x1), Yt = R.Y(y1), Yb = R.Y(y0), W = X1 - X0, Hh = Yb - Yt, ew = 0.3 * u, sy, off, yy, cx = R.X(trackX);
+    var rm = !!(P.Settings && P.Settings.reduceMotion), frac = clamp01(H.rush / (H.rushT || T.rushT));
     off = rm ? 0 : (t * LANE.speed) % LANE.step;
     c.save();
     c.fillStyle = DANGER + '0.22)'; c.fillRect(X0, Yt, W, Hh);                                        // the translucent danger fill
@@ -154,10 +179,10 @@ P.EventsFx = (function () {
   EV.drawAir = function (R, s) {
     var c = R.ctx, u = R.ppm;
     s.hacks.forEach(function (H) {
-      if (H.state === 'done' && H.doneT >= C.hack.fadeT) return;
-      var X = R.X(H.x), Y = R.Y(H.y) - C.hack.r * u - 0.4 * u;
+      if (H.tram || H.state === 'done' && H.doneT >= C.hack.fadeT) return;
+      var X = R.X(H.x), Y = R.Y(H.y) - H.r * u - 0.4 * u;
       c.font = Math.round(0.42 * u) + 'px "CM Comic Relief", "Comic Relief", "Comic Sans MS", sans-serif'; c.textAlign = 'center'; c.fillStyle = 'rgba(230,240,255,0.95)';
-      c.fillText(label('hack.' + H.kind), X, Y);
+      c.fillText(label('hack.' + (H.trackX !== undefined ? 'tramStop' : H.kind)), X, Y);
       if (H.state === 'active') {
         c.fillStyle = 'rgba(20,21,31,0.6)'; c.fillRect(X - 1.2 * u, Y + 0.15 * u, 2.4 * u, 0.2 * u);
         c.fillStyle = SIGNAL + '0.95)'; c.fillRect(X - 1.2 * u, Y + 0.15 * u, 2.4 * u * clamp01(H.prog), 0.2 * u);
@@ -221,10 +246,14 @@ P.EventsFx = (function () {
     switch (ev.type) {
       case 'eventStart': startLetter(s, ev); break;
       case 'hackStart': sfx('tink', 300, s, ev.x); break;
-      case 'hackDone': P.Fx.letter(ev.x, ev.y + 1.2, label('hack.done')); sfx('bell', 0, s, ev.x); break;
-      case 'hackFail': P.Fx.letter(ev.x, ev.y + 1.2, label(ev.kept ? 'hack.weak' : 'hack.lost')); break;
-      case 'signalRestored': P.Fx.letter(s.hero.x, s.hero.y + 2, label('ev.signal')); sfx('bell', 0, s); break;
-      case 'signalLost': P.Fx.letter(s.hero.x, s.hero.y + 2, label('hack.lost')); sfx('phoneBuzz', 0, s); break;
+      case 'hackDone':
+        if (ev.outcome !== 'tramScene' && ev.outcome !== 'tramCrossing' && ev.kind !== 'cell') {
+          P.Fx.letter(ev.x, ev.y + 1.2, label('hack.done.' + ev.outcome)); sfx('bell', 0, s, ev.x);
+        }
+        break;
+      case 'hackFail': if (!ev.kept) P.Fx.letter(ev.x, ev.y + 1.2, label('hack.paused')); break;
+      case 'signalRestored': sfx('bell', 0, s); break;
+      case 'signalLost': P.Fx.letter(s.hero.x, s.hero.y + 2, label('ev.signalLost')); sfx('phoneBuzz', 0, s); break;
       case 'stunWave': sfx('shock', 0, s, ev.x); break;
       case 'shortcut': sfx('shutter', 0, s, ev.x); break;
       case 'carAlarm': sfx('rattle', 0, s, ev.x); break;
@@ -242,7 +271,10 @@ P.EventsFx = (function () {
       case 'helperStart': P.Fx.letter(ev.x, ev.y + 1, label('ev.helper')); break;
       case 'helperThrow': sfx('lob', 200, s, ev.x); break;
       case 'defendHeld': sfx('bell', 0, s, ev.x); break;
-      case 'tramRush': P.Fx.letter(ev.x, ev.y0 + 1, label('ev.tram')); sfx('ferryHorn', 0, s, ev.x); if (P.Vehicles) P.Vehicles.rush(ev); break;
+      case 'tramWarning': sfx('bell', 0, s, ev.x); break;
+      case 'tramRush':
+        if (!ev.sweep) P.Fx.letter(ev.x, ev.y0 + 1, label('ev.tram'));
+        sfx('ferryHorn', 0, s, ev.x); if (P.Vehicles) P.Vehicles.rush(ev); break;
     }
   };
 

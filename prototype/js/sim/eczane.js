@@ -39,7 +39,7 @@
     var w = W.w, h = W.h, y = G.holdY * rng.range(W.span[0], W.span[1]), side = rng.int(0, 1) * 2 - 1;
     var x = side * (W.sideMin + w / 2 + rng.range(0, W.sideJit));
     if (P.Layouts.inZone(G, y) || Math.abs(x) + w / 2 > G.xMax - W.edge) return null;
-    if (clashes(G, x, y, w, h, W.clear)) return null;
+    if (P.Layouts.reserved(G, x, y, w, h) || clashes(G, x, y, w, h, W.clear)) return null;
     return { x: x, y: y, w: w, h: h };
   }
 
@@ -76,7 +76,7 @@
     h.hp = Math.min(h.maxHp, h.hp + C.heal);
     st.used = true; st.dwell = 0;
     s.events.push({ type: 'pickup', kind: st.b.kind, station: st.variant, value: C.heal, healed: h.hp - before, uncapped: true,
-      capped: false, x: st.b.x, y: st.b.y });
+      capped: false, x: st.b.x, y: st.b.y, hp: h.hp });
   }
 
   // Per tick (sim.js, after the drops). A touch counts while the hero is below full HP; a gap in the touch resets the dwell.
@@ -86,7 +86,7 @@
     for (i = 0; i < E.list.length; i++) {
       st = E.list[i];
       if (st.used) continue;
-      if (h.hp >= h.maxHp || P.Eczane.touchDist(h, st.b) > C.touchR) { st.dwell = 0; continue; }
+      if (h.moving || h.dashing || h.sinceHit < P.CFG.env.propIntent.hitCancel || h.hp >= h.maxHp || P.Eczane.touchDist(h, st.b) > C.touchR) { st.dwell = 0; continue; }
       st.dwell += dt;
       if (st.dwell >= C.dwell) use(s, st);
     }

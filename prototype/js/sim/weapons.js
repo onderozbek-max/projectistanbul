@@ -21,7 +21,7 @@ P.Weapons.dmgFor = function (s, fam, base) { return base * P.Skills.powerMul(s) 
 P.Weapons.state = function (s) {
   return s.ws || (s.ws = { slams: [], flasks: [], pools: [], rockets: [], finale: [], bolts: [], spears: [], sprays: [],
     shards: [], echoes: [], sticks: [], clouds: [], chainQ: [], acts: {}, chainAct: null, chainBoostT: 0,
-    blades: [], manholes: [], marbles: [], landings: [], doors: [], hooks: [], torches: [], rev: null });
+    blades: [], manholes: [], marbles: [], landings: [], doors: [], doorTosses: [], hooks: [], torches: [], rev: null });
 };
 
 // Generic fire event (view contract, workstream B): one per fire or attack of any weapon. w is the base family;
@@ -29,6 +29,7 @@ P.Weapons.state = function (s) {
 // tag = the synergy element (fire, electric, blunt, blade, gas, water) of the owned variant (config-weapons3.js).
 P.Weapons.fired = function (s, w, ang, n, variant) {
   var h = s.hero, v = variant || w;
+  var use=s.evolutionUse&&s.evolutionUse[v];if(use&&use.first_attack_s===null)use.first_attack_s=+s.runT.toFixed(1);
   s.events.push({ type: 'wfire', w: w, x: h.x, y: h.y, ang: ang, lv: h.weapons[v] || 1, n: n || 1, variant: v, tag: P.Weapons.tagOf(v) });
 };
 P.Weapons.tagOf = function (id) {
@@ -41,7 +42,7 @@ P.Weapons.ready = function (h, id, dt) {
   h.cds = h.cds || {};
   var c = (h.cds[id] || 0) - dt;
   h.cds[id] = c;
-  return c <= 0;
+  return c <= 0 && !h.streetHolding;
 };
 
 // Owned variant of a base family: the evolution when it has replaced the base, else the base id.
@@ -73,9 +74,22 @@ function nearestEnemy(s, x, y, maxD) {
     var d = Math.hypot(e.x - x, e.y - y) - e.r;
     if (d < bd) { bd = d; best = e; }
   }
-  return best;
+  var boss = s.dir && s.dir.trialBoss || s.gen && s.gen.boss, aim = P.CFG.exposedAim;
+  if (!aim || !s.routeTrial || s.levelIndex > 30 || !best || best === boss || bd <= aim.protect ||
+      !boss || boss.dead || !boss.exposed || boss.state !== 'active' || x !== s.hero.x || y !== s.hero.y) return best;
+  var d = Math.hypot(boss.x - x, boss.y - y) - boss.r;
+  return d < maxD && d <= bd + aim.margin && aimLineClear(s, x, y, boss) ? boss : best;
 }
 P.Weapons.nearestEnemy = nearestEnemy;
+
+function aimLineClear(s, x, y, boss) {
+  if (!s.geo) return true;
+  var dx = boss.x - x, dy = boss.y - y, n = Math.ceil(Math.hypot(dx, dy) / P.CFG.hero.radius);
+  for (var i = 1; i < n; i++) {
+    if (P.Events.blocked(s, x + dx * i / n, y + dy * i / n)) return false;
+  }
+  return true;
+}
 
 function inArc(hx, hy, ax, ay, tx, ty, tr, range, cosHalf) {
   var dx = tx - hx, dy = ty - hy, d = Math.hypot(dx, dy);
@@ -116,42 +130,7 @@ P.Weapons.pickClusters = function (s, range, blast, count, flight) {
 };
 
 // ---------- Döner Knife (and the 360 sig spin) ----------
-function fireKnife(s, dt) {
-  var h = s.hero, cfg = P.CFG.weapons.knife, lv = P.Weapons.level(h, 'knife');
-  if (!lv || !P.Weapons.ready(h, 'knife', dt)) return;
-  var t = nearestEnemy(s, h.x, h.y, lv.range), tx, ty;
-  if (t) { tx = t.x; ty = t.y; } else {
-    var prop = P.Combat.nearestProp(s, lv.range);
-    if (!prop) return;
-    tx = prop.x; ty = prop.y;
-  }
-  var ax = tx - h.x, ay = ty - h.y, al = Math.hypot(ax, ay) || 1;
-  ax /= al; ay /= al;
-  var A = P.Mods.act(s, 'knife');
-  h.cds.knife = cfg.cooldown * A.cd * P.Weapons.cdMult(s, 'knife');
-  h.swingDir = (h.swingDir || 1) * -1;
-  var variant = s.swings % 3;               // 0 forehand, 1 wide backhand, 2 short chop: varied arcs
-  var dirs = [[ax, ay]], range = lv.range * A.area;
-  if (lv.back) dirs.push([-ax, -ay]);
-  if (A.sig && A.sig.extra === 'spin') dirs = [[ax, ay], [-ay, ax], [-ax, -ay], [ay, -ax]];
-  var cosHalf = Math.cos(lv.arcDeg * Math.PI / 360), kb = cfg.knockback * P.Weapons.kbMult(s);
-  var dmg = P.Weapons.dmgFor(s, 'knife', lv.dmg) * A.dmg;
-  P.Weapons.fired(s, 'knife', Math.atan2(ay, ax), dirs.length);
-  dirs.forEach(function (dv, k) {
-    s.events.push({ type: 'swing', x: h.x, y: h.y, ax: dv[0], ay: dv[1], range: range, arcDeg: lv.arcDeg,
-      dir: h.swingDir, back: k > 0, variant: variant, sig: !!A.sig, tag: P.Weapons.tagOf('knife') });
-    for (var i = 0; i < s.enemies.length; i++) {
-      var e = s.enemies[i];
-      if (e.dead || e.state === 'dormant') continue;
-      if (inArc(h.x, h.y, dv[0], dv[1], e.x, e.y, e.r, range, cosHalf)) P.Mods.hit(s, e, dmg, dv[0], dv[1], kb, 'knife', A);
-    }
-    P.Combat.forEachProp(s, function (p) {
-      if (inArc(h.x, h.y, dv[0], dv[1], p.x, p.y, p.r, range, cosHalf)) P.Combat.damageProp(s, p, dmg);
-    });
-  });
-  P.Mods.announce(s, A, h.x, h.y, range);
-  s.swings++;
-}
+function fireKnife(s, dt) { P.WeaponsKnife.step(s,dt); }
 
 // ---------- Nail volleys (Nail Gun, Nail Storm) ----------
 // Nails carry their action (mods, usta, signature) so every hit resolves through P.Mods.hit.
@@ -300,7 +279,7 @@ P.Weapons.bladeHits = function (s, lv, angle, gap, kb, src, field, A) {
 // The chain runs as the base (chain) or as Elektrik Zinciri (arcchain). Cyclone has its own step (weapons3.js).
 function updateChain(s, dt) {
   var h = s.hero, id = P.Weapons.variantOf(h, 'chain'), W = P.Weapons.state(s);
-  if (id !== 'chain' && id !== 'arcchain') return;
+  if (h.streetHolding || id !== 'chain' && id !== 'arcchain') return;
   var cfg = P.CFG.weapons[id], lv = P.Weapons.level(h, id);
   if (!lv) return;
   W.chainBoostT = Math.max(0, (W.chainBoostT || 0) - dt);
@@ -329,4 +308,9 @@ P.Weapons.step = function (s, dt) {
   P.Mods.update(s, dt);
 };
 
-P.Weapons.onAcquire = function (s, item) { s.hero.cds = s.hero.cds || {}; s.hero.cds[item] = 0.2; };
+P.Weapons.onAcquire = function (s, item) {
+  s.hero.cds = s.hero.cds || {};
+  s.hero.cds[item] = 0.2;
+  var variant = P.CFG.evolutions[item];
+  if (s.ws && variant && variant.from === 'chain') s.ws.chainAct = null;
+};

@@ -22,6 +22,17 @@ P.createSim = function (seed, opts) {
     levelIndex: idx, levelInfo: P.Journey.level(idx), theme: null,
     runMode: (o.loadout && o.loadout.mode) || 'normal',   // R1-T4 part 18: 'normal' | 'nightmare' | 'nightshift' (sim/modes.js)
   };
+  var revisedRouteMode = (s.runMode === 'normal' || s.runMode === 'nightmare') && o.tramRhythm === true;
+  s.recipeAssistance = revisedRouteMode;
+  s.routeTrial = revisedRouteMode
+    ? (({ 1: 'restaurant-escape', 2: 'tram-stop', 3: 'tram-crossing', 4: 'live-wires', 5: 'vatman' })[idx] ||
+      (C.levels.galataRoutes[idx] && 'galata-' + C.levels.galataRoutes[idx].kind) ||
+      (C.levels.karakoyRoutes[idx] && 'karakoy-' + C.levels.karakoyRoutes[idx].kind) ||
+      (C.levels.bridgeRoutes[idx] && 'bridge-' + C.levels.bridgeRoutes[idx].kind) ||
+      (C.levels.eminonuRoutes[idx] && 'eminonu-' + C.levels.eminonuRoutes[idx].kind) ||
+      (C.levels.sirkeciRoutes[idx] && 'sirkeci-' + C.levels.sirkeciRoutes[idx].kind)) : undefined;
+  s.tacticalReplay=s.routeTrial&&s.runMode==='normal'&&o.loadout&&o.loadout.tacticalLevel===idx&&[5,15,25].indexOf(idx)>=0?idx:null;
+  s.tramRhythm = s.routeTrial === 'tram-crossing';
   s.theme = s.levelInfo.hood.theme;
   s.fx = attrFx(o);
   s.perk = P.Perks ? P.Perks.set(o.loadout && o.loadout.perks) : {};   // Street Tree perks learned for this run (perks.js)
@@ -35,7 +46,9 @@ P.createSim = function (seed, opts) {
   if (idx > 1) {
     P.Levels.build(s, idx, o.sarayRaster);
     if (P.Objectives) P.Objectives.attach(s);   // lane P: objective and run modifier (objectives.js)
+    if (s.routeTrial) P.RouteMilestones.init(s);
     if (P.Env) P.Env.place(s, s.levelInfo);     // lane A: cover, canisters, cars, cables, doors (guarded; B may call it too)
+    if (P.StreetPlaces) P.StreetPlaces.init(s);
   } else {
     L.diners.forEach(function (d, i) {
       var e = P.Combat.spawnEnemy(s, 'diner', d.x, d.y, { state: 'dormant' });
@@ -43,6 +56,9 @@ P.createSim = function (seed, opts) {
     });
     s.dinersSpawned = true;
   }
+  if (P.EncounterSpace) P.EncounterSpace.init(s);
+  if (P.DramaSpace) P.DramaSpace.init(s);
+  if (P.Companion) P.Companion.init(s);
   if (P.Modes) P.Modes.apply(s);   // R1-T4 part 18: Nightmare multipliers and signature, or the Night Shift endless guard
   if (P.Modifiers && P.Modifiers.applyDaily) P.Modifiers.applyDaily(s);   // AUDIT-7 CR-1: daily modifiers (after the level build)
   if (P.Skills && P.Skills.init) P.Skills.init(s);
@@ -61,7 +77,7 @@ function applyLoadout(s, ld) {
   h.baseCdr = (g.cooldownPct || 0) + f.cooldownPct;
   h.pickupRadius = C.hero.pickupRadius * (1 + (g.pickupPct || 0) + f.pickupPct);
   var sw = ld && ld.startWeapon;
-  if (sw && sw !== C.pool.signature && C.pool.weapons.indexOf(sw) >= 0) { h.weapons[sw] = 1; h.cds[sw] = 0; }
+  if (sw && C.pool.weapons.indexOf(sw) >= 0 && (s.levelIndex!==1 || ld.l1Cleared)) { h.weapons = {};h.weapons[sw] = 1; h.cds[sw] = 0; }
 }
 
 // Per-run tally (meta): attribute training (config-stats.js trainingFromTally) and street cred. Filled by combat, events, hack.
@@ -98,6 +114,7 @@ P.revive = function (s, kind) {
   h.hp = h.maxHp;
   h.invuln = P.CFG.hero.secondWindInvuln;
   s.mode = 'play';
+  s.recentDamage = [];
   if (kind === 'secondWind') s.secondWindUsed = true; else s.reviveUsed = true;
   s.events.push({ type: 'revive', kind: kind });
 };
@@ -108,6 +125,9 @@ function stepHero(s, dt, input) {
   h.moving = m > 0.08;
   if (h.moving) {
     var sp = P.Hero.speed(s) * (1 + (h.baseMove || 0)) * (P.Env ? P.Env.heroMul(s) : 1) * P.Enemies4.heroMul(s), ox = h.x, oy = h.y;
+    if (h.streetHolding) sp *= P.StreetWeapon.moveMul(s);
+    if (s.routeTrial === 'bridge-bridgeLift') sp *= P.BridgeBoss.heroMul(s);
+    if (s.milestone && s.milestone.eminonu && s.milestone.carry) sp *= P.CFG.levels.eminonuMilestones.sacks.carryMul;
     h.fx = mx / m; h.fy = my / m;
     h.x += mx * sp * dt; h.y += my * sp * dt;
     P.World.clampHero(s, h);
@@ -121,18 +141,25 @@ function stepHero(s, dt, input) {
 }
 
 P.stepSim = function (s, dt, input) {
-  if (s.mode !== 'play' || s.pendingLevels > 0 || s.pendingChests > 0) return;
+  if (s.mode !== 'play' || (s.pendingLevels > 0 || s.pendingChests > 0) && !P.Progression.choiceCanWait(s)) return;
+  if (P.Hack.tramScene(s)) { P.Hack.stepTramScene(s, dt); return; }
   s.t += dt; s.runT += dt;
   var m0 = s.hero.moved;
   stepHero(s, dt, input);
   if (P.Skills && P.Skills.step) P.Skills.step(s, dt, input);
   s.tally.distance += s.hero.moved - m0;
   P.Director.step(s, dt);
+  if(P.EncounterSpace)P.EncounterSpace.step(s);
   if (s.mode !== 'play') return;
   if (P.Modes) { P.Modes.step(s); if (s.mode !== 'play') return; }   // R1-T4 part 18: min HP tracking, Night Shift time cap
   P.Events.step(s, dt);
   P.Hack.step(s, dt);
+  if (P.Hack.tramScene(s)) return;
+  if (P.Companion) P.Companion.step(s, dt);
+  if (P.KaanSupport) P.KaanSupport.step(s);
   P.Combat.updateEnemies(s, dt);
+  if (s.env && P.StreetWeapon) P.StreetWeapon.step(s, dt);
+  P.Combat.propIntent(s, dt);
   P.Weapons.step(s, dt);
   if (P.Env && s.env) P.Env.step(s, dt);   // lane A: after weapons, so this tick's molotov and canister events count
   if (P.Status && P.Status.step) P.Status.step(s, dt);

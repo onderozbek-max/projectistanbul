@@ -1,4 +1,4 @@
-// Input: floating one-thumb joystick in the lower 60% of the screen (GD 2, DS 13) + WASD/arrows.
+// Input: floating one-thumb joystick in the lower 60% of the screen (GD 2, DS 13), mouse drag anywhere on the playfield, and WASD/arrows.
 // Dash (workstream E1, W3): flick (finger moves >= flickPx within flickMs, starting from a stick at rest), double-tap
 // (two taps within tapMs and tapPx; dash follows the stick or facing), Space or Shift. A flick from a deflected stick
 // is steering, not a dash, so it is ignored (double-tap still works). Handedness: P.Settings.joySide 'left' keeps the
@@ -19,12 +19,13 @@ P.Input = (function () {
   I.init = function (phoneEl, toLocal) {
     phone = phoneEl; joy = document.getElementById('joy');
     phone.addEventListener('pointerdown', function (e) {
+      if (I.onAnyTap) I.onAnyTap(e);
+      var mouse = e.pointerType === 'mouse';
+      if (!I.enabled || e.target.closest('button') || (mouse && e.button !== 0)) return;
       var p = toLocal(e), now = I.now();
       trail = { id: e.pointerId, pts: [{ x: p.x, y: p.y, t: now }] };
-      if (I.onAnyTap) I.onAnyTap(e);
-      if (!I.enabled || e.target.closest('button')) return;
       tapCheck(p, now);
-      if (pid !== null || p.y < 0.4 * DESIGN_H || !sideOk(p.x)) return;
+      if (pid !== null || (!mouse && (p.y < 0.4 * DESIGN_H || !sideOk(p.x)))) return;
       held = null;
       spawn(e.pointerId, p);
     });
@@ -53,7 +54,8 @@ P.Input = (function () {
       I.keys[e.key.toLowerCase()] = true;
       if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && I.onPause) I.onPause();
       if (!I.enabled || e.repeat) return;
-      if (e.key === ' ' || e.key === 'Shift') { I.dashReq = true; I.dashDir = null; e.preventDefault(); }
+      if (e.key === ' ' && e.target && e.target.closest && e.target.closest('button')) return;
+      if (e.key === ' ' || e.key === 'Shift') { I.requestDash(); e.preventDefault(); }
       if (e.key === 'q' || e.key === 'Q') I.ultReq = true;
       if (e.key === 'e' || e.key === 'E') I.skillReq = true;
     });
@@ -111,10 +113,12 @@ P.Input = (function () {
     pts.length = 0; pts.push({ x: p.x, y: p.y, t: now });
   }
 
+  I.requestDash = function () { if (I.enabled) { I.dashReq = true; I.dashDir = null; } };
   I.requestUlt = function () { if (I.enabled) I.ultReq = true; };
   I.requestSkill = function () { if (I.enabled) I.skillReq = true; };
 
   I.reset = function () {
+    I.keys = {};
     if (pid !== null) held = pid;
     pid = null; I.vec.x = 0; I.vec.y = 0; joy && joy.classList.add('hidden');
     I.dashReq = false; I.ultReq = false; I.skillReq = false; I.dashDir = null; trail = null; lastTap = null;

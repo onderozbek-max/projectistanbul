@@ -10,7 +10,10 @@ P.Hack.place = function (s, kind, x, y) {
   var H = { id: s.ev.nextId++, kind: kind, x: x, y: y, r: P.CFG.hack.r, prog: 0, state: 'idle', t: 0, slow: 1,
     near: 0, alarm: 0, rush: 0, tickT: 0, doneT: 0 };
   s.hacks.push(H);
-  if (s.dir && !s.dir.tut.done.t_hack) P.Director.prompt(s, 't_hack', 'prompt.hack', H);
+  var preview = s.routeTrial && P.CFG.levels.eminonuRoutes[s.levelIndex];
+  if (!preview && s.dir && !s.dir.tut.done.t_hack && !(s.milestone && !s.milestone.open && P.RouteMilestones.pace(s))) {
+    P.Director.prompt(s, 't_hack', 'prompt.hack', H);
+  }
   return H;
 };
 
@@ -23,6 +26,7 @@ P.Hack.step = function (s, dt) {
     t = list[i];
     if (t.state === 'done') t.doneT += dt;
     if (t.alarm > 0) carAlarm(s, t, dt);
+    if (t.crossing) advanceCrossing(s, t, dt);
     if (t.rush > 0) t.rush = Math.max(0, t.rush - dt);
     if (t.state !== 'done' && Math.hypot(h.x - t.x, h.y - t.y) <= t.r && !act) act = t;
   }
@@ -30,9 +34,13 @@ P.Hack.step = function (s, dt) {
     t = list[i];
     if (t.state === 'active' && t !== act) decay(s, t, dt);
   }
+  var call = s.dir.call;
+  call.boosting = !!(s.levelIndex === 1 && act && act.kind === 'cell' && call.active &&
+    call.bars > 0 && (call.sub || call.queue.length));
   if (act) advance(s, act, dt);
+  s.activeHack = act && act.state === 'active' ? act.id : null;
   s.hacks = list.filter(function (x) {
-    return x.state !== 'done' || x.doneT < P.CFG.hack.fadeT || x.alarm > 0 || x.rush > 0;
+    return x.state !== 'done' || x.doneT < P.CFG.hack.fadeT || x.alarm > 0 || x.rush > 0 || x.tram || x.crossing;
   });
   if (s.pk.mark) markExpire(s);
 };
@@ -43,7 +51,8 @@ function advance(s, H, dt) {
   if (H.state !== 'active') startHack(s, H);
   H.near = n;
   H.slow = Math.max(C.slowMin, 1 / (1 + C.slowPer * n));
-  H.prog = Math.min(1, H.prog + dt * (1 + s.fx.hackSpeedPct) * H.slow / C.T);
+  var linkT = H.liveTram ? P.CFG.levels.tramCrossing.linkT : C.T;
+  H.prog = Math.min(1, H.prog + dt * (1 + s.fx.hackSpeedPct) * H.slow / linkT);
   H.tickT += dt;
   if (H.tickT >= C.tick) {
     H.tickT = 0;
@@ -55,7 +64,8 @@ function advance(s, H, dt) {
 function decay(s, H, dt) {
   H.near = 0;
   if (s.perk['int.2'] && !s.pk.look) { s.pk.look = 1; fail(s, H, true); return; }   // Second Look (int.2): once per run
-  H.prog = Math.max(0, H.prog - dt * P.CFG.hack.decay / P.CFG.hack.T);
+  var linkT = H.liveTram ? P.CFG.levels.tramCrossing.linkT : P.CFG.hack.T;
+  H.prog = Math.max(0, H.prog - dt * P.CFG.hack.decay / linkT);
   if (H.prog > 0) return;
   fail(s, H, false);
 }
@@ -70,7 +80,10 @@ function fail(s, H, kept) {
 function startHack(s, H) {
   H.state = 'active'; H.tickT = 0;
   s.events.push({ type: 'hackStart', id: H.id, kind: H.kind, x: H.x, y: H.y });
-  if (!s.perk['int.1']) noiseWave(s, H);   // Quick Fingers (int.1): a quiet hack spawns nobody and lures nobody
+  if (!H.liveTram && !s.perk['int.1'] && (!H.attracted || s.levelIndex > 5 || P.Modes.of(s) !== 'normal')) {
+    noiseWave(s, H);   // Quick Fingers (int.1) is quiet; retries in İstiklal cannot be farmed for waves.
+    H.attracted = true;
+  }
   if (s.levelIndex === 1) P.Director.bark(s, 'barkHack');
 }
 
@@ -91,9 +104,10 @@ function finish(s, H) {
   H.state = 'done'; H.prog = 1; H.doneT = 0;
   if (s.dir) P.Director.complete(s, 't_hack');
   s.tally.hacks++;
-  s.events.push({ type: 'hackDone', id: H.id, kind: H.kind, x: H.x, y: H.y, bonus: P.Hack.bonus(s) });
+  var ev = { type: 'hackDone', id: H.id, kind: H.kind, x: H.x, y: H.y, bonus: P.Hack.bonus(s) };
+  s.events.push(ev);
   var OUT = OUTCOMES[H.kind];
-  if (OUT) OUT(s, H, P.Hack.bonus(s));
+  H.outcome = ev.outcome = (OUT && OUT(s, H, ev.bonus)) || H.kind;
 }
 
 // ---------- outcomes ----------
@@ -108,8 +122,9 @@ var OUTCOMES = {
     s.events.push({ type: 'stunWave', id: H.id, x: H.x, y: H.y, r: T.r, T: stun });
   },
   cell: function (s, H) {
-    s.events.push({ type: 'signalRestored', id: H.id, source: 'hack', x: H.x, y: H.y });
-    P.Director.onSignal(s);
+    var signal = { type: 'signalRestored', id: H.id, source: 'hack', x: H.x, y: H.y };
+    s.events.push(signal);
+    signal.mom = P.Director.onSignal(s);
     if (s.perk['int.3']) markNext(s, H);   // Signal Boost (int.3)
   },
   shutter: function (s, H, bonus) {
@@ -120,6 +135,7 @@ var OUTCOMES = {
       s.geo.blocks.splice(s.geo.blocks.indexOf(b), 1);
       s.events.push({ type: 'shortcut', id: H.id, x: b.x, y: b.y });
     }
+    return b ? 'shutter' : 'cache';
   },
   car: function (s, H) {
     var A = P.CFG.hack.car;
@@ -130,16 +146,109 @@ var OUTCOMES = {
     s.events.push({ type: 'carAlarm', id: H.id, x: H.x, y: H.y, T: A.lureT });
   },
   tram: function (s, H) {
-    var T = P.CFG.hack.tram, x0 = H.x - T.w / 2, x1 = H.x + T.w / 2, y0 = H.y - T.back, y1 = H.y + T.len * backdoor(s);
-    H.rush = T.rushT; H.lane = T.len * backdoor(s);
-    s.events.push({ type: 'tramRush', id: H.id, x: H.x, y0: y0, y1: y1, w: T.w });
-    for (var i = 0; i < s.enemies.length; i++) {
-      var e = s.enemies[i];
-      if (e.dead || e.boss || e.x < x0 || e.x > x1 || e.y < y0 || e.y > y1) continue;
-      P.Combat.damageEnemy(s, e, T.dmg, 0, 1, T.kb, false, 'tram');
+    if (H.liveTram) { armCrossing(s, H); return 'tramCrossing'; }
+    var T = P.CFG.hack.tram, pass = tramPass(s, H);
+    H.lane = pass.y1 - H.y;
+    if (s.gen && H === s.gen.tramControl) {
+      var C = P.CFG.levels.tramStop;
+      pass.staged = true; pass.elapsed = 0;
+      H.tram = { pass: pass, front: pass.y0 - C.frontLead };
+      H.crowd = pass;
+      s.hero.moving = false;
+      s.events.push({ type: 'tramSceneStart' });
+      return 'tramScene';
     }
+    H.rush = T.rushT;
+    s.events.push(pass);
+    clearTrack(s, pass, pass.y0, pass.y1);
   },
 };
+
+P.Hack.crossingLane = function (H) {
+  var C = P.CFG.levels.tramCrossing;
+  return { x: H.trackX, y0: H.y - C.back, y1: H.y + C.len, w: P.CFG.hack.tram.w };
+};
+
+function armCrossing(s, H) {
+  var C = P.CFG.levels.tramCrossing, pass = P.Hack.crossingLane(H);
+  pass.type = 'tramRush'; pass.id = H.id; pass.sweep = C.sweepT; pass.frontLead = C.frontLead;
+  var warning = P.Modes.of(s) === 'nightmare' ? C.nightmareWarnT : C.warnT;
+  H.crossing = { pass: pass, warning: warning, travel: 0, kills: 0, hitHero: false };
+  s.events.push({ type: 'tramWarning', id: H.id, x: pass.x, y: H.y });
+  s.events.push({ type: 'routeBeat', phase: 'tram_crossing_signal', x: H.x, y: H.y });
+}
+
+function advanceCrossing(s, H, dt) {
+  var R = H.crossing, p = R.pass, C = P.CFG.levels.tramCrossing;
+  if (R.warning > 0) {
+    R.warning = Math.max(0, R.warning - dt);
+    if (R.warning > 0) return;
+    p.simTime = s.t; s.events.push(p);
+    return;
+  }
+  var from = crossingFront(p, R.travel);
+  R.travel += dt;
+  var to = crossingFront(p, R.travel), back = from - C.bodyLen;
+  var h = s.hero, r = P.CFG.hero.radius;
+  var y0 = Math.max(p.y0, back), y1 = Math.min(p.y1, to);
+  if (!R.hitHero && y0 <= y1 && h.y + r >= y0 && h.y - r <= y1 && Math.abs(h.x - p.x) <= p.w / 2 + r) {
+    R.hitHero = true; P.Combat.damageHero(s, C.damage, 'tram');
+  }
+  if (y0 <= y1) R.kills += clearTrack(s, p, y0, y1, true);
+  if (to - C.bodyLen < p.y1) return;
+  H.crossing = null;
+  s.gen.crossingOutcome = { kills: R.kills, hitHero: R.hitHero, until: s.t + C.noticeT };
+  s.events.push({ type: 'routeBeat', phase: 'tram_crossing_clear', kills: R.kills, hitHero: R.hitHero });
+}
+
+function crossingFront(p, elapsed) {
+  return p.y0 - p.frontLead + (p.y1 - p.y0 + p.frontLead) * elapsed / p.sweep;
+}
+
+function tramPass(s, H) {
+  var T = P.CFG.hack.tram, x = H.trackX === undefined ? H.x : H.trackX;
+  return { type: 'tramRush', id: H.id, x: x, y0: H.y - T.back, y1: H.y + T.len * backdoor(s), w: T.w };
+}
+
+P.Hack.tramScene = function (s) { return s && s.gen && s.gen.tramControl && s.gen.tramControl.tram; };
+
+P.Hack.stepTramScene = function (s, dt) {
+  advanceTram(s, s.gen.tramControl, dt);
+};
+
+function clearTrack(s, pass, fromY, toY, liveOnly) {
+  var T = P.CFG.hack.tram, kills = 0;
+  s.enemies.forEach(function (e) {
+    if (e.dead || e.boss || liveOnly && e.state !== 'active' || e.y < fromY || e.y > toY || Math.abs(e.x - pass.x) > pass.w / 2) return;
+    P.Combat.damageEnemy(s, e, T.dmg, 0, 1, T.kb, false, 'tram');
+    if (e.dead) kills++;
+  });
+  return kills;
+}
+
+function advanceTram(s, H, dt) {
+  var C = P.CFG.levels.tramStop, tram = H.tram, pass = tram.pass, was = pass.elapsed;
+  var bell = C.gatherT - C.bellLead, clear = C.gatherT + C.sweepT;
+  pass.elapsed += dt;
+  if (was < bell && pass.elapsed >= bell) s.events.push({ type: 'tramWarning', id: H.id, x: pass.x, y: H.y });
+  if (pass.elapsed < C.gatherT) return;
+  if (was < C.gatherT) {
+    pass.sweep = C.sweepT; pass.frontLead = C.frontLead;
+    s.events.push(pass);
+  }
+  if (was < clear) {
+    var before = tram.front, f = Math.min(1, (pass.elapsed - C.gatherT) / C.sweepT);
+    tram.front = pass.y0 - C.frontLead + (pass.y1 - pass.y0 + C.frontLead) * f;
+    if (tram.front >= pass.y0) clearTrack(s, pass, Math.max(pass.y0, before), tram.front);
+  }
+  if (pass.elapsed < clear + C.returnT) return;
+  pass.endedAt = s.t;
+  H.tram = null;
+  P.Events.drop(s, 'chest', H.x, H.y + C.chestAhead, P.CFG.ev.chest.drop);
+  P.RouteMilestones.step(s, dt);
+  P.Objectives.step(s, dt);
+  s.events.push({ type: 'tramSceneEnd' });
+}
 
 // Car alarm: the car blows up when it ends if enough zombies are next to it.
 function carAlarm(s, H, dt) {

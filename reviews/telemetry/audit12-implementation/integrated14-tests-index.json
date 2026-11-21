@@ -1,0 +1,299 @@
+{
+  "runtime": "ceda328957e8353ebd051a2be8ef5cdae16034000b436b8bc375d81fea4cdff4",
+  "exit": 0,
+  "groups": 57,
+  "flaky": [],
+  "failed": [],
+  "firstFailureFiles": [],
+  "nodeVersion": "v26.10.0",
+  "command": "ISTANBUL_TEST_LOG_DIR=/Users/o0o02dn/Documents/istanbul/reviews/telemetry/audit12-implementation/integrated14-test-logs bash prototype/tools/run-tests.sh",
+  "cwd": "/private/tmp/istanbul-reset-audit12-integrated14-checks-20261120",
+  "checkedUtc": "2026-11-21T14:20:13.570970+00:00",
+  "logs": [
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_a11y-canvas.log",
+      "sha256": "829d16561fa0daa498ecc9508850399cafeb609f0354f9e58d2e50b6abd5ac33",
+      "bytes": 92
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_anim-flavor.log",
+      "sha256": "87dfbbca1ee83b7c40214fb5600b555cce0f28b8fa2f4115fa68d8463237dfca",
+      "bytes": 27
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_arena-evolve.log",
+      "sha256": "07b4ff5d6aaaab5649e2be01d2d2365ec50044f803547e07c358fc6aa48d2c1d",
+      "bytes": 258
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_arsenal-w.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_arsenal.log",
+      "sha256": "9622bbf2dbaf590cac8112b7cf95f0504796f77b8feadadf35ca4e0f3e27208d",
+      "bytes": 3671
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_art-prompts.log",
+      "sha256": "c2ad9803d3e575a306a4b2c9be67eb4d3c05d80e53f3353e70407af51da13cea",
+      "bytes": 61
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_art-raster-items.log",
+      "sha256": "e8dc22622ae1e05f2f7008366d4959c755082c7c4220cbcb74dba01443cfba09",
+      "bytes": 44
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_art-raster-world.log",
+      "sha256": "684b9cc8d5d4fee8136135c1a0642a3686e47f6b46121e31707165aace44fe7d",
+      "bytes": 1020
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_art-raster.log",
+      "sha256": "8491219dd09493c4d63ce25c0c0133b595de8aa8609af9e0a8f9abdde0ea5f41",
+      "bytes": 39
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_audit12.log",
+      "sha256": "ccb7928fa63978c5bf4c0239769359df490f88768ff057d1048a964b853f1e35",
+      "bytes": 176
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_audit8.log",
+      "sha256": "e86c4785647989b50f376420e7c8bd6710a38b3726b9d21582498b2b9de50030",
+      "bytes": 109
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_audit9.log",
+      "sha256": "d44cedaeba982cd81c75431b15318eb7a419affbd11acc1065c09a8ead7c5905",
+      "bytes": 130
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_barks-delivery.log",
+      "sha256": "f5ab742ad8cf3f54d98829ba10fed5ddc8c09136d9c4e1288e8044f8e526961a",
+      "bytes": 376
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_benchmark.log",
+      "sha256": "6cec686914da92757493be298e334cc1ad8419335a061308fc2782f91577b53e",
+      "bytes": 84
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_bond.log",
+      "sha256": "8f84eaee4d912bb8f50712257085ffd27e15e74775320f5d9a10cb571086a334",
+      "bytes": 30
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_bridge-route.log",
+      "sha256": "ef6093d13ca1332763aeaa7d91b25cfa979fceab7fedf6fb6222f4c5ed0deecf",
+      "bytes": 120
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_ceiling.log",
+      "sha256": "ac382b122e612d5e691d409d386c117a905fc62766aef8c3ad6fb1a3c12d77eb",
+      "bytes": 81
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_comic-reading.log",
+      "sha256": "5d99f76526a7d767a8a787f0336c14512659ff1b2857b6252075fc9ecefd4016",
+      "bytes": 145
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_dialogue-memory.log",
+      "sha256": "7fc8c281048c731c142ad5ac84b6fe21f04ca7c492c1d2c6f344d626e9d84d1d",
+      "bytes": 122
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_dialogue.log",
+      "sha256": "e1efaccb81edd14ade359a5d05c670c2167d4171b4886b2ffa3e72151ae557d0",
+      "bytes": 465
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_eczane.log",
+      "sha256": "70992699f2ae1be6a45e486de2d36a1826686803123867ae0f87321d66d8a085",
+      "bytes": 66
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_eminonu-route.log",
+      "sha256": "f4528a9f50e788130a565eaeb02607bf88bcde009d1b92c0ed7774e2f6a2372b",
+      "bytes": 102
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_enemy-behaviors.log",
+      "sha256": "d80e23f97fd8d6f48ce795b85a7f1c5a4a2da4b4cc47f933fcba510d173899e5",
+      "bytes": 137
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_enemy-silhouettes.log",
+      "sha256": "7cd12b0e8a13eaec8c6aac8ae2f891f6d0977852f533c2f1fcf8cc072847c107",
+      "bytes": 273
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_env.log",
+      "sha256": "78f1e8a978db9a1d8e2aa82b074e5fbc0374c2339d5ef2413eb8a2870f80ea5a",
+      "bytes": 246
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_experience.log",
+      "sha256": "18401c3bbf2d7e1463c1247ce0b68e1575f61b3d61f7519ab82ec2b92fa23881",
+      "bytes": 30
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_feel.log",
+      "sha256": "40501645a9d2bdeaea5e8d56af1ed345ca151257be0cba086d8a6d16cea1cd45",
+      "bytes": 20
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_first30-reset.log",
+      "sha256": "1fb0e85a532556570646e45ef91046f69737d3d062b79a895684f3df5bf6bb99",
+      "bytes": 166
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_fonts.log",
+      "sha256": "bfa42298f5220f82efa017c44525c7919330473ce421994362e79f169d12e9c6",
+      "bytes": 40
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_galata-route.log",
+      "sha256": "4c73b31e226190666e2c787ca8274bb47761441aac45b8635429dd241cfd6469",
+      "bytes": 113
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_gamer-route.log",
+      "sha256": "137c759e30ad5bf8606be6e040a6e5d11e73b4eb9323bd9b8d0c80ad93e581a5",
+      "bytes": 104
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_hints.log",
+      "sha256": "3bba69b6d757195d032cc6a311c7e2d4c32de3bc3f76256251d6bcf84ab46c7e",
+      "bytes": 40
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_horde.log",
+      "sha256": "e10beebb1fb2cf4831f490b937fe98d3f8c2f6b790e910518580bf75348e5c0d",
+      "bytes": 326
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_input.log",
+      "sha256": "4e76f7551c2a6b215fab3e8eda76ae55bd86f3bbac46b821525b76ad6154adb8",
+      "bytes": 31
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_karakoy-route.log",
+      "sha256": "6e69f7b694af79c49be8215f2bec849a2d6db37cdd76901e96ad023b476e80eb",
+      "bytes": 102
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_map-first-run.log",
+      "sha256": "6bafbcf8c27f21e049f1b406a1697e1006c90b95bb240dee003a1ec1be9e6fa1",
+      "bytes": 905
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_meta.log",
+      "sha256": "2f42e842d74f1435c52ba22d61efcd15190c8bfef0056926322f9e10921b0fe5",
+      "bytes": 40
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_modes.log",
+      "sha256": "43c71590b86315ead23027768839ec10a517b10607c8ab54780844c95a8b8a66",
+      "bytes": 47
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_music.log",
+      "sha256": "f7fc86500cdce76a6236ec04b228cc25a750d697c22160debaaf1810c46c28c7",
+      "bytes": 21
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_opening-cast.log",
+      "sha256": "e6cbe0974c03d27c9016e066aa273cd72cad5f16f644c75318c45309fe889474",
+      "bytes": 107
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_opening.log",
+      "sha256": "3dc2da41838345a6de25be2596508f72f8461b7c5ae463052900cad3e263b389",
+      "bytes": 102
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_perks-combat.log",
+      "sha256": "18d6b4d32cdd65525b2d36ae6d9f7d2244ef74d4768c931e916520d5c5f95b5c",
+      "bytes": 120
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_perks-move.log",
+      "sha256": "3d0181b06830b4abcfe04bcd5b3ea7f1806bba188f908b83a48355aecb672f01",
+      "bytes": 133
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_perks-world.log",
+      "sha256": "d2ae2d0691b668219eab47983b5dd74f428960c88aa9dc22ece20d121f482d8b",
+      "bytes": 96
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_prepare-art.log",
+      "sha256": "1d0efc1608e865ebb83d9182bf001aae8701608eb95e96e8c4df55ccc6b1709c",
+      "bytes": 1593
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_progress-ui.log",
+      "sha256": "676931bc2d0832c7655f0a8f4f7ba249b57deff80b83a13c9e01877e105b84d1",
+      "bytes": 98
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_quality.log",
+      "sha256": "fe8d83ec542bd26f6c9969d22e8ebe14775c539626689a636921a6789854224a",
+      "bytes": 36
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_scene-art.log",
+      "sha256": "cf77497c6166b290c04a9b32683774296f24553ad4e8f8c3902378e88f9c5b45",
+      "bytes": 95
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_sfx-gen.log",
+      "sha256": "e6a84de8c2b1bda9dd4850ee658e284bdb50b9e797512433b1dc5f9338bf50a7",
+      "bytes": 150
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_sirkeci-route.log",
+      "sha256": "4ce4787608d51c2a15d07687d2d1b5c668676cacc05b2997239ae46f9a016ba2",
+      "bytes": 108
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_street-readability.log",
+      "sha256": "cfcc7b2eb7e8c8445b22d55607a756e821276205e653066dc82dd1f0983c07bd",
+      "bytes": 122
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_tel.log",
+      "sha256": "fbc4d1dfc74cb1e2bc202c8d0248826ba6cd772fe1d20c55cf7bb003011e6851",
+      "bytes": 29
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_tram-rhythm.log",
+      "sha256": "93273cedb56616b151ba1fc7b45a84d07d556707647f18db3309c83ec0248016",
+      "bytes": 287
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_tree.log",
+      "sha256": "926d372941b1aa446a39415903f5a30185843b9d775591e6c91ccdc016489482",
+      "bytes": 31
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_ui-motion.log",
+      "sha256": "b154b51fd98770b5ed984e33843f89cc7be62e757f616005c25a3c81d32f5363",
+      "bytes": 139
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_weapon-lab.log",
+      "sha256": "178cf71097e2f768d4853aa1063c25821bf29b9fb606d2e6c79d6e0c01c8029b",
+      "bytes": 118
+    },
+    {
+      "file": "reviews/telemetry/audit12-implementation/integrated14-test-logs/proto_test_weapon-tiers.log",
+      "sha256": "87329cd932bd8a87157370a38f01199dfc061dd1e35487e4774251b66f862d74",
+      "bytes": 193
+    }
+  ]
+}

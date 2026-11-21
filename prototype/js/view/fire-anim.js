@@ -1,5 +1,5 @@
-// Weapon fire animation core (view only, workstream B). A 'wfire' event starts that weapon's held pose on Arda (the
-// most recent shot is the dominant pose) and its launch effect. Contract (sim, workstream A):
+// Weapon fire animation core (view only). Attacks age as soon as they fire. Each new attack may claim
+// a short readable body pose while the other weapons keep their live effects. Contract (simulation):
 //   { type: 'wfire', w: weaponId, x, y, ang (world radians toward the target), lv 1..5, n projectile count }
 //   s.hero.revving (seconds left, > 0) and s.hero.revAng (world radians) while the chainsaw revs.
 // Data: fire-anim-held*.js (poses: T, held, rev), fire-anim-fx*.js (fire, tick, revTick, flight, track, draw).
@@ -54,14 +54,18 @@ P.FireAnim = (function () {
 
   function create() {
     var F = { sim: null, R: null, c: null, m: 40, q: 1, rm: false, cur: 0, fcur: 0, G: makeGeom(), pool: [], flights: [],
-      pose: { id: '', def: null, t: 0, T: 0, ang: 0, lv: 1, n: 1, on: false, f: {} }, kk: { t: 0, p: 0, T: 0, lv: 1, n: 1, ang: 0, id: '', f: null, rev: false }, rf: {} };
+      pose: { id: '', def: null, t: 0, T: 0, ang: 0, lv: 1, n: 1, on: false, f: {} }, kk: { t: 0, p: 0, T: 0, lv: 1, n: 1, ang: 0, id: '', f: null, rev: false },
+      rf: {}, stance: {}, pending: [], hammerWindup: null, disc: null };
     var i;
     for (i = 0; i < MAX; i++) F.pool.push({ alive: false, k: '', x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0, T: 1, r: 0, a: 0, va: 0, w: 0,
       op: 1, grav: 0, bounce: false, jit: false, add: false, col: '255,255,255', n: 0, pts: new Float32Array(16) });
     for (i = 0; i < MAX_FLY; i++) F.flights.push({ on: false, k: '', x: 0, y: 0, ox: 0, oy: 0, ang: 0, sp: 0, t: 0, T: 1, a: 0, w: 0, n: 0, f: null });
 
     F.reset = function (s) {
-      var j; F.sim = s; F.pose.on = false;
+      var j; F.sim = s; F.pose.on = false; F.revId = 'chainsaw'; F.revLv = 1; F.revT = 0;
+      F.hammerWindup = F.hammerPose = F.disc = null; F.pending.length = 0; F.side = 0; F.awayMode = false;
+      F.lastShown = {}; F.clock = 0;
+      F.contacts={};
       for (j = 0; j < MAX; j++) F.pool[j].alive = false;
       for (j = 0; j < MAX_FLY; j++) F.flights[j].on = false;
     };
@@ -92,9 +96,77 @@ P.FireAnim = (function () {
       return k;
     }
     function revK(h) {
-      var k = F.kk;
-      k.t = performance.now() / 1000; k.T = 1e9; k.p = 0; k.lv = 5; k.n = 1; k.ang = +h.revAng || 0; k.id = 'chainsaw'; k.f = F.rf; k.rev = true;
+      var k = F.kk, elapsed = Math.max(0, F.revT - h.revving);
+      k.t = elapsed; k.T = F.revT || 1; k.p = elapsed / k.T; k.lv = F.revLv; k.n = 1; k.ang = +h.revAng || 0; k.id = F.revId; k.f = F.rf; k.rev = true;
+      k.f.contact=F.contacts.chainsaw;
       return k;
+    }
+
+    // A shot preempted before its first visual frame still gets a muzzle cue near the firing hand.
+    function nailCue(p, h) {
+      if (!p.on || (p.id !== 'nailgun' && p.id !== 'nailstorm') || p.f.muzzle || !P.FireAnimFx || !P.FireAnimFx.nailgun) return;
+      var G = setGeom(F, h, p.ang), grip = G.pt(0, 0, 0.16, -0.02, 0);
+      P.FireAnimFx.nailgun.muzzle(F, G, grip.x, grip.y, p.lv, p.id === 'nailstorm');
+      p.f.muzzle = true;
+    }
+
+    var A = P.HeroAttacks;
+    function hammer(id) { return id === 'sledge' || id === 'blacksmith'; }
+    function show(p) {
+      if (F.pose !== p) nailCue(F.pose, F.sim.hero);
+      p.shownAt = p.t;
+      F.pose = p;
+      F.lastShown[p.id] = F.clock;
+    }
+    function selectPose() {
+      var p = F.pose, style = A.style(p.id), min = style ? Math.max(.07, Math.min(.105, style.hold)) : .08;
+      if (p.on && p.t - p.shownAt < min) return;
+      if (!F.pending.length) return;
+      var next = 0, best = Infinity, priority = -1;
+      F.pending.forEach(function (q, i) {
+        var last = F.lastShown[q.id], entry = A.style(q.id), weight = entry ? entry.priority : 0;
+        if (last === undefined) last = -1;
+        if (last < best || last === best && weight > priority) { best = last; priority = weight; next = i; }
+      });
+      show(F.pending.splice(next, 1)[0]);
+    }
+    function startPose(ev) {
+      var id = ev.variant && (A.style(ev.variant) || defOf(ev.variant)) ? ev.variant : ALIAS[ev.w] || ev.w || '';
+      var def = defOf(id) || defOf(ALIAS[id] || ev.w), side = F.side, away = F.awayMode;
+      if (!def) return;
+      var p = { id: id, def: def, ang: +ev.ang || 0, lv: lvOf(ev.lv), n: Math.max(1, ev.n | 0),
+        t: 0, on: true, f: ev.windup ? { windup: ev.windup } : {} };
+      if (ev.w === 'chainsaw') { F.revId = id; F.revLv = p.lv; F.revT = F.sim.hero.revving || 0; }
+      p.T = ev.actionT || (typeof def.T === 'function' ? def.T(p.lv, p.n) : def.T);
+      if (hammer(id) && ev.windup) p.T = ev.windup + 0.45;
+      if (hammer(id)) F.hammerPose = p;
+      if (ev.catchDisc) { p.f.catchDisc = true; p.T = 0.20 + 0.015 * (p.lv - 1); }
+      else if (def.fire) def.fire(F, setGeom(F, F.sim.hero, p.ang), kOf(p));
+      if (!F.pose.on || F.pose.id === id && !F.pose.f.catchDisc) { show(p); return; }
+      nailCue(p, F.sim.hero); F.side = side; F.awayMode = away;
+      var i = F.pending.findIndex(function (old) { return old.id === id; });
+      if (i < 0) F.pending.push(p); else F.pending[i] = p;
+      selectPose();
+    }
+    function catchDisc(ev) {
+      var shot = F.disc, h = F.sim.hero;
+      if (!shot || F.pose.f.catchDisc && F.pose.on) return;
+      var dx = ev.x - h.x, dy = ev.y - h.y, ang = dx || dy ? Math.atan2(dy, dx) : shot.ang;
+      startPose({ w: 'sawblade', variant: shot.id, ang: ang, lv: shot.lv, catchDisc: true });
+    }
+    function releaseHammer(ev) {
+      var p = F.hammerPose, id = ev.variant || ev.src;
+      if (!p || id && id !== p.id || p.f.impactAt !== undefined) return;
+      var i = F.pending.indexOf(p);
+      if (i >= 0) F.pending.splice(i, 1);
+      p.on = true;
+      show(p);
+      p.f.impactAt = p.t;
+      p.T = p.t + 0.18 + 0.014 * (p.lv - 1);
+    }
+    function releaseSaw(){
+      var def=defOf(F.revId),p={id:F.revId,def:def,t:0,T:.20,ang:F.sim.hero.revAng,lv:F.revLv,n:1,on:true,f:{release:true}};
+      if(!F.pose.on||F.pose.id===F.revId)show(p);
     }
 
     // wfire: the owned variant's own pose when it has one (evolutions), else the base family (ALIAS for old names).
@@ -103,28 +175,71 @@ P.FireAnim = (function () {
       if (!ev) return;
       if (s && s !== F.sim) F.reset(s);
       if (!F.sim) return;
-      if (ev.type === 'skillUsed') ev = { type: 'wfire', w: 'skill_' + ev.id, ang: F.lastAng || 0, lv: 1, n: 1 };
+      if(ev.type==='knifeBackhand'){startPose({w:'knife',ang:ev.ang,lv:ev.lv,actionT:ev.actionT});return;}
+      if(ev.type==='hit'&&['knife','chain','chainsaw'].indexOf(ev.src)>=0)
+        F.contacts[ev.src]={src:ev.src,x:ev.x,y:ev.y,at:F.clock,until:F.clock+.13,boss:ev.boss};
+      if(ev.type==='sawStall')releaseSaw();
+      if (ev.type === 'propStrike') startPose({ w: 'knife', ang: ev.a, lv: 1, n: 1 });
+      if (ev.type === 'sledgeGroundStrike') releaseHammer(ev);
+      if (ev.type === 'swing' && !ev.back && F.pose.on && F.pose.id === 'knife') {
+        F.pose.f.dir = ev.dir;
+        F.pose.f.arc = ev.arcDeg * Math.PI / 360;
+        F.pose.f.range = ev.range;
+      }
+      if (ev.type === 'sawCatch') catchDisc(ev);
+      if (ev.type === 'sledgeWindup') {
+        if (!ev.repeat) { F.hammerWindup = ev.T; return; }
+        ev = { type: 'wfire', w: 'sledge', variant: ev.variant, windup: ev.T,
+          ang: Math.atan2(ev.ty - ev.y, ev.tx - ev.x), lv: F.sim.hero.weapons[ev.variant] || 1, n: ev.n };
+      }
+      else if (ev.type === 'skillUsed') ev = { type: 'wfire', w: 'skill_' + ev.id, ang: F.lastAng || 0, lv: 1, n: 1 };
       else if (ev.type !== 'wfire') { if (P.FireAnimFx && P.FireAnimFx.event) P.FireAnimFx.event(F, ev); return; }
       else F.lastAng = +ev.ang || 0;
-      var id = ev.variant && defOf(ev.variant) ? ev.variant : ALIAS[ev.w] || ev.w || '', def = defOf(id), p = F.pose;
-      if (!def) return;
-      p.id = id; p.def = def; p.ang = +ev.ang || 0; p.lv = lvOf(ev.lv); p.n = Math.max(1, ev.n | 0);
-      p.T = typeof def.T === 'function' ? def.T(p.lv, p.n) : def.T;
-      p.t = 0; p.on = true; p.f = {};
-      if (def.fire) def.fire(F, setGeom(F, F.sim.hero, p.ang), kOf(p));
+      if (ev.w === 'sledge' && F.hammerWindup !== null) {
+        ev = Object.assign({}, ev, { windup: F.hammerWindup }); F.hammerWindup = null;
+      }
+      if (ev.w === 'sawblade') F.disc = { id: ev.variant || ev.w, lv: ev.lv, ang: ev.ang || 0 };
+      startPose(ev);
     };
+
+    function followTool(p, s) {
+      var W, active;
+      if(p.id==='knife'&&s.ws&&s.ws.knifeSwing)p.ang=s.ws.knifeSwing.aim||s.ws.knifeSwing.a;
+      if (p.id === 'torch' || p.id === 'forge') {
+        W = P.Weapons.state(s).torches;
+        active = W && W[W.length - 1];
+        if (active && !active.done && active.id === p.id) p.ang = active.a;
+      } else if (p.id === 'olta' || p.id === 'hookpull') {
+        W = P.Weapons.state(s).hooks;
+        active = W && W[0];
+        if (active && active.phase !== 'cast') {
+          p.T = Math.max(p.T, p.t + 0.14);
+          p.ang = Math.atan2(active.e.y - s.hero.y, active.e.x - s.hero.x);
+        }
+      }
+    }
 
     F.update = function (dt, s) {
       s = s || F.sim;
       if (!s) return;
       if (s !== F.sim) F.reset(s);
+      F.clock += dt;
+      Object.keys(F.contacts).forEach(function(id){if(F.clock>=F.contacts[id].until)delete F.contacts[id];});
       F.rm = !!(P.Settings && P.Settings.reduceMotion); F.q = F.rm ? 0.5 : 1;
       var p = F.pose, h = s.hero;
       if (p.on) {
+        followTool(p, s);
         p.t += dt;
         if (p.t >= p.T) p.on = false;
-        else if (p.def.tick) p.def.tick(F, setGeom(F, h, p.ang), kOf(p), dt);
+        else if (p.def.tick && !p.f.catchDisc && !p.f.release) p.def.tick(F, setGeom(F, h, p.ang), kOf(p), dt);
       }
+      for (var i = F.pending.length - 1; i >= 0; i--) {
+        var waiting = F.pending[i];
+        waiting.t += dt;
+        if (waiting.t >= waiting.T || !hammer(waiting.id) && (waiting.T - waiting.t < .04 || waiting.t > .24)) F.pending.splice(i, 1);
+      }
+      if (F.hammerPose && F.hammerPose !== p && F.pending.indexOf(F.hammerPose) < 0) F.hammerPose.t += dt;
+      selectPose();
       if (h.revving > 0) {
         var cs = defOf('chainsaw');
         if (cs && cs.revTick) cs.revTick(F, setGeom(F, h, +h.revAng || 0), dt);
@@ -157,21 +272,81 @@ P.FireAnim = (function () {
       }
     }
 
-    // Arms: while a pose (or the chainsaw rev) owns them, the sprite draws no arms; drawHeld draws them.
+    // A held pose takes over equipment and the procedural sprite’s arms.
+    function heldDoor(s) {
+      if (!P.WTier || !P.WTier.enabled || !P.WSil || !P.WSil.drawHeldDoor) return null;
+      var list = P.Weapons.state(s).doors;
+      return list && list[0];
+    }
+    function bodyTool(s, door) {
+      var p = F.pose;
+      if (door && door.heave !== undefined) return 'door';
+      if (s.hero.revving > 0 && !(p.on && p.id !== F.revId && p.t - p.shownAt < .11)) return 'rev';
+      if (p.on) {
+        if (door && door.id === p.id) return 'door';
+        return 'pose';
+      }
+      if (door) return 'door';
+      return null;
+    }
+
+    F.heldId=function(s){var door=heldDoor(s),kind=bodyTool(s,door);return kind==='rev'?F.revId:kind==='door'?door.id:kind==='pose'?F.pose.id:null;};
     F.heroOpts = function (s, o) {
-      o.noArms = !!(F.sim === s && (F.pose.on || s.hero.revving > 0));
+      var p = F.pose, h = s.hero, door = heldDoor(s), tool = bodyTool(s, door);
+      o.noArms = F.sim === s && !!tool;
       if (o.noArms) o.backHand = null;
+      if (!o.noArms) return;
+      if (tool === 'pose') o.attack = p;
+      var k = tool === 'rev' ? revK(h) : tool === 'door'
+        ? { id: door.id, lv: lvOf(door.grade), p: door.heave !== undefined ? .5 + .26 * door.heave :
+          door.swing ? .34 + .43 * door.t / door.T : door.travel ? .82 : .16, ang: door.a }
+        : kOf(p);
+      var reduced = !!(P.Settings && P.Settings.reduceMotion);
+      o.attackStance = A.sample(k, reduced, F.stance);
+      o.attackId = k.id; o.attackProgress = k.p;
+      var cut=s.ws&&(k.id==='knife'?s.ws.knifeSwing:k.id==='cleaver'?s.ws.cleaverSwing:null);
+      if(cut){o.attackBladeAngle=cut.angle;o.attackStance.roll+=(Math.sin(cut.angle-cut.a))*.11;}
+      o.attackResistance=F.contacts.chainsaw?Math.max(0,1-(F.clock-F.contacts.chainsaw.at)/.13):0;
+      if (!o.attackStance) return;
+      if (tool === 'door' && door.heave !== undefined && !reduced) {
+        o.attackStance.arm = door.heave < .82 ? 'raise' : 'reach';
+        o.attackStance.bend = .09 * (1 - door.heave);
+        o.attackStance.height += .12 * door.heave;
+      }
+      o.attackHand = setGeom(F, h, k.ang).side;
+      o.attackMotion = o.attackStance.lean;
     };
 
     function setCtx(R) { F.R = R; F.c = R.ctx; F.m = R.ppm; }
 
-    F.drawHeld = function (R, s) {
+    function held(draw, G, k, grips) {
+      if (!grips) { draw(F, G, k); return; }
+      F.grip = G.side > 0 ? grips.right : grips.left;
+      F.gripPlaced = false;
+      F.c.save();
+      try { draw(F, G, k); } finally {
+        F.c.restore();
+        F.grip = null;
+      }
+    }
+
+    F.drawHeld = function (R, s, grips) {
       if (F.sim !== s) return;
-      var h = s.hero, p = F.pose;
-      if (p.on) { setCtx(R); var G = setGeom(F, h, p.ang); p.def.held(F, G, kOf(p)); if (P.WTier) P.WTier.heldGlow(F, G, p.id, s); return; }
-      if (h.revving > 0) {
-        var cs = defOf('chainsaw');
-        if (cs && cs.rev) { setCtx(R); cs.rev(F, setGeom(F, h, +h.revAng || 0), revK(h)); }
+      var h = s.hero, p = F.pose, G, cs, door = heldDoor(s), tool = bodyTool(s, door);
+      if (tool === 'door') {
+        G = setGeom(F, h, door.a);
+        P.WSil.drawHeldDoor(R, h, door, grips && (G.side > 0 ? grips.right : grips.left));
+      } else if (tool === 'rev') {
+        cs = defOf(F.revId);
+        if (cs) {
+          setCtx(R); G = setGeom(F, h, +h.revAng || 0);
+          held(cs.rev || cs.held, G, revK(h), grips);
+          if (P.WTier) P.WTier.heldGlow(F, G, F.revId, s);
+        }
+      } else if (tool === 'pose') {
+        setCtx(R); G = setGeom(F, h, p.ang);
+        held(p.def.held, G, kOf(p), grips);
+        if (P.WTier) P.WTier.heldGlow(F, G, p.id, s);
       }
     };
 
@@ -179,10 +354,12 @@ P.FireAnim = (function () {
       if (F.sim !== s) return;
       var c = R.ctx, p = F.pose;
       setCtx(R);
+      var door = heldDoor(s);
+      if (door && bodyTool(s, door) !== 'door') P.WSil.drawHeldDoor(R, s.hero, door, null, true);
       P.FireAnimPrim.drawParts(F, 0);
       if (P.FireAnimFx && P.FireAnimFx.draw) P.FireAnimFx.draw(F, s);
-      if (p.on && p.def.draw) p.def.draw(F, setGeom(F, s.hero, p.ang), kOf(p));
-      if (p.on && p.def.over) p.def.over(F, setGeom(F, s.hero, p.ang), kOf(p));
+      if (p.on && !p.f.catchDisc && p.def.draw) p.def.draw(F, setGeom(F, s.hero, p.ang), kOf(p));
+      if (p.on && !p.f.catchDisc && p.def.over) p.def.over(F, setGeom(F, s.hero, p.ang), kOf(p));
       c.save(); c.globalCompositeOperation = 'lighter';
       P.FireAnimPrim.drawParts(F, 1);
       c.restore();

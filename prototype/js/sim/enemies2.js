@@ -35,7 +35,7 @@ P.Enemies2 = {};
       if (a.t < S.swingWindup) return true;
       e.windup = 0; a.m = 'walk'; a.cd = S.swingCd;
       if (dist(h, e) - hr <= S.swingR) {
-        P.Combat.damageHero(s, P.Enemies.dmgOf(s, e, S.swingDmg), 'kasap');
+        P.Combat.damageHero(s, P.Enemies.dmgOf(s, e, S.swingDmg), 'kasap', e);
         P.Combat.pushHero(s, h.x - e.x, h.y - e.y, S.swingKb);
       }
       s.events.push({ type: 'kasapSwing', x: e.x, y: e.y, r: S.swingR });
@@ -88,7 +88,7 @@ P.Enemies2 = {};
     }
     e.noSep = false; e.dvx = 0; e.dvy = 0; a.m = 'walk'; a.cd = S.leapCd;
     if (dist(h, { x: a.tx, y: a.ty }) - hr <= S.leapR) {
-      P.Combat.damageHero(s, P.Enemies.dmgOf(s, e, S.leapDmg), 'parkur');
+      P.Combat.damageHero(s, P.Enemies.dmgOf(s, e, S.leapDmg), 'parkur', e);
       P.Combat.pushHero(s, h.x - a.tx, h.y - a.ty, S.leapKb);
     }
     s.events.push({ type: 'parkurLand', id: e.id, x: a.tx, y: a.ty, r: S.leapR });
@@ -127,6 +127,6 @@ P.Enemies2 = {};
       if (o === e || o.dead) continue;
       if (d - o.r <= A.blastR) P.Combat.damageEnemy(s, o, A.enemyDmg, dx / (d || 1), dy / (d || 1), 0.6, false, 'patlayan');
     }
-    if (dist(h, e) - hr <= A.blastR) P.Combat.damageHero(s, P.Enemies.dmgOf(s, e, A.heroDmg), 'patlayan');
+    if (dist(h, e) - hr <= A.blastR) P.Combat.damageHero(s, P.Enemies.dmgOf(s, e, A.heroDmg), 'patlayan', e);
   };
 })(P.Enemies2);

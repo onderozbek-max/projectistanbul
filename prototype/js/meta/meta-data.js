@@ -183,13 +183,14 @@ P.Meta = P.Meta || {};
     while (hi - lo > 1) { mid = Math.floor((lo + hi) / 2); if (M.masteryRank(w, mid) > r0) hi = mid; else lo = mid; }
     return { rank: r0, next: hi, have: kills };
   };
-  // Adds bySrc kills to weapon totals. Returns [{id, from, to}] for weapons whose rank went up.
+  // Adds bySrc kills to weapon totals. The recap includes kills even between rank milestones.
   function accumulateMastery(s, bySrc) {
-    var ups = {}, out = [], w, n;
+    var ups = {}, kills = {}, out = [], w, n;
     Object.keys(bySrc || {}).forEach(function (src) {
       w = M.srcWeapon(src); n = Math.round(num(bySrc[src]));
       if (!w || n <= 0) return;
       if (ups[w] === undefined) ups[w] = M.masteryRank(w, s.mastery[w] || 0);
+      kills[w] = (kills[w] || 0) + n;
       s.mastery[w] = (s.mastery[w] || 0) + n;
     });
     Object.keys(ups).forEach(function (id) {
@@ -197,7 +198,7 @@ P.Meta = P.Meta || {};
       if (to > ups[id]) out.push({ id: id, from: ups[id], to: to });
       if (to >= M.CFG.masteryBadgeRank && P.Meta.Collect) P.Meta.Collect.badgeFor(s, id, to);
     });
-    return out;
+    return { ups: out, kills: kills };
   }
 
   // ---- Ults (ids from P.CFG.ults, A's config; 'nazar' when the list is missing) ----
@@ -307,13 +308,19 @@ P.Meta = P.Meta || {};
     Object.keys(s.mastery).forEach(function (w) { out[w] = M.masteryRank(w, s.mastery[w]); });
     return out;
   }
+  M.starterIds=function(){return M.isCleared(5)?['knife','nailgun','canister']:['knife'];};
+  M.starter=function(){var id=load().heroes.arda.starter;return M.starterIds().indexOf(id)>=0?id:'knife';};
+  M.setStarter=function(id){if(M.starterIds().indexOf(id)<0)return false;load().heroes.arda.starter=id;save();return true;};
+  M.tacticalAllowed=function(level,mode){return (!mode||mode==='normal')&&[5,15,25].indexOf(level)>=0&&M.isCleared(level);};
   M.loadout = function (opts) {
     var s = load(), hero = s.heroes.arda, o = opts || activeRun || {}, ults = M.ults(), ult = hero.ult, lo;
     var unlocked = ults.filter(function (u) { return u.id === ult && u.unlocked; }).length > 0;
     if (!unlocked) ult = M.ultIds()[0] || 'nazar';
-    lo = { gear: gearSum(), startWeapon: M.CFG.startWeapon, stats: Object.assign({}, hero.stats.attr),
-      mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), bonds: { kaan: P.Bond.joined(s.stars) ? s.bonds.kaan | 0 : 0 }, bondHpPct: bondAura(s), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!(P.Settings && P.Settings.l1Cleared),
-      mode: o.mode === 'nightmare' || o.mode === 'nightshift' ? o.mode : 'normal' };   // R1-T4 part 18: the sim reads loadout.mode (sim/modes.js)
+    lo = { gear: gearSum(), startWeapon: M.starter(), stats: Object.assign({}, hero.stats.attr),
+      mastery: masteryRanks(s), perks: Object.keys(s.tree.learned), bonds: { kaan: P.Bond.joined(s.stars) ? s.bonds.kaan | 0 : 0 }, bondHpPct: bondAura(s), kaanJoined: P.Bond.joined(s.stars), ult: ult, active: M.activeId(), hero: 'arda', modifiers: [], l1Cleared: !!s.stars[1] || !!(P.Settings && P.Settings.l1Cleared),
+      streetMemories: Object.assign({}, s.flags.streetMemories), mode: o.mode === 'nightmare' || o.mode === 'nightshift' ? o.mode : 'normal' };
+    if(lo.mode!=='normal'||o.daily||o.nightshift)lo.startWeapon='knife';
+    if(M.tacticalAllowed(o.tacticalLevel,lo.mode))lo.tacticalLevel=o.tacticalLevel;
     if (o.daily) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; lo.daily = true; }
     if (o.nightshift) { lo.modifiers = M.Daily.resolve(o.modifiers); lo.seed = o.seed | 0; }
     return lo;
@@ -362,11 +369,18 @@ P.Meta = P.Meta || {};
     st = P.Stats.applyLevel(st0, r.tally, won);
     if (nm && mdl.first && st.gains.sc > 0) { var extra = st.gains.sc * (P.CFG.nightmare.cred - 1); st.prog.sc += extra; st.gains.sc += extra; }   // Street Cred x2 on the first Nightmare clear
     if (won && !nm && !ns) { if (stars > prev) s.stars[i] = stars; s.unlocked = Math.max(s.unlocked, Math.min(LEVELS, i + 1)); }
+    if (won && !nm && !ns && !r.daily && i === P.CFG.bond.kaan.support.repay.level && r.marketCover === true) s.flags.kaanMarketCover = true;
+    if (won && !prev && !nm && !ns && !r.daily && P.LocalChoices.valid(i, r.localChoice)) {
+      s.flags.streetMemories = Object.assign({}, s.flags.streetMemories); s.flags.streetMemories[i] = r.localChoice;
+    }
     if (!hoodWas && M.hoodCleared(M.level(i).hoodIndex)) s.counters.hoodsCleared += 1;   // AUDIT-7 CR-8: once per hood
     bond = nm || ns ? { gain: 0, crossed: [] } : P.Bond.gain(s.bonds.kaan | 0, { levelIndex: i, won: won, stars: stars, prevStars: prev });
     s.bonds.kaan = (s.bonds.kaan | 0) + bond.gain;
     rw.total = Math.round(coinBonus(s, rw.total) * dailyCoinMult(Object.assign({}, r, { mode: mode })) * (nm ? P.CFG.nightmare.coins : 1));
     s.coins += rw.total;
+    var reward = P.CFG.rewards;
+    rw.hurda = won && !ns ? reward.hurdaBase * (rw.first ? reward.firstClearMult : 1) : 0;
+    s.hurda += rw.hurda;
     s.heroes.arda.stats = st.prog;
     if (st.gains.sc > 0) scFlow(st.gains.sc, 'level_end', st.prog.sc);
     bond.crossed.forEach(function (at) { tel('bond_threshold', { companion: 'kaan', threshold: at, value: s.bonds.kaan | 0, level_id: i }); });
@@ -379,21 +393,39 @@ P.Meta = P.Meta || {};
     s.lastPlayed = now;
     return { levelIndex: i, won: won, stars: stars, reward: rw, newGear: newGear, before: before, after: M.snapshot(),
       kills: r.kills | 0, statGains: { hero: 'arda', gains: st.gains, before: st0, after: st.prog },
-      masteryUps: ups, collected: news, achieved: achieved, daily: daily, mode: mode, nightmare: mdl, nightshift: nsInfo,
+      masteryUps: ups.ups, masteryKills: ups.kills, collected: news, achieved: achieved, daily: daily, mode: mode, nightmare: mdl, nightshift: nsInfo,
       bond: { kaan: { gain: bond.gain, value: s.bonds.kaan | 0, crossed: bond.crossed, joined: !ns && i === P.CFG.bond.kaan.joinLevel && won && !prev } } };
   }
-  // Called by the game after a level. r: {levelIndex, won, stars, coins, kills, timeS, tally, daily, reviveUsed}.
+  function leaveRun(s, r) {
+    // Quitting pays the displayed percentage. A restart discards the in-progress attempt.
+    var kept = r.outcome === 'quit' ? Math.floor(Math.max(0, num(r.coins)) * P.CFG.rewards.loseKeep) : 0;
+    s.coins += kept;
+    return { levelIndex: r.levelIndex, mode: r.mode, reward: { total: kept, hurda: 0, first: false } };
+  }
+
+  // Run IDs make a second result callback or a retry of a persisted outcome safe.
   M.onResults = function (r) {
     var s = load(), now = Date.now(), p;
     r = r || {};
-    p = apply(s, r, now);
-    s.pending = p;
+    var id = typeof r.runId === 'string' && r.runId, old = id && s.settledRuns.filter(function (run) { return run.runId === id; })[0];
+    if (old) return s.pending && s.pending.runId === id ? s.pending : old;
+    if (r.outcome === 'quit' || r.outcome === 'restart') p = leaveRun(s, r);
+    else { p = apply(s, r, now); s.pending = p; }
+    p.outcome = r.outcome || (r.won ? 'win' : 'lose');
+    if (id) {
+      p.runId = id;
+      s.settledRuns.push({ runId: id, outcome: p.outcome, levelIndex: p.levelIndex, mode: p.mode,
+        reward: { total: p.reward.total, hurda: p.reward.hurda, first: !!p.reward.first } });
+      if (s.settledRuns.length > M.Save.RUN_LIMIT) s.settledRuns.shift();
+    }
     activeRun = null;
     save();
     return p;
   };
-  M.takePending = function () {
+  M.pendingResult = function () { return load().pending; };
+  M.takePending = function (expected) {
     var s = load(), p = s.pending;
+    if (expected && p !== expected) return null;
     if (p) { s.pending = null; save(); }
     return p;
   };
@@ -411,6 +443,7 @@ P.Meta = P.Meta || {};
     return added;
   };
   M.reset = function () {
+    if (P.Dialogue && P.Dialogue.clearSessionHistory) P.Dialogue.clearSessionHistory();
     M.Save.wipe();
     mem = M.Save.defaults();
     save();

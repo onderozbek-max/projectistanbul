@@ -26,13 +26,14 @@ P.CFG.stats = {
     grit: { maxHpPct: 0.015, dmgTakenPct: 0.01 },                // primary: max HP (+30%)
   },
   primary: { str: 'mightPct', pace: 'movePct', agg: 'cooldownPct', int: 'hackSpeedPct', cha: 'civHelpPct', grit: 'maxHpPct' },
-  // Weapon category for STR (melee kills) and general flavour. Unknown ids count as 'ranged'.
+  // Every base family has a training category. Evolutions inherit it, independent of impact/perk tags.
   category: {
-    knife: 'melee', chain: 'melee', sledge: 'melee', cleaver: 'melee', cyclone: 'melee',
-    nailgun: 'ranged', speargun: 'ranged', nailstorm: 'ranged',
-    canister: 'gadget', molotov: 'gadget', fireworks: 'gadget', cable: 'gadget',
-    extinguisher: 'gadget', cluster: 'gadget', finale: 'gadget',
+    knife: 'melee', chain: 'melee', sledge: 'melee', cardoor: 'melee', chainsaw: 'melee',
+    nailgun: 'ranged', speargun: 'ranged', sawblade: 'ranged', manhole: 'ranged', slingshot: 'ranged', olta: 'ranged',
+    canister: 'gadget', molotov: 'gadget', fireworks: 'gadget', cable: 'gadget', extinguisher: 'gadget', torch: 'gadget',
   },
+  // A wielded street prop trains Strength and earns Street Cred. It has no permanent weapon mastery track.
+  streetCategory: { streetCart: 'melee' },
   // Training XP per unit of playstyle, read from the level tally. Typical level ~ one bar per stat.
   training: {
     str:  { melee: 0.35, elite: 3 },
@@ -40,7 +41,7 @@ P.CFG.stats = {
     agg:  { streak: 0.15, crit: 1.0, ult: 12 },
     int:  { hack: 15 },
     cha:  { rescue: 15, event: 3 },
-    grit: { dmgTaken: 0.12, boss: 30, survive: 20 },
+    grit: { boss: 30, survive: 28 },
   },
   // Training XP for the next READY point at effective level L (= attr + ready): round(base * (L+1)^exp).
   need: { base: 60, exp: 1.25 },
@@ -119,14 +120,11 @@ P.Stats.scAt = function (kills) {
   return n;
 };
 
-// Weapon category of a kill source. Uses A's P.Mastery.srcToWeapon when present. Returns null for non-weapon srcs.
+// Category of a kill source. Other environmental kills count toward lifetime kills and any elite kill bonus.
 P.Stats.categoryOf = function (src) {
-  var id = String(src || '').replace(/^w:/, ''), mapped = id;
-  if (P.Mastery && typeof P.Mastery.srcToWeapon === 'function') {
-    mapped = P.Mastery.srcToWeapon(src);
-    if (!mapped) return null;
-  }
-  return P.CFG.stats.category[mapped] || 'ranged';
+  var id = String(src || '').replace(/^w:/, ''), C = P.CFG, evo = C.evolutions && C.evolutions[id];
+  var category = C.stats.category[evo ? evo.from : id] || C.stats.streetCategory[id];
+  return typeof category === 'string' ? category : null;
 };
 
 // Kill counts per category from tally.bySrc: { melee, ranged, gadget }.
@@ -150,7 +148,7 @@ P.Stats.trainingFromTally = function (t, won) {
     agg: (t.maxStreak | 0) * W.agg.streak + (t.crits | 0) * W.agg.crit + (t.ults | 0) * W.agg.ult,
     int: (t.hacks | 0) * W.int.hack,
     cha: (t.rescues | 0) * W.cha.rescue + (t.events | 0) * W.cha.event,
-    grit: (+t.dmgTaken || 0) * W.grit.dmgTaken + (t.bosses | 0) * W.grit.boss + (won ? W.grit.survive : 0),
+    grit: (t.bosses | 0) * W.grit.boss + (won ? W.grit.survive : 0),
   };
   for (var s in xp) xp[s] = r(xp[s]);
   return xp;

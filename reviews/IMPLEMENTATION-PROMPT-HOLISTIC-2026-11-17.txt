@@ -1,0 +1,38 @@
+Implement the complete holistic improvement package for the first 30 Bölüms of Project Istanbul. This is an execution request for a substantial, integrated improvement to the playable game, not another recommendations document and not a boss-only pass.
+
+Work in /Users/o0o02dn/Documents/istanbul. Read AGENTS.md and docs/handoff-codex.md first, then read these documents completely:
+
+1. reviews/HOLISTIC-EXPERIENCE-REDESIGN-2026-11-17.md — the primary implementation brief, H01–H18, including the 30-level design table and acceptance contract.
+2. reviews/MASTERPIECE-DIRECTION-AND-CLOSURE-2026-11-17.md — the detailed ten-boss choreography and G01–G36 coverage contract.
+3. reviews/GAMER-AUDIT-PASS6-2026-11-17.md — observed evidence, measured problems and already-verified fixes.
+4. reviews/CHAPTER1-L31-L100-READINESS-2026-11-17.md — future narrative and progression inheritance; update the plan, but do not implement levels beyond 30.
+
+Reconcile them with current source and your latest work. The new holistic brief governs the expanded scope; current owner-approved canon and guardrails remain binding. Do not revive fixed defects or duplicate existing systems. Preserve all unrelated and concurrent work.
+
+I authorize the reversible gameplay, level, UI, progression, narrative-presentation, asset-integration and balance work described in this package. Treat it as one integrated task: continue through its internal stages rather than stopping after each small task or reference encounter for my approval. Record proposed design decisions and numerical deviations in the required repository records. Ask only about a genuine consequential blocker outside this authorization; continue unaffected work. Do not add dependencies, paid services, currencies, an engine migration, new monetization or implemented content beyond level 30. Do not push, merge or publish without existing explicit authorization.
+
+The intended identity is: “I survive by understanding Istanbul, improvising with its objects, and looking after people who remember what I did.” Improve what players notice, decide, do and remember. More particles, assets, dialogue lines or features are not sufficient evidence of improvement.
+
+Complete the whole package:
+
+• Street improvisation: develop the existing automatic prop sequence into deliberate acquisition, offensive use and authored placement/lure choices, with clear commitment, cancellation and emergency escape. Implement the bounded object roles, preserve one-thumb controls, and prevent accidental pickups, path blockage and farming exploits.
+• Meaningful local choices: implement the six opportunity arrangements and their immediate/remembered consequences. Replace low-value repetition instead of adding chores. Both approaches must be readable, viable and consistent through failure, replay and save/relaunch.
+• Kaan: integrate existing support and repayment with those choices, make reciprocal help legible, recognize equivalent useful player actions, and carry the relationship through his joining, the Captain and the station.
+• All 30 levels: apply the encounter table; improve geometry, enemy-role combinations, objectives, pacing, relief, environmental consequences and rewards. Every level needs a specific decision and resolution. Repeated hold zones must earn their duration through meaningful positioning or be changed.
+• Builds and progression: fix ordinary build payoff and survival tradeoffs; distinguish weapon behaviors and evolutions. Redesign the explanation and presentation of attributes, perks, run ranks, mastery, gear and bond. Show attribute-specific practice, accurate eligibility/costs, affected equipment and practical before/after effects. Do not imply shared attribute points or nonexistent perk prerequisites.
+• Information architecture: finish the entire launch/combat/upgrade/pause/result/growth/return flow. Pause must restore objective and build context. Teach active controls progressively; prioritize threats over chatter and rewards; remove redundant interruptions and misleading arrival information.
+• Combat and all ten named encounters: complete purposeful movement, coherent anatomy, directional acting, anticipation, commitment, contact, recovery, camera, lighting, sound and aftermath. Vatman and Bride are reference implementations, not the completion boundary. Keep strong builds satisfying while preserving fair, understandable boss identity and challenge.
+• Narrative and presentation: review all reachable first-30 dialogue in actual play order, including optional outcomes and retries. Preserve native TR/EN voices and current factual chronology. Direct the four major scenes, comic expressions/composition, world transitions, music and SFX as connected emotional sequences.
+• Asset and technical finish: inspect every reachable weapon family and critical asset/state in context. Finish consumable affordances, prop collision and interaction, art continuity, audiovisual priority, accessibility, save integrity, interruption recovery and available-device performance. Use approved current artwork and pipelines.
+
+Start with a traceability ledger mapping every H01–H18 and G01–G36 requirement to work, dependencies, evidence and status. Build and evaluate the reference experiences, then complete the rest of the slice. If a proposed solution proves worse in play, implement a better bounded equivalent, document the comparison and preserve the required player outcome. Do not quietly drop a workstream or replace it with “future polish.”
+
+Verification is part of implementation. Run focused checks while developing and the complete regression suite in the background on the final stable build; wait for completion and repair failures. Run all 30 levels through real earned progression with three different build intentions, plus reproducible balance and boss stress cases. Separate earned saves from supplied/debug loadouts.
+
+Interactively inspect every level's unique mechanic and aftermath. Review consecutive sequences for accumulated repetition and flow, especially L1–5, L11–15, L20–25 and L26–30. Capture all ten bosses, four major scenes and the six signature moments at normal speed. Exercise the complete navigation loop, both outcomes of new choices, pause/resume, failure/retry, skip, backgrounding and save/relaunch. Fix problems you discover before handing the build back. Tests and screenshots alone do not establish combat feel or fun.
+
+Use physical-phone and unaided player evidence when actually available. If unavailable, finish autonomous work, prepare a runnable protocol and clearly mark those checks unverified. Do not fabricate playtests, claim desktop emulation proves iPhone quality, or contact people without authorization. Do not claim guaranteed retention or masterpiece status from a checklist.
+
+Hand back one consolidated review packet: playable URL; exact build checkpoint; completed coverage ledger; 30 encounter cards; ten-boss behavior table; progression examples; narrative/choice fact ledger; asset/audio review inventory; before/after normal-speed evidence; final regression and earned-campaign results; remaining defects and external verification gaps; updated future-level inheritance plan. Append results to reviews/REVIEW-R1.md.
+
+Continue until the complete authorized package is implemented and internally reviewed, or a specific genuine blocker prevents further dependent work. Your final response must distinguish what changed, what you personally verified, and what remains unverified. The next audit should evaluate a significant leap in the connected player experience, not another isolated collection of fixes.

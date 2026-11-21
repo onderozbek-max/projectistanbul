@@ -12,7 +12,7 @@ Eight tracks, one per id that `js/view/music.js` plays. The owner's Suno tracks 
 | `title.mp3` | `title` | Title screen | loop | 150.000 s (45 bars at 72 BPM) |
 | `map.mp3` | `map` | Meta map | loop | 150.000 s (60 bars at 96 BPM) |
 | `run_calm.mp3` | `run_calm` | Run music, default intensity | loop | 180.000 s (84 bars at 112 BPM) |
-| `run_intense.mp3` | `run_intense` | Run music, high-intensity layer | loop | 180.000 s, same as run_calm |
+| `run_intense.mp3` | `run_intense` | Alternate high-intensity recording | loop | 180.000 s, same as run_calm |
 | `boss.mp3` | `boss` | Boss encounters | loop | 180.000 s (96 bars at 128 BPM) |
 | `comic.mp3` | `comic` | Comic panels and dialogue | loop | 120.000 s (40 bars at 80 BPM) |
 | `victory.mp3` | `victory` | Level or chapter clear | one shot | 20.000 s (10 bars at 120 BPM) |
@@ -23,7 +23,7 @@ Put the files in `prototype/audio/music/`, lower-case names. A missing file is s
 ## 2. How the game plays them
 
 - `title`, `map`, `boss`: loop, one at a time.
-- `run_calm` and `run_intense`: play together for a run. `intensity(0..1)` crossfades them with equal power. They must have the same length, tempo and bar grid, or they drift apart. The tool writes both at exactly 180.000 s and warns if only one is delivered.
+- The street uses `run_calm`. Scene changes stop the current track before the next one fades in. The alternate `run_intense` recording can still be prepared and previewed on its own.
 - `comic`: loops, ducked by -9 dB under speech, and trimmed by -2 dB per track (`GAIN` in `js/view/music.js`), so it sits at the -18 LUFS of `docs/audio-cue-sheet.md`.
 - `victory`, `defeat`: one shot. They never loop and stop at the end. A finished one-shot plays again on the next `play()`, but a tap does not restart it.
 
@@ -42,6 +42,6 @@ Put the files in `prototype/audio/music/`, lower-case names. A missing file is s
 ## 5. Tools
 
 - `node prototype/tools/prepare-music.js`: Suno drop folder to these files (`--dry-run` checks names and lengths only).
-- `node prototype/tools/render-music.js [id]`: regenerates the procedural placeholders.
+- `node prototype/tools/render-music.js [id]` writes the procedural recordings to this directory. Use a scratch checkout for a synth comparison so the prepared owner tracks stay in place.
 - `node prototype/tools/test-music.js`: player checks and file checks (`--quick` skips the synthetic tool run).
 - `prototype/tools/sfx-preview.html`: Music buttons to listen to each track.

@@ -1,17 +1,16 @@
-// Heavy, fire and sky visuals (workstream E1). Sledgehammer: target reticle + hammer arc (anticipation, swing,
-// impact), crater cracks, shock rings, dust and debris. Molotov: arcing bottle, glass burst, fire pools with
+// Heavy, fire and sky visuals (workstream E1). Sledgehammer: target reticle, crater cracks, shock rings,
+// dust and debris. Molotov: arcing bottle, glass burst, fire pools with
 // flicker and embers. Fireworks: homing rocket trails and coloured bursts. Wedding Finale: falling rockets over a
 // gold zone. Reads P.Weapons.state(s) every frame; events only start one-shot effects. Shared particles: P.WFx.add.
 // Sledge windup and fire pools are drawn here; WFx3 (cable, spear, extinguisher, cleaver, cyclone) draws through
 // drawGround / drawAir below.
 P.WFx2 = (function () {
-  var M = {}, cracks = [], sparks = [], flashes = [], zones = [];
+  var M = {}, cracks = [], sparks = [], fireworks = [], zones = [];
   var INK = '#14151F', RGB = ['255,77,109', '255,209,102', '6,214,160', '76,201,240', '179,136,255', '255,158,0'];
-  var MAX_SPARKS = 220, MAX_CRACKS = 24, MAX_FLASH = 12;
+  var MAX_SPARKS = 220, MAX_CRACKS = 24, MAX_BURSTS = 12;
   function rnd(a, b) { return a + Math.random() * (b - a); }
-  function ease(q) { return 1 - Math.pow(1 - q, 3); }
 
-  M.reset = function () { cracks = []; sparks = []; flashes = []; zones = []; };
+  M.reset = function () { cracks = []; sparks = []; fireworks = []; zones = []; };
 
   function spark(p) {
     if (sparks.length >= MAX_SPARKS) sparks.shift();
@@ -33,12 +32,11 @@ P.WFx2 = (function () {
   M.onEvent = function (ev, s) {
     var pn = P.WFx.pan(s, ev.x !== undefined ? ev.x : s.hero.x);
     switch (ev.type) {
-      case 'sledgeSlam': slam(ev, pn); break;
+      case 'sledgeSlam': slam(ev, pn, s); break;
       case 'flaskThrow': P.Sfx.play('molotovThrow', 90, { pan: pn }); break;
       case 'flaskShatter': shatter(ev, pn); break;
       case 'poolBurn': burstSparks(ev.x, ev.y, 3, 1.5, '255,170,60', 0.6, 2); P.Sfx.play('burn', 200, { pan: pn }); break;
       case 'rocketLaunch':
-        P.WFx.add({ k: 'puff', x: ev.x, y: ev.y, z: 0.1, vz: 0.8, vx: 0, vy: 0, r: 0.2, t: 0.4, T: 0.4 });
         P.Sfx.play('rocketLaunch', 60, { pan: pn }); P.Sfx.play('rocketWhistle', 150, { pan: pn });
         break;
       case 'rocketBurst': burst(ev, pn); break;
@@ -46,17 +44,11 @@ P.WFx2 = (function () {
     }
   };
 
-  function slam(ev, pn) {
+  function slam(ev, pn, s) {
     var i, a, sp;
-    cracks.push({ x: ev.x, y: ev.y, r: ev.r, a: rnd(0, 6), t: 6, T: 6 });
+    var grade = ev.variant === 'blacksmith' ? 6 : s.hero.weapons.sledge || 1;
+    cracks.push({ x: ev.x, y: ev.y, r: ev.r, a: rnd(0, 6), t: 6, T: 6, swingLife: 0.36 + grade * 0.066, grade: grade });
     if (cracks.length > MAX_CRACKS) cracks.shift();
-    P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r * 1.3, t: 0.35, T: 0.35, col: '255,255,255' });
-    P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r * 1.9, t: 0.5, T: 0.5, col: '255,170,70' });
-    for (i = 0; i < 8; i++) {
-      a = rnd(0, Math.PI * 2);
-      P.WFx.add({ k: 'puff', x: ev.x + Math.cos(a) * ev.r * 0.5, y: ev.y + Math.sin(a) * ev.r * 0.5, z: 0.2,
-        vx: Math.cos(a) * 1.2, vy: Math.sin(a) * 1.2, vz: rnd(0.5, 1.2), r: rnd(0.2, 0.34), t: rnd(0.6, 1), T: 1 });
-    }
     for (i = 0; i < 8; i++) {
       a = rnd(0, Math.PI * 2); sp = rnd(3, 6);
       P.WFx.add({ k: 'debris', x: ev.x, y: ev.y, z: 0.1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: rnd(4, 7),
@@ -82,12 +74,9 @@ P.WFx2 = (function () {
   }
 
   function burst(ev, pn) {
-    var big = !!ev.big, rgb = RGB[(ev.col || 0) % RGB.length];
-    // The bright disc is a flash: it takes a slot from the screen flash budget (sprites.js flashOk); the sparks and ring still play.
-    if (P.Fx.flashGo()) flashes.push({ x: ev.x, y: ev.y, r: ev.r * (big ? 2.4 : 1.6), rgb: rgb, t: big ? 0.3 : 0.18, T: big ? 0.3 : 0.18 });
-    if (flashes.length > MAX_FLASH) flashes.shift();
-    burstSparks(ev.x, ev.y, big ? 28 : 14, big ? 6 : 4, rgb, big ? 0.9 : 0.6, big ? 2 : 1);
-    P.WFx.add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r * 1.1, t: 0.3, T: 0.3, col: rgb });
+    var big = !!ev.big, grade = big ? 6 : ev.stage || 1, life = 0.47 + grade * 0.083;
+    fireworks.push({ x: ev.x, y: ev.y, r: ev.r, col: ev.col || 0, grade: grade, t: life, T: life });
+    if (fireworks.length > MAX_BURSTS) fireworks.shift();
     P.Sfx.play('rocketBoom', 50, { pan: pn });
     if (big) P.Fx.addTrauma(0.35);
   }
@@ -110,8 +99,8 @@ P.WFx2 = (function () {
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vz -= p.g * dt;
       if (p.z < 0) { p.z = 0; p.vz = 0; p.vx *= 0.5; p.vy *= 0.5; }
     }
-    flashes.forEach(function (f) { f.t -= dt; });
-    flashes = flashes.filter(function (f) { return f.t > 0; });
+    fireworks.forEach(function (f) { f.t -= dt; });
+    fireworks = fireworks.filter(function (f) { return f.t > 0; });
     cracks.forEach(function (k) { k.t -= dt; });
     cracks = cracks.filter(function (k) { return k.t > 0; });
     zones.forEach(function (z) { z.t -= dt; });
@@ -143,12 +132,26 @@ P.WFx2 = (function () {
     zones.forEach(function (z) { drawZone(c, R, z, u, t); });
     cracks.forEach(function (k) { drawCrack(c, R, k, u); });
     st.pools.forEach(function (q) { drawPool(c, R, q, u, t); });
-    st.slams.forEach(function (sl) { drawReticle(c, R, sl, u); });
+    st.slams.forEach(function (sl) {
+      if(sl.ground)groundPulse(c,R,sl,u);
+      else if (sl.src !== 'sledge' || !P.WTier || !P.WTier.enabled) drawReticle(c, R, sl, u);
+    });
     c.restore();
     if (P.WFx3 && P.WFx3.drawGround) P.WFx3.drawGround(R, s);
     if (P.WFx4 && P.WFx4.drawGround) P.WFx4.drawGround(R, s);
     if (P.WTier) P.WTier.drawGround(R, s);
   };
+
+  function groundPulse(c,R,sl,u){
+    var p=Math.max(0,Math.min(1,1-sl.t/(sl.T||1))),g=sl.ground,dx=sl.x-g.x,dy=sl.y-g.y;
+    var x=g.x+dx*p,y=g.y+dy*p,a=Math.atan2(dy,dx),width=.14+(sl.lv.r||1)*.09;
+    c.save();c.lineCap='round';c.beginPath();
+    for(var i=0;i<7;i++){var t=Math.max(0,p-i*.032),j=(i%2?1:-1)*.055;
+      var px=R.X(g.x+dx*t-Math.sin(a)*j),py=R.Y(g.y+dy*t+Math.cos(a)*j);if(!i)c.moveTo(px,py);else c.lineTo(px,py);}
+    c.strokeStyle='#332C35';c.lineWidth=.16*u;c.stroke();c.strokeStyle='#F9D990';c.lineWidth=.065*u;c.stroke();
+    c.beginPath();c.ellipse(R.X(x),R.Y(y),width*u,width*.44*u,-a,0,Math.PI*2);
+    c.strokeStyle='#FFF0C6';c.lineWidth=.07*u;c.stroke();c.restore();
+  }
 
   function drawZone(c, R, z, u, t) {
     var a = Math.min(1, z.t / z.T * 3) * 0.7;
@@ -159,6 +162,12 @@ P.WFx2 = (function () {
 
   function drawCrack(c, R, k, u) {
     var X = R.X(k.x), Y = R.Y(k.y), a = Math.min(1, k.t) * 0.6, i, ang, len;
+    var phase = (k.T - k.t) / 0.38;
+    if (phase < 1) {
+      var r = k.r * u * (0.46 + phase * 0.63);
+      c.strokeStyle = 'rgba(203,161,105,' + ((1 - phase) * 0.64).toFixed(3) + ')'; c.lineWidth = 2;
+      c.beginPath(); c.ellipse(X, Y, r, 0.55 * r, 0, 0, Math.PI * 2); c.stroke();
+    }
     c.strokeStyle = 'rgba(20,21,31,' + a.toFixed(3) + ')'; c.lineWidth = 2;
     c.beginPath();
     for (i = 0; i < 6; i++) {
@@ -170,20 +179,23 @@ P.WFx2 = (function () {
   }
 
   function drawPool(c, R, q, u, t) {
-    var X = R.X(q.x), Y = R.Y(q.y), rr = q.r * u, life = Math.min(1, q.t / 0.8), k, N = 7, ang, d, fx, fy, h, w;
-    var g = c.createRadialGradient(X, Y, 0, X, Y, rr);
-    g.addColorStop(0, 'rgba(255,150,40,' + (0.45 * life).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,60,10,0)');
-    c.fillStyle = g; c.beginPath(); c.ellipse(X, Y, rr, rr * 0.5, 0, 0, Math.PI * 2); c.fill();
-    c.globalCompositeOperation = 'lighter';
-    for (k = 0; k < N; k++) {
-      ang = k / N * Math.PI * 2 + t * 0.6; d = rr * (0.3 + 0.35 * ((k * 0.37) % 1));
-      fx = X + Math.cos(ang) * d; fy = Y + Math.sin(ang) * d * 0.5;
-      h = rr * (0.32 + 0.12 * Math.sin(t * 11 + k * 2.1)); w = rr * 0.12;
-      c.fillStyle = 'rgba(255,140,40,' + (0.85 * life).toFixed(3) + ')';
-      c.beginPath(); c.moveTo(fx - w, fy); c.quadraticCurveTo(fx, fy - h * 1.3, fx, fy - h);
-      c.quadraticCurveTo(fx + w * 0.4, fy - h * 0.4, fx + w, fy); c.fill();
+    var X = R.X(q.x), Y = R.Y(q.y), rr = q.r * u, life = Math.min(1, q.t / 0.8);
+    var still = P.Settings && (P.Settings.reduceMotion || P.Settings.reduceFlash);
+    var count = q.r > 2.5 ? 8 : 5, i, x, y, h, w, bend;
+    if (still) t = 0;
+    c.save(); c.globalAlpha *= life;
+    c.beginPath(); c.ellipse(X, Y, rr, rr * 0.48, 0, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(86,29,27,0.45)'; c.fill(); c.strokeStyle = 'rgba(251,95,39,0.7)'; c.lineWidth = 2; c.stroke();
+    for (i = 0; i < count; i++) {
+      x = X + rr * (i / (count - 1) - 0.5) * 1.45;
+      y = Y + rr * (0.13 + 0.14 * Math.sin(i * 5));
+      h = rr * (0.26 + 0.11 * Math.sin(t * 4 + i * 2.1)); w = rr * 0.11;
+      bend = w * Math.sin(t * 3 + i * 2.6);
+      c.fillStyle = '#E94C28'; P.FireAnimPrim.tongue(c, x, y, w, h, bend);
+      c.fillStyle = '#FFB74A'; P.FireAnimPrim.tongue(c, x, y, w * 0.62, h * 0.66, bend * 0.55);
+      c.fillStyle = '#FFE3A0'; P.FireAnimPrim.tongue(c, x, y, w * 0.28, h * 0.31, bend * 0.25);
     }
-    c.globalCompositeOperation = 'source-over';
+    c.restore();
   }
 
   function drawReticle(c, R, sl, u) {
@@ -198,36 +210,23 @@ P.WFx2 = (function () {
   // ---------- air layer: hammer, bottles, rockets, finale barrage, sparks ----------
   M.drawAir = function (R, s) {
     var c = R.ctx, u = R.ppm, t = performance.now() / 1000, st = P.Weapons.state(s);
-    st.slams.forEach(function (sl) { drawHammer(c, R, s, sl, u); });
     st.flasks.forEach(function (f) { drawFlask(c, R, f, u, t); });
-    st.rockets.forEach(function (r) { drawRocket(c, R, r, u); });
+    if (!P.WTier || !P.WTier.enabled) st.rockets.forEach(function (r) { drawRocket(c, R, r, u); });
     st.finale.forEach(function (f) { drawSkyRocket(c, R, f, u); });
-    c.save(); c.globalCompositeOperation = 'lighter';
-    flashes.forEach(function (f) { drawFlash(c, R, f, u); });
+    c.save();
+    if (P.WSil && P.WSil.drawFirework) fireworks.forEach(function (f) { P.WSil.drawFirework(c, R, f); });
+    if (P.WSil && P.WSil.drawHammer) cracks.forEach(function (k) {
+      var remaining = k.t - (k.T - k.swingLife);
+      if (remaining > 0) P.WSil.drawHammer(c, R, { x: k.x, y: k.y, r: k.r, grade: k.grade, t: remaining, T: k.swingLife });
+    });
+    c.globalCompositeOperation = 'lighter';
     sparks.forEach(function (p) { drawSpark(c, R, p, u); });
     c.restore();
     if (P.WTier) P.WTier.drawAir(R, s);
     if (P.WFx3 && P.WFx3.drawAir) P.WFx3.drawAir(R, s);
     if (P.WFx4 && P.WFx4.drawAir) P.WFx4.drawAir(R, s);
+    if (P.WAttackCues) P.WAttackCues.drawAir(R);
   };
-
-  // Anticipation (0-0.7: raise the head back), then the swing (0.7-1: forward to the impact point).
-  function drawHammer(c, R, s, sl, u) {
-    var h = s.hero, p = Math.min(1, 1 - sl.t / sl.T), aim = Math.atan2(sl.y - h.y, sl.x - h.x), off, L = 0.95;
-    off = p < 0.7 ? -2.6 * ease(p / 0.7) : -2.6 * (1 - ease((p - 0.7) / 0.3));
-    var th = aim + off, sx = R.X(h.x), sy = R.Y(h.y + 0.2), hx = R.X(h.x + Math.cos(th) * L), hy = R.Y(h.y + 0.2 + Math.sin(th) * L);
-    if (p > 0.7) {
-      c.strokeStyle = 'rgba(255,255,255,' + (0.5 * (p - 0.7) / 0.3).toFixed(3) + ')'; c.lineWidth = 6;
-      c.beginPath(); c.arc(sx, sy, L * u, -th, -th + 0.8, false); c.stroke();
-    }
-    c.lineCap = 'round'; c.strokeStyle = INK; c.lineWidth = 6; c.beginPath(); c.moveTo(sx, sy); c.lineTo(hx, hy); c.stroke();
-    c.strokeStyle = '#7A5230'; c.lineWidth = 3; c.stroke();
-    c.save(); c.translate(hx, hy); c.rotate(-th);
-    c.fillStyle = '#4A4F59'; c.strokeStyle = INK; c.lineWidth = 2.5;
-    c.fillRect(-0.12 * u, -0.22 * u, 0.24 * u, 0.44 * u); c.strokeRect(-0.12 * u, -0.22 * u, 0.24 * u, 0.44 * u);
-    c.fillStyle = '#A7AFBB'; c.fillRect(-0.08 * u, -0.18 * u, 0.06 * u, 0.36 * u);
-    c.restore();
-  }
 
   function drawFlask(c, R, f, u, t) {
     var pos = flaskPos(f), X = R.X(pos.x), Y = R.Y(pos.y), fl = 0.5 + 0.5 * Math.sin(Math.floor(t * 3) / 3 * 40);   // flame flicker held to 3 steps a second
@@ -266,13 +265,6 @@ P.WFx2 = (function () {
     }
     c.fillStyle = 'rgba(255,255,255,0.95)'; c.beginPath(); c.arc(X, R.Y(f.y + z), 0.12 * u, 0, Math.PI * 2); c.fill();
     c.restore();
-  }
-
-  function drawFlash(c, R, f, u) {
-    var a = f.t / f.T, X = R.X(f.x), Y = R.Y(f.y), rr = f.r * u * (1.2 - 0.2 * a);
-    var g = c.createRadialGradient(X, Y, 0, X, Y, rr);
-    g.addColorStop(0, 'rgba(255,255,255,' + (0.55 * a).toFixed(3) + ')'); g.addColorStop(1, 'rgba(' + f.rgb + ',0)');
-    c.fillStyle = g; c.beginPath(); c.arc(X, Y, rr, 0, Math.PI * 2); c.fill();
   }
 
   function drawSpark(c, R, p, u) {

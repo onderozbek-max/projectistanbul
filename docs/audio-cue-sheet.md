@@ -4,7 +4,14 @@ Owner: workstream A (SOUND). Code: `prototype/js/view/sfx-bank.js` (DSP primitiv
 Audition: open `prototype/tools/sfx-preview.html` (works over file://; click **Enable audio** first). Over http it also has a Generated / Synth switch.
 Tools: `prototype/tools/render-sfx.js`, `prototype/tools/qa-sfx.js`, `prototype/tools/render-music.js`, `prototype/tools/prepare-music.js`, `prototype/tools/prepare-sfx.js` (see Tools below).
 
-**Status: nobody has listened to this yet.** Every check in this sheet is numerical (QA harness, loudness, seams). The owner and lead need a listening pass before any of it is called done.
+**Current build.** Eight prepared owner tracks are in the prototype. The runtime can also use 49 prepared sound effects with synthesized fallbacks. The full mix still needs a structured listening pass on a phone speaker and headphones.
+
+**Comic cadence follow-up, 2026-11-19 (D-121, proposed).** The reading controller now accents
+word starts at least 150 ms apart, with 160 ms clause / 280 ms sentence pauses. It ignores
+bracketed static directions and never catches up skipped text sounds. D-119's silent thoughts,
+narration and quiet pages remain; a paper turn still marks an actual page change. Current
+page/pop/speech cues are synthesized, not new recordings. The recipes and mix are unchanged.
+Controller regressions validate placement/density; they do not establish listening comfort.
 
 ## What changed in v0.5
 
@@ -13,12 +20,11 @@ Tools: `prototype/tools/render-sfx.js`, `prototype/tools/qa-sfx.js`, `prototype/
 - **`gem` removed.** It had no producer. Add it back when a rare-gem event exists.
 - **Voices rebuilt** on a glottal engine (Rosenberg pulses with jitter, shimmer, creak, growl, drive, breath and formants): `groan`, `snarl`, `zombieDie`, `bruteRoar`, `bossDie`, `elite`, `hurt`, `crowdScream`. `cat` was rebuilt too but has no call site yet.
 - **Mix:** voice and rate limits for crowds, a ducking pass under boss and comic speech, a master limiter, and `P.Sfx.setVolume(bus, v)` for volume control. The Settings sliders were not added (see Open items).
-- **Music:** eight tracks (`audio/music/`), one per ID that `music.js` expects. Procedural placeholders for now; the owner's Suno tracks replace them through `prototype/tools/prepare-music.js` (D-062, proposed).
+- **Music:** eight prepared owner tracks in `prototype/audio/music/`. The preparation tool preserves the track IDs used in the game.
 
 ## Ground rules
 
-- **No samples, no downloads.** Every synthesized SFX is made in code (`sfx-bank*.js`). The music is synthesized by `tools/render-music.js` as a placeholder. The one exception is the owner's AI-generated SFX files (D-063, see Generated SFX below), which replace the synthesized sound cue by cue. No other third-party audio is used anywhere.
-- **D-029 ("code makes the SFX") holds for the synthesized SFX.** D-063 (proposed 2026-11-13) amends it for the generated cues: the kill, blast and impact sounds come from an AI sound tool, made from the prompts in `prototype/audio/sfx-gen/BRIEF.md`. For music, D-029 assigns the tracks to the owner's Suno workflow. The eight tracks here are procedural placeholders under the same IDs, so the owner's tracks can replace them without code changes. Recorded as D-062 (proposed 2026-11-13, owner approved the plan): the owner's files go in `prototype/audio/music-suno/`.
+- Synthesized sound effects are made in `sfx-bank*.js`. Prepared owner SFX replace them cue by cue where available. Music uses the owner recordings described below.
 
 ## How the sounds are made
 
@@ -68,7 +74,7 @@ The owner found the synthesized kill, blast and impact sounds poor on the phone 
 - `node prototype/tools/qa-sfx.js` runs QA on the DSP render. `--masters` checks the WAVs in `audio/sfx/`. `--only=NAME`, `--quiet`. It fails on NaN or Inf, clipped samples, silence, a duration over the limit, or identical variants (correlation above 0.995). It warns on DC offset, very quiet cues and similar variants (correlation 0.98 to 0.995). Writes `reports/sfx-qa.json` (git-ignored).
   - Last run (DSP render and masters): 348 variants, 87 cues, **0 fails**, 6 warnings: similar variants in `hit_body` (0 and 1), `stab` (1 and 2), `hammer` (1 and 2), and `chestDrop` (1, 2 and 3).
   - Masters peak between -16.4 and -2.8 dBFS.
-- `node prototype/tools/render-music.js [id]` renders the eight tracks to `prototype/audio/music/*.mp3` (libmp3lame, 128 kbps). Loudness is set by ebur128 iteration to each track's target, and the loop seam is checked on the decoded MP3. Requires ffmpeg. About 60 s for all eight.
+- `node prototype/tools/render-music.js [id]` renders the eight procedural tracks to `prototype/audio/music/*.mp3` (libmp3lame, 128 kbps). Run it in a scratch checkout to keep the prepared owner recordings in place. It measures target loudness and the decoded loop seams. Requires ffmpeg.
 - `node prototype/tools/prepare-music.js [--dry-run] [--only=id,id] [--src=DIR] [--dst=DIR]` turns the owner's Suno files in `prototype/audio/music-suno/` into `prototype/audio/music/<id>.mp3` (see Music below). `node prototype/tools/test-music.js` checks the player's slot manifest and the files.
 - `node prototype/tools/prepare-sfx.js [--dry-run] [--list] [--only=name,name] [--src=DIR] [--dst=DIR]` turns the owner's files in `prototype/audio/sfx-gen/` into `ready/*.mp3` and `ready/manifest.json`. It trims silence, sets each file to its loudness class, caps the peak at -1.5 dBFS, and rejects silent, over-long or misnamed files (listed, the rest are written). Exit code 1 when anything is rejected. Requires ffmpeg.
 - `node prototype/tools/sfx-provenance.js --tool=... --plan=... --commercial-ok [--dry-run] [--csv=...] [--manifest=...]` adds one `art/PROVENANCE.csv` row per generated file that has none. It refuses without `--plan` and `--commercial-ok`, which confirm the tool's plan tier allows commercial use.
@@ -128,6 +134,8 @@ Columns: cue → where it is called from (first two call-site files; "none yet" 
 | `chestDrop` | `screens.js` | Chest drops. Wood knock and thump. | 4 | P2 · max 2 · gap 100 · sfx · 0.1 · -15 dB |
 | `chestShake` | `events-fx.js`, `screens.js` | Chest shakes. Coin rattle. | 4 | P2 · max 2 · gap 200 · sfx · 0.06 · -17 dB |
 | `chestOpen` | `screens.js` | Chest opens. Wood creak (band-limited saw through a moving band-pass) and glass sparkles. | 3 | P2 · max 1 · gap 500 · sfx · 0.12 · -16 dB |
+| `homeMotif` | `story-data.js`, `finale-data.js` | A three-note plucked phrase on the Sirkeci departure and at the apartment. | 1 | P2 · max 1 · gap 1200 · ui · 0.13 · -26 dB |
+| `farewellMotif` | `story-data.js` | The same phrase played lower and slower in each Captain farewell variant. | 1 | P2 · max 1 · gap 1200 · ui · 0.18 · -28 dB |
 | `coin` | `meta-ui.js`, `meta-gear.js` | Coin pickup. Plate ring with a bounce. | 4 | P0 · max 4 · gap 40 · sfx · 0.06 · -21 dB |
 | `tink` | `main.js`, `events-fx.js` | XP pickup, the most frequent cue. Tea-glass tink: click and glass ring with a beating pair. The runtime raises the pitch on streaks. | 5 | P0 · max 4 · gap 25 · sfx · 0.06 · -21 dB |
 | `pick` | `screens.js` | Card or item picked. Two glass rings and a tap. | 4 | P1 · max 3 · gap 60 · ui · 0.06 · -19 dB |
@@ -181,49 +189,39 @@ Columns: cue → where it is called from (first two call-site files; "none yet" 
 
 Layer descriptions carry over from v0.4. Only the `street` bed was re-checked against the code; the other four still need that check. Each bed is 8 s with a 0.5 s crossfade tail, normalised to -26 dBFS RMS (-4 dBFS peak ceiling).
 
-## Music (`prototype/audio/music/`: owner Suno tracks, procedural placeholders until they arrive)
+## Music in the current build
 
-Eight tracks, one per ID that `music.js` plays. The owner's Suno exports go in `prototype/audio/music-suno/` (briefs, prompts and the drop-folder rules are in its README). `prototype/tools/prepare-music.js` turns them into `prototype/audio/music/<id>.mp3`: MP3 192 kbps, 44.1 kHz, stereo, -16 LUFS integrated (two-pass `loudnorm`, true peak at or below -1.5 dBTP), exact length. A slot with no source keeps its placeholder. The first write copies the placeholders once to `prototype/audio/music-procedural/`. Partial uploads are fine. Decision: D-062 (proposed 2026-11-13; owner approved the plan).
+The eight slots in `prototype/audio/music/` contain prepared owner recordings. See [the inventory and preparation instructions](../prototype/audio/music/README.md). `run_intense` is available as an alternate recording. Normal gameplay uses `run_calm`, with `boss` selected on introduction. The player stops the previous song when starting a new one.
 
 | Slot | ID used by `music.js` | Tempo · bars | Length | Type | Level | Notes |
 |---|---|---|---|---|---|---|
 | Title | `title` | 72 BPM · 45 | 150 s (2:30) | loop | -16 LUFS | Title screen |
 | Map | `map` | 96 BPM · 60 | 150 s (2:30) | loop | -16 LUFS | Meta map |
-| Run, calm | `run_calm` | 112 BPM · 84 | 180 s (3:00) | loop | -16 LUFS | Run pair: same length, grid and key as `run_intense` |
-| Run, intense | `run_intense` | 112 BPM · 84 | 180 s (3:00) | loop | -16 LUFS | Layer, crossfaded by `intensity()` |
+| Run, calm | `run_calm` | 112 BPM · 84 | 180 s (3:00) | loop | -16 LUFS | Street gameplay |
+| Run, intense | `run_intense` | 112 BPM · 84 | 180 s (3:00) | loop | -16 LUFS | Alternate recording |
 | Boss | `boss` | 128 BPM · 96 | 180 s (3:00) | loop | -16 LUFS | Boss encounters |
 | Comic | `comic` | 80 BPM · 40 | 120 s (2:00) | loop | -16 LUFS, trimmed -2 dB in `music.js` (-18 effective) | Ducked -9 dB under speech |
 | Victory | `victory` | 120 BPM · 10 | 20 s | stinger, one shot | -16 LUFS | Not looped; 0.3 s fade-out |
 | Defeat | `defeat` | 72 BPM · 6 | 20 s | stinger, one shot | -16 LUFS | Not looped; 0.3 s fade-out |
 
-**Seams (prepared files).** Loops keep exactly their length. The source's last 1.5 s (the continuation of the music) is blended into the first 1.5 s with an equal-power crossfade, corrected for head-tail correlation (plain equal power would swell by up to +3 dB when the tail repeats the head). The tool reports, per loop, the crossfade level and the wrap step against the typical sample step (a ratio near 1 is a clean join). The `music.js` changes: per-track trim (`GAIN`), a finished one-shot replays on `play()` but not on a tap, and a track still fading out is not rewound when it is played again.
-
-**Placeholders (procedural, `render-music.js`).** Still in `prototype/audio/music/` until the Suno tracks arrive. The numbers below are from the previous pass (decoded MP3, 128 kbps). The loop-seam fix (`loopEdges`: 10 ms fade-out, 2 ms fade-in) applies to them.
-
-| Track | ID used by `music.js` | Tempo · bars | Length | Loop | Target | Join (decoded MP3) | 2 s level step (head minus tail) |
-|---|---|---|---|---|---|---|---|
-| Title | `title` | 72 BPM · 18 | 60.0 s | yes | -16 LUFS | 0.021 | -0.1 dB |
-| Map | `map` | 96 BPM · 24 | 60.0 s | yes | -16 LUFS | 0.009 | +1.2 dB |
-| Run, calm | `run_calm` | 112 BPM · 32 | 68.6 s | yes | -16 LUFS | 0.007 | -0.6 dB |
-| Run, intense | `run_intense` | 112 BPM · 32 | 68.6 s | yes | -16 LUFS | 0.010 | +0.3 dB |
-| Boss | `boss` | 128 BPM · 48 | 90.0 s | yes | -16 LUFS | 0.029 | **-4.7 dB** |
-| Comic | `comic` | 80 BPM · 30 | 90.0 s | yes | -18 LUFS | 0.020 | -1.9 dB |
-| Victory | `victory` | 120 BPM · 12 | 24.0 s | one-shot, 1.5 s fade | -15 LUFS | n/a | n/a |
-| Defeat | `defeat` | 80 BPM · 8 | 24.0 s | one-shot, 1.5 s fade | -15 LUFS | n/a | n/a |
-
-**Loop seams.** The WAV seam was the first thing to check. Before the fix, the boss track jumped 0.18 at its loop point and title 0.06 on the decoded MP3. The fix is a 10 ms cosine fade-out at each loop end and a 2 ms fade-in at each start (`loopEdges` in `render-music.js`). After it, the WAV step within 4 samples of the seam is 0.008 or less on all six loops, against a median sample step of 0.002 to 0.007. The loop now has a short dip once per cycle instead of a click. The cause of the original step was not traced; the fade covers it and does not remove it.
-
-**Known music issues (placeholders; recheck the Suno tracks with the tool's numbers):**
-- **Boss** loops from a quiet head to a loud tail (4.7 dB in the 2 s windows). The listener will hear that level change at each loop point. The fix is compositional: end the track at the head's level, or accept it.
-- **Map and comic** have hot seam regions (seam RMS +4.2 dB and +5.8 dB against the track average), which I have not traced. Likely a downbeat transient at sample 0, but that is a guess.
-- The MP3 join is a few times the median sample step. That is encoder residue, not a discontinuity, but it is not sample-exact.
-- None of this has been listened to. The Suno tracks have not been listened to yet either: the tool's numbers are checks, not a listening pass.
+**Seams (prepared files).** Loops keep exactly their length. The source's last 1.5 s (the continuation of the music) is blended into the first 1.5 s with an equal-power crossfade, corrected for head-tail correlation (plain equal power would swell by up to +3 dB when the tail repeats the head). The tool reports, per loop, the crossfade level and the wrap step against the typical sample step (a ratio near 1 is a clean join). The player applies per-track trim and stops the previous song when a new one starts. A finished stinger can replay on an explicit `play()` call.
 
 ## Known gaps and open items
 
+**2026-11-19 comic-reading check:** `comicPage` and `comicPop` have no entry in
+`audio/sfx-gen/ready/manifest.json` and no replacement source in the local generated
+audio folder. Runtime therefore uses `sfx-ui-cues.js`; `speech` deliberately stays
+synthesized. The exported WAV manifest is not the runtime replacement route.
+Corrected `comic.js`: page flutter on actual page changes, panel pop on panel
+reveals; no voice blips for narration/thoughts; quiet pages suppress speech and zoom
+stingers as well as panel/page cues, retaining their explicit entrance motif.
+DSP QA passes for 3 page, 3 pop and 25 speech variants. This verifies assets/routing
+and technical output, not critical listening or iPhone speaker quality. Details:
+[context audit](../reviews/NARRATIVE-CONTEXT-AUDIT-2026-11-19.md).
+
 **Gaps:**
-- **Quality is by numbers, not by ear.** The QA harness shows every cue renders finite, non-silent, peak-safe, and that every variant differs. It does not show that anything sounds good.
-- **Expect a synthetic character.** Voices, brass, the ferry horn, the bells and the music are all synthesized. The highest-risk cues for the "terrible Godot alerts" complaint are `level`, `levelClear`, `bell`, `ferryHorn`, `bossIntro` and `bossDie`; listen to those first.
+- **Rendering QA.** The harness checks for finite, non-silent, peak-safe output and meaningful variant differences. Critical listening is still open.
+- **Synthetic fallback and speech.** Dialogue uses synthetic blips. Audition each cue with the prepared assets enabled and with synthesized playback. The highest-risk cues for the "terrible Godot alerts" complaint are `level`, `levelClear`, `bell`, `ferryHorn`, `bossIntro` and `bossDie`; listen to those first.
 - **`cat`** has a recipe but no call site.
 - **`footstep`** is called only for the parkour enemy wind-up. The hero walk cycle is not wired.
 - **`hit`** runs with the default `body` kind today. The other four kinds (`blade`, `blunt`, `pierce`, `chain`) are ready for weapon calls to pass as `kind`.
@@ -233,14 +231,14 @@ Eight tracks, one per ID that `music.js` plays. The owner's Suno exports go in `
 
 **Open items (owner and lead):**
 1. **Listening pass** with the owner through `prototype/tools/sfx-preview.html`, starting with the cues listed above.
-2. **Settings sliders:** add them in `settings.js` (not touched in this work) and call `P.Sfx.setVolume(bus, v)` for `sfx`, `ui`, `voice`, `ambience` and `music`.
+2. **Settings:** verify the existing Sound, Music and Music Volume controls on a phone.
 3. **Ducking depths:** confirm -6 dB ambience and -9 dB music, or set 3 dB as the brief asked (`DUCK_AMB` in `sfx.js`, `DUCK` in `music.js`).
-4. **Music decision:** recorded as D-062 (proposed) in `docs/product.md` §17: the procedural tracks are placeholders for the owner's Suno tracks. Still open: the Suno licence, plan tier and provenance log before any track ships (D-029, §15), and whether the owner keeps any procedural track.
-5. **Boss track:** resolve the 4.7 dB head-to-tail step (compose the end to the head level, or accept it).
+4. **Music licensing:** confirm the owner recording plan tier and provenance before external distribution (D-029, D-062).
+5. **Boss track:** listen for the entrance, loop seam, aftermath and return to street music on the prepared track.
 6. **Wiring:** pass `kind` on weapon `hit` calls; wire the hero walk cycle to `footstep`; give `cat` a call site.
 7. **Comic speech ducking:** already in place. `comic.js` plays the `speech` cue on each syllable, and `speech` ducks through `duck(0.35)`. No change needed.
 8. **Gem:** add back when a rare-gem event exists.
-9. **Generated SFX (D-063, proposed):** the owner generates batch 1 (12 cues) first, then batches 2 to 4, and listens on the phone with the `?sfx=synth` A/B. Confirm the route, and that the XP pickup family stays synthesized. The 41 cues without a brief need a later round.
+9. **Prepared SFX:** compare the 49-file set with `?sfx=synth` on a phone. Start with threats, impact weight and pickup fatigue.
 10. **Sound-tool licence:** write the plan tier down and run `sfx-provenance.js` with `--plan` and `--commercial-ok` before any generated file ships.
 11. **iOS decode:** buffers decoded by the offline context and played on the live context are not checked on a device. A playback that throws drops the file and plays the synthesized sound. A playback that is silent without an error is not caught, so it needs the device check.
 

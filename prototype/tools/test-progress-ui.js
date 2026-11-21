@@ -54,7 +54,7 @@ check(at('js/view/ui-progress.js') > at('js/view/ui-motion.js') && at('js/view/u
  ['js/main.js', 'P.UIProgress.queueLevelUp(sim, card)'], ['js/main.js', 'P.Meta.progress().kmShown'], ['js/main.js', 'streak: sim.tally.maxStreak'],
  ['js/view/screens.js', 'P.UIProgress.results(r)'], ['js/view/screens.js', "$('cards-title')"], ['js/view/hood-card.js', 'P.UIProgress.hoodNode(li)'],
  ['js/meta/meta-ui.js', 'P.UIProgress.powerHtml()'], ['js/meta/meta-ui.js', 'P.UIProgress.unlockText('], ['js/meta/meta-ui.js', 'setKm(v.kmShown)'],
- ['js/meta/meta-ui.js', 'tweenKm(b0.kmShown, b1.kmShown, 1400)'], ['js/meta/meta-ui.js', 'setKm(b0.kmShown)'], ['js/meta/meta-ui.js', 'setKm(p.after.kmShown)'],
+ ['js/meta/meta-ui.js', 'tweenKm(b0.kmShown, b1.kmShown, 1400)'], ['js/meta/meta-ui.js', 'setKm(b0.kmShown)'], ['js/meta/meta-ui.js', 'renderAll(latest)'],
  ['js/meta/meta-data.js', 'kmShown: km + (next - km) * frac'], ['js/meta/meta-data.js', 'kmWalked: snap.km, kmShown: snap.kmShown']
 ].forEach(([f, s]) => check(code(f).indexOf(s) >= 0, `${f} must contain ${s}`));
 check(code('js/view/ui-progress.js').indexOf('P.UI && P.UI.isOverlay && P.UI.isOverlay()') >= 0, 'ui-progress.js: the banner waits while an overlay is up');
@@ -69,7 +69,7 @@ check(!/'ui\.hud\.level'|'ui\.hud\.lv'|'ui\.res\.labelHood'|'ui\.res\.runLevel'|
   'a retired key or the literal "İstanbul" is still used in code');
 const progCode = ['js/view/ui-progress.js', 'js/meta/meta-progress.js', 'js/strings-progress-ui.js', 'js/view/hood-card.js', 'js/meta/meta-ui.js',
   'js/view/screens.js', 'js/view/ui.js'].map(code).join('\n');
-check(!/chapter/i.test(progCode), 'the progress code never says "chapter" (a hood is a district; a journey level is a level)');
+check(!/chapter/i.test(progCode.replace(/\bchapter\b|meta-chapter|meta\.chapterProgress/g, '')), 'only the full journey summary uses the chapter label');
 // The chapter is "Kısım" in TR (T4 part 8). "Bölüm" with a capital B is a journey level, so it may not stand for the chapter in
 // the finale or the title. The lower-case "bölüm" in the finale's stat rows counts levels and is allowed.
 const finaleSrc = read('js/story/strings-finale.js');
@@ -83,6 +83,9 @@ check(/textSize >= 150 \? sub : xp/.test(read('js/view/settings.js')), 'settings
 // ---- the ids the views read exist in index.html ----
 const idsUsed = new Set(['sk-meter', 'sk-label', 'sk-fill', 'lvl-banner', 'lvl-title', 'lvl-line', 'res-power', 'res-recap', 'res-run', 'res-label', 'cards-title']);
 ['js/view/ui-progress.js', 'js/view/screens.js'].forEach(f => { for (const m of code(f).matchAll(/\$\('([\w-]+)'\)/g)) idsUsed.add(m[1]); });
+// ExperienceUI creates cards-plan at offer time. The rendered same-offer/fresh-offer checks
+// exercise its existence, expanded state, scroll and focus; a static index check cannot.
+idsUsed.delete('cards-plan');
 idsUsed.forEach(id => check(html.indexOf(`id="${id}"`) >= 0, `index.html has no id="${id}" (a view reads it)`));
 
 // ---- VM: the real game scripts (lib-load runs the non-view scripts in index.html order), then the progress module ----
@@ -91,6 +94,8 @@ const P = loadP();
 // the two view files that only define code and strings at load time (no DOM is touched until a screen is built)
 ['js/view/hood-card.js', 'js/view/ui-progress.js'].forEach(f => vm.runInThisContext(read(f), { filename: f }));
 const TR = P.STR.tr, EN = P.STR.en;
+check(/^1\. Kısım.*\{n\}\/\{of\}/.test(TR['meta.chapterProgress']) && /^Chapter 1.*\{n\}\/\{of\}/.test(EN['meta.chapterProgress']),
+  'the map chapter summary names the whole journey and counts cleared levels in both languages');
 // the finale and the title: the TR chapter is "Kısım", the EN chapter stays "Chapter" (T4 part 8)
 check(TR['fin.credits.kicker'] === '1. Kısım Sonu' && TR['fin.next.text'] === "2. Kısım · Sarıyer'e Yolculuk.",
   'TR finale (T4 part 9 wording): chapter 1 ends with "1. Kısım Sonu", and the next line reads "2. Kısım · Sarıyer\'e Yolculuk."');

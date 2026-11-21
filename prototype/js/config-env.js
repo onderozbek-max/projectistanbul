@@ -3,17 +3,35 @@
 // Extends P.CFG.env. Sim code (js/sim/env*.js) reads only these numbers. Times in s, distances in m, damage in hp.
 (function (C) {
   C.env = {
+    comboCar: { levels: [13, 25], w: 1.5, h: 3.2, xs: [4.0, -4.0, 3.4, -3.4], ys: [34, 42, 50, 58] },
     // ---- A1 · breakable cover: hp by block kind (levels.js kinds plus the env kinds). Dash contact hits once per dash. ----
-    hp: { bin: 12, bench: 20, crates: 25, tables: 30, tavlatable: 30, kiosk: 40, antique: 40, car: 60, taxi: 60, dolmus: 60, cart: 25, planter: 20,
-      gascan: 10, extinguisher: 30 },
+    hp: { bin: 12, bench: 20, crates: 25, tables: 30, tavlatable: 30, kiosk: 40, antique: 40, car: 60, taxi: 60, dolmus: 60, cart: 25,
+      cm_tea: 25, cm_pyramid: 30, cm_rack: 25, cm_cart: 25, cm_drums: 30, cm_booth: 48, cm_grill: 24,
+      lx_stall: 30, gascan: 10, extinguisher: 30 },
     dashDmg: 12,
+    streetWeapon: { reach: 0.52, hold: 0.60, threat: 6, move: 0.72, lift: 0.42, windup: 0.12, strike: 0.24,
+      portable: ['cart', 'lx_stall', 'antique', 'bench', 'bin', 'crates', 'tables', 'tavlatable'],
+      maxSide: 1.8,                                     // largest side of the Eminönü spice stall footprint
+      settle: 0.12, heft: 0.36, flight: 0.54, reachThrow: 8, landR: 2.55, landDmg: 105,
+      arcs: [3.3, 4.3, 6.1], swingDmg: [48, 58, 74], swingR: [1.75, 1.98, 2.25], knockback: 1.35,
+      carryT: 24, placementT: 0.35, placementR: 0.84, coverT: 8, lureT: 3.2, lureR: 6.5, regripT: 0.6,
+      opportunity: { x: 1.65, back: 1.85, radius: .70, drift: 1.8, shelteredSpeed: .83,
+        callbacks: { 9: 7, 24: 22, 30: 29 }, propLevels: [12, 17, 22] },
+      roles: { wedge: { kind: 'cart', move: .86, power: 1, reach: 1 },
+        cover: { kind: 'bench', move: .80, power: 1, reach: 1.10 }, lure: { kind: 'bin', move: .94, power: .7, reach: .88 } },
+      setups: { 3: { role: 'wedge', afterTram: 14, attackOnly: true }, 6: { role: 'cover', before: 15 },
+        12: { role: 'cover', before: 13 }, 14: { role: 'lure', before: 14 },
+        17: { role: 'cover', before: 14 }, 22: { role: 'wedge', before: 16 }, 23: { role: 'cover', before: 15 },
+        29: { role: 'lure', before: 14 } },
+      labX: 1.66, labW: 1.1, labH: 0.75, labStallAhead: 0.85 },
     // Material: glass slicks (bins, kiosks, cars) and wood debris (benches, crates, tables, carts, planters).
-    glassKinds: ['bin', 'kiosk', 'antique', 'car', 'taxi', 'dolmus'],
+    glassKinds: ['kiosk', 'antique', 'car', 'taxi', 'dolmus'],
     loot: { simitChance: 0.2, jetonChance: 0.5, jetonMin: 6, jetonMax: 12 },   // simit (20%) or jeton on break
     // Solid env props placed by P.Env.place (AABB, side lane only so the centre stays open).
     gas: { every: 26, chance: 0.5, w: 0.7, h: 0.7 },
     extinguisher: { every: 60, chance: 0.6, w: 0.8, h: 0.8 },
-    bombShare: 0.15,                                  // share of cars that are yanan araba (burning explosive cars)
+    bombShare: 1,                                  // Parked road vehicles have a visible volatile marking.
+    explosives: { cm_booth: 'booth', cm_grill: 'grill' },
     sideMin: 1.8,                                     // env solid props sit at least this far from the centre line
     sideChance: 0.5,                                  // a solid prop lands on the left or right lane with this chance
     recPad: 0.3,                                      // breakable hit radius = half its short side + this (m)
@@ -22,7 +40,8 @@
     pathCell: 0.5, pathStartY: 2,                     // path test grid (m) and the start row (y)
 
     // ---- A2 · explosions (gas canister, explosive car, fire, chains). Blast numbers match the L1 canister (60 / 15). ----
-    fuse: { gas: 1.2, car: 1.5, fire: 0.9, chain: 0.4, ignite: 0.05 },   // telegraph before the blast (s); chain >= 0.34 keeps blasts under 3/s
+    propIntent: { hold: 0.72, reach: 0.60, hitCancel: .18, hysteresis: .12 },
+    fuse: { gas: 1.2, car: 1.5, grill: 1.1, booth: 1.6, fire: 0.9, chain: 0.4, ignite: 0.05 },   // telegraph before the blast (s); chain >= 0.34 keeps blasts under 3/s
     blast: { r: 2.2, enemyDmg: 60, heroDmg: 12, trauma: 0.3, kb: 1.0, fireR: 2.4, fireT: 3.5, fireDps: 4 },
     chainMargin: 0.6,                                 // a blast reaches props within r + this (m) + their half size
     cloud: { r: 1.6 },                                // gas cloud of a fusing canister (m); a molotov lights it

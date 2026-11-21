@@ -7,7 +7,7 @@ const ROOT = path.join(__dirname, '..');
 const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-layouts.js', 'js/config-enemies3.js', 'js/config-bosses.js', 'js/config-enemies4.js', 'js/config-enemies5.js', 'js/config-skins.js','js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js', 'js/config-env.js',
   'js/config-objectives.js', 'js/config-modifiers.js', 'js/config-horde.js',
   'js/strings.js', 'js/strings-progress.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/strings-weapons3.js', 'js/sim/rng.js', 'js/sim/world.js',
-  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
+  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons-knife.js', 'js/sim/weapons-cleaver.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
   'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/layouts.js', 'js/sim/levels.js', 'js/sim/enemies3.js', 'js/sim/skins.js', 'js/sim/skins-fisher.js', 'js/sim/enemies4.js', 'js/sim/enemies4-marti.js', 'js/sim/enemies4-cayci.js','js/sim/events.js', 'js/sim/events-kinds.js',
   'js/sim/env.js', 'js/sim/env-kinds.js', 'js/sim/env-zones.js', 'js/sim/env-rules.js', 'js/sim/env-portal.js',
   'js/sim/hack.js', 'js/sim/modifiers.js', 'js/sim/objectives.js', 'js/sim/objectives-kinds.js',
@@ -104,6 +104,33 @@ ATTACKS.forEach(a => {
   const on = P.Horde.onScreen(s), tgt = P.Horde.target(s);
   check(on >= 4, 'density: only ' + on + ' on screen after ' + SECS + ' s (target ' + tgt.toFixed(1) + ')');
   notes.push('density L7 after ' + SECS + ' s: on ' + on + ' target ' + tgt.toFixed(1) + ' spawned ' + s.horde.spawned);
+})();
+
+// 6. Emptying the frame at the same spot eventually spends the İstiklal reinforcement budget.
+(function () {
+  const s = newSim(31, 2), C = P.CFG.levels.istiklalRoute;
+  const advance = () => {
+    for (let i = 0; i < 120; i++) {
+      s.enemies.length = 0;
+      P.Levels.step(s, 1);
+      P.Horde.step(s, 1);
+    }
+  };
+  advance();
+  check(s.horde.spawned === C.ambientStart, 'camping exceeded the opening ambient supply');
+  check(s.gen.routeSpent <= C.startBudget, 'camping exceeded the opening route supply');
+  s.hero.y = 14;
+  advance();
+  const farther = s.horde.spawned;
+  check(farther > C.ambientStart, 'reaching a new section did not unlock reinforcements');
+  s.hero.y = 2;
+  advance();
+  check(s.horde.spawned === farther, 'backtracking refilled the ambient supply');
+  const arena = newSim(31, 5);
+  const summon = { then: 'summon', x: 0, y: arena.geo.holdY + 4, r: 3, n: 4 };
+  arena.gen.arena = true;
+  for (let i = 0; i < 20; i++) P.Enemies.onTele(arena, summon);
+  check(arena.gen.summoned === C.bossSummons, 'keeping the boss alive refilled its summon supply');
 })();
 
 notes.forEach(n => console.log('  ' + n));

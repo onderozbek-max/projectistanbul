@@ -28,15 +28,16 @@ P.ObjKinds = (function () {
 
   // A spot off the blocks (side AABBs and layout walls): the first free point of a small grid around (x, y), else the
   // spot as given. The grid offsets come from config-objectives.js (spot).
-  function freeSpot(s, x, y) {
+  function freeSpot(s, x, y, insideHeroReach) {
     var G = P.CFG.objectives.spot, i, j, px, py;
+    var reach = insideHeroReach ? P.CFG.view.heroClampX - P.CFG.hero.radius : Infinity;
     for (i = 0; i < G.dy.length; i++) {
       for (j = 0; j < G.dx.length; j++) {
-        px = clampX(s, x + G.dx[j]); py = y + G.dy[i];
+        px = Math.max(-reach, Math.min(reach, clampX(s, x + G.dx[j]))); py = y + G.dy[i];
         if (!P.Events.blocked(s, px, py)) return { x: px, y: py };
       }
     }
-    return { x: clampX(s, x), y: y };
+    return { x: Math.max(-reach, Math.min(reach, clampX(s, x))), y: y };
   }
   function clampX(s, x) { return Math.max(s.geo.xMin + 1, Math.min(s.geo.xMax - 1, x)); }
 
@@ -66,13 +67,24 @@ P.ObjKinds = (function () {
   // Hold out until the vehicle arrives (a timer; the vehicle sets T per variant). Done when it runs out with the hero alive.
   K.survive = {
     init: function (s, o) { o.T = vnum(o, 'survive', 'T'); },
-    step: function (s, o) { if (o.t >= o.T) P.Objectives.resolve(s, o, true); },
+    step: function (s, o) {
+      if (s.routeTrial === 'tram-stop') {
+        if (s.gen.tramControl && s.gen.tramControl.state === 'done' && !s.gen.tramControl.tram) P.Objectives.resolve(s, o, true);
+      } else if (o.t >= o.T) P.Objectives.resolve(s, o, true);
+    },
     won: function () { return false; },
     status: function (s, o) {
+      if (s.routeTrial === 'tram-stop') {
+        var H = s.gen.tramControl;
+        return { title: 'obj.tramStop.title', line: H && H.tram ? 'obj.tramStop.incoming' : H ? 'obj.tramStop.link' : 'obj.tramStop.approach', frac: H ? H.prog : 0 };
+      }
       return { line: lineKey(o), vars: { t: clock(o.T - o.t) }, frac: Math.min(1, o.t / o.T) };
     },
     items: noItems,
-    target: noTarget,
+    target: function (s) {
+      var C = P.CFG.levels.tramStop;
+      return s.routeTrial === 'tram-stop' ? [C.x, C.y] : null;
+    },
   };
 
   // Supply items spread along the route (crate, cut, lamp, key, charcoal by variant). Walk over each to take it.
@@ -80,27 +92,34 @@ P.ObjKinds = (function () {
     init: function (s, o) {
       // Items sit before the hold (holdY), so the route can still reach them: the hold and the gate end the chase.
       var C = T().collect, rng = s.rng.level, n = vnum(o, 'collect', 'n'), lo = s.hero.y + C.minY, hi = (s.geo.holdY || s.geo.exitY) - C.minY, i, y, p;
+      var wires = s.routeTrial === 'live-wires' ? P.IstiklalTrial.finale(s).wireXs : null;
+      if (wires) n = wires.length;
       o.items = [];
       for (i = 0; i < n; i++) {
         y = lo + (hi - lo) * (i + 0.5) / n;
-        p = freeSpot(s, rng.range(-C.maxX, C.maxX), y);
+        p = freeSpot(s, wires ? wires[i] : rng.range(-C.maxX, C.maxX), y);
         o.items.push({ x: p.x, y: p.y, got: false });
       }
       o.n = n;
     },
-    step: function (s, o) {
-      var r = T().collect.r, h = s.hero;
+    step: function (s, o, dt) {
+      var r = T().collect.r, h = s.hero, wires = s.routeTrial === 'live-wires';
       o.items.forEach(function (it) {
-        if (it.got || dist(it, h) > r) return;
+        if (it.got || (wires ? !P.RouteMilestones.cut(s, it, dt) : dist(it, h) > r)) return;
         it.got = true; o.prog++;
         s.events.push({ type: 'objPickup', id: 'collect' });
       });
       if (o.prog >= o.n) P.Objectives.resolve(s, o, true);
     },
     won: function () { return false; },
-    status: function (s, o) { return { line: lineKey(o), vars: { n: o.prog, of: o.n }, frac: o.prog / o.n }; },
+    status: function (s, o) {
+      var wire = s.routeTrial === 'live-wires';
+      return { title: wire ? 'obj.wire.title' : null, line: wire ? 'obj.wire.line' : lineKey(o), vars: { n: o.prog, of: o.n }, frac: o.prog / o.n };
+    },
     items: function (s, o) {
-      return o.items.map(function (it) { return { x: it.x, y: it.y, kind: 'crate', label: o.v || 'crate', done: it.got, frac: it.got ? 1 : 0 }; });
+      return o.items.map(function (it) {
+        return { x: it.x, y: it.y, kind: 'crate', label: s.routeTrial === 'live-wires' ? 'wire' : o.v || 'crate', done: it.got, frac: it.got ? 1 : 0 };
+      });
     },
     target: function (s, o) {
       var h = s.hero, best = null, bd = Infinity;
@@ -121,6 +140,7 @@ P.ObjKinds = (function () {
     },
     step: function (s, o, dt) {
       var C = T().escort, c = o.civ, h = s.hero, d = dist(c, h), step;
+      if (s.routeTrial === 'galata-musician') return;  // the required companion is handled by GalataTrial
       if (!c.alive) return;
       if (d > C.follow) {
         step = Math.min(d - C.follow, C.speed * dt);
@@ -141,15 +161,29 @@ P.ObjKinds = (function () {
   // it down. Hp and upload time come from the variant.
   K.defend = {
     init: function (s, o) {
-      var C = T().defend, hp = vnum(o, 'defend', 'hp'), p = freeSpot(s, 0, Math.min(s.geo.exitY - 6, s.hero.y + C.ahead));
-      o.b = { x: p.x, y: p.y, hp: hp, max: hp, up: 0, uploading: false };
+      var firstCart = s.levelIndex === 3 && o.id === 'defend.cart';
+      var C = T().defend, hp = firstCart ? C.firstCartHp : vnum(o, 'defend', 'hp');
+      var ahead = s.tramRhythm ? P.CFG.levels.istiklalRoute.tramY + P.CFG.levels.tramRhythm.encounterAfter + P.CFG.levels.routeMilestones.cart.afterCrossing : s.hero.y + C.ahead;
+      var p = freeSpot(s, 0, Math.min(s.geo.exitY - 6, ahead));
+      o.b = { x: p.x, y: p.y, hp: hp, max: hp, up: 0, uploading: false, waitForHero: firstCart,
+        uploadT: firstCart ? C.firstCartUploadT : vnum(o, 'defend', 'uploadT') };
     },
     step: function (s, o, dt) {
       var C = T().defend, b = o.b;
       if (b.hp <= 0 || b.up >= 1) return;
-      b.hp = Math.max(0, b.hp - enemiesNear(s, b.x, b.y, C.hitR) * C.dps * dt);
+      if (s.tramRhythm) {
+        var road = P.CFG.levels.routeMilestones.cart;
+        b.contested = enemiesNear(s, b.x, b.y, road.blockR) > 0;
+        b.uploading = P.RouteMilestones.inRing(s, b, road.ringR) && !b.contested;
+        if (b.uploading) b.up = Math.min(1, b.up + dt / b.uploadT);
+        if (b.up >= 1) P.Objectives.resolve(s, o, true);
+        return;
+      }
       b.uploading = dist(s.hero, b) <= C.r;
-      if (b.uploading) b.up = Math.min(1, b.up + dt / vnum(o, 'defend', 'uploadT'));
+      if (b.uploading) b.engaged = true;
+      if (b.engaged || !b.waitForHero)
+        b.hp = Math.max(0, b.hp - enemiesNear(s, b.x, b.y, C.hitR) * C.dps * dt);
+      if (b.uploading) b.up = Math.min(1, b.up + dt / b.uploadT);
       if (b.hp <= 0) P.Objectives.resolve(s, o, false);
       else if (b.up >= 1) P.Objectives.resolve(s, o, true);
     },
@@ -163,6 +197,7 @@ P.ObjKinds = (function () {
     items: function (s, o) { return [{ x: o.b.x, y: o.b.y, kind: 'booster', label: o.v || 'booster', done: o.b.up >= 1, frac: o.b.up }]; },
     target: function (s, o) {
       var b = o.b;
+      if (s.tramRhythm) return [b.x, b.y];
       return b.up < 1 && b.hp > 0 ? [b.x, b.y - T().defend.standOff] : null;
     },
   };
@@ -176,7 +211,7 @@ P.ObjKinds = (function () {
       o.hacks = [];
       for (i = 0; i < C.n; i++) {
         y = Math.min(s.geo.exitY - 4, s.hero.y + C.ahead + i * C.gap);
-        p = freeSpot(s, (i % 2 ? -1 : 1) * C.side + rng.range(-0.6, 0.6), y);
+        p = freeSpot(s, (i % 2 ? -1 : 1) * C.side + rng.range(-0.6, 0.6), y, s.routeTrial === 'eminonu-marketSacks');
         o.hacks.push(P.Hack.place(s, kinds[i % kinds.length], p.x, p.y));
       }
       o.n = C.n;
@@ -185,7 +220,7 @@ P.ObjKinds = (function () {
       var C = T().hack, h = s.hero, lim = s.geo.exitY - 4, moved = 0;
       o.hacks.forEach(function (H) {
         if (H.state !== 'idle' || h.y - H.y <= C.behind || h.y >= lim) return;
-        var p = freeSpot(s, H.x, Math.min(lim, h.y + C.ahead + moved * C.gap));
+        var p = freeSpot(s, H.x, Math.min(lim, h.y + C.ahead + moved * C.gap), s.routeTrial === 'eminonu-marketSacks');
         H.x = p.x; H.y = p.y; moved++;
       });
       o.prog = o.hacks.filter(function (H) { return H.state === 'done'; }).length;
@@ -223,7 +258,8 @@ P.ObjKinds = (function () {
     },
     won: function (s, o) { return !!(s.gen && s.gen.boss && s.gen.boss.dead) && o.t0 !== null && o.t - o.t0 <= o.par; },
     status: function (s, o) {
-      var b = s.gen && s.gen.boss, el = o.t0 === null ? 0 : o.t - o.t0;
+      if (o.t0 === null) return { line: 'obj.boss.before', vars: {}, frac: 0 };
+      var b = s.gen && s.gen.boss, el = o.t - o.t0;
       return { line: lineKey(o), vars: { t: clock(o.par - el) }, frac: b ? 1 - b.hp / b.maxHp : 0 };
     },
     items: noItems,

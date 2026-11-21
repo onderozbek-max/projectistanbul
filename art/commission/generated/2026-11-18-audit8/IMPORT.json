@@ -1,0 +1,56 @@
+{
+  "workflow": "Built-in ImageGen; direct RGBA source, no repainting or background substitution. Area resampling through existing lib-art-image.js. Boss cells measured by import-audit8-actors.cjs; original scale kept across poses.",
+  "sources": [
+    [
+      "prototype/assets/landmarks/boss-acting-audit8.png",
+      "exec-aaa69bb5-c714-464b-b0a0-3d02ce778227",
+      "Original project-owned boss identities; four actors \u00d7 eight grounded action poses; original RGBA, measured cell feet; no retired fallback."
+    ],
+    [
+      "prototype/assets/landmarks/boss-heavy-audit8.png",
+      "exec-7d87474a-6658-4435-aa2c-145a3a03213d",
+      "Original Vatman, Keeper and Bride identities; three heavy actors \u00d7 eight action poses; original RGBA with measured feet and one actor scale."
+    ],
+    [
+      "prototype/assets/landmarks/kaan-scenes-audit8.png",
+      "exec-cad08b5b-f44f-4ffa-9677-9c009d1c34af",
+      "Project Kaan identity; final transparent revision, eight human approach/grief/departure poses. Rejected opaque first source retained but not shipped. Premultiplied area import to 1024 \u00d7 512."
+    ],
+    [
+      "prototype/assets/landmarks/world-controls-audit8.png",
+      "exec-550b9cfb-6e04-4346-a76e-3efb5674b7a8",
+      "Nine original district mechanisms on transparent RGBA, imported to 768 \u00d7 768. Tool/rope contact remains code tied to real progress."
+    ],
+    [
+      "prototype/assets/landmarks/opening-action-audit8.png",
+      "exec-2429d0fc-df89-4f64-9838-ee24a049201a",
+      "Project-owned Arda atlas as identity/style reference. Six eating/attention/reach/grip/strike poses; transparent RGBA imported to 768 \u00d7 512. Ordinary running untouched."
+    ],
+    [
+      "prototype/assets/comic/shelter-action.png",
+      "exec-1bedfdbe-b217-4816-843f-3b10227eb5a2",
+      "Original anonymous shelter operator closes shutter with Arda safely inside; full scene illustration, imported to 1024 \u00d7 683. No new character/plot fact."
+    ],
+    [
+      "prototype/assets/landmarks/work-stages-audit8.png",
+      "exec-eb1e7900-81e7-481a-aba0-f7d2c68cf406",
+      "Six transparent cargo/deck/stair/stall/ramp illustrations, geometry revised to the actual four-metre-wide gap; uniform scale, no collision replacement."
+    ],
+    [
+      "prototype/assets/landmarks/helper-roles-audit8.png",
+      "exec-22bcf0f8-f483-41c2-b93a-03ce0f57b56f",
+      "Six transparent anonymous rescue and porter poses; actual grip/step/rest actions, no new named character or plot fact."
+    ]
+  ],
+  "rejected": [
+    {
+      "source": "kaan-scenes-source.png",
+      "reason": "Opaque background; never shipped. Transparent correction retained separately."
+    },
+    {
+      "source": "landings-opaque-rejected.png",
+      "reason": "Corrected four-metre gap geometry, but opaque background; final transparent source ships instead."
+    }
+  ],
+  "transparencyCorrection": "Preserve the identical Kaan eight-pose illustration; remove the white background and provide true transparent RGBA, no white rectangle, matte or backdrop."
+}

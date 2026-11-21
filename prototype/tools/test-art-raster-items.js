@@ -4,7 +4,7 @@
 //  2. Flag off, and flag on with the manifest failing or pending: every hook returns false (or '') with no ctx call and no image
 //     request, so the caller keeps its code art.
 //  3. Ready: props draw from the hood atlas at the manifest cell, scale (cellPx x scale) and feet pivot; vehicles turn a quarter
-//     turn with their length along the street; tram, pickups, splats, chips and dust use their cells and sizes; the splat setting
+//     turn with their length along the street; pickups, splats, chips and dust use their cells and sizes; the splat setting
 //     keeps the ink splat; a card icon whose atlas is still decoding retries a bounded number of times and then shows the raster.
 //  4. Weapon icons: every weapon in P.CFG.wtier.weapons at tiers 1..5, and every evolution in P.CFG.evolutions, resolves.
 // Usage: node prototype/tools/test-art-raster-items.js
@@ -12,11 +12,11 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const MANIFEST = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/art/manifest.json'), 'utf8'));
-const CONFIG_FILES = ['config.js', 'config-weapons.js', 'config-weapons3.js', 'config-weapon-tiers.js', 'journey.js'];
-const RASTER_FILES = ['view/art-raster.js', 'view/art-raster-items.js'];
+const CONFIG_FILES = ['config.js', 'config-feel.js', 'config-env.js', 'config-weapons.js', 'config-weapons3.js', 'config-weapon-tiers.js', 'journey.js'];
+const RASTER_FILES = ['view/art-raster.js', 'view/art-raster-items.js', 'view/vehicles.js', 'view/render-world.js', 'view/street-weapon-fx.js'];
 // Documented, independent copies: a new unused entry, or a mapping that drops one, fails here.
 const HANDWIRED = ['galata', 'bridge', 'saray'];
-const UNUSED_VEHICLES = ['scooter_kurye', 'truck_delivery'];
+const UNUSED_VEHICLES = ['tram_red', 'scooter_kurye', 'truck_delivery'];
 const USED_LOOT = ['simit', 'jeton', 'chest_closed', 'heal_cross', 'objective_pin'];
 const UNUSED_DUST = ['smoke_a', 'smoke_b', 'ash_a', 'ash_b'];
 const fails = [], passes = [];
@@ -55,7 +55,7 @@ function world(o) {
     console, Math, JSON, Array, Object, String, Number, Boolean, Set, Map, Proxy, Symbol, Error, Promise, URL, URLSearchParams,
     parseInt, parseFloat, isNaN, isFinite, Float32Array, Uint8Array, setImmediate,
     setTimeout: (fn) => { timers.push(fn); return timers.length; }, clearTimeout() {},
-    performance: { now: () => 1000 }, location: { search: o.raster ? '?art=raster' : '', protocol: 'http:' },
+    performance: { now: () => 1000 }, location: { search: o.raster ? '?art=raster' : '?art=current', protocol: 'http:' },
     Image: Img, fetch: fetchStub,
     document: { currentScript: { src: 'http://127.0.0.1/js/view/art-raster.js' }, createElement: (tag) => (tag === 'canvas' ? canvas() : {}),
       addEventListener() {}, getElementById: () => null },
@@ -96,7 +96,7 @@ async function mappingPart() {
   const cands = [].concat(...Object.keys(K.propItems).map((k) => K.propItems[k]));
   const missing = cands.filter((n, i) => cands.indexOf(n) === i && !names.has(n));
   ok(missing.length === 0, 'mapping: every candidate prop item exists in some hood (missing: ' + missing.join(',') + ')');
-  const vehUsed = Object.keys(K.vehicleOf).map((k) => K.vehicleOf[k]).concat([K.tram]);
+  const vehUsed = Object.keys(K.vehicleOf).map((k) => K.vehicleOf[k]);
   ok(vehUsed.every((v) => !!MANIFEST.vehicles[v]), 'mapping: every mapped vehicle exists in the manifest');
   const vehUnused = Object.keys(MANIFEST.vehicles).filter((v) => vehUsed.indexOf(v) < 0);
   ok(JSON.stringify(vehUnused) === JSON.stringify(UNUSED_VEHICLES), 'mapping: unused vehicles are the documented ones (' + vehUnused.join(',') + ')');
@@ -121,7 +121,7 @@ async function flagOffPart() {
   const w = await start({ raster: false });
   const I = w.P.ArtRasterItems, R0 = rctx(w), c = R0.ctx;
   const res = [I.block(R0, 'cart', 1, 2, { theme: 'istiklal', w: 1.6, h: 1.6 }), I.block(R0, 'car', 1, 2, { theme: 'istiklal', w: 1.8, h: 4.5 }),
-    I.tram(R0, 0, 0, 12, 2.6, 0), I.xp(c, 1, 1, 2, 39), I.pickup(c, 'simit', 1, 1, 24),
+    I.xp(c, 1, 1, 2, 39), I.pickup(c, 'simit', 1, 1, 24),
     I.fxPart(R0, { kind: 'splat', r: 0.5, x: 1, y: 1, seed: 0.2 }, 0.5), I.fxPart(R0, { kind: 'dust', x: 1, y: 1, ri: 0 }, 0.5)];
   ok(res.every((v) => v === false), 'flag off: every draw hook returns false');
   ok(w.log.length === 0 && w.imgs.length === 0, 'flag off: no ctx call and no image request');
@@ -135,7 +135,7 @@ async function notReadyPart() {
   for (const mode of ['fail', 'pending']) {
     const w = await start({ raster: true, manifest: mode });
     const I = w.P.ArtRasterItems, R0 = rctx(w), c = R0.ctx;
-    const res = [I.block(R0, 'cart', 1, 2, { theme: 'istiklal', w: 1.6, h: 1.6 }), I.tram(R0, 0, 0, 12, 2.6, 0), I.xp(c, 1, 1, 2, 39),
+    const res = [I.block(R0, 'cart', 1, 2, { theme: 'istiklal', w: 1.6, h: 1.6 }), I.xp(c, 1, 1, 2, 39),
       I.pickup(c, 'simit', 1, 1, 24), I.fxPart(R0, { kind: 'splat', r: 0.5, x: 1, y: 1, seed: 0.2 }, 0.5)];
     ok(res.every((v) => v === false) && w.log.length === 0 && w.imgs.length === 0 && I.icon('knife', 1, 40) === '',
       'not ready (manifest ' + mode + '): hooks return false, no ctx call, no image request, empty icons');
@@ -155,6 +155,22 @@ async function drawPart() {
   ok(!!t && near(t[0], R0.X(1) - cell.px * s + cell.w * s / 2) && near(t[1], R0.Y(2) - cell.py * s + cell.h * s / 2),
     'props: the feet pivot (px, py) lands on the footprint centre');
   ok(!!d && near(d.args[7], cell.w * s) && near(d.args[8], cell.h * s), 'props: drawn at atlas px per metre (cellPx x scale)');
+  // A stall uses the very same district image and variant while held and in flight.
+  w.P.Themes = { get: id => ({ id }) };
+  w.P.Props = { draw: (kind, R, x, y, o) => I.block(R, kind, x, y, o) };
+  const b = { x: 2, y: 4, w: 1.8, h: 1.6, kind: 'lx_stall', v: .4 };
+  const world = { theme: 'eminonu', hero: { x: 1, y: 4 }, streetWeapon: { phase: 'lift', t: .2, aim: 0, r: { b, x: b.x, y: b.y } } };
+  const stallFrames = [() => w.P.RenderWorld.blockProp(R0, world, b, false), () => w.P.StreetWeaponFx.held(R0, world), () => {
+    Object.assign(world.streetWeapon, { phase: 'flight', from: world.hero, to: { x: 0, y: 6 } });
+    w.P.StreetWeaponFx.air(R0, world);
+  }];
+  for (const draw of stallFrames) {
+    from = w.log.length;
+    draw();
+    const stall = drawsOf(w.log, from)[0];
+    ok(!!stall && srcOf(stall).endsWith('props/eminonu.png') && sameRect(stall, MANIFEST.props.eminonu.items.spicestall.cells.b),
+      'spice stall: grounded, held and flying share the same illustrated cell');
+  }
   // Vehicles: the art is landscape; a quarter turn puts its length along the street, its breadth from K.across.
   from = w.log.length;
   ok(I.block(R0, 'car', 1, 2, { theme: 'istiklal', w: 1.8, h: 4.5 }), 'vehicles: a car draws from its frame');
@@ -165,9 +181,10 @@ async function drawPart() {
   ok(I.block(R0, 'ferry', 1, 2, { theme: 'istiklal' }) && near(drawsOf(w.log, from)[0].args[7], MANIFEST.vehicles.ferry.metres.long * R0.ppm),
     'vehicles: a boat without a footprint takes the manifest metres');
   from = w.log.length;
-  ok(I.tram(R0, 0, 0, 12, 2.6, 0), 'vehicles: the tram draws');
-  ok(near(drawsOf(w.log, from)[0].args[7], 12 * R0.ppm) && mainCalls(w.log, from).some((e) => e.name === 'fillRect'),
-    'vehicles: the tram is 12 m long and its code ground shadow is painted first');
+  w.P.Vehicles.drawCar(R0, 0, 0, 12, 2.6);
+  const tramDraw = mainCalls(w.log, from).find((e) => e.name === 'drawImage');
+  ok(tramDraw && !tramDraw.args[0].__src && near(tramDraw.args[1], R0.X(-1.6)) && near(tramDraw.args[2], R0.Y(12.3)),
+    'vehicles: roof-first tram uses a canvas aligned to the track');
   drawPickups(w, I, K, R0, c);
   drawEffects(w, I, K, R0, c);
 }
@@ -231,7 +248,7 @@ async function racePart() {
   const I = w.P.ArtRasterItems;
   const box = { innerHTML: '', isConnected: true };
   I.iconInto(box, 'knife', 1, 40);
-  ok(box.innerHTML.indexOf('<svg') === 0 && w.timers.length === 1, 'race: while the atlas decodes the code icon shows and one retry is queued');
+  ok(box.innerHTML.indexOf('<svg') < 0 && box.innerHTML.indexOf('<span') === 0 && w.timers.length === 1, 'race: decoding keeps a neutral slot instead of retired artwork and queues one retry');
   w.imgs.forEach((im) => { im.complete = true; im.naturalWidth = 256; });
   w.timers.shift()();
   ok(box.innerHTML.indexOf('<img src="data:') === 0, 'race: the retry swaps in the raster icon once the atlas has decoded');

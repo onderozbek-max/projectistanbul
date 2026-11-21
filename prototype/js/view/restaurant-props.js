@@ -21,6 +21,13 @@ P.RestaurantProps = (function () {
     c.beginPath(); c.moveTo(pr.X(x0), pr.Y(y0)); c.lineTo(pr.X(x1), pr.Y(y1));
     c.strokeStyle = col; c.lineWidth = pr.s(w || 0.08); c.lineCap = 'round'; c.stroke();
   }
+  function furnishing(c, pr, kind, x0, y0, x1, y1) {
+    if (!P.StreetArt || !P.StreetArt.current()) return false;
+    if (!P.StreetArt.part(c, 'restaurant-' + kind, pr.X(x0), pr.Y(y1), pr.s(x1 - x0), pr.s(y1 - y0))) {
+      rect(c, pr, x0, y0, x1, y1, '#8D765D', INK, 1);
+    }
+    return true;
+  }
   // Soft shadow pad under a footprint (ground layer; the caller passes the static projection).
   F.shadowRect = function (c, pr, x0, y0, x1, y1, a) {
     c.fillStyle = 'rgba(12,8,6,' + (a || 0.28) + ')';
@@ -34,6 +41,7 @@ P.RestaurantProps = (function () {
   // ---------- counter with the döner spit ----------
   F.counter = function (c, pr, k, t) {
     var x0 = k.x0, x1 = k.x1, y0 = k.y0, y1 = k.y1;
+    if (furnishing(c, pr, 'serving-counter', x0, y0 - 0.19, x1, y1 + .28)) return;
     rect(c, pr, x0, y0 - 0.28, x1, y0, WOOD, INK, 2);                       // south front (visible face)
     rect(c, pr, x0, y0 - 0.28, x1, y0, null, WOOD_D, 1);
     for (var i = 0; i < 4; i++) bar(c, pr, x0 + 0.2, y0 - 0.06 - i * 0.06, x1 - 0.2, y0 - 0.06 - i * 0.06, 'rgba(40,22,12,0.25)', 0.02);
@@ -73,6 +81,7 @@ P.RestaurantProps = (function () {
 
   // ---------- drinks fridge (generic: no labels, no brands) ----------
   F.fridge = function (c, pr, k, t) {
+    if (furnishing(c, pr, 'fridge', k.x0 + .16, k.y0 - 0.3, k.x1 - .16, k.y1 + .15)) return;
     rect(c, pr, k.x0, k.y0 - 0.3, k.x1, k.y0, '#DDE3E8', INK, 2);          // south face: glass door band (depth base = y0 - 0.3)
     rect(c, pr, k.x0 + 0.08, k.y0 - 0.26, k.x1 - 0.08, k.y0 - 0.06, '#BFEBF3', INK, 1);
     var cols = ['#3E8E5A', '#C27B2A', '#3D6FA8', '#E8E2D0', '#7A5C9E', '#3E8E5A'], w = (k.x1 - k.x0 - 0.2) / cols.length;
@@ -89,32 +98,56 @@ P.RestaurantProps = (function () {
   };
 
   // ---------- tables and chairs ----------
-  F.chair = function (c, pr, x, y, ang) {
-    var cx = x + Math.cos(ang) * 0.82, cy = y + Math.sin(ang) * 0.82, s = 0.2;
-    // Seat: a rounded-ish square on the chair's centre; the backrest is a bar on the outer side.
-    c.save(); c.translate(pr.X(cx), pr.Y(cy)); c.rotate(-ang);
-    c.fillStyle = WOOD; c.strokeStyle = INK; c.lineWidth = 1.5;
-    c.beginPath(); c.rect(-pr.s(s), -pr.s(s), pr.s(2 * s), pr.s(2 * s)); c.fill(); c.stroke();
-    c.fillStyle = WOOD_D; c.beginPath(); c.rect(pr.s(s) - pr.s(0.09), -pr.s(s) - 1, pr.s(0.09), pr.s(2 * s) + 2); c.fill();
+  function oval(c, pr, x, y, rx, ry, fill, stroke) {
+    c.beginPath(); c.ellipse(pr.X(x), pr.Y(y), pr.s(rx), pr.s(ry), 0, 0, TAU);
+    if (fill) { c.fillStyle = fill; c.fill(); }
+    if (stroke) { c.strokeStyle = stroke; c.lineWidth = pr.s(0.018); c.stroke(); }
+  }
+  function chair(c, pr, x, y, ang) {
+    var dx = Math.cos(ang), dy = Math.sin(ang), cx = x + dx * 0.81, cy = y + dy * 0.81, seat = cy + 0.11;
+    oval(c, pr, cx, cy - 0.07, 0.26, 0.19, 'rgba(12,8,6,0.25)');
+    if (P.StreetArt && P.StreetArt.current()) {
+      var front = dy > .58, flip = !front && dx < 0;
+      c.save();
+      if (flip) { c.translate(2 * pr.X(cx), 0); c.scale(-1, 1); }
+      furnishing(c, pr, front ? 'chair-front' : 'chair-side', cx - .23, cy - .23, cx + .23, cy + .38);
+      c.restore();
+      return;
+    }
+    bar(c, pr, cx - 0.14, cy - 0.15, cx - 0.14, seat, WOOD_D, 0.055);
+    bar(c, pr, cx + 0.14, cy - 0.15, cx + 0.14, seat, WOOD_D, 0.055);
+    c.save(); c.translate(pr.X(cx), pr.Y(seat)); c.rotate(-ang); c.scale(1, 0.82);
+    c.fillStyle = WOOD; c.strokeStyle = INK; c.lineWidth = pr.s(0.022);
+    c.beginPath(); c.rect(-pr.s(0.2), -pr.s(0.2), pr.s(0.4), pr.s(0.4)); c.fill(); c.stroke();
     c.restore();
-  };
+    var bx = cx + dx * 0.17, by = seat + dy * 0.12;
+    bar(c, pr, bx - dy * 0.17, by + dx * 0.14, bx - dy * 0.17, by + dx * 0.14 + 0.24, WOOD_D, 0.05);
+    bar(c, pr, bx + dy * 0.17, by - dx * 0.14, bx + dy * 0.17, by - dx * 0.14 + 0.24, WOOD_D, 0.05);
+    bar(c, pr, bx - dy * 0.17, by + dx * 0.14 + 0.24, bx + dy * 0.17, by - dx * 0.14 + 0.24, WOOD, 0.11);
+  }
   F.table = function (c, pr, k) {
-    disc(c, pr, k.x, k.y, 0.55, CREAM, INK, 2);
-    disc(c, pr, k.x, k.y, 0.46, null, RIM, 2);
-    (k.chairs || []).forEach(function (a) { F.chair(c, pr, k.x, k.y, a); });   // chairs after the top: they sit outside it
-    disc(c, pr, k.x, k.y, 0.55, null, INK, 2);
-    if (k.cloth) disc(c, pr, k.x, k.y, 0.42, 'rgba(160,38,46,0.16)');
-    if (k.tray) F.teaTray(c, pr, k.x, k.y);
-    if (k.napkins) rect(c, pr, k.x + 0.12, k.y - 0.1, k.x + 0.22, k.y + 0.08, '#FFFFFF', INK, 1);
-    if (k.ketchup) { disc(c, pr, k.x - 0.2, k.y + 0.22, 0.05, '#C0392B', INK, 1); }
-    if (k.pepper) { disc(c, pr, k.x - 0.26, k.y - 0.14, 0.04, '#9B9B9B', INK, 1); }
+    var x = k.x, y = k.y + 0.22, chairs = k.chairs || [];
+    chairs.forEach(function (a) { if (Math.sin(a) >= 0) chair(c, pr, k.x, k.y, a); });
+    var modern = furnishing(c, pr, 'table', x - .55, k.y - .47, x + .55, y + .36);
+    if (!modern) {
+      bar(c, pr, x - 0.21, k.y - 0.3, x + 0.21, k.y - 0.32, WOOD_D, 0.075);
+      rect(c, pr, x - 0.065, k.y - 0.33, x + 0.065, y, WOOD, INK, 1);
+      oval(c, pr, x, y - 0.14, 0.55, 0.4, WOOD, INK);
+      oval(c, pr, x, y, 0.55, 0.4, CREAM, INK);
+      oval(c, pr, x, y, 0.48, 0.33, k.cloth ? '#DDBD9C' : null, RIM);
+      if (k.napkins) rect(c, pr, x + 0.12, y - 0.09, x + 0.22, y + 0.06, '#FFFFFF', INK, 1);
+    }
+    if (k.tray) F.teaTray(c, pr, x, y);
+    if (k.ketchup) oval(c, pr, x - 0.2, y + 0.18, 0.048, 0.037, '#C0392B', INK);
+    if (k.pepper) oval(c, pr, x - 0.26, y - 0.12, 0.04, 0.03, '#9B9B9B', INK);
+    chairs.forEach(function (a) { if (Math.sin(a) < 0) chair(c, pr, k.x, k.y, a); });
   };
   // Çay tray: a round steel tray with five tulip glasses (amber).
   F.teaTray = function (c, pr, x, y) {
-    disc(c, pr, x, y, 0.3, '#C9CED3', INK, 1.5);
-    disc(c, pr, x, y, 0.22, null, 'rgba(255,255,255,0.6)', 1);
+    oval(c, pr, x, y, 0.3, 0.22, '#C9CED3', INK);
+    oval(c, pr, x, y, 0.22, 0.16, null, 'rgba(255,255,255,0.6)');
     for (var i = 0; i < 5; i++) {
-      var a = i * TAU / 5 + 0.3, gx = x + Math.cos(a) * 0.14, gy = y + Math.sin(a) * 0.14;
+      var a = i * TAU / 5 + 0.3, gx = x + Math.cos(a) * 0.14, gy = y + Math.sin(a) * 0.11;
       disc(c, pr, gx, gy, 0.05, '#E9A23B', INK, 1);
       disc(c, pr, gx, gy, 0.02, '#8E3B20');
     }
@@ -122,6 +155,11 @@ P.RestaurantProps = (function () {
   // Overturned chair: lying on its side, seat and one leg bar (ground item, so the hero walks over it).
   F.overturned = function (c, pr, x, y, a) {
     c.save(); c.translate(pr.X(x), pr.Y(y)); c.rotate(-a);
+    if (P.StreetArt && P.StreetArt.current()) {
+      P.StreetArt.part(c, 'restaurant-chair-side', -pr.s(.26), -pr.s(.34), pr.s(.52), pr.s(.68));
+      c.restore();
+      return;
+    }
     c.fillStyle = WOOD; c.strokeStyle = INK; c.lineWidth = 1.5;
     c.beginPath(); c.rect(-pr.s(0.22), -pr.s(0.2), pr.s(0.44), pr.s(0.4)); c.fill(); c.stroke();
     c.fillStyle = WOOD_D; c.beginPath(); c.rect(-pr.s(0.05), pr.s(0.2), pr.s(0.1), pr.s(0.6)); c.fill(); c.stroke();

@@ -1,0 +1,29 @@
+// Contact marks read from the approved pose cells (hand x/y, tool tip x/y), never a body-width fraction.
+(function(C){
+  C.bossGestures={
+    switchkeeper:{idle:[110,155,209,200],load:[57,91,180,13],strike:[168,130,214,192],signal:[160,84,206,174]},
+    roaster:{idle:[108,151,195,177],load:[59,84,187,12],strike:[164,124,206,175],signal:[163,88,206,166]},
+    linekeeper:{idle:[106,152,203,185],load:[74,86,172,12],strike:[163,122,213,116],signal:[170,79,206,176]},
+    vatman:{idle:[166,141,162,224],load:[178,105,165,224],strike:[212,138,165,221],signal:[192,106,176,220]},
+    bellkeeper:{idle:[145,145,218,224],load:[172,104,206,224],strike:[190,132,221,145],signal:[189,109,205,225]},
+    dockBride:{idle:[127,161,218,228],load:[138,111,211,226],strike:[204,110,248,108],signal:[190,99,226,219]},
+    bigFisher:{idle:[103,151,212,87],load:[74,81,205,6],strike:[136,125,213,29],signal:[157,83,205,15]}
+  };
+  // Phases use the attack's actual sim timer. Release values describe existing flight, not new damage delays.
+  C.bossActionGestures={
+    switchHook:{prep:3,commit:4,roll:-.10,load:.9,returnT:.22},
+    switchRails:{prep:6,commit:4,roll:.065,load:.45,returnT:.16},
+    charge:{prep:3,commit:4,roll:-.13,load:1.2,returnT:.24},
+    roast:{prep:0,late:6,lateAt:.6,commit:4,roll:.09,load:.55,returnT:.27},
+    arcRelay:{prep:6,commit:4,roll:.065,load:.5,returnT:.24},
+    arcKnot:{prep:3,commit:4,roll:-.11,load:.95,returnT:.27},
+    districtTram:{prep:3,commit:4,roll:-.075,load:.95,returnT:.28},
+    vatmanBell:{prep:6,commit:0,roll:.045,load:.25,returnT:.22},
+    vatmanLever:{prep:3,commit:4,roll:-.12,load:1.15,returnT:.32},
+    counterweights:{prep:3,commit:4,roll:-.10,load:1.3,returnT:.32},
+    dockCarts:{prep:6,commit:4,roll:.075,load:.45,returnT:.22},
+    ropeSweep:{prep:3,commit:4,roll:-.095,load:.95,returnT:.30},
+    bridgeCast:{prep:3,commit:4,roll:-.11,load:.75,returnT:.28},
+    bridgeNet:{prep:6,commit:4,release:.48,roll:.075,load:.65,returnT:.30}
+  };
+})(P.CFG);

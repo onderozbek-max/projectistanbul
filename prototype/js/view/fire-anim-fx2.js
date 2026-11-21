@@ -17,27 +17,16 @@ P.FireAnimFx = P.FireAnimFx || {};
   }
   var SP = { x: 0, y: 0 }, MN = { x: 0, y: 0 };
 
-  // ---------- Extinguisher (Yangın Tüpü): mist cone from the nozzle, pressure kick in the pose ----------
+  // ---------- Extinguisher (Yangın Tüpü): a fast pressure jet with discrete foam cells ----------
   X.extinguisher = {
-    fire: function (F, G, k) {                           // pressure burst: a ring and a gust of mist leave the nozzle together
-      var n = G.pt(7, 0, 0.46, -0.02, 0), i, q, p;
-      F.spawn('ring', n.x, n.y, 0.12, 0.16, '236,246,255');
-      for (i = 0; i < F.count(5); i++) {
-        q = G.ang + M.rnd(-0.45, 0.45);
-        p = F.spawn('puff', n.x, n.y, M.rnd(0.25, 0.4), M.rnd(0.06, 0.1), '255,255,255');
-        p.op = 0.7; p.vx = Math.cos(q) * M.rnd(3, 4.5); p.vy = Math.sin(q) * M.rnd(3, 4.5); p.drag = 2.2;
-      }
+    fire: function (F, G) {
+      var n = G.pt(7, 0, 0.46, -0.02, 0);
+      M.foamSpray(F, n.x, n.y, G.ang, 6, 0.4, 4.5);
     },
     tick: function (F, G, k, dt) {
-      var t = k.t, n, i, q, sp, p;
-      if (t > 0.02 && t < 0.24) {
-        n = G.pt(7, 0, 0.46, -0.02, 0);
-        for (i = 0; i < F.count(2); i++) {
-          q = G.ang + M.rnd(-0.3, 0.3); sp = M.rnd(2.2, 3.6);
-          p = F.spawn('puff', n.x, n.y, M.rnd(0.3, 0.45), M.rnd(0.05, 0.08), '236,246,255');
-          p.op = 0.55; p.vx = Math.cos(q) * sp; p.vy = Math.sin(q) * sp; p.drag = 2.2;
-        }
-      }
+      if (k.t < 0.02 || k.t > 0.24 || !F.chance(40, dt)) return;
+      var n = G.pt(7, 0, 0.46, -0.02, 0);
+      M.foamSpray(F, n.x, n.y, G.ang, 2, 0.3, 3.8);
     },
     draw: function (F, G, k) {
       var t = k.t, n, c = F.c, a, A, B, al;
@@ -169,7 +158,7 @@ P.FireAnimFx = P.FireAnimFx || {};
     end: function (F, f) { var p = F.spawn('glint', f.x, f.y, 0.12, 0.05, WHITE); p.a = f.ang; }
   };
 
-  // ---------- Chainsaw (Motorlu Testere): smoke from the exhaust and sparks at the bar tip while revving ----------
+  // ---------- Chainsaw (Motorlu Testere): sparks from the teeth while revving ----------
   X.chainsaw = {
     fire: function (F, G, k) {
       var tip = G.pt(20, 2, 0.12 + 0.42, -0.03, 0.04), h = G.pt(21, 2, 0.12, -0.03, 0.04), i, q, p;
@@ -180,10 +169,7 @@ P.FireAnimFx = P.FireAnimFx || {};
       }
     },
     revTick: function (F, G, dt) {
-      var ex = G.pt(22, 2, 0.04, 0.02, 0.04), tip = G.pt(23, 2, 0.12 + 0.42, -0.03, 0.04), p, q;
-      if (F.chance(12, dt)) {
-        p = F.spawn('puff', ex.x, ex.y, 0.6, 0.05, '70,72,80'); p.op = 0.6; p.vz = 0.7; p.vx = M.rnd(-0.2, 0.2); p.vy = M.rnd(-0.1, 0.1);
-      }
+      var tip = G.pt(23, 2, 0.12 + 0.42, -0.03, 0.04), p, q;
       if (F.chance(15, dt)) {
         q = G.ang + Math.PI + M.rnd(-0.6, 0.6);
         p = F.spawn('spark', tip.x, tip.y, 0.12, 0, '255,170,60'); p.vx = Math.cos(q) * M.rnd(0.8, 1.6); p.vy = Math.sin(q) * M.rnd(0.8, 1.6); p.vz = M.rnd(0, 0.8); p.grav = 1;

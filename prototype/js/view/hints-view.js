@@ -175,6 +175,11 @@ P.HintsView = (function () {
     pl = place(active, ctx, phone, { w: el.offsetWidth, h: el.offsetHeight });
     if (!pl) { el.classList.remove('on'); arrow.classList.remove('on'); return; }
     lay = pl.lay;
+    if (P.RunGuide && P.Speech && P.Speech.clearBox &&
+      (!P.Speech.clearBox({ x: lay.left, y: lay.top, w: el.offsetWidth, h: el.offsetHeight }, true) ||
+       !P.Speech.clearBox({ x: lay.ax - AW / 2, y: lay.ay - AH / 2, w: AW, h: AH }, false))) {
+      el.classList.remove('on'); arrow.classList.remove('on'); return;
+    }
     el.style.left = lay.left + 'px'; el.style.top = lay.top + 'px'; el.classList.add('on');
     // The arrow's apex direction is (sin rot, -cos rot); it bobs along that line, and not at all under Reduce motion.
     dirx = Math.sin(lay.rot * Math.PI / 180); diry = -Math.cos(lay.rot * Math.PI / 180);

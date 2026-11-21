@@ -8,15 +8,29 @@ P.Fx = (function () {
   var CHAIN_WIN = 0.35, CHAIN_R = 6, FINISH_T = 1.2;
   var SWING_T = 0.2;   // weapon swing arc and trail, seconds (was 0.16): a bit longer, drawn brighter in render.js
 
+  // Quiet a protected aftermath without resetting run memories, HP history or simulation effects.
+  F.quiet = function () {
+    F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = [];
+    F.beat = F.focus = null; F.later = [];
+    if (P.WFx) P.WFx.reset();
+    if (P.Feel) P.Feel.reset();
+    if (P.EnemyFx && P.EnemyFx.reset) P.EnemyFx.reset();
+  };
+
   F.reset = function (s) {
+    if(P.CivilianActing&&P.CivilianActing.resetResidents)P.CivilianActing.resetResidents();
+    if (P.PresentationBudget) P.PresentationBudget.reset();
+    if (P.BossPuppet) P.BossPuppet.reset();if(P.CookFx)P.CookFx.reset();
+    if (P.HealthFeedback) P.HealthFeedback.reset(s);
     var w = P.CFG.view.widthM;
     F.cam = { x: s.geo ? 0 : -6, y: s.hero.y, w: w, trauma: 0, punchT: 0, ox: 0, oy: 0, rot: 0, zoom: 1, kx: 0, ky: 0 };
     F.cam.y = targetY(s, w);
     F.nums = []; F.parts = []; F.swings = []; F.rings = []; F.bursts = []; F.letters = []; F.beat = null;
     F.focus = null; F.later = []; F.clock = 0; F.recent = []; F.lowArmed = true; F.chainCd = 0;
-    F.edge = null; F.edgeAt = -1e9; F.heroFlashT = 0; F.heroFlashAt = -1e9;
+    F.edge = null; F.edgeAt = -1e9; F.heroFlashUntil = 0; F.heroFlashAt = -1e9;
     P.WFx.reset();
     if (P.Feel) P.Feel.reset();
+    if (P.BossDefeatFx) P.BossDefeatFx.reset();
     if (P.Vehicles) P.Vehicles.reset();
     if (P.EnemyFx && P.EnemyFx.reset) P.EnemyFx.reset();
     if (P.EventsFx && P.EventsFx.reset) P.EventsFx.reset();
@@ -30,6 +44,9 @@ P.Fx = (function () {
     // G1: generated levels keep the camera centred. The hero clamp (|x| <= view.heroClampX) keeps him in the frame.
     if (s.geo) return 0;
     if (h.y < 0) return -6;
+    if (s.levelIndex === 1 && (s.props.shutterOpen || s.mode === 'won')) {
+      return Math.min(P.RunGuide.shutter().x - 1.3, Math.max(0, h.x));
+    }
     var lim = Math.max(0, 7 - w / 2) + 1.2;
     return Math.min(lim, Math.max(-lim, h.x + look));
   }
@@ -37,9 +54,42 @@ P.Fx = (function () {
     var h = s.hero, half = P.viewHalfH(w), look = h.moving ? h.fy * P.CFG.view.lookAhead : 0;
     if (s.mode === 'cutscene') return -5.2;
     var y = h.y + look;
-    if (s.geo) return Math.min(Math.max(y, half - 3), s.geo.length + 2 - half);
+    if (s.geo) {
+      return Math.min(Math.max(y, half - 3), s.geo.length + 2 - half);
+    }
     y = Math.max(y, -10 + half - 2.5);
-    return Math.min(y, P.CFG.level.scaffoldY + 2 - half);
+    y = Math.min(y, Math.max(P.CFG.level.scaffoldY + 2 - half, h.y - half * .32));
+    if (h.y < 0 && P.RestaurantArt && P.RestaurantArt.illustrated) {
+      var atDoor = Math.max(0, 1 + h.y / 3);
+      return -4.7 + (y + 4.7) * atDoor * atDoor * (3 - 2 * atDoor);
+    }
+    return y;
+  }
+
+  // Keep the action and a strip of escape space between the HUD and the lower controls.
+  function bossFrame(s, x, y, width) {
+    var b = s.dir.trialBoss || s.gen && s.gen.boss, h = s.hero, a = P.CFG.view.aspect;
+    if (!b || b.dead || !b.bossPreset || s.levelIndex > 30 || Math.hypot(b.x - h.x, b.y - h.y) > width * 1.1) return null;
+    var low = Math.min(h.y - 1.6, b.y - b.r), high = Math.max(h.y + 1.4, b.y + b.r + 1.2);
+    var across = Math.max(Math.abs(h.x - x) + 1.3, Math.abs(b.x - x) + b.r);
+    (s.dir.telegraphs || []).concat(s.enemyTele || []).forEach(function (t) {
+      if (t.owner !== b.id) return;
+      var x2 = t.kind === 'lane' ? t.x + t.dx * t.len : t.x;
+      var y2 = t.kind === 'lane' ? t.y + t.dy * t.len : t.y;
+      var r = t.r || t.w / 2 || 0;
+      if (s.geo) x2 = Math.max(s.geo.xMin, Math.min(s.geo.xMax, x2));
+      low = Math.min(low, Math.max(h.y - width * .65, Math.min(t.y, y2) - r - 1));
+      high = Math.max(high, Math.min(h.y + width * .65, Math.max(t.y, y2) + r + 1));
+      across = Math.max(across, Math.abs(t.x - x) + r, Math.abs(x2 - x) + r);
+    });
+    var view = P.CFG.view, fitting = Math.max(across * 2 + .5, (high - low) / (a * .55));
+    var base=!(P.Settings&&P.Settings.reduceMotion)&&Math.hypot(b.x-h.x,b.y-h.y)<5.5?9.6:width;
+    var w = Math.max(base, Math.min(view.holdWidthM + 1, fitting));
+    var min = high - a * w * .26, max = low + a * w * .29;
+    var fitY = Math.max(min, Math.min(max, y));
+    if (max < min) fitY = (high + low) / 2;
+    fitY = Math.max(h.y - .24 * a * w, Math.min(h.y + .24 * a * w, fitY));
+    return { y: fitY, w: w };
   }
 
   // Boss death beat: visuals (camera, particles, rings) run at k = 0.3 for 1.2 s. The sim keeps its rate;
@@ -52,12 +102,22 @@ P.Fx = (function () {
     var p = (t % F.heartPeriod) / F.heartPeriod, q = (1 + Math.cos(2 * Math.PI * p)) / 2;
     return q * q;
   };
+  var heartN = -1, heartAllowed = false;
+  F.heartbeat = function (now) {
+    if (P.Settings && P.Settings.reduceFlash) return 0.5;
+    var n = Math.floor(now / F.heartPeriod);
+    if (n !== heartN) { heartN = n; heartAllowed = flashGo(); }
+    return heartAllowed ? F.heart(now) : 0.5;
+  };
 
-  // Hero hit feedback (G3). The white flash is the view's own 60 ms; the edge pulse is a red wash at the screen edge that
+  // Hero hit feedback (G3). The tint lasts 60 ms even when play pauses; the edge pulse is a red wash that
   // decays in 0.25 s and comes at most once every 0.55 s. Both take a slot from the screen-wide flash budget (sprites.js
   // flashOk, at most 3 starts a second), so a crowd of hits cannot stack flashes. Both are off under F5's "reduce flashes"
   // ((P.Settings && P.Settings.reduceFlash), read only here).
-  F.heroFlash = function () { return (P.Settings && P.Settings.reduceFlash) ? 0 : (F.heroFlashT || 0); };
+  F.heroFlash = function () {
+    if (!F.heroFlashUntil || (P.Settings && P.Settings.reduceFlash)) return 0;
+    return Math.max(0, (F.heroFlashUntil - performance.now()) / 1000);
+  };
   F.edgeAlpha = function () {
     if (!F.edge || (P.Settings && P.Settings.reduceFlash)) return 0;
     return P.CFG.feel.edgePulseAlpha * Math.max(0, F.edge.t / F.edge.T);
@@ -68,8 +128,10 @@ P.Fx = (function () {
   F.flashGo = flashGo;
   function heroHit(ev, s) {
     var fe = P.CFG.feel, maxHp = s.hero.maxHp;
-    if (F.clock - F.heroFlashAt >= fe.heroFlashGap && flashGo()) { F.heroFlashT = fe.hitFlash; F.heroFlashAt = F.clock; }
-    if (ev.dmg >= fe.edgePulseFrac * maxHp && F.clock - F.edgeAt >= fe.edgePulseGap && flashGo()) {
+    if (F.clock - F.heroFlashAt >= fe.heroFlashGap && flashGo()) {
+      F.heroFlashUntil = performance.now() + 1000 * fe.hitFlash; F.heroFlashAt = F.clock;
+    }
+    if (ev.dmg > 0 && F.clock - F.edgeAt >= fe.edgePulseGap && flashGo()) {
       F.edge = { t: fe.edgePulseLife, T: fe.edgePulseLife }; F.edgeAt = F.clock;
     }
   }
@@ -77,8 +139,9 @@ P.Fx = (function () {
   F.update = function (s, dt) {
     var c = F.cam, v = P.CFG.view, fe = P.CFG.feel, rm = (P.Settings && P.Settings.reduceMotion), rdt = dt;
     F.clock += rdt;
+    if (P.HealthFeedback) P.HealthFeedback.update(s, rdt);
+    if (P.BossDefeatFx) P.BossDefeatFx.step(s, rdt);
     F.chainCd = Math.max(0, (F.chainCd || 0) - rdt);
-    F.heroFlashT = Math.max(0, (F.heroFlashT || 0) - rdt);
     if (F.edge) { F.edge.t -= rdt; if (F.edge.t <= 0) F.edge = null; }
     if (F.beat && F.beat.t > 0) { F.beat.t -= rdt; dt *= F.beat.k; }
     var wT = s.dir.zoomOut ? v.holdWidthM : v.widthM, tx = targetX(s, c.w), ty = targetY(s, c.w), wf = 0;
@@ -89,6 +152,16 @@ P.Fx = (function () {
       ty += (F.focus.y - ty) * 0.6 * wf;
     }
     if (F.focus && F.focus.t <= 0) F.focus = null;
+    var scene = !rm && P.MilestoneFx && P.MilestoneFx.camera(s);
+    if (scene) {
+      tx += (scene.x - tx) * scene.weight;
+      ty += (scene.y - ty) * scene.weight;
+      wT *= 1 - scene.zoom * scene.weight;
+    }
+    var fight = s.mode === 'play' && bossFrame(s, tx, ty, wT);
+    var work=s.milestone&&s.milestone.work;
+    if(work&&work.active&&!(P.Settings&&P.Settings.reduceMotion))wT=Math.min(wT,P.CFG.bond.kaan.support.work.cameraW);
+    if (fight) { ty = fight.y; wT = fight.w; }
     var dw = (v.holdWidthM - v.widthM) / v.zoomTime * dt;
     c.w = c.w < wT ? Math.min(wT, c.w + dw) : Math.max(wT, c.w - dw);
     var k = 1 - Math.exp(-dt / v.smoothing);
@@ -104,7 +177,7 @@ P.Fx = (function () {
     if (P.Feel) { P.Feel.decayKick(rdt); c.ox += (c.kx || 0) * shk; c.oy += (c.ky || 0) * shk; }   // v0.9: kick leans the view into the player's big actions; the shake setting scales it too (0 = no lean)
     if (c.punchT > 0) c.punchT = Math.max(0, c.punchT - dt);
     var pp = c.punchT > 0 ? Math.sin((1 - c.punchT / (fe.punchTime * 2)) * Math.PI) : 0;
-    c.zoom = 1 + (rm ? 0 : fe.punchZoom * pp * shk);   // the punch follows the shake setting (0 = none); Reduce motion zeroes it
+    c.zoom = 1 + (rm || fight ? 0 : fe.punchZoom * pp * shk);
     P.WFx.update(dt, s);
     if (P.Feel) P.Feel.update(dt, s);
     if (P.Moments && P.Moments.update) P.Moments.update(rdt, s);   // signature moments run on unscaled time (moments.js)
@@ -122,7 +195,7 @@ P.Fx = (function () {
 
   F.addTrauma = function (a) { F.cam.trauma = Math.min(1, F.cam.trauma + a); };
   F.punch = function () { F.cam.punchT = P.CFG.feel.punchTime * 2; };
-  F.letter = function (x, y, text) { F.letters.push({ x: x, y: y, text: text, t: 0.8, T: 0.8 }); };
+  F.letter = function (x, y, text) { if(P.PresentationBudget&&!P.PresentationBudget.letter(F.letters,x,y,text))return;F.letters.push({ x: x, y: y, text: text, t: 0.8, T: 0.8 }); };
   // Runs fn after t seconds of play (pauses with the game, not with wall time).
   F.after = function (t, fn) { F.later.push({ t: t, fn: fn }); };
 
@@ -156,14 +229,17 @@ P.Fx = (function () {
   // Kill-cam for the boss's last stand. Respects Reduce motion (the callout stays).
   function finisher(ev) {
     F.addTrauma(0.6);
-    F.letter(ev.x, ev.y + 1.8, P.t('fx.finisher'));
+    if (!P.BossDefeatFx) F.letter(ev.x, ev.y + 1.8, P.t('fx.finisher'));
     if ((P.Settings && P.Settings.reduceMotion)) return;
     F.beat = { t: FINISH_T, T: FINISH_T, k: 0.3 };
     F.focus = { x: ev.x, y: ev.y, t: FINISH_T, T: FINISH_T };
   }
 
   F.onEvent = function (ev, s) {
+    if (P.HealthFeedback) P.HealthFeedback.event(ev, s);
     P.WFx.onEvent(ev, s);
+    if (P.StreetImpactFx) P.StreetImpactFx.onEvent(ev, s);
+    if (P.BossDefeatFx) P.BossDefeatFx.onEvent(ev, s);
     if (P.Feel) P.Feel.onEvent(ev, s);
     if (P.EnemyFx && P.EnemyFx.onEvent) P.EnemyFx.onEvent(ev, s);
     if (P.EventsFx && P.EventsFx.onEvent) P.EventsFx.onEvent(ev, s);
@@ -179,27 +255,30 @@ P.Fx = (function () {
       case 'bruteStomp': F.addTrauma(0.35); break;
       case 'eliteSpawn': F.bursts.push({ x: ev.x, y: ev.y, t: 0.5, T: 0.5 }); break;
       case 'hit':
-        F.number(ev.id, ev.x, ev.y, ev.dmg, ev.crit);
+        if (!s.weaponLab) F.number(ev.id, ev.x, ev.y, ev.dmg, ev.crit);
         for (var h = 0; h < (P.Feel ? 0 : 3); h++) {
           var ha = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 1.6, hs = 3 + Math.random() * 4;
           F.parts.push({ kind: 'blood', x: ev.x, y: ev.y, vx: Math.cos(ha) * hs, vy: Math.sin(ha) * hs, t: 0.25, T: 0.25 });
         }
-        for (var sp = 0; sp < P.CFG.feel.hitSparks; sp++) {       // G3: a few sparks so each hit reads in a crowd
+        var sparkCount = P.WTier && P.WTier.handlesImpact(s, ev.src) ? 0 : P.CFG.feel.hitSparks;
+        for (var sp = 0; sp < sparkCount; sp++) {       // Environment impacts keep the generic sparks.
           var sa = Math.random() * Math.PI * 2, ss = 2 + Math.random() * 3;
           F.parts.push({ kind: 'spark', x: ev.x, y: ev.y, vx: Math.cos(sa) * ss, vy: Math.sin(sa) * ss, t: 0.2, T: 0.2 });
         }
         break;
       case 'kill':
-        F.parts.push({ kind: 'splat', x: ev.x + (ev.dx || 0) * 0.3, y: ev.y + (ev.dy || 0) * 0.3, r: 0.4 + Math.random() * 0.25, t: 10, T: 10, a: Math.random() * 6, seed: Math.random() });
+        if (ev.boss && P.BossDefeatFx) break;
+        for (var k = F.nums.length - 1; k >= 0; k--) if (F.nums[k].id === ev.id) F.nums.splice(k, 1);
+        if (!ev.swingAir) F.parts.push({ kind: 'splat', x: ev.x + (ev.dx || 0) * 0.3, y: ev.y + (ev.dy || 0) * 0.3, r: 0.4 + Math.random() * 0.25, t: 10, T: 10, a: Math.random() * 6, seed: Math.random() });
         var fl = ev.src === 'canister';
         F.parts.push({ kind: 'corpse', x: ev.x, y: ev.y, dx: ev.dx || 0, dy: ev.dy || 1, etype: ev.enemy || 'walker', variant: ev.variant || 0, skin: ev.skin, id: ev.id, fling: fl, t: fl ? 0.7 : 0.55, T: fl ? 0.7 : 0.55 });
-        if (ev.elite) { F.addTrauma(0.35); F.letter(ev.x, ev.y + 1.6, P.t('fx.thud')); }
+        if (ev.elite) F.addTrauma(0.35);
         for (var g = 0; g < (P.Feel ? 0 : 6); g++) {
           var ga = Math.atan2(ev.dy || 0, ev.dx || 0) + (Math.random() - 0.5) * 2.2, gs = 2 + Math.random() * 5;
           F.parts.push({ kind: 'gib', x: ev.x, y: ev.y, vx: Math.cos(ga) * gs, vy: Math.sin(ga) * gs, t: 0.35 + Math.random() * 0.2, T: 0.5 });
         }
         break;
-      case 'swing': F.swings.push({ x: ev.x, y: ev.y, ax: ev.ax, ay: ev.ay, range: ev.range, arc: ev.arcDeg, dir: ev.dir || 1, t: SWING_T, T: SWING_T }); break;
+      case 'swing': if(!ev.physical)F.swings.push({ x: ev.x, y: ev.y, ax: ev.ax, ay: ev.ay, range: ev.range, arc: ev.arcDeg, dir: ev.dir || 1, back: !!ev.back, t: SWING_T, T: SWING_T }); break;
       case 'nailFire': F.parts.push({ kind: 'muzzle', x: ev.x + Math.cos(ev.a) * 0.5, y: ev.y + Math.sin(ev.a) * 0.5, t: 0.06, T: 0.06 }); break;
       case 'blast':
         F.rings.push({ x: ev.x, y: ev.y, r: ev.r, t: 0.35, T: 0.35, color: '#FFC93C' });
@@ -212,6 +291,7 @@ P.Fx = (function () {
         F.addTrauma(0.08);
         break;
       case 'explode':
+        if (P.StreetImpactFx && ev.streetBlast) { F.addTrauma(ev.trauma); chainStep(ev.x, ev.y); break; }
         F.rings.push({ x: ev.x, y: ev.y, r: ev.r, t: 0.45, T: 0.45, color: '#FF4D2E' });
         for (var i = 0; i < 14; i++) {
           var a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 5;
@@ -233,6 +313,7 @@ P.Fx = (function () {
         break;
       case 'doorBurst': F.bursts.push({ x: ev.x, y: ev.y, t: 0.5, T: 0.5 }); break;
       case 'propBreak':
+        if (P.StreetImpactFx && ev.kind !== 'chestnut') break;
         for (var k = 0; k < 10; k++) F.parts.push({ kind: ev.kind === 'chestnut' ? 'ember' : 'shard', x: ev.x, y: ev.y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, t: 0.6, T: 0.6 });
         break;
     }

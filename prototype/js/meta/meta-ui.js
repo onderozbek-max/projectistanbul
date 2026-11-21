@@ -3,9 +3,12 @@
 // Tapping during the return skips to the final state.
 (function () {
   var M = P.Meta, J = P.Journey, Map = M.Map, Gear = M.Gear, A = M.Anim;
-  var root, coinChip, coinVal, kmTxt, kmFill, nextHead, nextLine, playBtn, bottom, sheet, banner, flyLayer, toastLayer, gearHost;
-  var tabsEl = null, panelOpen = null;
+  var root, coinChip, coinVal, kmTxt, kmFill, chapter, nextHead, nextLine, playBtn, prep, bottom, sheet, banner, flyLayer, toastLayer, gearHost;
+  var prepLabel, prepStatus, startKit;
+  var tabsEl = null, panelOpen = null, prepFocus = null, growthPage = null;
   var onPlay = null, opened = false, sheetHood = -1, selLevel = 1, session = 0, busy = false, active = null, announced = false;
+  var visit = 0;
+  var selVariant = false;
   var selMode = 'normal';   // R1-T4 part 18: the level sheet's mode toggle ('normal' or 'nightmare'); reset when the sheet opens
   var cancels = [], shownCoins = 0;
   var COLOR = { walker: '#8A8F98', runner: '#FF6B3D', crawler: '#5BD16E', spitter: '#3DDCFF', brute: '#B5651D', bloater: '#E040FB', diner: '#FFD166' };
@@ -60,11 +63,10 @@
     Gear.build(gearHost, { onBack: hideGear, onChange: function () { renderCoins(M.snapshot().coins); } });
     buildPanels();
   }
-  // v0.5 tab strip under the top bar: Karakter, Silahlar, Görevler, Hatıralar.
+  // Library and side activities. Character progression lives beside Play.
   function buildTabs() {
     tabsEl = el('div', 'meta-tabs', root);
-    [['attr', 'tab.attr', function () { showPanel('attr'); }], ['tree', 'tab.tree', function () { showPanel('tree'); }],
-      ['ars', 'tab.ars', function () { showPanel('ars'); }],
+    [['ars', 'tab.ars', function () { showPanel('ars'); }],
       ['daily', 'tab.daily', function () { showPanel('hub', 'daily'); }], ['coll', 'tab.coll', function () { showPanel('hub', 'coll'); }]
     ].forEach(function (d) {
       var b = el('button', 'meta-tab', tabsEl);
@@ -72,29 +74,51 @@
     });
   }
   function buildPanels() {
-    if (M.Attr) M.Attr.build(root, { onBack: hidePanel });
-    if (M.TreeUI) M.TreeUI.build(root, { onBack: hidePanel });
+    var growth = { onBack: hidePanel, onPage: showGrowth };
+    if (M.Attr) M.Attr.build(root, growth);
+    if (M.TreeUI) M.TreeUI.build(root, growth);
     if (M.Arsenal) M.Arsenal.build(root, { onBack: hidePanel });
     if (M.Hub) M.Hub.build(root, { onBack: hidePanel });
   }
-  // Panels replace the map while open. name: 'attr' | 'tree' | 'ars' | 'hub' (hub tab: 'daily' | 'coll').
-  function showPanel(name, hubTab) {
+  // Panels replace the map while open. Selection names a perk in the tree or a tab in the hub.
+  function showPanel(name, selection) {
     sfx('uiOpen'); Map.hide(); bottom.classList.add('is-hidden'); tabsEl.classList.add('is-hidden');
     panelOpen = name;
-    if (name === 'attr') M.Attr.show();
-    else if (name === 'tree') M.TreeUI.show();
+    if (name === 'growth') showGrowth(selection);
     else if (name === 'ars') M.Arsenal.show();
-    else M.Hub.show(hubTab);
+    else M.Hub.show(selection);
   }
+  function showGrowth(page, selection) {
+    if (!page) page = 'attr';
+    if (growthPage !== page) {
+      if (growthPage === 'attr') M.Attr.hide(true);
+      if (growthPage === 'tree') M.TreeUI.hide();
+      sfx('uiTap');
+    }
+    growthPage = page;
+    if (page === 'attr') M.Attr.show(selection, true);
+    else M.TreeUI.show(selection || M.TreeUI.firstAvailable());
+  }
+  M.growthNavigation = function (host, current, change) {
+    var tabs = el('div', 'growth-nav', host);
+    tabs.setAttribute('role', 'group'); tabs.setAttribute('aria-label', t('growth.title'));
+    ['attr', 'tree'].forEach(function (page) {
+      var b = el('button', 'meta-tree-page', tabs);
+      b.textContent = t('growth.' + page); b.classList.toggle('is-on', page === current);
+      b.setAttribute('aria-pressed', page === current ? 'true' : 'false');
+      b.addEventListener('click', function () { if (page !== current) change(page); });
+    });
+  };
   function hidePanel() {
     if (!panelOpen) return;
     if (M.Attr) M.Attr.hide();
     if (M.TreeUI) M.TreeUI.hide();
     if (M.Arsenal) M.Arsenal.hide();
     if (M.Hub) M.Hub.hide();
-    panelOpen = null; sfx('uiBack');
+    panelOpen = null; growthPage = null; sfx('uiBack');
     tabsEl.classList.remove('is-hidden'); bottom.classList.remove('is-hidden');
     Map.show(); renderAll(M.snapshot());
+    if (prepFocus) { prepFocus.focus({ preventScroll: true }); prepFocus = null; }
   }
   function buildTop() {
     var top = el('div', 'meta-top', root), g, s;
@@ -115,11 +139,25 @@
     var km = el('div', 'meta-kmcard', bottom);
     kmTxt = el('div', 'meta-kmtxt', km);
     kmFill = el('div', 'meta-kmfill', el('div', 'meta-kmbar', km));
+    chapter = el('div', 'meta-chapter', km);
+    prep = el('button', 'meta-prep growth-entry', bottom);
+    var portrait = el('span', 'growth-entry-portrait', prep);
+    portrait.setAttribute('aria-hidden', 'true');
+    if (P.Portraits) {
+      var bust = P.Portraits.canvas('arda', 'neutral', 76);
+      bust.style.removeProperty('width'); bust.style.removeProperty('height');
+      portrait.appendChild(bust);
+    }
+    var copy = el('span', 'growth-entry-copy', prep);
+    prepLabel = el('b', null, copy);
+    prepStatus = el('span', 'growth-entry-status', copy);
+    el('i', null, prep).textContent = '›';
     var nx = el('div', 'meta-next', bottom);
     nextHead = el('div', 'meta-nexthead', nx); nextHead.textContent = t('meta.next');
     nextLine = el('div', 'meta-nextline', nx);
     playBtn = el('button', 'meta-btn meta-play', nx);
     playBtn.addEventListener('click', function () { startLevel(M.currentLevel()); });
+    startKit=el('button','a12-kit',nx);startKit.onclick=function(){showPanel('ars');};
   }
 
   // ---- Render ----
@@ -137,13 +175,26 @@
     return line.indexOf(lvl) === 0 ? t('ui.hud.journey', { n: info.index, of: J.count() }) + line.slice(lvl.length) : line;
   }
   function renderBottom(v) {
-    var lv = M.level(M.currentLevel()), done = v.done >= J.hoods.length;
+    var cap = P.CFG.experience ? P.CFG.experience.through : J.count();
+    var limited = M.currentLevel() > cap, lv = M.level(Math.min(cap, M.currentLevel())), done = v.done >= J.hoods.length || limited;
     setKm(v.kmShown);
+    chapter.textContent = t('meta.chapterProgress', { n: Math.min(cap, v.done * J.levelsPerHood + v.curDone), of: cap });
     nextHead.textContent = t(done ? 'meta.doneHead' : 'meta.next');
-    nextLine.textContent = done ? t('meta.allDone') : nextText(P.Progress.levelInfo(lv.index));
+    nextHead.classList.toggle('hidden', limited);
+    nextLine.textContent = limited ? t('exp.boundary') : done ? t('meta.allDone') : nextText(P.Progress.levelInfo(lv.index));
     playBtn.classList.toggle('hidden', done);
     if (!done) playBtn.textContent = t('meta.playLevel', { L: lv.index });
+    startKit.hidden=M.starterIds().length===1;startKit.textContent=t('a12.starter.selected',{weapon:t('item.'+M.starter())});
+    renderPrep();
   }
+  function renderPrep() {
+    var prog = M.heroStats('arda'), points = P.Stats.spendable(prog), perk = M.TreeUI.firstAvailable();
+    prep.classList.toggle('is-ready', points > 0 || !!perk);
+    prepLabel.textContent = t('growth.title');
+    prepStatus.textContent = points > 0 ? t('growth.ready', { n: points }) : perk ? t('growth.perkReady') : t('growth.entry');
+    prep.onclick = function () { prepFocus = prep; showPanel('growth', points || !perk ? 'attr' : 'tree'); };
+  }
+  M.hasGrowth = function () { return P.Stats.spendable(M.heroStats('arda')) > 0 || !!M.TreeUI.firstAvailable(); };
   function renderAll(v) {
     renderCoins(v.coins); renderBottom(v); Map.refresh(v);
     if (sheetHood >= 0) renderSheet();
@@ -179,7 +230,7 @@
     for (k = 1; k <= J.levelsPerHood; k++) {
       i = M.levelAt(h, k);
       boss = k === J.levelsPerHood;
-      st = i > unl ? 'is-locked' : (M.isCleared(i) ? 'is-done' : 'is-open');
+      st = i > unl || P.CFG.experience && i > P.CFG.experience.through ? 'is-locked' : (M.isCleared(i) ? 'is-done' : 'is-open');
       cls = 'meta-node ' + st + (boss ? ' is-boss' : '') + (i === selLevel ? ' is-sel' : '') + (i === cur ? ' is-cur' : '');
       inner = st === 'is-locked' ? icon('lock', 20) : (boss ? icon('skull', 26) : '<b>' + k + '</b>');
       out += '<button class="' + cls + '" data-lv="' + i + '" aria-label="' + t('meta.stage', { n: k }) + '">' +
@@ -197,15 +248,21 @@
       t('mode.toggle.nm') + (M.Modes.moon(h) ? '<i class="meta-moon-mk" aria-hidden="true"></i>' : '') + '</button></div>';
   }
   function sheetDetail() {
-    var i = selLevel, lv = M.level(i), first = !M.isCleared(i), locked = i > M.unlockedLevel(), k, nm = nightmareFor(i);
+    var i = selLevel, lv = M.level(i), first = !M.isCleared(i), locked = i > M.unlockedLevel() || P.CFG.experience && i > P.CFG.experience.through, k, nm = nightmareFor(i);
     var crit = '', reward = t(first ? 'meta.rewardFirst' : 'meta.reward1', { n: M.clearReward(i, first) });
     for (k = 1; k <= M.CFG.starsMax; k++) crit += '<li class="' + (M.starsOf(i) >= k ? 'on' : '') + '">' + t('meta.star' + k) + '</li>';
     if (nm) crit += '<li class="' + (M.Modes.stars(i) >= 4 ? 'on' : '') + '">' + t('res.star4', { n: Math.round(P.CFG.levels.nightmare.fourthHp * 100) }) + '</li>';
     return '<div class="meta-sh-detail"><div class="meta-sh-lvl">' + t('meta.stage', { n: lv.stage }) +
       (lv.boss ? ' · ' + t('meta.boss') : '') + '</div>' + modeToggle(sheetHood) + '<ul class="meta-crit">' + crit + '</ul>' +
       '<p class="meta-reward"><span>' + t('meta.reward') + '</span> ' + reward + '</p>' + P.UIProgress.powerHtml() + '</div>' +
-      '<button class="meta-btn meta-play" data-act="play"' + (locked ? ' disabled' : '') + '>' +
+      tacticalHtml(i,nm) + '<button class="meta-btn meta-play" data-act="play"' + (locked ? ' disabled' : '') + '>' +
       (locked ? t('meta.locked') : nm ? t('mode.nm.play', { L: lv.index }) : t('meta.playLevel', { L: lv.index })) + '</button>';
+  }
+  function tacticalHtml(i,nm){
+    if(!M.tacticalAllowed(i,nm?'nightmare':'normal'))return '';
+    return '<fieldset class="a12-rematch"><legend>'+t('a12.rematch.title')+'</legend>'+['standard','alternate'].map(function(id){
+      return '<button data-variant="'+id+'" aria-pressed="'+String(selVariant===(id==='alternate'))+'">'+t('a12.rematch.'+id)+'</button>';
+    }).join('')+'<p>'+t('a12.rematch.'+i)+'</p></fieldset>';
   }
   function renderSheet() {
     var hd = M.hood(sheetHood);
@@ -214,7 +271,7 @@
   }
   function openSheet(h) {
     if (busy) { skip(); return; }
-    sheetHood = h; selLevel = defaultLevel(h); selMode = 'normal'; sfx('uiOpen');
+    sheetHood = h; selLevel = defaultLevel(h); selMode = 'normal'; selVariant=false; sfx('uiOpen');
     renderSheet();
     sheet.classList.add('is-open');
     bottom.classList.add('is-hidden');
@@ -228,12 +285,13 @@
   }
   function pickLevel(i) {
     if (i > M.unlockedLevel()) { sfx('uiBack'); A.kick(sheet, 'is-shake', P.UIMotion.ms('--m-beat')); toast(t('meta.lockedHint')); return; }
-    selLevel = i; sfx('uiTap'); renderSheet();
+    selLevel = i; selVariant=false; sfx('uiTap'); renderSheet();
   }
   function onSheetClick(e) {
-    var b = e.target.closest ? e.target.closest('[data-lv],[data-act],[data-mode]') : null;
+    var b = e.target.closest ? e.target.closest('[data-lv],[data-act],[data-mode],[data-variant]') : null;
     if (!b) return;
     if (b.hasAttribute('data-lv')) pickLevel(Number(b.getAttribute('data-lv')));
+    else if(b.hasAttribute('data-variant')){selVariant=b.getAttribute('data-variant')==='alternate';renderSheet();}
     else if (b.hasAttribute('data-mode')) setMode(b.getAttribute('data-mode'));
     else if (b.getAttribute('data-act') === 'close') closeSheet();
     else if (b.getAttribute('data-act') === 'play') startLevel(selLevel);
@@ -241,19 +299,21 @@
   function setMode(m) {
     if (m === 'nightmare' && !M.Modes.unlocked(sheetHood)) { sfx('uiBack'); toast(t('mode.toggle.hint')); return; }
     if (m === selMode) return;
-    selMode = m; sfx('uiTap'); renderSheet();
+    selMode = m; selVariant=false; sfx('uiTap'); renderSheet();
   }
   // Nightmare applies to a level of the open sheet's hood only (the toggle is per hood).
   function nightmareFor(i) {
     return selMode === 'nightmare' && sheetHood >= 0 && M.level(i).hoodIndex === sheetHood && M.Modes.unlocked(sheetHood);
   }
   function startLevel(i) {
+    if (P.MemoryReplay.active()) return;
     if (busy) { skip(); return; }
+    if (P.CFG.experience && i > P.CFG.experience.through) { toast(t('exp.boundary')); return; }
     if (i > M.unlockedLevel()) { sfx('uiBack'); toast(t('meta.lockedHint')); return; }
     var nm = nightmareFor(i);
     sfx('uiTap');
     close();
-    if (typeof onPlay === 'function') onPlay(i, nm ? { mode: 'nightmare' } : undefined);
+    if (typeof onPlay === 'function') onPlay(i, nm ? { mode: 'nightmare' } : selVariant&&M.tacticalAllowed(i,'normal')?{tacticalLevel:i}:undefined);
   }
 
   // ---- Toasts and banner ----
@@ -359,10 +419,11 @@
   function finish(p) {
     cancelAll();
     busy = false; active = null;
-    renderCoins(p.after.coins); renderBottom(p.after); setKm(p.after.kmShown);
-    Map.refresh(p.after); Map.focusHood(p.after.cur, 0.42, false);
+    var latest = M.snapshot();
+    renderAll(latest); Map.focusHood(latest.cur, 0.42, false);
     hideBanner(); flyLayer.innerHTML = '';
     announce(p);
+    M.takePending(p);
   }
   // Tap during the return: jump to the final state (timers are invalidated by the session bump).
   function skip() {
@@ -406,16 +467,19 @@
   function resumeMap(p) {
     var v = M.snapshot();
     if (p && p.before && p.after) { playReturn(p); return; }
+    if (p) M.takePending(p);
     renderAll(v);
     Map.focusHood(v.cur, 0.42, true);
   }
-  function playToasts(p) {
+  function playToasts(p, my) {
+    if (my !== visit) return;
     if (!p || !M.Hub) { resumeMap(p); return; }
-    M.Hub.toasts(toastLayer, p, function () { resumeMap(p); });
+    M.Hub.toasts(toastLayer, p, function () { if (my === visit) resumeMap(p); });
   }
-  function afterWelcome(p) {
-    if (p && p.statGains && M.Attr) M.Attr.sequence(p, function () { playToasts(p); });
-    else playToasts(p);
+  function afterWelcome(p, my) {
+    if (my !== visit) return;
+    if(M.Attr)M.Attr.cancelSequence();
+    playToasts(p, my);
   }
   // A failing optional step (map music and the open sound, pending result, welcome-back) is logged as boot_error and skipped,
   // so it cannot leave the map half-built. The base state is drawn before those steps: badges, camera, km and next-up card
@@ -426,41 +490,56 @@
       return null;
     }
   }
-  function open(cb) {
+  function open(cb, growth) {
+    if (P.MemoryReplay.active()) return;
+    var my = ++visit;
     if (typeof cb === 'function') onPlay = cb;
     ensureRoot();
     M.endRun();
     root.classList.remove('meta-hidden');
-    opened = true; sheetHood = -1; panelOpen = null;
+    opened = true; sheetHood = -1; panelOpen = null; prepFocus = null;
     sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden'); tabsEl.classList.remove('is-hidden');
     toastLayer.innerHTML = '';
     Map.show();
     var v = M.snapshot();
     renderAll(v); Map.focusHood(v.cur, 0.42, true);
     optional('map.audio', function () { music('map'); sfx('uiOpen'); });
-    var p = optional('map.pending', M.takePending);
+    var p = optional('map.pending', M.pendingResult);
+    if(growth==='arsenal'||typeof growth==='string'&&growth.indexOf('rematch:')===0){
+      if(p)M.takePending(p);
+      if(growth==='arsenal')showPanel('ars');
+      else {var target=Number(growth.split(':')[1]);openSheet(M.level(target).hoodIndex);selLevel=target;selVariant=true;renderSheet();}
+      return;
+    }
+    if (growth) {
+      if (p) M.takePending(p);
+      prep.click(); if(typeof growth==='string')showGrowth('attr',growth); return;
+    }
     var w = optional('map.welcome', function () { return M.Hub ? M.Hub.welcomeInfo() : null; });
-    if (w) { M.Hub.welcome(root, w, function () { afterWelcome(p); }); return; }
-    afterWelcome(p);
+    if (w) { M.Hub.welcome(root, w, function () { afterWelcome(p, my); }); return; }
+    afterWelcome(p, my);
   }
   function close() {
+    if (P.MemoryReplay.active()) { P.MemoryReplay.close(); return; }
     if (!opened) return;
+    visit++;
     cancelReturn();
     opened = false;
     root.classList.add('meta-hidden');
     toastLayer.innerHTML = '';
     sheetHood = -1; sheet.classList.remove('is-open'); bottom.classList.remove('is-hidden');
     Map.hide(); Gear.hide();
-    if (M.Attr) M.Attr.hide();
+    if (M.Attr) { M.Attr.cancelSequence(); M.Attr.hide(); }
     if (M.TreeUI) M.TreeUI.hide();
     if (M.Arsenal) M.Arsenal.hide();
     if (M.Hub) M.Hub.hide();
-    panelOpen = null;
+    panelOpen = null; growthPage = null;
     Array.prototype.forEach.call(root.querySelectorAll('.meta-welcome'), function (n) { n.parentNode.removeChild(n); });
   }
   // Starts today's daily: the attempt is spent at launch, then the map calls onPlay(level, {daily, modifiers, seed}).
   // Night Shift entry (the hub's Görevler card): closes the map and plays today's shift (meta-nightshift.js launch).
   M.openNightShift = function () {
+    if (P.MemoryReplay.active()) return false;
     var L = M.NightShift.launch(M.Daily.dayKey(new Date()));
     if (!L) { toast(t('ns.card.closed')); return false; }
     sfx('uiTap'); close();
@@ -468,6 +547,7 @@
     return true;
   };
   M.openDaily = function () {
+    if (P.MemoryReplay.active()) return false;
     var L = M.dailyLaunch ? M.dailyLaunch() : null;
     if (!L) { toast(t('hub.dailyUsed')); return false; }
     sfx('uiTap'); close();

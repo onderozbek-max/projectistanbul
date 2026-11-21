@@ -8,11 +8,11 @@
 P.WFx = (function () {
   var W = { gunA: 0, recoil: 0, sinceFire: 9, throwT: 0, throwKind: 'canister', parts: [], blastN: 0, hs: [], sim: null,
     combo: { n: 0, t: 0, best: 0 } };
-  var INK = '#14151F', THROW_T = 0.32, MAX_PARTS = 700, HEAVY = { sledge: 1, canister: 1, cluster: 1, cleaver: 1, finale: 1 };
+  var INK = '#14151F', THROW_T = 0.32, MAX_PARTS = 700;
   // v0.7: streak milestones (25/50/100/200) keep their sound cue; the HUD streak meter shows the tier label.
   var MILESTONES = [25, 50, 100, 200];
 
-  function mods() { return [P.WFx2, P.WFx3, P.WFx4, P.SkillsFx]; }
+  function mods() { return [P.WFx2, P.WFx3, P.WFx4, P.SkillsFx, P.WAttackCues]; }
 
   W.reset = function () {
     W.gunA = 0; W.recoil = 0; W.sinceFire = 9; W.throwT = 0; W.parts = [];
@@ -54,13 +54,13 @@ P.WFx = (function () {
     var i, a = ev.a, stormy = ev.id === 'nailstorm', mx = s.hero.x + Math.cos(a) * 0.5, my = s.hero.y + Math.sin(a) * 0.5;
     W.gunA = a; W.recoil = stormy ? 0.6 : 1; W.sinceFire = 0;
     add({ k: 'mflash', x: mx, y: my, a: a, r: stormy ? 0.34 : 0.26, t: 0.07, T: 0.07 });
-    add({ k: 'smoke', x: mx, y: my, z: 0.1, vz: 0.6, vx: Math.cos(a) * 0.3, vy: Math.sin(a) * 0.3, r: 0.12, t: 0.45, T: 0.45 });
     for (i = 0; i < 2; i++) add({ k: 'casing', x: s.hero.x, y: s.hero.y, z: 0.8, vx: -Math.cos(a) * rnd(1, 2) + rnd(-1, 1), vy: -Math.sin(a) * rnd(1, 2),
       vz: rnd(2, 4), rot: rnd(0, 6), vr: rnd(-18, 18), t: 0.5, T: 0.5 });
     P.Sfx.play(stormy ? 'nailStorm' : 'nail', stormy ? 40 : 70, { pan: W.pan(s, s.hero.x) });
   }
 
   function knifeSwing(ev, s) {
+    if(ev.physical){P.Sfx.play('swish',90,{pan:W.pan(s,ev.x)});return;}
     var a = Math.atan2(ev.ay, ev.ax), v = ev.variant || 0, i, aa, rr;
     var half = ev.arcDeg * Math.PI / 360, dir = ev.dir || 1;
     for (i = 0; i < (v === 1 ? 6 : 4); i++) {
@@ -70,7 +70,6 @@ P.WFx = (function () {
     if (v === 1) add({ k: 'wind', x: ev.x, y: ev.y, r: ev.range, a0: a - dir * half, a1: a + dir * half, t: 0.22, T: 0.22, gold: W.gold() });
     if (v === 2) {
       add({ k: 'chop', x: ev.x + Math.cos(a) * ev.range * 0.8, y: ev.y + Math.sin(a) * ev.range * 0.8, a: a, t: 0.16, T: 0.16 });
-      add({ k: 'puff', x: ev.x + Math.cos(a) * ev.range * 0.7, y: ev.y + Math.sin(a) * ev.range * 0.7, z: 0.2, vz: 0.4, vx: 0, vy: 0, r: 0.18, t: 0.3, T: 0.3 });
     }
     var ea = a - dir * half;
     add({ k: 'glint', x: ev.x + Math.cos(ea) * ev.range, y: ev.y + Math.sin(ea) * ev.range, t: 0.18, T: 0.18 });
@@ -78,18 +77,17 @@ P.WFx = (function () {
   }
 
   function hit(ev, s) {
-    var i, heavy = !!HEAVY[ev.src], pn = W.pan(s, ev.x);
+    var pn = W.pan(s, ev.x), contact = P.WTier && P.WTier.handlesImpact(s, ev.src);
     if (ev.crit) {
-      add({ k: 'impact', x: ev.x, y: ev.y, t: 0.2, T: 0.2 });
+      if (!P.WTier || !P.WTier.usesActionContact(s, ev.src)) add({ k: 'impact', x: ev.x, y: ev.y, t: 0.2, T: 0.2 });
       P.Sfx.play('crit', 60, { pan: pn });
     }
-    if (ev.src === 'knife') add({ k: 'slash', x: ev.x, y: ev.y + 0.5, a: Math.atan2(ev.dy, ev.dx) + Math.PI / 2 + rnd(-0.3, 0.3), t: 0.12, T: 0.12 });
+    if (ev.src === 'knife' && !contact) add({ k: 'slash', x: ev.x, y: ev.y + 0.5, a: Math.atan2(ev.dy, ev.dx) + Math.PI / 2 + rnd(-0.3, 0.3), t: 0.12, T: 0.12 });
     else if (ev.src === 'nailgun' || ev.src === 'nailstorm') {
-      add({ k: 'ping', x: ev.x - ev.dx * 0.3, y: ev.y - ev.dy * 0.3 + 0.4, t: 0.1, T: 0.1 });
+      if (!contact) add({ k: 'ping', x: ev.x - ev.dx * 0.3, y: ev.y - ev.dy * 0.3 + 0.4, t: 0.1, T: 0.1 });
       add({ k: 'stuck', x: ev.x, y: ev.y, ox: rnd(-0.15, 0.15), oz: rnd(0.4, 0.8), a: Math.atan2(ev.dy, ev.dx), id: ev.id, t: 0.6, T: 0.6 });
     } else if (ev.src === 'chain' || ev.src === 'cyclone' || ev.src === 'cable') {
-      for (i = 0; i < 4; i++) add({ k: 'spark', x: ev.x, y: ev.y, z: 0.5, vx: rnd(-4, 4), vy: rnd(-4, 4), vz: rnd(1, 4), t: 0.3, T: 0.3 });
-      add({ k: 'glint', x: ev.x, y: ev.y, t: 0.12, T: 0.12 });
+      if (!contact) add({ k: 'glint', x: ev.x, y: ev.y, t: 0.12, T: 0.12 });
       if (ev.src === 'chain') P.Sfx.play('chain', 60, { pan: pn });
     }
   }
@@ -100,12 +98,18 @@ P.WFx = (function () {
     add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r * 1.5, t: 0.22, T: 0.22, col: '255,255,255' });
     if (big) add({ k: 'shock', x: ev.x, y: ev.y, r: ev.r * 2.1, t: 0.4, T: 0.4, col: '255,170,70' });
     for (i = 0; i < 7; i++) add({ k: 'fire', x: ev.x + rnd(-0.4, 0.4) * ev.r, y: ev.y + rnd(-0.3, 0.3) * ev.r, r: ev.r * rnd(0.35, 0.6), t: rnd(0.25, 0.4), T: 0.4 });
-    for (i = 0; i < 6; i++) add({ k: 'smoke', x: ev.x + rnd(-0.5, 0.5) * ev.r, y: ev.y + rnd(-0.3, 0.3) * ev.r, z: 0.3, vz: rnd(0.6, 1.4), vx: rnd(-0.4, 0.4), vy: 0, r: ev.r * rnd(0.3, 0.5), t: rnd(0.9, 1.4), T: 1.4 });
+    if (!ev.stuck && (ev.id === 'canister' || ev.id === 'cluster' || ev.id === 'carbomb')) {
+      for (i = 0; i < (big ? 3 : 1); i++) {
+        add({ k: 'smoke', x: ev.x + rnd(-0.5, 0.5) * ev.r, y: ev.y + rnd(-0.3, 0.3) * ev.r,
+          z: 0.3, vz: rnd(0.6, 1.4), vx: rnd(-0.4, 0.4), vy: 0, r: ev.r * rnd(0.2, 0.33), t: rnd(0.42, 0.68), T: 0.68 });
+      }
+    }
     for (i = 0; i < (big ? 12 : 8); i++) {
       a = rnd(0, Math.PI * 2); sp = rnd(3, 7);
       add({ k: 'debris', x: ev.x, y: ev.y, z: 0.2, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: rnd(3, 7), rot: rnd(0, 6), vr: rnd(-15, 15), t: 0.8, T: 0.8 });
     }
-    if (W.blastN % 3 === 1 && P.Fx) P.Fx.letter(ev.x, ev.y + 1.2, P.t('fx.boom'));
+    if (W.blastN % 3 === 1 && P.Fx && Object.keys(s.hero.weapons).length < 4)
+      P.Fx.letter(ev.x, ev.y + 1.2, P.t('fx.boom'));
     P.Sfx.play(ev.id === 'cluster' ? 'cluster' : 'blast', 80, { pan: W.pan(s, ev.x) });
   }
 
@@ -122,9 +126,6 @@ P.WFx = (function () {
     W.recoil = Math.max(0, W.recoil - dt * 7); W.sinceFire += dt;
     W.throwT = Math.max(0, W.throwT - dt);
     c.t = Math.max(0, c.t - dt); if (c.t === 0) c.n = 0;
-    if (s) s.projs.forEach(function (q) {
-      if (Math.random() < 0.6) { var f = q.t / q.T; add({ k: 'puff', x: q.x0 + (q.x1 - q.x0) * f, y: q.y0 + (q.y1 - q.y0) * f, z: 4 * 1.6 * f * (1 - f), vx: rnd(-0.3, 0.3), vy: rnd(-0.3, 0.3), vz: 0.2, r: 0.12, t: 0.4, T: 0.4 }); }
-    });
     for (i = W.parts.length - 1; i >= 0; i--) {
       p = W.parts[i];
       p.t -= dt;
@@ -132,7 +133,7 @@ P.WFx = (function () {
       if (p.vx !== undefined) { p.x += p.vx * dt; p.y += p.vy * dt; }
       if (p.vz !== undefined) {
         p.z += p.vz * dt;
-        if (p.k !== 'smoke' && p.k !== 'puff') { p.vz -= 18 * dt; if (p.z < 0) { p.z = 0; p.vz *= -0.35; p.vx *= 0.6; p.vy *= 0.6; } }
+        if (p.k !== 'smoke') { p.vz -= 18 * dt; if (p.z < 0) { p.z = 0; p.vz *= -0.35; p.vx *= 0.6; p.vy *= 0.6; } }
       }
       if (p.vr) p.rot += p.vr * dt;
     }
@@ -178,15 +179,19 @@ P.WFx = (function () {
     ang += W.awayTilt(ang, f);
     var reach = (0.32 - kick * 0.08) * u, hx = sh.x + Math.cos(ang) * reach + W.awayShift(ang, f, u), hy = sh.y + Math.sin(ang) * reach;
     limbI(c, sh.x, sh.y, hx, hy, sleeve, 0.09 * u);
-    c.save(); c.translate(hx, hy); c.rotate(ang); if (side < 0) c.scale(1, -1);
+    W.gunAt(c, hx, hy, u, ang, side < 0);
+    dot(c, hx, hy, 0.055 * u, skin);
+  }
+
+  W.gunAt = function (c, hx, hy, u, ang, mirror) {
+    c.save(); c.translate(hx, hy); c.rotate(ang); if (mirror) c.scale(1, -1);
     c.fillStyle = '#E9A23B'; c.strokeStyle = INK; c.lineWidth = 2;
     c.beginPath(); if (c.roundRect) c.roundRect(-0.06 * u, -0.1 * u, 0.42 * u, 0.13 * u, 0.04 * u); else c.rect(-0.06 * u, -0.1 * u, 0.42 * u, 0.13 * u); c.fill(); c.stroke();
     c.fillStyle = '#3A3A3A'; c.fillRect(0.02 * u, 0.02 * u, 0.09 * u, 0.13 * u); c.strokeRect(0.02 * u, 0.02 * u, 0.09 * u, 0.13 * u);
     c.fillStyle = '#B8C0CA'; c.fillRect(0.36 * u, -0.07 * u, 0.07 * u, 0.06 * u);
     c.fillStyle = '#C9A13B'; c.fillRect(0.14 * u, 0.03 * u, 0.16 * u, 0.04 * u);
     c.restore();
-    dot(c, hx, hy, 0.055 * u, skin);
-  }
+  };
 
   function throwArm(c, sh, u, f, skin, sleeve) {
     var p = 1 - W.throwT / THROW_T, start = -Math.PI / 2 - f * 1.3, end = f > 0 ? 0.2 : Math.PI - 0.2;
@@ -222,29 +227,43 @@ P.WFx = (function () {
   W.bottle = bottle;
 
   // ---------- weapons in the world ----------
-  W.drawChain = function (R, s) {
-    var h = s.hero, lvl = h.weapons.chain;
-    if (!lvl) return;
-    var c = R.ctx, lv = P.CFG.weapons.chain.levels[lvl - 1], u = R.ppm, t = performance.now() / 1000;
-    var hx = h.x, hy = h.y + 0.55;
-    for (var b = 0; b < lv.blades; b++) {
-      var a = h.chainA + b * Math.PI * 2 / lv.blades, rad = lv.radius;
-      var ex = h.x + Math.cos(a) * rad, ey = h.y + Math.sin(a) * rad;
-      for (var k = 9; k >= 1; k--) {   // motion blur: fading arc behind each blade
-        var ta = a - k * 0.09;
-        c.strokeStyle = 'rgba(230,235,245,' + (0.32 * (1 - k / 10)).toFixed(3) + ')'; c.lineWidth = (0.36 - k * 0.025) * u; c.lineCap = 'round';
-        c.beginPath(); c.arc(R.X(h.x), R.Y(h.y), rad * u, -ta, -(ta + 0.09), true); c.stroke();
+  W.drawChain = function (R, s, grips) {
+    var h=s.hero,id=P.Weapons.variantOf(h,'chain'),lvl=h.weapons[id];if(!lvl||h.streetHolding)return;
+    var c=R.ctx,lv=P.Weapons.level(h,id),A=P.Weapons.chainAct(s),n=lv.blades+A.M.count,u=R.ppm;
+    var calm = P.Settings && P.Settings.reduceMotion;
+    for (var b = 0; b < n; b++) {
+      var a = (id==='cyclone'?h.cycA:h.chainA) + b * Math.PI * 2 / n, rad = lv.radius*A.area;
+      var held=P.FireAnim&&P.FireAnim.heldId&&P.FireAnim.heldId(s),owns=held===id;
+      var grip = owns&&grips&&(Math.cos(a)>=0?grips.right:grips.left);
+      if(!grip){grip={x:R.X(h.x+.17),y:R.Y(h.y+.42)};
+        if(b===0){c.beginPath();c.ellipse(grip.x,grip.y,.11*u,.08*u,0,0,Math.PI*2);c.fillStyle='#3C454A';c.fill();c.strokeStyle='#D9BA83';c.lineWidth=1.5;c.stroke();}}
+
+      var x = grip ? grip.x : R.X(h.x+.22), y = grip ? grip.y : R.Y(h.y + .54);
+      if (!grip && b===0) {
+        c.beginPath(); c.arc(x,y,.09*u,0,Math.PI*2); c.fillStyle='#6D726F'; c.fill();
+        c.strokeStyle=INK; c.lineWidth=1.5; c.stroke();
       }
-      var cx = h.x + Math.cos(a - 0.55) * rad * 0.6, cy = h.y + Math.sin(a - 0.55) * rad * 0.6, N = 14;
-      for (var i = 1; i <= N; i++) {
-        var q = i / N, mx = (1 - q) * (1 - q) * hx + 2 * (1 - q) * q * cx + q * q * ex, my = (1 - q) * (1 - q) * hy + 2 * (1 - q) * q * cy + q * q * ey;
-        var tx = 2 * (1 - q) * (cx - hx) + 2 * q * (ex - cx), ty = 2 * (1 - q) * (cy - hy) + 2 * q * (ey - cy);
-        c.save(); c.translate(R.X(mx), R.Y(my)); c.rotate(-Math.atan2(ty, tx));
-        c.fillStyle = i % 2 ? '#C9CED6' : '#7D848F'; c.strokeStyle = INK; c.lineWidth = 1.4;
-        c.beginPath(); c.ellipse(0, 0, 0.075 * u, 0.045 * u, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+      var ex = R.X(h.x + Math.cos(a) * rad), ey = R.Y(h.y + Math.sin(a) * rad) - 0.28 * u;
+      var lag = rad * u * Math.max(.045,.22/(1+lv.speed*.12));
+      var cx = x + (ex - x) * .57 + Math.sin(a) * lag;
+      var cy = y + (ey - y) * .55 + Math.cos(a) * lag + .11 * u;
+      if (!calm) {
+        var tail = .25 + lvl * .065;
+        c.beginPath(); c.arc(R.X(h.x), R.Y(h.y) - .28 * u, rad * u, -a, -a + tail);
+        c.lineWidth = (0.045 + lvl * .010) * u; c.strokeStyle = 'rgba(243,192,126,.24)'; c.stroke();
+      }
+      var count = Math.min(19, Math.ceil(rad / .112));
+      for (var i = 1; i <= count; i++) {
+        var q = i / count, inv = 1 - q, mx = inv * inv * x + 2 * inv * q * cx + q * q * ex;
+        var my = inv * inv * y + 2 * inv * q * cy + q * q * ey;
+        var tx = inv * (cx - x) + q * (ex - cx), ty = inv * (cy - y) + q * (ey - cy);
+        c.save(); c.translate(mx, my); c.rotate(Math.atan2(ty, tx));
+        c.strokeStyle = INK; c.lineWidth = 3.3;
+        c.beginPath(); c.ellipse(0, 0, .071 * u, (i % 2 ? .035 : .018) * u, 0, 0, Math.PI * 2); c.stroke();
+        c.strokeStyle = i % 2 ? '#DBC3A3' : '#A58F7A'; c.lineWidth = 1.55; c.stroke();
         c.restore();
       }
-      sprocket(c, R.X(ex), R.Y(ey), 0.2 * u, t * 14 + b);
+      sprocket(c, ex, ey, (.16 + lvl * .019) * u, calm ? 0 : -a * 2.2);
     }
   };
 
@@ -261,6 +280,7 @@ P.WFx = (function () {
   W.sprocket = sprocket;
 
   W.drawProjectiles = function (R, s) {
+    if (P.SceneFlow && P.SceneFlow.current() && P.SceneFlow.current().kind !== 'entry') return;
     var c = R.ctx, u = R.ppm;
     c.save(); c.globalCompositeOperation = 'lighter';
     s.nails.forEach(function (n) {
@@ -335,9 +355,8 @@ P.WFx = (function () {
           c.save(); c.translate(X, Y); c.rotate(p.rot); c.fillStyle = '#2A2C35'; c.strokeStyle = INK; c.lineWidth = 1.5;
           c.fillRect(-0.06 * u, -0.04 * u, 0.12 * u, 0.08 * u); c.restore(); break;
         case 'smoke':
-          c.fillStyle = 'rgba(70,72,82,' + (0.5 * a) + ')';
+          c.fillStyle = 'rgba(70,72,82,' + (0.34 * a) + ')';
           c.beginPath(); c.arc(X, Y, p.r * u * (1.8 - a), 0, Math.PI * 2); c.fill(); break;
-        case 'puff': c.fillStyle = 'rgba(235,240,245,' + (0.5 * a) + ')'; c.beginPath(); c.arc(X, Y, p.r * u * (1.6 - a), 0, Math.PI * 2); c.fill(); break;
       }
     });
     c.save(); c.globalCompositeOperation = 'lighter';

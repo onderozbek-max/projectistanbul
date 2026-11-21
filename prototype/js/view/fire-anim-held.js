@@ -1,7 +1,7 @@
 // Held poses, part 1 (view only, workstream B): knife, nailgun, canister, chain, sledge, molotov, fireworks, cable,
 // speargun. Each entry: { T (pose seconds, or fn(lv, n)), held(F, G, k) } with k = { t, p, T, lv, n, ang, id, f }.
 // Hands are world metres from Arda's shoulders (G.pt bases: 0 main, 1 off, 2 midline). Arms are IK ink limbs drawn
-// over the sprite (the sprite's own arms are hidden while a pose runs). Timelines are in seconds from the shot.
+// for the procedural sprite. On the raster sprite the weapon follows the painted grip. Timelines are seconds from the shot.
 P.FireAnimHeld = P.FireAnimHeld || {};
 (function (H) {
   var M = P.FireAnimPrim, INK = '#14151F', HK = { mx: 0, my: 0, ox: 0, oy: 0 };
@@ -20,37 +20,69 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   }
   function restOff(G) { return G.pt(1, 1, 0.02, -0.3, -0.02); }   // hanging hand
 
-  // ---------- Knife (Döner Bıçağı): fast flick, the blade spins and flashes at the tip ----------
+  // Knife contact lands on the firing tick. The wrist cuts through and settles on the same path as the swing trail.
   function knifeFwd(t) {
-    if (t < 0.09) return M.lerp(0.2, 0.0, M.eo(t / 0.09));
-    if (t < 0.16) return M.lerp(0.0, 0.36, M.ei((t - 0.09) / 0.07));
-    return M.lerp(0.36, 0.3, M.seg(t, 0.16, 0.26));
+    return M.lerp(0.32, 0.16, M.eo(M.seg(t, 0.065, 0.24)));
   }
-  H.knife = { T: 0.26, fwd: knifeFwd, held: function (F, G, k) {
-    var t = k.t, lat = 0, up = 0.02, spin = 0, cs, hw, c = F.c;
-    if (t < 0.09) { lat = 0.12 * M.eo(t / 0.09); up = 0.04 * M.eo(t / 0.09); }
-    else if (t < 0.16) { var q = M.ei((t - 0.09) / 0.07); lat = M.lerp(0.12, 0, q); up = 0.04 * (1 - q); spin = (t - 0.09) * 42; }
-    arms(F, G, G.pt(0, 0, knifeFwd(t), up, lat), G.pt(1, 1, 0.12, -0.12, 0.03));
-    cs = Math.cos(spin); hw = 0.03 * Math.max(0.2, Math.abs(cs));
-    M.begin(F, HK.mx, HK.my, G.ang);
+  H.knife = { T: 0.24, held: function (F, G, k) {
+    var t = k.t, c = F.c, sweep = M.eo(M.seg(t, 0, 0.075)), recover = M.eo(M.seg(t, 0.095, 0.24));
+    var action=F.sim.ws&&F.sim.ws.knifeSwing;
+    var blade = Math.max(.48, (action?action.range:k.f.range||1.4) - .40);
+    var dir = k.f.dir || 1, arc = k.f.arc || 0.65;
+    var cut = dir * arc * (0.7 - 1.7 * sweep) * (1 - 0.88 * recover);
+    arms(F, G, G.pt(0, 0, knifeFwd(t), -0.02 - 0.06 * sweep, -0.10 * dir * sweep), G.pt(1, 1, -0.08, -0.18, 0.02));
+    M.begin(F, HK.mx, HK.my, action?action.angle:G.ang-cut);
     M.rr(c, -0.04, -0.02, 0.12, 0.04, 0.015); M.ink(F, '#5B3A1E', 1.6);
     c.beginPath(); c.rect(0.06, -0.035, 0.02, 0.07); M.ink(F, '#B8C0CA', 1.4);
-    c.beginPath(); c.moveTo(0.08, -hw); c.lineTo(0.36, -hw * 1.1); c.lineTo(0.44, 0); c.lineTo(0.36, hw * 1.1); c.lineTo(0.08, hw); c.closePath();
+    c.beginPath(); c.moveTo(0.08, -0.072); c.lineTo(blade * .81, -0.058); c.lineTo(blade, -0.01);
+    c.quadraticCurveTo(blade * .83, 0.068, 0.08, 0.064); c.closePath();
     M.ink(F, '#E6EBF0', 1.5);
-    if (t > 0.09 && t < 0.16 && Math.abs(cs) > 0.75) lstar(c, 0.44, 0, 0.08, '#FFFFFF');
+    c.strokeStyle = '#91A9B9'; c.lineWidth = 0.024;
+    c.beginPath(); c.moveTo(0.12, 0.021); c.lineTo(0.35, 0.015); c.stroke();
     M.end(F);
     hands(F);
   } };
 
+  H.cleaver = { T: 0.56, held: function (F, G, k) {
+    var action=F.sim.ws&&F.sim.ws.cleaverSwing,K=P.CFG.weapons.cleaver;
+    var c = F.c, cut = M.seg(k.t,K.load,K.load+K.cut), a = action?action.angle:G.ang+G.side*M.lerp(-K.arc*Math.PI/360,K.arc*Math.PI/360,cut);
+    arms(F, G, G.pt(0, 0, 0.13 + cut * 0.18, 0.12 - cut * 0.24, 0), restOff(G));
+    M.begin(F, HK.mx, HK.my, a);
+    if(action)c.scale(Math.max(1,(action.range-.45)/.60),1.18);
+    M.rr(c, -0.10, -0.036, 0.20, 0.072, 0.025); M.ink(F, '#453126', 1.8);
+    c.beginPath(); c.moveTo(0.07, -0.17); c.lineTo(0.54, -0.18); c.quadraticCurveTo(0.67, -0.05, 0.51, 0.13);
+    c.lineTo(0.10, 0.105); c.closePath(); M.ink(F, '#AABCC7', 1.8);
+    c.fillStyle = '#EEF4F5'; c.beginPath(); c.moveTo(0.10, 0.065); c.lineTo(0.55, 0.06); c.lineTo(0.51, 0.13);
+    c.lineTo(0.10, 0.105); c.closePath(); c.fill();
+    c.fillStyle = '#28333D'; c.beginPath(); c.arc(0.50, -0.11, 0.028, 0, Math.PI * 2); c.fill();
+    M.end(F); hands(F);
+  } };
+
   // ---------- Nail gun (Çivi Tabancası): staccato recoil, the barrel snaps back then settles ----------
-  H.nailgun = { T: 0.14, held: function (F, G, k) {
-    var c, kick = 0.055 * Math.exp(-k.t / 0.04);
+  H.nailgun = { T: 0.20, held: function (F, G, k) {
+    var c, fan = k.id === 'nailstorm', kick = (fan ? 0.12 : 0.08) * Math.exp(-k.t / 0.035);
     arms(F, G, G.pt(0, 0, 0.24 - kick, -0.02, 0), G.pt(1, 2, 0.14 - kick, -0.12, 0.06));
+    if (!k.f.muzzle && P.FireAnimFx && P.FireAnimFx.nailgun) {
+      var mx = HK.mx, my = HK.my;
+      if (F.grip) {
+        mx += (F.grip.x - F.R.X(mx)) / F.m;
+        my -= (F.grip.y - F.R.Y(my)) / F.m;
+      }
+      P.FireAnimFx.nailgun.muzzle(F, G, mx, my, k.lv, fan);
+      k.f.muzzle = true;
+    }
     c = F.c; M.begin(F, HK.mx, HK.my, G.ang);
     c.beginPath(); c.rect(-0.04, 0.0, 0.06, 0.13); M.ink(F, '#2B2B2B', 1.4);
-    M.rr(c, -0.05, -0.05, 0.19, 0.1, 0.02); M.ink(F, '#E9A23B', 1.6);
+    M.rr(c, -0.05, -0.05, 0.19, 0.1, 0.02); M.ink(F, fan ? '#769B50' : '#E9A23B', 1.6);
     M.rr(c, 0.1, -0.03, 0.22, 0.05, 0.01); M.ink(F, '#3A3A3A', 1.4);
     c.beginPath(); c.rect(0.28, -0.028, 0.03, 0.046); M.ink(F, '#B8C0CA', 1.2);
+    if (fan) {
+      M.rr(c, -0.02, 0.042, 0.14, 0.14, 0.026); M.ink(F, '#B4CC90', 1.4);
+      for (var sd = -1; sd <= 1; sd += 2) {
+        c.save(); c.rotate(sd * 0.17);
+        M.rr(c, 0.14, sd * 0.045 - 0.016, 0.19, 0.032, 0.008); M.ink(F, '#D4DADD', 1.1); c.restore();
+      }
+    }
     M.end(F); hands(F);
   } };
 
@@ -77,53 +109,36 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   } };
 
   // ---------- Bike chain (Bisiklet Zinciri): whip-swing arc, ghost links for motion blur ----------
-  function chainTh(t) { return t < 0.18 ? M.lerp(-1.25, 0.25, M.eo(t / 0.18)) : M.lerp(0.25, 0.35, M.seg(t, 0.18, 0.3)); }
-  function link(c, F, hx, hy, a, r, i, alpha) {
-    var x = hx + Math.cos(a) * r, y = hy + Math.sin(a) * r, X = F.R.X(x), Y = F.R.Y(y), m = F.m;
-    c.save(); c.translate(X, Y); c.rotate(-(a + Math.PI / 2));
-    c.globalAlpha = alpha; c.fillStyle = i & 1 ? '#C9CED6' : '#7D848F';
-    c.beginPath(); c.ellipse(0, 0, 0.05 * m, 0.028 * m, 0, 0, Math.PI * 2); c.fill();
-    if (alpha >= 1) { c.strokeStyle = INK; c.lineWidth = 1.4; c.stroke(); }
-    c.restore();
-  }
+  // The world chain owns every link and real orbiting weight. This layer owns
+  // the grip/body action only, avoiding a second decorative chain with fake contact.
   H.chain = { T: 0.3, held: function (F, G, k) {
-    var c = F.c, t = k.t, hub = G.pt(0, 0, 0.14, 0, 0), i, a0, r;
+    var hub = G.pt(0, 0, 0.14, 0, 0);
     arms(F, G, hub, G.pt(1, 2, 0.12, -0.2, -0.04));
-    for (i = 0; i < 8; i++) {                       // ghost links: earlier positions of the whip
-      if (i === 0) continue;
-      link(c, F, hub.x, hub.y, G.ang + chainTh(t - 0.07) - i * 0.02, 0.22 + i * 0.07, i, 0.14);
-      link(c, F, hub.x, hub.y, G.ang + chainTh(t - 0.035) - i * 0.015, 0.22 + i * 0.07, i, 0.3);
-    }
-    for (i = 0; i < 8; i++) {
-      a0 = G.ang + chainTh(t - i * 0.012); r = 0.22 + i * 0.07;
-      link(c, F, hub.x, hub.y, a0, r, i, 1);
-    }
-    a0 = G.ang + chainTh(t);
-    var tx = hub.x + Math.cos(a0) * 0.8, ty = hub.y + Math.sin(a0) * 0.8;
-    c.save(); c.translate(F.R.X(tx), F.R.Y(ty)); c.rotate(t * 30);
-    c.fillStyle = '#E9A23B'; c.strokeStyle = INK; c.lineWidth = 1.8; c.beginPath();
-    for (i = 0; i < 20; i++) { var q = i / 20 * Math.PI * 2, rr = i & 1 ? 0.06 : 0.075; c.lineTo(Math.cos(q) * rr * F.m, Math.sin(q) * rr * F.m); }
-    c.closePath(); c.fill(); c.stroke(); c.restore();
-    M.begin(F, hub.x, hub.y, G.ang); M.rr(F.c, -0.05, -0.025, 0.1, 0.05, 0.02); M.ink(F, '#2B2B2B', 1.6); M.end(F);
+    M.begin(F, hub.x, hub.y, G.ang);
+    M.rr(F.c, -0.05, -0.025, 0.1, 0.05, 0.02); M.ink(F, '#2B2B2B', 1.6); M.end(F);
     hands(F);
   } };
 
   // ---------- Sledge (Varyoz): big overhead wind-up, slam ----------
-  H.sledge = { T: 0.5, held: function (F, G, k) {
-    var t = k.t, psi, cp, sp, L = 0.62, gc, head, hm, ho, ha, c = F.c;
-    if (t < 0.25) psi = M.lerp(-0.5, 2.5, M.eo(t / 0.25));
-    else if (t < 0.34) psi = M.lerp(2.5, -0.5, M.ei((t - 0.25) / 0.09));
-    else psi = M.lerp(-0.5, -0.35, M.seg(t, 0.34, 0.5));
+  var sledgeWindup = P.CFG.weapons.sledge.windup;
+  H.sledge = { T: sledgeWindup + 0.45, held: function (F, G, k) {
+    var rank = k.lv - 1, L = 0.72 + 0.025 * rank, edge = 0.15 + 0.01 * rank;
+    var psi, cp, sp, gc, head, hm, ho, ha, c = F.c;
+    if (k.f.impactAt === undefined) {
+      var windup = k.f.windup || sledgeWindup, loaded = M.eo(M.seg(k.t, 0, windup * 0.62));
+      var swing = M.ei(M.seg(k.t, windup * 0.8, windup));
+      psi = M.lerp(M.lerp(-0.5, 2.5, loaded), 0.32, swing);
+    } else psi = M.lerp(-0.55, -0.35, M.seg(k.t, k.f.impactAt, k.T));
     cp = Math.cos(psi); sp = Math.sin(psi);
     gc = G.pt(0, 2, 0.14, 0, 0);
     head = G.pt(1, 2, 0.14 + cp * L, sp * L, 0);
     hm = G.pt(2, 2, 0.14 + cp * 0.2, sp * 0.2, 0.05); ho = G.pt(3, 2, 0.14 + cp * 0.36, sp * 0.36, -0.05);
     arms(F, G, hm, ho);
-    M.limb(F, gc.x, gc.y, head.x, head.y, '#B5651D', 0.035);
+    M.limb(F, gc.x, gc.y, head.x, head.y, '#BC8046', 0.045);
     ha = Math.atan2(head.y - gc.y, head.x - gc.x);
     M.begin(F, head.x, head.y, ha + Math.PI / 2);
-    M.rr(c, -0.1, -0.05, 0.2, 0.12, 0.02); M.ink(F, '#6B7280', 1.8);
-    c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(-0.08, -0.04, 0.16, 0.02);
+    M.rr(c, -edge, -0.072, edge * 2, 0.16, 0.025); M.ink(F, '#596879', 2);
+    c.fillStyle = '#B5C6CC'; c.fillRect(-edge + 0.025, -0.051, edge * 2 - 0.05, 0.031);
     M.end(F);
     hands(F);
   } };

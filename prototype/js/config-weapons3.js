@@ -4,14 +4,15 @@
 // copies its base weapon's config (cooldown, shape, mods family) and overrides the level and the stat rows, so the shared
 // fire code runs it through P.Weapons.variantOf. Evolved weapons have one level (L[0]).
 (function (C) {
-  // Synergy tag per weapon family. Evolutions use their base's tag (see P.Weapons.tagOf). Tags ride on wfire and areaHit.
+  // Synergy tag per weapon or evolution. Tags ride on wfire and areaHit.
   C.tags = { knife: 'blade', nailgun: 'blade', canister: 'gas', chain: 'blunt', sledge: 'blunt', molotov: 'fire',
     fireworks: 'fire', cable: 'electric', speargun: 'blade', extinguisher: 'water', sawblade: 'blade', manhole: 'blunt',
     torch: 'fire', olta: 'blade', cardoor: 'blunt', slingshot: 'blunt', chainsaw: 'blade' };
   C.tagNames = ['fire', 'electric', 'blunt', 'blade', 'gas', 'water'];
   // Evolutions carry their own tag (a combo reads by its element): blacksmith blunt, stormshield electric, foamstorm water,
   // netspear blade, lake fire, twinsaw blade, fireball fire, arcchain electric, carbomb gas.
-  Object.assign(C.tags, { blacksmith: 'blunt', stormshield: 'electric', foamstorm: 'water', netspear: 'blade', lake: 'fire',
+  Object.assign(C.tags, { cleaver: 'blade', nailstorm: 'blade', cluster: 'gas', cyclone: 'blunt', finale: 'fire',
+    blacksmith: 'blunt', stormshield: 'electric', foamstorm: 'water', netspear: 'blade', lake: 'fire',
     twinsaw: 'blade', fireball: 'fire', arcchain: 'electric', carbomb: 'gas', forge: 'fire', grinder: 'blade', hookpull: 'blade',
     minibus: 'blunt' });
 
@@ -35,11 +36,11 @@
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.zaps', 'zaps', 'n'], ['stat.radius', 'zapR', 'm'], ['stat.every', 'every', 's']],
   });
   evo('foamstorm', 'extinguisher', {             // Köpük Fırtınası: a wider, stickier cone that also blocks spit
-    levels: [{ dmg: 7, range: 3.0, arcDeg: 100, push: 1.6, slow: 0.5, slowT: 2.0, cdMult: 0.9, spitBlock: 2.0 }],
+    levels: [{ dmg: 8, range: 4.0, arcDeg: 145, push: 2.4, slow: 0.5, slowT: 2.0, cdMult: 0.9, spitBlock: 2.0 }],
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.range', 'range', 'm'], ['stat.slow', 'slow', 'pct'], ['stat.block', 'spitBlock', 's']],
   });
   evo('netspear', 'speargun', {                  // Zıpkın Ağı: pinned enemies are roped; a share of each hit goes to the rope
-    levels: [{ dmg: 22, pierce: 2, root: 1.6, cdMult: 1, netShare: 0.4, netR: 2.4 }],
+    levels: [{ dmg: 22, pierce: 2, root: 1.6, cdMult: 1, netShare: 0.4, netR: 2.8, ropes: 2, fan: 0.16, pullMul: 1.5 }],
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.netShare', 'netShare', 'pct'], ['stat.root', 'root', 's'], ['stat.pierce', 'pierce', 'n']],
   });
   evo('lake', 'molotov', {                       // Ateş Gölü: pools that touch merge into a lake that lasts longer and slows
@@ -47,7 +48,7 @@
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.pool', 'r', 'm'], ['stat.lasts', 'lakeLife', 's'], ['stat.slow', 'lakeSlow', 'pct']],
   });
   evo('twinsaw', 'sawblade', {                   // İkiz Disk: two blades go out side by side and come back
-    levels: [{ dmg: 14, range: 6.0, sparks: 3, cdMult: 1, blades: 2, spread: 0.22 }],
+    levels: [{ dmg: 14, range: 6.0, sparks: 3, cdMult: 1, blades: 2, spread: 0.22, bend: 1.18, speedMul: 1.24 }],
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.blades', 'blades', 'n'], ['stat.range', 'range', 'm'], ['stat.sparks', 'sparks', 'n']],
   });
 
@@ -71,19 +72,20 @@
   // ---------- batch 3 (depth pass): one evolution each for the improvised kit that had none. Passive pairs reuse the
   // passives that the first batch left open (a passive may serve more than one evolution). ----------
   evo('forge', 'torch', {                        // Ocak Ağzı: a hotter jet; with two stains a second scorch sits part way along
-    levels: [{ dmg: 12, range: 3.5, arcDeg: 100, cdMult: 0.9, stains: 2, extraAt: 0.3, extraR: 0.8 }],
+    levels: [{ dmg: 12, range: 4.0, arcDeg: 88, cdMult: 0.9, sweep: 95, ticks: 3, stains: 2, extraAt: 0.3, extraR: 0.8 }],
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.range', 'range', 'm'], ['stat.stains', 'stains', 'n'], ['stat.rate', 'cdMult', 'rate']],
   });
   evo('grinder', 'chainsaw', {                   // Öğütücü: the blade never stalls; each bite on the same target adds a grind stack
-    levels: [{ dmg: 9, arcDeg: 120, revT: 1.4, tickGap: 0.12, cdMult: 0.9, noStall: true, stackStep: 0.15, stackMax: 3 }],
+    levels: [{ dmg: 9, arcDeg: 220, turns: 3, revT: 1.4, tickGap: 0.12, cdMult: 0.9, noStall: true, stackStep: 0.15, stackMax: 3 }],
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.arc', 'arcDeg', 'deg'], ['stat.stacks', 'stackMax', 'n'], ['stat.rate', 'cdMult', 'rate']],
   });
   evo('hookpull', 'olta', {                      // Çeki Halatı: a set hook hauls the enemies near its catch toward it and stuns them
-    levels: [{ dmg: 16, reel: 2.4, cdMult: 0.9, haulR: 2.4, haulM: 0.8, haulStun: 0.3 }],
+    levels: [{ dmg: 17, reel: 2.9, cdMult: 0.9, haulR: 2.7, haulM: 1, haulStun: 0.3, spinR: 3.35, spinT: 0.81,
+      spinMul: 0.92, turns: 2, slamMul: 1.4 }],
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.reel', 'reel', 'm'], ['stat.haul', 'haulR', 'm'], ['stat.rate', 'cdMult', 'rate']],
   });
   evo('minibus', 'cardoor', {                    // Minibüs Kapısı: when the door drops it slams the ground and stuns what is close
-    levels: [{ dmg: 14, radius: 1.7, arcDeg: 140, openT: 1.0, cdMult: 0.9, slamR: 1.8, slamMul: 0.6, slamStun: 0.5, slamKb: 0.6 }],
+    levels: [{ dmg: 20, radius: 2.46, arcDeg: 1080, openT: 1.72, cdMult: 0.9, slamR: 2.45, slamMul: 0.82, slamStun: 0.5, slamKb: 0.85 }],
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.slam', 'slamR', 'm'], ['stat.stun', 'slamStun', 's'], ['stat.rate', 'cdMult', 'rate']],
   });
 

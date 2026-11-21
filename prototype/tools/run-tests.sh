@@ -8,10 +8,13 @@
 cd "$(dirname "$0")/.." || exit 2
 if [ "$#" -gt 0 ]; then names=("$@"); else names=(); for f in tools/test-*.js; do b=$(basename "$f" .js); names+=("${b#test-}"); done; fi
 fails=0
+test_log_dir="${ISTANBUL_TEST_LOG_DIR:-/tmp}"
+mkdir -p "$test_log_dir" || exit 2
 for n in "${names[@]}"; do
-  log="/tmp/proto_test_$n.log"
+  log="$test_log_dir/proto_test_$n.log"
   if node "tools/test-$n.js" >"$log" 2>&1; then echo "ok    $n"; continue; fi
-  if node "tools/test-$n.js" >"$log" 2>&1; then echo "flaky $n (passed on rerun)"; continue; fi
+  cp "$log" "$test_log_dir/proto_test_$n.first-failure.log"
+  if node "tools/test-$n.js" >"$log" 2>&1; then echo "flaky $n (passed on rerun; first failure retained)"; continue; fi
   echo "FAIL  $n   (log: $log)"; tail -5 "$log" | sed 's/^/        /'; fails=$((fails + 1))
 done
 echo "$fails failing"

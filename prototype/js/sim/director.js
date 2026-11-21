@@ -32,7 +32,9 @@ P.Director.complete = function (s, id) {
 
 // ---------- subtitles (phone call) and barks ----------
 P.Director.say = function (s, ids) {
-  ids.forEach(function (id) { s.dir.call.queue.push(id); });
+  var c = s.dir.call;
+  if (!c.sub && !c.queue.length) c.t = 0;
+  ids.forEach(function (id) { c.queue.push(id); });
 };
 
 P.Director.bark = function (s, id, who) {
@@ -41,12 +43,7 @@ P.Director.bark = function (s, id, who) {
 
 function updateTalk(s, dt) {
   var c = s.dir.call, b = s.dir.barks, cfg = P.CFG.bark;
-  if (c.active) c.t += dt;
-  if (c.sub) { c.sub.t -= dt; if (c.sub.t <= 0) c.sub = null; }
-  if (!c.sub && c.queue.length) {
-    var id = c.queue.shift();
-    c.sub = { id: id, t: P.CFG.callDur[id] || P.CFG.callDurDefault };
-  }
+  if (!c.boosting) updateCall(c, dt);
   b.cd = Math.max(0, b.cd - dt);
   if (b.cur) { b.cur.t -= dt; if (b.cur.t <= 0) b.cur = null; }
   b.queue.forEach(function (q) { q.age += dt; });
@@ -54,6 +51,15 @@ function updateTalk(s, dt) {
   if (!b.cur && b.cd <= 0 && b.queue.length) {
     b.cur = b.queue.shift(); b.cur.t = cfg.show; b.cd = cfg.cooldown;
     s.events.push({ type: 'bark', id: b.cur.id });
+  }
+}
+
+function updateCall(c, dt) {
+  if (c.active && c.sub) c.t += dt;
+  if (c.sub) { c.sub.t -= dt; if (c.sub.t <= 0) c.sub = null; }
+  if (!c.sub && c.queue.length) {
+    var id = c.queue.shift();
+    c.sub = { id: id, t: P.CFG.callDur[id] || P.CFG.callDurDefault };
   }
 }
 
@@ -75,11 +81,14 @@ function setBars(s, n) {
 // Signal booster (hack 'cell'): the bars come back; in L1 Mom's call returns (once).
 P.Director.onSignal = function (s) {
   var c = s.dir.call;
+  var live = c.boosting;
+  var dropped = c.active && !c.bars;
+  c.boosting = false;
   setBars(s, P.CFG.hack.cell.bars);
-  if (s.levelIndex === 1 && !c.restored) {
-    c.restored = true; c.active = true;
-    P.Director.say(s, ['callHack1', 'callHack2']);
-  }
+  if (s.levelIndex !== 1 || !c.active || c.restored) return false;
+  c.restored = true;
+  if (dropped && !c.sub && !c.queue.length) P.Director.say(s, ['callHack1', 'callHack2']);
+  return live || dropped;
 };
 
 function beatReady(s, b) {
@@ -149,7 +158,7 @@ function spawning(s, dt) {
   else if (d.seg === 'C') runBudget(s, dt, 'C', sp.C.rate, sp.C.total, function () {
     return rng.chance(sp.C.runnerShare) ? 'runner' : 'walker';
   }, { behind: sp.C.behind });
-  else if (d.seg === 'D' && d.hold.active && d.hold.t < P.CFG.level.spawnStopAt) {
+  else if (d.seg === 'D' && d.hold.active && !d.trialBoss && d.hold.t < P.CFG.level.spawnStopAt) {
     var ph = sp.D.phases.filter(function (p) { return d.hold.t < p.until; })[0];
     if (ph) runBudget(s, dt, 'D', ph.rate, 1e9, function () { return rng.chance(ph.runner) ? 'runner' : 'walker'; },
       { behind: true, allowVisible: true, visibleShare: sp.D.visibleDoorShare });
@@ -206,7 +215,8 @@ function scripted(s, dt) {
   var can = s.props.canisters[0];
   if (!d.tut.done.t_env) {
     if (!can.alive || h.y > 120) P.Director.complete(s, 't_env');
-    else if (h.y > 80 && s.enemies.filter(function (e) { return Math.hypot(e.x - can.x, e.y - can.y) < 3; }).length >= 3) {
+    else if (h.y > 80 && Math.hypot(h.x-can.x,h.y-can.y)<P.CFG.env.propIntent.reach+P.CFG.hero.radius+can.r &&
+      !s.activeHack && s.enemies.filter(function (e) { return Math.hypot(e.x - can.x, e.y - can.y) < 3; }).length >= 3) {
       P.Director.prompt(s, 't_env', 'prompt.t_env', { x: can.x, y: can.y });
     }
   }
@@ -221,7 +231,8 @@ function scripted(s, dt) {
   var EL = L.elites;
   if (!f.elite1 && h.y >= EL.firstY - 11) {
     f.elite1 = true;
-    P.Combat.spawnEnemy(s, 'walker', EL.firstX, EL.firstY, { elite: true });
+    var elite=P.Combat.spawnEnemy(s, 'walker', EL.firstX, EL.firstY, { elite: true });
+    if(elite&&s.routeTrial)elite.xp+=EL.earlyBuildXp;
     if (P.Modifiers && P.Modifiers.echoElites) P.Modifiers.echoElites(s, EL.firstX, EL.firstY);   // daily Elite night
     if (P.Modes) P.Modes.l1Elite(s, EL.firstX, EL.firstY);   // Nightmare: the hood signature 'elite' on L1 (no-op otherwise)
     P.Director.bark(s, 'barkElite');
@@ -233,6 +244,7 @@ function scripted(s, dt) {
 function startHold(s) {
   var d = s.dir;
   d.hold.active = true; d.hold.t = 0;
+  if (s.routeTrial) d.hold.T = P.IstiklalTrial.finale(s).holdBefore;
   s.props.scaffoldDown = true;
   s.events.push({ type: 'scaffold', trauma: P.CFG.feel.scaffoldTrauma });
   s.events.push({ type: 'holdStart' });
@@ -244,13 +256,19 @@ function startHold(s) {
 function updateHold(s, dt) {
   var d = s.dir, L = P.CFG.level;
   d.hold.t += dt;
-  if (!d.flags.elite2 && d.hold.t >= L.elites.holdT) {
+  var F = s.routeTrial && P.IstiklalTrial.finale(s);
+  if (F) {
+    if (!d.trialBoss && d.hold.t >= F.holdBefore) {
+      P.Director.complete(s, 't_hold');
+      P.IstiklalTrial.startBoss(s);
+    }
+  } else if (!d.flags.elite2 && d.hold.t >= L.elites.holdT) {
     d.flags.elite2 = true;
     var ex = Math.max(-5.5, Math.min(5.5, s.hero.x + 3)), ey = s.hero.y > 216 ? s.hero.y - 7 : s.hero.y + 7;
     P.Combat.spawnEnemy(s, 'walker', ex, ey, { elite: true });
     if (P.Modifiers && P.Modifiers.echoElites) P.Modifiers.echoElites(s, ex, ey);   // daily Elite night
   }
-  s.props.shutter = Math.min(1, d.hold.t / L.holdTime);
+  s.props.shutter = F ? (d.trialBoss && d.trialBoss.dead ? 1 : 0) : Math.min(1, d.hold.t / L.holdTime);
   if (s.props.shutter >= 1 && !s.props.shutterOpen) {
     s.props.shutterOpen = true;
     setBars(s, 0);
@@ -260,6 +278,7 @@ function updateHold(s, dt) {
   }
   if (s.props.shutterOpen && P.World.inShutter(s.hero)) {
     P.Director.complete(s, 'exit');
+    d.call.active = false; d.call.queue.length = 0; d.call.sub = null;
     s.mode = 'won';
     s.events.push({ type: 'win' });
   }

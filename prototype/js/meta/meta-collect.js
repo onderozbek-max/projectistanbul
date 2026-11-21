@@ -89,7 +89,7 @@ P.Meta = P.Meta || {};
     Object.keys(pages).forEach(function (id) { out.push({ id: 'page:' + id, kind: 'page', n: id }); });
     J.hoods.forEach(function (h) { out.push({ id: 'postcard:' + h.id, kind: 'postcard', n: h.id }); });
     C.LETTERS.forEach(function (l) { out.push({ id: l.id, kind: 'letter', n: l.id.split(':')[1] }); });
-    (M.Mastery && M.Mastery.list ? M.Mastery.list() : []).forEach(function (w) {
+    (P.Mastery && P.Mastery.list ? P.Mastery.list() : []).forEach(function (w) {
       out.push({ id: 'badge:' + w, kind: 'badge', n: w });
     });
     out.push({ id: 'cos:streak7', kind: 'cosmetic', n: 'streak7' }, { id: 'cos:ferry_cap', kind: 'cosmetic', n: 'ferry_cap' });

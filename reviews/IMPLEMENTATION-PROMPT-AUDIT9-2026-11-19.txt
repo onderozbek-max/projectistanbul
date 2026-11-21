@@ -1,0 +1,98 @@
+Implement the ENTIRE Audit 9 correction packet for Project Istanbul's first 30 Bölüms, then verify the integrated player experience before handing it back. This includes gameplay, encounter design, narrative, presentation, progression, accessibility and verification—not only bosses or the two UI bugs.
+
+Work in /Users/o0o02dn/Documents/istanbul. Read AGENTS.md and docs/handoff-codex.md first, then these three documents in full:
+
+1. /Users/o0o02dn/Documents/istanbul/reviews/GAMER-AUDIT-PASS9-2026-11-19.md
+2. /Users/o0o02dn/Documents/istanbul/reviews/AUDIT9-LEVELS-AND-ASSETS-2026-11-19.md
+3. /Users/o0o02dn/Documents/istanbul/reviews/AUDIT9-CLOSURE-AND-VERIFICATION-2026-11-19.md
+
+The entire packet is the execution scope: P9-01–10, every level/roster direction, and the unresolved E01–E14/P8 closure requirements it identifies. Use the earlier experiential PRD and revised Audit8 brief for detailed contracts where Audit9 refers back to them. Audit9 governs current findings and priorities; closed earlier defects are regression checks, not requests to recreate old implementations.
+
+Reconcile against the actual latest source and newest REVIEW-R1 entries. Specifically preserve and integrate the later opening-diner correction and bilingual narrative/context/comic-audio work documented in:
+- /Users/o0o02dn/Documents/istanbul/reviews/OPENING-DINER-FIX-2026-11-19.md
+- /Users/o0o02dn/Documents/istanbul/reviews/NARRATIVE-CONTEXT-AUDIT-2026-11-19.md
+- /Users/o0o02dn/Documents/istanbul/reviews/NARRATIVE-CONTEXT-CHANGES-2026-11-19.md
+- /Users/o0o02dn/Documents/istanbul/reviews/NARRATIVE-CONTEXT-READTHROUGH-2026-11-19.md
+
+Audit9 played/tested a frozen runtime; later edits were separately qualified. Reproduce each finding on the current build before repairing it. If it is already fixed, demonstrate closure on that build. Preserve unrelated uncommitted work and do not overwrite another agent's changes.
+
+OWNER INTENT AND COMPLETION STANDARD
+
+Our northstar is Hades-level clarity, physical credibility, encounter identity and narrative responsiveness in a portrait, one-thumb survivor game. Our distinctive direction is using Istanbul's streets as weapons and experiencing companionship through action. Improve those promises through complete sequences: approach → understandable decision → physical action → visible consequence → coherent continuation.
+
+A feature existing in source, a passing test, an animation atlas, or a successful bot run does not establish that the player understands or enjoys it. Conversely, do not replace working systems merely to show more changes. Fix the observable gap and demonstrate its effect in ordinary play.
+
+Treat this entire brief as one owner-authorized corrective pass. Gameplay/presentation changes expressly described in Audit9 are authorized within the first-30 scope. Record design and balance deviations through the project's existing notes/decision process. Update progress at internal milestones and continue through integration; do not stop after each subsection for approval or return after only the reference bosses. Ask only when genuinely missing authorization or information prevents dependent work, while continuing independent work.
+
+REQUIRED WORK
+
+1. Repair ordinary UI and state ownership: P9-01/02/09.
+Fix the rank-3/rank-5 mod chips that become vertical letter columns and distort upgrade screens. Use an intentional compact-icon/detail layout; retain readable full mod information and reachable choices/reroll/build inspection. Test populated six-slot, evolved and multi-mod states, both locales, default/largest text and supported phone sizes.
+Repair Memories as an explicit presentation lifecycle: readable replay above the correctly suspended hub; reliable completion/skip/back; correct return destination; no gameplay launching or advancing behind it; no stale comic in the next run; no duplicate rewards. A z-index-only patch or stubbed Comic.page test is insufficient.
+Preserve improved Gear, truthful benefits, active-skill hierarchy, portraits and badge catalogue. Explain the NEXT mastery rank's actual benefit, including rank zero, rather than only naming a distant rank-5 move. Make attributes, perks, gear, mastery, equipped skills and run-only upgrades distinguishable by how they are earned, what they affect and whether they persist.
+
+2. Complete emotional acting and playable handoffs: P9-04/09.
+Make protected scene actors fully readable without changing combat invulnerability rules. Use walkable, obstacle-aware stage marks and approaches from actual actor locations; no prop-standing, clipping or decorative teleportation. Author Arda's attention, response and shared departure, not only Kaan moving beside an idle hero.
+L20 must transition from Fisher defeat through recognition/lowered fish/native reading into a coherent shared departure. Do not return to unexplained solo combat or make Kaan disappear. Resolve remaining ordinary threats consistently with the scene, or deliberately author a shared playable beat. Do not retroactively grant Kaan help during Fisher.
+L25 must show Captain/tool/chain settling, Kaan's approach and lowered hands, Arda responding, a quiet shared pause and departure. Preserve factual neutral/current-help/stored-help variants. Loot, jokes and victory punctuation must yield.
+L30 must visibly connect the actual points/service passage to both characters' next intention, preserve Mom/family/Ataköy/unsafe-highway/Bazaar facts, then flow into results and the first-30 boundary.
+Recheck L1 transformation, knife ownership, stranger identity and escape route with the latest diner fix. Keep world acting visible before dedicated comic reading. Recompose panels where captions cover the important action; preserve complete native TR/EN text. Integrate the latest contextual dialogue and quiet-comic fixes and verify them in play.
+Preserve protected clocks, skip/retry, interruption recovery and exactly-once settlement throughout the entire defeat→scene→comic→control→exit→result chain.
+
+3. Finish boss acting and selective weapon craft: P9-03/08.
+Retain Arda's current gait as the working baseline. Fix only demonstrated ordinary-play or contact/carry integration defects. Ordinary enemies need readable roles and fair tells, not a detailed new limb rig for every zombie.
+All ten bosses need action-specific preparation, planted footwork/turning, coordinated body/hand/tool, true release/contact, follow-through, readable recovery and weighted defeat. Replace generic shared windup/contact explanations where different attacks demand different actions. Use authored anchors/timing that agree with actual aim lock and simulation geometry. A heavier boss may brace and haul; every boss need not dash or move at Arda's speed.
+Use Cook and Captain as internal quality references, then complete all ten according to the appendix. Do not hand back after those two. Camera emphasis must retain the threat and escape route and settle before danger resumes; preserve reduced-motion alternatives.
+Prioritize knife, bike chain and chainsaw. Improve chainsaw bite/resistance/recoil/retraction, chain ownership/tension and knife contact/return. Preserve Cable's successful connected electrocution. Inspect all 17 bases at ranks 1/3/5 and all 18 evolutions; selectively fix identity, source, contact, consequence and UI/world consistency. Preserve real reach and hit rules; no extra limbs, fake contacts or hidden attacks.
+
+4. Differentiate all 30 encounters and make challenge satisfying: P9-05/07.
+Work through EVERY level row in the appendix. Give adjacent levels distinct positional/timing decisions using existing mechanisms and geometry. A bell should create an exploitable gap; a hoist should open a useful approach; cover should protect a visible side; a trolley should reward choosing its safe lane; rescue should change who can move. Reduce redundant shutter/sack work and empty trips where they add no decision or consequence.
+Make release after a meaningful success perceptible. A short pause in new spawns does not establish relief if the same crowd continues pressing. Author usable space and reorientation without indiscriminate despawning, artificial waiting or padding efficient clears.
+Validate first encounters and strong rematches. A boss signature should be recognizable, answerable and produce a worthwhile opportunity. Preserve repaired Keeper access. Separate pre-boss crowd deaths from boss difficulty; investigate L14 bloater and early cover-policy failures and the other cited seeds. Distinguish driver errors from game softlocks. Do not use blanket HP inflation, hidden counter-scaling or compulsory invulnerable phases to force pattern exposure.
+Expose the existing owned-weapon plan at the relevant build decision, with truthful recipe/missing-piece/help explanation. Preserve defensive pivots and actual commitment. Check fast, typical and unlucky eligible offer paths. Evolution should produce meaningful remaining encounter use, not merely five cleanup targets or a reveal immediately swallowed by the chest/exit. Preserve uncertainty; do not guarantee every evolution every run.
+
+5. Make streets and companionship central to decisions.
+Preserve and strengthen actual street-object offense/cover/lure, carry/placement wear, real car consequences, L22→24 choice consequences and L23→25 earned help acknowledgment. Keep neutral and unsuccessful outcomes truthful.
+Show the useful target, protected side or route before commitment and the changed pressure afterward. Make Kaan's assistance and Arda's reciprocal help visible where the player is looking. Shared movement, rescue and departure should communicate the relationship before dialogue explains it. Complete these existing promises rather than substituting more prompts or collectible tasks.
+
+6. Establish readable dramatic states and combat hierarchy: P9-06.
+Prioritize Arda's position and immediate threats, then the current required action; optional loot/props/dialogue yield when they compete. Replace misleading “hit” instructions where deliberate proximity/holding is the actual input. Required and optional directions must be distinct.
+Damage, restored HP, block, critical health and recovery need different truthful feedback on mute, including full health, zero-benefit use and simultaneous events. Preserve intentionally saved full-health food and make its state understandable.
+Differentiate ordinary combat, player frenzy, hostile pressure, boss commitment and emotional release through behavior, local composition and restrained visual change. Constant brightness, zoom or particles are not sufficient tension. Keep meaningful cues under reduced effects/motion and within flash limits.
+In dense legal builds, retain hero feet/contact point, dangerous attack sources and readable escape geometry. Reduce decorative friendly fills/decals before adding more halos. Verify enemy-role recognition and dangerous combinations with the smallest effective corrections. Do not add a minimap by default.
+
+7. Finish sound, interruption and return experience.
+Review actual weapon/contact/threat sounds, mix competition, loops, frenzy transitions, defeat, Captain silence and the home motif using the existing approved assets. Check the complete transitions, not isolated sound files. Verify mute, audio resume and accessibility. A valid audio stream, waveform or routing test is not evidence of how it sounds.
+Make results, failure, a useful next improvement and returning to play coherent. Maintain the agreed optional monetization and viable no-spend/no-ad route. No artificial progression wall to force ads or purchases.
+
+VERIFICATION IS PART OF THE IMPLEMENTATION
+
+Build a coverage matrix before editing, mapping P9-01–10, unresolved E/P8 requirements, all 30 levels, ten bosses, weapon/evolution roster and major scene/menu flows to repair/retain decisions and acceptance evidence. Reconcile every row at the end. No row closes merely because a hook or asset exists.
+
+Use real rendered browser checks for the populated upgrade layout and complete Memories chain: visibility, bounds, hit-testing, focus/input, overlay removal and stopped/resumed simulation. Include default and minimum supported phone viewport, TR/EN and largest text. Add targeted regressions for confirmed failures; avoid implementation-mirroring tests that cannot fail when the player's experience is broken.
+
+Perform an end-to-end first-30 ordinary-input, fresh-save walkthrough in the real rendered game. Retain earned progression between levels and include upgrades, failure/retry, results, spending/equipment, story replay, interruption and return. Record assists and retries. Keep debug fixtures and bot campaigns separately labelled; neither substitutes for this walkthrough. Where a different build or earned state is needed, document how it was obtained.
+
+Capture and review normal-speed full-viewport play with the ordinary HUD, menus and overlays. Include clean and crowded contact, all bosses, major earned L1/L20/L25/L30 sequences through the actual subsequent exit/result, real choice/help chains and muted/reduced variants. Check meaningful before/action/after intervals. Reject frozen, paused, obscured or wrong-build evidence; frame strips supplement temporal review. If you can only sample frames, say so and keep continuous-motion acceptance pending.
+
+Run meaningful focused checks, then the current full prototype suite after the integrated changes settle; use the background workflow and continue useful work while it runs. Include required nonruntime art/tool dependencies. Resolve infrastructure failures honestly; do not disable failing checks. Rerun affected checks after subsequent fixes, and ensure final verification corresponds to the final runtime.
+
+Run earned all-30 broad/cover/offense/banked-growth policies, relevant weak/typical/strong boss comparisons and focused evolution/conditional cases. Preserve all failures, missed offers and timeouts; diagnose cause instead of optimizing only win totals. Record acquisition→first signature→meaningful use and actual choice/help consequences. Use declared policies/seeds rather than presenting selected successful trials as ordinary frequency. Do not equate nearby-enemy time with intensity or bot wins with enjoyment.
+
+Complete actual physical-iPhone sustained touch/performance/interruption checks, headphone/phone-speaker listening and the existing 5–8 unfamiliar-player protocol when those resources are genuinely available and authorized. Include an uncoached complete first-30 player run. Do not impersonate a human participant, fabricate listening/device evidence or recruit/message people on my behalf without permission.
+
+If an external resource or observation capability is unavailable, finish all independent implementation and accessible verification. Document exactly what remains, why, the executable test script and its acceptance questions. That is an explicit pending gate, not permission to claim the complete experience is verified. Do not stop early because a later external check is unavailable. In particular, identify an uncompleted rendered walkthrough separately from completed bot campaigns.
+
+SCOPE AND DELIVERY
+
+Keep N1 alternative starting weapons, N2 a new environmental boss-counter mechanic and N3 curated replay variants deferred. No production beyond L30, engine migration, new architecture rule, dependency/paid service, real ad/IAP integration or automatic commit/push/merge. Preserve one-thumb automatic combat, sim/view separation, localization/native dialogue, current approved artwork and project guardrails. Use the existing authorized art workflow for specifically needed poses/contact/staging assets. Do not replace the roster or redesign working progression wholesale.
+
+Deliver /Users/o0o02dn/Documents/istanbul/reviews/AUDIT9-IMPLEMENTATION-2026-11-19.md plus linked coverage/pacing/evidence appendices as needed. Include:
+- Every P9 item and unresolved E/P8 requirement: prior problem, player-visible change, current status and exact evidence. Distinguish implemented, visually demonstrated, earned-play verified, human/device verified and pending.
+- All-30 and full-roster coverage, with justified retain/repair decisions, encounter differences, actual losses and unresolved risks.
+- Exact final source/runtime identity, test commands/results, progression assumptions and seeds, and clearly labelled capture provenance. Preserve original versions instead of silently relabelling older films.
+- A concise normal-speed before/after reel of the largest experiential changes, with complete underlying recordings and ordinary-flow reproductions available.
+- The completed walkthrough record, audio/device/player evidence actually obtained, and explicit remaining gates with actionable scripts.
+- Updated REVIEW-R1, relevant source-of-truth notes and proposed decision/deviation entries. Make the currently verified local build straightforward to launch.
+
+Continue through the entire corrective pass, integrated review and repairs of failures found during verification. Do not hand back only better bosses, green tests, a reference reel or a feature-completion list. Finish by stating which whole-experience gates passed, which remain open and whether the build is ready for independent review. Do not self-certify masterpiece status, Hades parity, human retention or expansion approval.

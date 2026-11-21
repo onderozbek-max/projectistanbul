@@ -20,6 +20,7 @@ P.UIMotion = (function () {
   // under it at once; then it gets the hidden class. Showing cancels a pending hide. Reduce motion hides at once.
   U.screen = function (node, on) {
     if (!node) return;
+    node.inert = !on;
     if (on) {
       clearTimeout(node._leave); node._leave = 0;
       node.classList.remove('is-leaving', 'hidden');
@@ -89,5 +90,16 @@ P.UIMotion = (function () {
   };
   U.panelOpen = function (node) { return !!node && !node.classList.contains('meta-hidden') && !node.classList.contains('is-out'); };
 
+  // Reveal within the owning panel. Native scrollIntoView also scrolls the
+  // hidden map/phone ancestors and shifts the next screen on return.
+  U.revealWithin = function (root, node, center) {
+    if(!root||!node||!root.contains(node))return;
+    var a=root.getBoundingClientRect(),b=node.getBoundingClientRect(),scale=a.height/(root.offsetHeight||1),dy=0;
+    if(!scale)return;
+    if(center)dy=(b.top+b.bottom-a.top-a.bottom)/2;
+    else if(b.bottom>a.bottom)dy=b.bottom-a.bottom;
+    else if(b.top<a.top)dy=b.top-a.top;
+    root.scrollTop+=dy/scale;
+  };
   return U;
 })();

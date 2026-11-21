@@ -2,6 +2,10 @@
 // Keys: cfx.<stat key> is the short label for a weapon stat delta (config-weapons*.js); card.* is the chip and
 // detail text. Passives use their stat.* label (strings.js). TR is written natively; EN is the same meaning.
 Object.assign(P.STR.tr, {
+  'card.training.melee': 'Yakın dövüş · Güç geliştirir', 'card.training.ranged': 'Uzak dövüş', 'card.training.gadget': 'Düzenek',
+  'card.impact.blade': 'Kesici', 'card.impact.blunt': 'Darbe', 'card.impact.gas': 'Gaz', 'card.impact.fire': 'Ateş',
+  'card.impact.electric': 'Elektrik', 'card.impact.water': 'Su',
+  'card.heavy.yes': 'Ağır silah · {perk} itişi güçlendirir.', 'card.heavy.no': '{perk} yalnızca ağır silahlarda işler.',
   'cfx.dmg': 'hasar', 'cfx.r': 'alan', 'cfx.blast': 'patlama', 'cfx.arcR': 'menzil', 'cfx.zapR': 'menzil',
   'cfx.radius': 'yarıçap', 'cfx.arcDeg': 'açı', 'cfx.spreadDeg': 'yayılma', 'cfx.arcN': 'ark', 'cfx.blades': 'bıçak',
   'cfx.spanX': 'genişlik', 'cfx.stun': 'sersemlik', 'cfx.slamStun': 'sersemlik', 'cfx.slams': 'darbe',
@@ -17,9 +21,13 @@ Object.assign(P.STR.tr, {
   'card.recipe': 'Tarif: {what}',
   'card.evoReady': 'EVRİM · hazır', 'card.evoLeft': 'EVRİM · {n} şart',
   'card.synergy': 'Sinerji: {weapon}',
-  'card.recipeHead': 'Evrim tarifi',
+  'card.recipeHead': 'Evrim tarifi', 'card.recipePick': 'TARİF', 'card.needRank': '{n}. seviye', 'card.detailsUnlock': 'Kilitli',
 });
 Object.assign(P.STR.en, {
+  'card.training.melee': 'Melee · trains Strength', 'card.training.ranged': 'Ranged', 'card.training.gadget': 'Gadget',
+  'card.impact.blade': 'Blade', 'card.impact.blunt': 'Blunt', 'card.impact.gas': 'Gas', 'card.impact.fire': 'Fire',
+  'card.impact.electric': 'Electric', 'card.impact.water': 'Water',
+  'card.heavy.yes': 'Heavy · {perk} boosts knockback.', 'card.heavy.no': '{perk} applies to heavy weapons only.',
   'cfx.dmg': 'damage', 'cfx.r': 'area', 'cfx.blast': 'blast', 'cfx.arcR': 'reach', 'cfx.zapR': 'reach',
   'cfx.radius': 'radius', 'cfx.arcDeg': 'arc', 'cfx.spreadDeg': 'spread', 'cfx.arcN': 'arc', 'cfx.blades': 'blade',
   'cfx.spanX': 'width', 'cfx.stun': 'stun', 'cfx.slamStun': 'stun', 'cfx.slams': 'slam', 'cfx.spitBlock': 'block',
@@ -34,5 +42,5 @@ Object.assign(P.STR.en, {
   'card.recipe': 'Recipe: {what}',
   'card.evoReady': 'EVO · ready', 'card.evoLeft': 'EVO · {n} to go',
   'card.synergy': 'Synergy: {weapon}',
-  'card.recipeHead': 'Evolution recipe',
+  'card.recipeHead': 'Evolution recipe', 'card.recipePick': 'RECIPE', 'card.needRank': 'Rank {n}', 'card.detailsUnlock': 'Locked',
 });

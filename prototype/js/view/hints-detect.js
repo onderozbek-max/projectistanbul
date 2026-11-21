@@ -24,7 +24,9 @@ P.HintsDetect = (function () {
       else if (d.kind === 'jeton') see('currency', d.x, d.y);
       else if (d.kind === 'chest') see('chest', d.x, d.y);
     });
-    if (s.eczane) s.eczane.list.forEach(function (st) { if (!st.used) see(st.variant, st.b.x, st.b.y); });   // R1-T4 parts 14, 17: unused stations (eczane or kiosk)
+    if (s.eczane) s.eczane.list.forEach(function (st) {
+      if (!st.used && !P.RouteMilestones.pastClosedGate(s, st.b.y)) see(st.variant, st.b.x, st.b.y);
+    });
     objs = P.Objectives && P.Objectives.items ? P.Objectives.items(s) : [];
     objs.forEach(function (it) { if (it.kind === 'crate' && !it.done) see('objective', it.x, it.y); });
     if (s.props && s.props.canisters) s.props.canisters.forEach(function (c) { if (c.alive) see('explosive', c.x, c.y); });

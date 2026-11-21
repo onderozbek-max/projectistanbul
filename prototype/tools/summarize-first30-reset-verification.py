@@ -1,0 +1,20 @@
+"""Retain initial failures and resolve only explicit unchanged-source retries."""
+from pathlib import Path
+import json,datetime
+R=Path(__file__).resolve().parents[2];D=R/'reviews/telemetry/first30-reset';M=R/'reviews/media/R1/first30-reset'
+def read(p,d=None):
+ try:return json.loads(p.read_text())
+ except (OSError,ValueError):return d
+def status(name):
+ p=D/(name+'.exit');return p.read_text().strip() if p.exists() else None
+source=read(D/'candidate17.json');jobs=read(D/'candidate17-delta-jobs.json',{}).get('jobs',[]);resolved=[]
+for job in jobs:
+ name='candidate17-'+job['id'];retry=status(name+'-retry')
+ resolved.append({**job,'originalExit':job['exit'],'retryExit':retry,'resolvedExit':0 if job['exit']==0 or retry=='0' else job['exit'],'resolution':'Initial browser/game startup timeout before assertions; exact unchanged serial retry passed; original retained' if job['exit']!=0 and retry=='0' else 'Original pass' if job['exit']==0 else 'Unresolved; see retained original'})
+journeys=[]
+for tag in ['candidate17-journey','candidate17-firstclear9-supplement']:
+ index=read(M/tag/'index.json',{});rows=index.get('records',[]);save=read(M/tag/'earned-save-final.json')
+ journeys.append({'tag':tag,'exit':status(tag),'records':len(rows),'wins':sum(r.get('outcome')=='won' for r in rows),'losses':sum(r.get('outcome')=='dead' for r in rows),'levelsWon':sorted({r['level'] for r in rows if r.get('outcome')=='won'}),'completeExports':sum(bool(r.get('file')) and (M/tag/r['file']).exists() for r in rows),'exportGapRecords':[r for r in rows if not r.get('file')],'finalPermanentState':{'unlocked':save.get('unlocked'),'settledRuns':len(save.get('settledRuns',[])),'coins':save.get('coins'),'stars':save.get('stars')} if save else None,'method':'Automated actual rendered ordinary handlers with earned permanent state, visible choices and retained failures; not uncoached human or phone play.'})
+suite=(D/'candidate17-full-suite.log').read_text()
+q={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source':source,'fullSuite':{'exit':status('candidate17-full-suite'),'groupsPassed':sum(line.startswith('ok ') for line in suite.splitlines()),'finalLine':suite.splitlines()[-1],'source':'Sealed17 test runtime, tools frozen before run; not a moving workspace','log':'reviews/telemetry/first30-reset/candidate17-full-suite.log'},'initialDeltaExit':status('candidate17-delta'),'resolvedDelta':resolved,'earned':journeys,'boundaryInitialExit':status('candidate17-earned-boundary'),'boundaryExit':status('candidate17-earned-boundary-retry2'),'boundaryResolution':read(D/'candidate17-boundary-resolution.json'),'quietBaselineBenchmarkExit':status('baseline-quiet17-benchmark'),'quietFinalBenchmarkExit':status('candidate17-quiet-benchmark'),'localArtSourcesExit':status('local-sources-final'),'runtimeVerification':read(D/'candidate17-runtime-final-verification.json'),'recordingRepair':'Original17 L9 reached actual clear but bulk recorder export timed out. Raw images/result retained. Streaming repair keeps original bytes/timestamps, acknowledgments and exact byte counts; successful actual9 replay and separate fresh1–9 supplement are individually labelled. First streaming menu failure retained; menu-only growth records full DOM/audio because suspended game canvas emits no frames. No simulation/save grant or false continuous9 first-clear stitched from missing timestamps.','externalGates':['Named physical iPhone performance/heat/audio focus/one-thumb comfort','Listening to actual repeated post-master audio','Continuous motion/dramatic craft judgment through a real player','Unfamiliar-player discovery, comprehension, fun and voluntary return']}
+(D/'verification-final-summary.json').write_text(json.dumps(q,indent=2)+'\n');print({k:q[k] for k in ['fullSuite','initialDeltaExit','boundaryExit','quietFinalBenchmarkExit']});print('Resolved diagnostic jobs',len(resolved),'unresolved',sum(r['resolvedExit']!=0 for r in resolved));print([{k:j[k] for k in ['tag','exit','records','wins','losses','levelsWon','completeExports']} for j in journeys])

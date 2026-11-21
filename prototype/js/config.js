@@ -10,6 +10,7 @@ P.CFG = {
   sim: { hz: 60, maxStepsPerFrame: 4 },                                   // ARCH 4.11
   view: {
     widthM: 10, holdWidthM: 12, zoomTime: 0.6,                            // V2: closer camera (GD 2 says 12/13.5)
+    istiklalWall: { depth: 0.88, rise: 0.92 },                            // projected metres from the plinth to the roof edge
     aspect: 844 / 390, lookAhead: 1.5, smoothing: 0.15,                   // GD 2, LD 11
     offscreenMargin: 1.0,                                                 // PROTO
     geoHeroHalfX: 4.6,                                                    // generated levels: walk zone half-width (layouts.js, lane B; not the hero clamp)
@@ -33,10 +34,12 @@ P.CFG = {
     radius: 0.4,                                                          // PROTO
     iframeHitFrac: 0.10, iframeTime: 0.25,                                // GD 4.3
     secondWindInvuln: 2.0,                                                // GD 3
+    deathRecap: { hits: 24, historyS: 8, minHealthShare: .15 },
   },
   contactInterval: 0.5,                                                   // GD 4.3
   hpScalePerMinute: 0.08,                                                 // GD 4.6, CODE
   knockbackTime: 0.15,                                                    // DS 7
+  swingImpact: { airtime: 0.32, extraTime: 0.16, height: 0.50, extraHeight: 0.70, roll: 0.52, extraRoll: 0.59, drift: 0.95 },
   enemies: {                                                              // CC 5, CODE enm_walker.tres
     walker:  { hp: 10, speed: 1.2, contact: 5, radius: 0.35, xp: 2, kbResist: 0 },
     runner:  { hp: 6,  speed: 2.9, contact: 4, radius: 0.32, xp: 3, kbResist: 0 },
@@ -53,7 +56,7 @@ P.CFG = {
   // reviews/REVIEW-R1.md T4 part 4). The hand-built Level 1 keeps xp.l1 (level-001-istiklal.md section 8). P.xpHand picks the curve.
   // R1-T4 part 16 (pacing P1): base 30 / mult 5 -> 32 / 11 (L2+). First Adrenalin level-up about 12 s, then one every ~28-31 s
   // on the bot; the crates in config-levels.js pace.crateSeg pay for the lost cards. L1 keeps xp.l1 (unchanged).
-  xp: { base: 32, mult: 11, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, crowd: { mul: 1, ref: 40 }, l1: { base: 5, mult: 5, exp: 1.6 } },
+  xp: { base: 32, mult: 11, exp: 1.6, magnetSpeed: 8, collectDist: 0.5, chestCollectDist: 1.15, crowd: { mul: 1, ref: 40 }, l1: { base: 5, mult: 2.5, exp: 1.0 } },
   // healCap: HP per run from simit and other drops (combat.js dropHeal), R1-T4 part 4. simitChance stays 0.005: 0.002 cost ~9 points of L5 clear.
   drops: { jetonChance: 0.05, jetonMin: 1, jetonMax: 5, simitChance: 0.005, simitHeal: 25, healCap: 70 }, // CC 8-9
   // V2 Level 1 kit (owner feedback: "ayran, tereyağ, çatal are meaningless"). Every weapon is a distinct verb.
@@ -79,10 +82,10 @@ P.CFG = {
       ],
     },
     canister: {                                                           // lobbed AoE (replaces Tea Glass)
-      cooldown: 2.4, seekRange: 6.5, flightTime: 0.6, knockback: 1.0, fireTime: 2.5, fireDps: 10,
+      cooldown: 1.8, seekRange: 6.5, flightTime: 0.5, knockback: 1.0, fireTime: 2.5, fireDps: 10,
       levels: [
-        { dmg: 24, proj: 1, blast: 1.5, fire: false },
-        { dmg: 24, proj: 2, blast: 1.5, fire: false },
+        { dmg: 24, proj: 1, blast: 1.8, fire: false },
+        { dmg: 24, proj: 2, blast: 1.8, fire: false },
         { dmg: 24, proj: 2, blast: 1.9, fire: false },
         { dmg: 24, proj: 3, blast: 1.9, fire: false },
         { dmg: 34, proj: 3, blast: 1.9, fire: true },
@@ -109,6 +112,9 @@ P.CFG = {
   },
   maxItemLevel: 5,
   cards: {                                                                // GD 5.3, CODE card_offer.gd
+    earlyRecipeThrough: 4, partnerOfferFrom: 6,
+    entryBuildThrough: 30, survivalChoiceAt: .43,
+    entryBuilds: [['nailgun', 'speargun', 'sawblade'], ['canister', 'molotov', 'extinguisher', 'fireworks']],
     count: 3, wUpgradeWeapon: 3, wUpgradePassive: 3, wNewWeapon: 2.5, wNewPassive: 2,
     slotsWeapon: 6, slotsPassive: 6, fillerSimitHeal: 30, fillerJeton: 20, freeRerolls: 1,
   },
@@ -122,10 +128,10 @@ P.CFG = {
   feel: {                                                                 // DS 6-7
     hitFlash: 0.06, stabHitStop: 0.08,
     traumaPlayerHit: 0.45, traumaDecay: 1.5, maxShakePx: 12, maxShakeDeg: 1,
-    scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.06, punchTime: 0.12, dmgPop: 1.5, dmgPopT: 0.15,
-    dmgNumberLife: 0.7, dmgNumberRise: 0.6, dmgNumberMax: 40, dmgMerge: 0.2, lowHpFrac: 0.3,
+    scaffoldTrauma: 0.4, levelUpSlowMo: 0.3, punchZoom: 0.06, punchTime: 0.12,
+    dmgNumberLife: 0.46, dmgNumberRise: 0.38, dmgNumberMax: 6, dmgMerge: 0.2, lowHpFrac: 0.3,
     edgePulseFrac: 0.1, edgePulseAlpha: 0.25, edgePulseLife: 0.25, edgePulseGap: 0.55,  // G3: red edge pulse on a heavy hit (gap > 0.5 s so three hits in 1 s give at most two pulses)
-    heroFlashGap: 0.34,                                                   // G3: hero white flash, at most 3 in any 1 s window (60 ms each)
+    heroFlashGap: 0.34, heroFlashAlpha: 0.36,                              // G3: brief hero hit tint that leaves the sprite readable
     enemyFlashGap: 0.34,                                                  // guardrail: one white hit flash per enemy, at most 3 in any 1 s (squash still plays)
     hitSparks: 3,                                                         // G3: sparks per enemy hit (view only)
     partsMax: 500,                                                        // view: particle cap for big crowds
@@ -147,7 +153,7 @@ P.CFG = {
     diners: [ { x: -4.6, y: -4.4, delay: 0 }, { x: -8.8, y: -8.6, delay: 2.5 } ],  // V2 delay 4 -> 2.5
     simitCart: { x: 5, y: 70 }, chestnutCart: { x: -4, y: 80 },
     canisters: [ { x: 4, y: 100 }, { x: -5, y: 210 }, { x: 3, y: 218 } ],
-    elites: { firstY: 140, firstX: 3.5, holdT: 28 },                     // V3: one elite in C, one mid-hold, each drops a Mini Chest
+    elites: { firstY: 116, firstX: 3.5, holdT: 28, earlyBuildXp:20 },                     // V3: one elite in C, one mid-hold, each drops a Mini Chest
     cat: { x: -6.5, y: 170 }, crawlerFrom: { x: -5.6, y: 176 }, catTriggerY: 165,
     civilians: { groups: 4, perGroup: 3, fleeSpeed: 4.2, life: 7 },      // V2: fewer, real people (no "rain")
     grabY: 30, clusterY: 90, clusterDoorY: 105, clusterCount: 10,

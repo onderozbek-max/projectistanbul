@@ -1,0 +1,6 @@
+'use strict';
+const fs=require('node:fs'),app=require('./lib-load').loadP(),ids=app.CFG.arsenal.weapons;
+const keys=new Set(['area','range','count','bounce','pull','life','echo','shards','chain','stick','slow','cloud','reflect','root','stun','pierce','spin','push']),rows=[];
+for(const id of ids)for(const branch of ['A','B'])for(const tail of ['1','2']){const route=[id+'.'+branch,id+'.'+branch+tail];rows.push({weapon:id,path:route,fx:route.map(k=>app.CFG.modDefs[k]?.fx),geometry:route.some(k=>Object.keys(app.CFG.modDefs[k]?.fx||{}).some(x=>keys.has(x))),unlock:app.CFG.unlock.weapons[id]||1,mastery:5,priorActions:4});}
+fs.writeFileSync('reviews/telemetry/first30-reset/advanced-inventory.json',JSON.stringify({source:'Actual CFG modDefs, sig and unlock rules. Supplied visual diagnostics, not naturally earned mastery. Pure numerical paths also receive full arsenal-suite coverage.',cases:rows},null,2)+'\n');
+for(const branch of ['A','B']){const select=rows.filter(r=>r.path[1].endsWith(branch+'2')&&r.geometry).map(r=>r.weapon);if(!select.length)throw Error('Empty advanced branch inventory');fs.writeFileSync('reviews/telemetry/first30-reset/advanced-'+branch+'2.txt',select.join(','));console.log(branch+'2',select.join(','));}

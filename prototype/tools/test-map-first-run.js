@@ -93,6 +93,15 @@ function cdpClient(wsUrl) {
     close: () => ws.close(),
   };
 }
+async function readyAt(c, expression) {
+  for (let i = 0; i < 200; i++) {
+    const state = await c.send('Runtime.evaluate', { expression, returnByValue: true });
+    if (state.result.value) return;
+    await sleep(100);
+  }
+  throw new Error('Browser did not reach ' + expression);
+}
+const TITLE_READY = "typeof P !== 'undefined' && P.debug && P.debug.state === 'title'";
 const BLOCK_STORAGE = "Object.defineProperty(window,'localStorage',{configurable:true,get(){var e=new Error('The operation is insecure.');e.name='SecurityError';throw e}});";
 const SCENARIOS = [
   { id: 'tr-390', lang: 'tr', w: 390, h: 844, expect: 'map' },
@@ -132,11 +141,11 @@ async function runScenario(sc, chromeArgs) {
     '--no-default-browser-check', '--disable-gpu', ...chromeArgs, 'about:blank'], { stdio: 'ignore' });
   try {
     let wsUrl = null;
-    for (let i = 0; i < 150 && !wsUrl; i++) {
+    for (let i = 0; i < 900 && !wsUrl; i++) {
       try { const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); const pg = list.find(x => x.type === 'page'); if (pg) wsUrl = pg.webSocketDebuggerUrl; } catch (e) { /* not up yet */ }
       if (!wsUrl) await sleep(100);
     }
-    if (!wsUrl) throw new Error('Chrome did not start');
+    if (!wsUrl) throw new Error('Chrome did not start within 90s; exit=' + proc.exitCode);
     const c = cdpClient(wsUrl); await c.ready;
     const errors = [], bootErrors = [];
     c.on(m => {
@@ -151,10 +160,13 @@ async function runScenario(sc, chromeArgs) {
     await c.send('Emulation.setDeviceMetricsOverride', { width: sc.w, height: sc.h, deviceScaleFactor: 3, mobile: true });
     if (sc.init) await c.send('Page.addScriptToEvaluateOnNewDocument', { source: sc.init });
     await c.send('Page.navigate', { url: `${sc.base}/index.html?lang=${sc.lang}&map=1` });
-    await sleep(2000);
+    await readyAt(c, TITLE_READY);
+    // The title is available while the approved hero atlas is still loading. Wait for
+    // the real entry prerequisite so the injected open failure is actually exercised.
+    await readyAt(c, "P.ArtRaster.heroState() === 'ready'");
     if (sc.beforeStart) await c.send('Runtime.evaluate', { expression: sc.beforeStart });
     await c.send('Runtime.evaluate', { expression: "document.getElementById('btn-start').click()" });
-    await sleep(2500);
+    await readyAt(c, "P.debug.state === '" + sc.expect + "'");
     const read = JSON.parse((await c.send('Runtime.evaluate', { expression: READ, returnByValue: true })).result.value);
     let shotOk = false;
     if (sc.id === 'tr-390') {
@@ -227,22 +239,29 @@ async function debugExportCheck(base) {
     '--no-default-browser-check', '--disable-gpu', '--window-size=500,1000', 'about:blank'], { stdio: 'ignore' });
   try {
     let wsUrl = null;
-    for (let i = 0; i < 150 && !wsUrl; i++) {
+    for (let i = 0; i < 900 && !wsUrl; i++) {
       try { const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); const pg = list.find(x => x.type === 'page'); if (pg) wsUrl = pg.webSocketDebuggerUrl; } catch (e) { /* not up yet */ }
       if (!wsUrl) await sleep(100);
     }
-    if (!wsUrl) throw new Error('Chrome did not start');
+    if (!wsUrl) throw new Error('Chrome did not start within 90s; exit=' + proc.exitCode);
     const c = cdpClient(wsUrl); await c.ready;
     const errors = [];
     c.on(m => { if (m.method === 'Runtime.exceptionThrown') { const d = m.params.exceptionDetails; errors.push(((d.exception && d.exception.description) || d.text).split('\n')[0]); } });
     await c.send('Runtime.enable'); await c.send('Page.enable');
     await c.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
     await c.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
-    await c.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__exports = 0; (function () { var o = URL.createObjectURL; URL.createObjectURL = function (b) { window.__exports++; return o.call(URL, b); }; })();' });
+    await c.send('Page.addScriptToEvaluateOnNewDocument', { source: `
+      window.__exports = 0;
+      document.addEventListener('click', function (event) {
+        const a = event.target.closest('a[download]');
+        if (a && a.href.startsWith('blob:') && /^telemetry-.*\\.jsonl$/.test(a.download)) window.__exports++;
+      }, true);
+    ` });
     const evalV = async expr => (await c.send('Runtime.evaluate', { expression: expr, returnByValue: true })).result.value;
     const tapId = async id => { const p = JSON.parse(await evalV(VISIBLE(id))); await tapAt(c, p.x, p.y); await sleep(400); };
     // Debug on: title gear -> settings shows the export; a tap downloads.
-    await c.send('Page.navigate', { url: `${base}/index.html?lang=en&debug=1&map=1` }); await sleep(2000);
+    await c.send('Page.navigate', { url: `${base}/index.html?lang=en&debug=1&map=1` });
+    await readyAt(c, TITLE_READY);
     await tapId('btn-title-settings'); await sleep(700);
     exportCheck('[debug settings] ', JSON.parse(await evalV(VISIBLE('btn-settings-export'))));
     await tapId('btn-settings-export'); await sleep(300);
@@ -263,7 +282,8 @@ async function debugExportCheck(base) {
     await tapId('btn-export'); await sleep(300);
     check((await evalV('window.__exports')) === 2, '[debug pause] tap did not download the JSONL');
     // Debug off (control): the settings export stays hidden.
-    await c.send('Page.navigate', { url: `${base}/index.html?lang=en&map=1` }); await sleep(2000);
+    await c.send('Page.navigate', { url: `${base}/index.html?lang=en&map=1` });
+    await readyAt(c, TITLE_READY + " && !location.search.includes('debug=1')");
     await tapId('btn-title-settings'); await sleep(700);
     check(JSON.parse(await evalV(VISIBLE('btn-settings-export'))).hidden === true, '[no debug] settings export is shown without ?debug=1');
     check(errors.length === 0, 'debug export: thrown errors: ' + errors.join(' | '));

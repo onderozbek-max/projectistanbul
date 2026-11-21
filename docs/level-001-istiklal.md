@@ -198,8 +198,10 @@ Times are relative to segment entry. "Budget" uses enemy costs from content-cata
 
 ## 9. Story During Play: The Phone Call
 
-A small **call widget** (top center): "Anne" + call timer + signal bars. VO with subtitles;
-gameplay never pauses for it. Lines play at segment entries (after the first card is chosen).
+The live **call widget** shows Anne, elapsed time for the current exchange, and signal bars
+while a line is spoken. The current speaker appears in a comic portrait with a speech bubble
+positioned away from objectives and attack warnings. Gameplay continues through the call.
+The widget clears between scripted exchanges, then returns when the next line starts.
 
 | When | Line (TR) | EN |
 |---|---|---|

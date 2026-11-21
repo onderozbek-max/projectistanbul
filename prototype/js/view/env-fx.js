@@ -71,6 +71,14 @@
   F.drawGround = function (R, s) {
     var E = s.env, t = performance.now() / 1000, i, z;
     if (!E) return;
+    if (P.StreetInvitations) E.recs.forEach(function (r) {
+      if (!r.alive || r.fuseT <= 0 || !inView(R, r.y, 3)) return;
+      var c = R.ctx, radius = P.CFG.env.blast.r * R.ppm;
+      c.save(); c.lineWidth = 2;
+      c.strokeStyle = 'rgba(255,168,111,.87)'; c.setLineDash([5, 4]);
+      c.beginPath(); c.arc(R.X(r.x), R.Y(r.y), radius, 0, TAU); c.stroke();
+      c.restore();
+    });
     var theme = P.RenderWorld.themeOf(s).id;
     var galata = theme === 'galata' && P.GalataProps, bridge = theme === 'bridge' && P.BridgeProps;
     for (i = 0; i < E.zones.length; i++) {
@@ -83,7 +91,8 @@
         if (z.rec && bridge) bridge.drawBroken(R, z);
       }
       else if (z.kind === 'debris') {
-        var rubble = z.rec && galata && galata.draw(R, z.rec.kind, z.x, z.y, { broken: true });
+        var bench = z.rec && z.rec.kind === 'bench' && P.StreetArt && P.StreetArt.current();
+        var rubble = !bench && z.rec && galata && galata.draw(R, z.rec.kind, z.x, z.y, { broken: true });
         if (!rubble && z.rec && bridge) rubble = bridge.drawBroken(R, z);
         if (!rubble) slick(R, z, 'rgba(150,110,70,A)', 'rgba(230,200,150,A)');
       } else if (z.kind === 'foam') foam(R, z, t);
@@ -129,8 +138,10 @@
     var c = R.ctx, u = R.ppm, X = R.X(p.x), Y = R.Y(p.y), w = (p.kind === 'door' ? 1.1 : 1.0) * u, h = (p.kind === 'door' ? 2.0 : 0.8) * u;
     var a = p.state === 'open' ? 0.2 + 0.6 * Math.min(1, p.t / p.T) : p.state === 'spill' ? Math.max(0.2, 0.8 - p.t) : 0;
     if (!a) return;
-    c.fillStyle = 'rgba(255,190,90,' + a.toFixed(3) + ')'; c.fillRect(X - w / 2, Y - h / 2, w, h);
-    c.strokeStyle = 'rgba(20,21,31,0.8)'; c.lineWidth = 2; c.strokeRect(X - w / 2, Y - h / 2, w, h);
+    var x0 = X - w / 2, y0 = Y - h / 2, gap = w * Math.min(0.65, a);
+    c.fillStyle = 'rgba(20,21,31,' + Math.min(0.82, a + 0.25).toFixed(3) + ')'; c.fillRect(x0, y0, w, h);
+    c.fillStyle = 'rgba(207,171,116,' + (a * 0.66).toFixed(3) + ')'; c.fillRect(x0 + w - gap, y0, gap, h);
+    c.strokeStyle = 'rgba(210,190,164,0.65)'; c.lineWidth = 2; c.strokeRect(x0, y0, w, h);
   }
   function hazardCarGlow(R, s) {
     var L = s.ev ? s.ev.list : [], i, ev;
@@ -169,12 +180,18 @@
     jag(g, x0 + (x1 - x0) * 0.5, y, x1, y + 0.3 * R.ppm, s + 1, 0.3 * R.ppm);
   }
   function arcs(R, E) {
-    var g = R.ctx, i, a, k;
+    var g = R.ctx, i, a, k, x0, y0, x1, y1, seed, bend;
     for (i = 0; i < E.arcs.length; i++) {
       a = E.arcs[i];
       k = Math.min(1, a.t / a.T);
-      g.strokeStyle = 'rgba(170,240,255,' + (0.9 * k).toFixed(3) + ')'; g.lineWidth = 2;
-      jag(g, R.X(a.x0), R.Y(a.y0), R.X(a.x1), R.Y(a.y1), i + shapeSeed(a.T - a.t, 3), 0.5 * R.ppm);
+      x0 = R.X(a.x0); y0 = R.Y(a.y0); x1 = R.X(a.x1); y1 = R.Y(a.y1);
+      seed = Math.floor((a.x1 - a.y1) * 51); bend = 0.21 * R.ppm;
+      g.strokeStyle = 'rgba(16,37,62,' + (0.7 * k).toFixed(3) + ')'; g.lineWidth = 5;
+      jag(g, x0, y0, x1, y1, seed, bend);
+      g.strokeStyle = 'rgba(159,235,255,' + (0.95 * k).toFixed(3) + ')'; g.lineWidth = 2;
+      g.stroke();
+      g.strokeStyle = 'rgba(159,235,255,' + (0.75 * k).toFixed(3) + ')'; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(x1, y1, (0.15 + (1 - k) * 0.22) * R.ppm, 0.10 * R.ppm, 0, 0, TAU); g.stroke();
     }
   }
 
@@ -202,18 +219,19 @@
     envExtinguish: 'BK.env.extinguish', envFuse: 'BK.env.fuse', envBreak: 'BK.env.break' };
 
   F.onEvent = function (ev) {
+    if (ev.type === 'streetWeapon') { P.StreetWeaponFx.event(ev); return; }
     if (BARK[ev.type] && P.Barks && P.Barks.say && (ev.type !== 'envFuse' || ev.kind === 'car')) P.Barks.say(BARK[ev.type], 1, 'env', ev.x, ev.y);
     if (!P.Fx || !P.Sfx) return;
     if (ev.type === 'envBreak') {
-      shards(ev.x, ev.y, ev.mat === 'glass' ? 'glass' : 'wood', ev.tag === 'blunt' ? 12 : 8);
-      P.Sfx.play(ev.mat === 'glass' ? 'glass' : 'click', 60);
+      if (!P.StreetImpactFx) shards(ev.x, ev.y, ev.mat === 'glass' ? 'glass' : 'wood', ev.tag === 'blunt' ? 12 : 8);
+      P.Sfx.play(ev.mat === 'glass' ? 'glass' : ev.kind === 'extinguisher' ? 'hiss' : 'rattle', 60);
       if (ev.mat === 'glass') P.Fx.letter(ev.x, ev.y + 1, P.t('env.break'));
       return;
     }
     if (ev.type === 'envFuse') {
       if (ev.kind === 'gas') P.Sfx.play('hiss', 200);
       else P.Sfx.play('zap', 200);
-      P.Fx.letter(ev.x, ev.y + 1.2, P.t('env.fuse'));
+      if (!P.StreetInvitations) P.Fx.letter(ev.x, ev.y + 1.2, P.t('env.fuse'));
       return;
     }
     if (ev.type === 'envPortal') {

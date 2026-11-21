@@ -2,13 +2,18 @@
 // toxic clouds, bloater swell and burst, boss banner and HP bar, exit arrow (generated levels), cues.
 // Lifetimes use sim time (s.t) so pause and card screens freeze them. Hooks: drawGround, drawAir, screen.
 P.EnemyFx = (function () {
-  var EF = { rings: [], puffs: [], splats: [], banner: null, nowT: 0 };
+  var EF = { rings: [], puffs: [], splats: [], rails: [], banner: null, nowT: 0 };
   var DANGER = '#FF4D2E', ACID = '#7CF08E', TOXIC = '#B5E655', SLAM = '#FF8A3D', SUMMON = '#B07CFF';
   var COL = { danger: DANGER, acid: ACID, toxic: TOXIC, slam: SLAM, summon: SUMMON };
+  var BOSS_TELLS = { combo: 'cleaver', switchHook: 'rattle', switchRails: 'bell', roast: 'hiss',
+    arcRelay: 'zap', arcKnot: 'rattle', districtTram: 'bell', vatmanBell: 'bell', vatmanLever: 'doorSlam',
+    counterweights: 'rattle', ropeSweep: 'chain', ribbonSweep: 'chain', bridgeCast: 'spear', bridgeNet: 'swish',
+    captainAnchor: 'chain', ticketPunch: 'footstep', stationSignal: 'shutter' };
   var clamp01 = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+  function dangerColor() { return P.SemanticColors ? P.SemanticColors.danger : DANGER; }
 
   EF.reset = function () {
-    EF.rings = []; EF.puffs = []; EF.splats = []; EF.banner = null;
+    EF.rings = []; EF.puffs = []; EF.splats = []; EF.rails = []; EF.banner = null;
     EF.hitX = {}; EF.hitAt = {}; EF.hitN = 0; EF.letterT = -1e9; EF.nowT = 0;
     if (P.EnemiesFx2 && P.EnemiesFx2.reset) P.EnemiesFx2.reset();
   };
@@ -41,11 +46,38 @@ P.EnemyFx = (function () {
       if (tg.kind === 'lane') drawLane(R, tg, s, t);
       else if (tg.kind === 'ring') drawRing(R, tg);
     });
-    s.enemies.forEach(function (e) { if (e.type === 'bloater' && e.swell > 0) drawSwell(R, e, t); });
-    s.enemies.forEach(function (e) { if (e.boss && e.windup > 0) drawBossWind(R, e); });
+    prune(EF.rails, s);
+    EF.rails.forEach(function (rail) { drawRailStrike(R, rail, age(rail, s) / rail.dur); });
+    var showBlastRadius = P.Enemies.bloaterPressure(s);
+    s.enemies.forEach(function (e) {
+      if (e.type !== 'bloater' || e.dead || !(e.swell > 0)) return;
+      drawSwell(R, e, t);
+      if (showBlastRadius && !e.boss) drawBlastRadius(R, e);
+    });
+    s.enemies.forEach(function (e) {
+      if (!e.boss || e.dead) return;
+      if (e.windup > 0) drawBossWind(R, e);
+      if (e.exposed) drawOpening(R, e);
+      if (e.bossPreset === 'cook' && P.CookFx) P.CookFx.ground(R, e);
+    });
     s.enemies.forEach(function (e) { if (e.type === 'hardhat' && e.helmet) drawHelmet(R, e); if (e.anchored) drawBalcony(R, e); });
     drawSplats(R, s);
   };
+
+  function drawRailStrike(R, rail, q) {
+    var c = R.ctx, u = R.ppm, h = rail.len * u, w = rail.w * u;
+    var r = 1 - clamp01(q);
+    c.save(); c.translate(R.X(rail.x), R.Y(rail.y)); c.rotate(-Math.atan2(rail.dy, rail.dx));
+    c.fillStyle = 'rgba(45,32,61,' + 0.74 * r + ')'; c.fillRect(0, -w / 2, h, w);
+    for (var side = -1; side <= 1; side += 2) {
+      var offset = side * w * 0.28;
+      c.beginPath(); c.moveTo(0, offset);
+      for (var i = 1; i <= 14; i++) c.lineTo(h * i / 14, offset + Math.sin(i * 5.3) * w * 0.15);
+      c.lineWidth = 6; c.strokeStyle = 'rgba(151,188,244,' + 0.88 * r + ')'; c.stroke();
+      c.lineWidth = 2; c.strokeStyle = 'rgba(255,243,198,' + 0.88 * r + ')'; c.stroke();
+    }
+    c.restore();
+  }
 
   function drawToxic(R, z, t) {
     var c = R.ctx, a = Math.min(1, z.t / 0.4) * 0.5, X = R.X(z.x), Y = R.Y(z.y), r = z.r * R.ppm;
@@ -82,17 +114,18 @@ P.EnemyFx = (function () {
   // Charge lane: red translucent rectangle, fills along its length during the windup, chevrons flow.
   function drawLane(R, tg, s, t) {
     var c = R.ctx, p = clamp01(tg.t / tg.T), hw = tg.w / 2, nx = -tg.dy * hw, ny = tg.dx * hw;
+    var danger = dangerColor();
     var L = tg.len, cx = [tg.x + nx, tg.x - nx, tg.x - nx + tg.dx * L, tg.x + nx + tg.dx * L];
     var cy = [tg.y + ny, tg.y - ny, tg.y - ny + tg.dy * L, tg.y + ny + tg.dy * L];
     c.beginPath(); c.moveTo(R.X(cx[0]), R.Y(cy[0]));
     for (var k = 1; k < 4; k++) c.lineTo(R.X(cx[k]), R.Y(cy[k]));
-    c.closePath(); c.fillStyle = 'rgba(255,77,46,0.16)'; c.fill();
-    c.setLineDash([10, 6]); c.strokeStyle = DANGER; c.lineWidth = 2; c.stroke(); c.setLineDash([]);
+    c.closePath(); c.fillStyle = hexA(danger, 0.16); c.fill();
+    c.setLineDash([10, 6]); c.strokeStyle = danger; c.lineWidth = 2; c.stroke(); c.setLineDash([]);
     var fill = L * p;
     c.beginPath();
     c.moveTo(R.X(tg.x + nx), R.Y(tg.y + ny)); c.lineTo(R.X(tg.x - nx), R.Y(tg.y - ny));
     c.lineTo(R.X(tg.x - nx + tg.dx * fill), R.Y(tg.y - ny + tg.dy * fill)); c.lineTo(R.X(tg.x + nx + tg.dx * fill), R.Y(tg.y + ny + tg.dy * fill));
-    c.closePath(); c.fillStyle = 'rgba(255,77,46,0.34)'; c.fill();
+    c.closePath(); c.fillStyle = hexA(danger, 0.34); c.fill();
     c.strokeStyle = 'rgba(255,240,200,0.8)'; c.lineWidth = 2.5;
     for (var d = 1.2 - (t * 3) % 1.2; d < L; d += 1.2) {
       var px = tg.x + tg.dx * d, py = tg.y + tg.dy * d, sz = 0.35;
@@ -103,7 +136,8 @@ P.EnemyFx = (function () {
 
   // Telegraph ring: hatched fill, dashed outline, progress arc (matches render.js for stomp rings).
   function drawRing(R, tg) {
-    var c = R.ctx, X = R.X(tg.x), Y = R.Y(tg.y), r = tg.r * R.ppm, p = clamp01(tg.t / tg.T), col = COL[tg.col] || DANGER;
+    var c = R.ctx, X = R.X(tg.x), Y = R.Y(tg.y), r = tg.r * R.ppm, p = clamp01(tg.t / tg.T);
+    var col = P.SemanticColors && tg.col !== 'summon' ? dangerColor() : COL[tg.col] || DANGER;
     c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.fillStyle = hexA(col, 0.16); c.fill();
     c.setLineDash([8, 6]); c.strokeStyle = col; c.lineWidth = 2.5; c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
     c.lineWidth = 5; c.beginPath(); c.arc(X, Y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); c.stroke();
@@ -113,13 +147,28 @@ P.EnemyFx = (function () {
   // adds no flashing; the shape (closing ring, bar) is the non-colour cue next to the telegraph on the ground.
   function drawBossWind(R, e) {
     var c = R.ctx, u = R.ppm, X = R.X(e.x), Y = R.Y(e.y), p = clamp01(e.windup), r = (e.r + 0.9 * (1 - p)) * u;
-    c.strokeStyle = hexA(DANGER, 0.25 + 0.55 * p); c.lineWidth = 3 + 2 * p;
+    var danger = dangerColor();
+    c.strokeStyle = hexA(danger, 0.25 + 0.55 * p); c.lineWidth = 3 + 2 * p;
     c.beginPath(); c.ellipse(X, Y, r * 1.1, r * 0.5, 0, 0, Math.PI * 2); c.stroke();
     if (p > 0.6) {
-      c.fillStyle = DANGER; c.strokeStyle = '#14151F'; c.lineWidth = 2;
+      c.fillStyle = danger; c.strokeStyle = '#14151F'; c.lineWidth = 2;
       c.beginPath(); c.rect(X - 0.06 * u, Y - (e.r * 2 + 1.1) * u, 0.12 * u, 0.4 * u); c.fill(); c.stroke();
       c.beginPath(); c.arc(X, Y - (e.r * 2 + 0.45) * u, 0.08 * u, 0, Math.PI * 2); c.fill(); c.stroke();
     }
+  }
+
+  function drawOpening(R, e) {
+    var c = R.ctx, u = R.ppm, x = R.X(e.x), y = R.Y(e.y), r = (e.r + .48) * u;
+    c.save(); c.translate(x, y);
+    c.beginPath(); c.ellipse(0, 0, r, r * .48, 0, .25, Math.PI - .25);
+    c.lineWidth = 5; c.strokeStyle = '#14151F'; c.stroke();
+    c.lineWidth = 2; c.strokeStyle = '#FFF2C0'; c.stroke();
+    [-1, 1].forEach(function (side) {
+      c.beginPath(); c.moveTo(side * (r + 9), -5); c.lineTo(side * (r - 1), 1); c.lineTo(side * (r + 9), 7);
+      c.lineWidth = 6; c.strokeStyle = '#14151F'; c.stroke();
+      c.lineWidth = 3; c.strokeStyle = '#FFF2C0'; c.stroke();
+    });
+    c.restore();
   }
 
   // Hardhat: a yellow helmet arc on the side it faces (world angle faceA; screen Y is flipped).
@@ -149,6 +198,14 @@ P.EnemyFx = (function () {
     g.addColorStop(0, 'rgba(181,230,85,' + (0.35 * sw * pulse) + ')'); g.addColorStop(1, 'rgba(181,230,85,0)');
     c.fillStyle = g; c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.fill();
     if (sw > 0.5) { c.strokeStyle = 'rgba(214,255,150,' + (0.6 * pulse) + ')'; c.lineWidth = 2; c.beginPath(); c.arc(X, Y, r * 0.8, 0, Math.PI * 2); c.stroke(); }
+  }
+
+  function drawBlastRadius(R, e) {
+    var c = R.ctx, B = P.CFG.enemies.bloater, r = (e.mini ? B.mini.burstR : B.burstR) * R.ppm;
+    c.save(); c.beginPath(); c.arc(R.X(e.x), R.Y(e.y), r, 0, Math.PI * 2);
+    c.lineWidth = 4; c.strokeStyle = 'rgba(34,37,23,.85)'; c.stroke();
+    c.lineWidth = 2; c.strokeStyle = '#e2ee96'; c.setLineDash([5, 5]); c.stroke();
+    c.restore();
   }
 
   function drawSplats(R, s) {
@@ -187,7 +244,7 @@ P.EnemyFx = (function () {
 
   // Gameplay arrow to the exit once the gate is open (F draws the gate landmark itself).
   function drawExitArrow(R, s) {
-    if (!s.geo || !s.props.shutterOpen || s.mode !== 'play') return;
+    if (!s.geo || !s.props.shutterOpen || s.mode !== 'play' || s.weaponLab) return;
     var h = s.hero, c = R.ctx, tx = 0, ty = s.geo.exitY + 1.5, dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy);
     if (d < 3) return;
     var ux = dx / d, uy = dy / d, sx = h.x + ux * 1.6, sy = h.y + uy * 1.6, ex = h.x + ux * 2.9, ey = h.y + uy * 2.9;
@@ -241,10 +298,15 @@ P.EnemyFx = (function () {
       case 'bloaterSwell': sfx('bloaterSwell', 300, s, ev.x); break;
       case 'bloaterPop': burst(s, ev); break;
       case 'bossIntro':
-        EF.banner = { name: nameOf(ev.nameKey), label: label('boss.intro', 'PATRON', 'BOSS'), t0: s.t, dur: BANNER_T };
-        sfx('bossIntro', 0, s); break;
+        EF.banner = null; // The existing boss HUD names the actor; its body owns the entrance.
+        var boss = s.dir && s.dir.trialBoss || s.gen && s.gen.boss;
+        var style = boss && P.CFG.bossDirection && P.CFG.bossDirection[boss.bossPreset];
+        sfx(style ? style.cue : 'bossIntro', 0, s, ev.x); break;
       case 'bossRage': P.Fx.letter(ev.x, ev.y + 2, label('boss.rage', 'ÖFKE!', 'RAGE!')); sfx('snarl', 0, s, ev.x); break;
-      case 'bossDie': bossDie(s, ev); break;
+      case 'bossDie':
+        EF.banner = null;
+        if (!P.BossDefeatFx || !P.BossDefeatFx.running(s)) bossDie(s, ev);
+        break;
       case 'perkRing': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: '#FFFFFF', t0: s.t, dur: 0.3 }); break;
       case 'bossSlam': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: SLAM, t0: s.t, dur: 0.5 }); sfx('bruteStomp', 0, s, ev.x); break;
       case 'toxicPool': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: TOXIC, t0: s.t, dur: 0.4 }); break;
@@ -258,9 +320,13 @@ P.EnemyFx = (function () {
         P.Fx.letter(ev.x, ev.y + 1, label('ev.scream', 'ÇIĞLIK!', 'SCREAM!')); sfx('snarl', 0, s, ev.x); break;
       case 'screamCut': P.Fx.letter(ev.x, ev.y + 1, label('ev.silenced', 'Sustu!', 'Silenced!')); sfx('tink', 0, s, ev.x); break;
       case 'helmetBlock': sfx('tink', 120, s, ev.x); break;
-      case 'helmetOff': P.Fx.letter(ev.x, ev.y + 1.2, label('ev.helmet', 'Kask düştü!', 'Helmet off!')); sfx('tink', 0, s, ev.x); break;
+      case 'helmetOff': sfx('tink', 0, s, ev.x); break;
+      case 'swingBodyLand':
+        if (P.EnemiesFx2) P.EnemiesFx2.landing(s, ev);
+        break;
       case 'kill':
-        if (['bloater', 'spitter', 'brute', 'screamer', 'hardhat', 'kurye', 'copci'].indexOf(ev.enemy) >= 0) killFx(s, ev);
+        if (ev.boss && P.BossDefeatFx) break;
+        if (!ev.swingAir && ['bloater', 'spitter', 'brute', 'screamer', 'hardhat', 'kurye', 'copci'].indexOf(ev.enemy) >= 0) killFx(s, ev);
         if (P.EnemiesFx2) P.EnemiesFx2.onKill(s, ev);      // v0.7: death pose and the 6 s corpse
         break;
       case 'hit':
@@ -282,13 +348,24 @@ P.EnemyFx = (function () {
       case 'parkurLeap': sfx('swish', 150, s, ev.x); break;
       case 'parkurLand': EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: DANGER, t0: s.t, dur: 0.35 }); sfx('hammer', 150, s, ev.x); break;
       case 'hordeCue': cue(s, ev); break;                             // lane H: a surge's cause (horde.js)
-      case 'hordeSurge': P.Fx.letter(ev.x, ev.y, P.t('horde.surge')); sfx('groan', 400, s, ev.x); break;
+      case 'hordeSurge':
+        if (!P.MilestoneFx || !P.MilestoneFx.focus(s)) P.Fx.letter(ev.x, ev.y, P.t('horde.surge'));
+        sfx('groan', 400, s, ev.x); break;
       case 'enemyDebut': debutFx(s, ev); break;
       case 'binDrop': EF.splats.push({ x: ev.x, y: ev.y, r: ev.r * 0.9, col: TOXIC, t0: s.t, dur: 6, a: 0 }); sfx('splat', 120, s, ev.x); break;
       case 'bossPhase':
-        P.Fx.letter(ev.x, ev.y + 2.6, P.t('ev.phase' + ev.phase)); sfx('bruteRoar', 0, s, ev.x); break;
-      case 'bossStall': P.Fx.letter(ev.x, ev.y + 2.2, label('ev.exposed', 'Açık nokta!', 'Weak spot!')); sfx('hiss', 0, s, ev.x); break;
-      case 'bossWindup': sfx('swish', 300, s, ev.x); break;
+        sfx('bruteRoar', 0, s, ev.x); break;
+      case 'bossStall': sfx('pick', 300, s, ev.x); break;
+      case 'cookRelease': sfx('lob', 150, s, ev.x); break;
+      case 'bossWindup':
+        if (P.Sfx.threat && Math.hypot(ev.x - s.hero.x, ev.y - s.hero.y) < 8) P.Sfx.threat(.72);
+        P.Sfx.play(BOSS_TELLS[ev.act] || 'swish',300,{pan:pan(s,ev.x),urgent:true}); break;
+      case 'wirePulse':
+        EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: '#98DCFF', t0: s.t, dur: 0.65 });
+        sfx('zap', 150, s, ev.x); break;
+      case 'bossRail':
+        EF.rails.push({ x: ev.x, y: ev.y, dx: ev.dx, dy: ev.dy, w: ev.w, len: ev.len, t0: s.t, dur: ev.T });
+        sfx('hammer', 200, s, ev.x); break;
       case 'bossSwing': case 'bossSmash':
         EF.rings.push({ x: ev.x, y: ev.y, r: ev.r, col: SLAM, t0: s.t, dur: 0.45 });
         sfx(ev.type === 'bossSmash' ? 'slam' : 'hammer', 150, s, ev.x); break;
@@ -330,7 +407,6 @@ P.EnemyFx = (function () {
 
   function killFx(s, ev) {
     EF.splats.push({ x: ev.x, y: ev.y, r: ev.enemy === 'brute' ? 0.9 : 0.5, col: ev.enemy === 'bloater' ? TOXIC : ACID, t0: s.t, dur: 6, a: 0 });
-    if (ev.enemy === 'brute') sfx('zombieDie', 120, s, ev.x);
   }
 
   // v0.7 distinct deaths: the taxi blows up (fireball rings, black smoke, shards); the butcher folds over the cleaver.
@@ -371,7 +447,7 @@ P.EnemyFx = (function () {
       EF.puffs.push({ x: ev.x, y: ev.y, vx: Math.cos(a) * 2.2, vy: Math.sin(a) * 2.2, r: 0.25, col: '#8B1E1E', t0: s.t, dur: 0.9 });
     }
     EF.splats.push({ x: ev.x, y: ev.y, r: 1.8, col: '#7A1518', t0: s.t, dur: 8, a: 0.4 });
-    sfx('tink', 0, s, ev.x); sfx('zombieDie', 0, s, ev.x);
+    sfx('tink', 0, s, ev.x); P.Sfx.play('hit', 220, { kind: 'blunt', vol: 0.58, rate: .83, pan: pan(s, ev.x) });
   }
 
   return EF;

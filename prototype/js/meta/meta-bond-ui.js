@@ -1,10 +1,9 @@
-// Bond page of the Yetenekler screen (R1-T5 step 4, D-059 section 6): Kaan's meter with its four thresholds, plus locked teasers
+// Bond page of the Yetenekler screen (R1-T5 step 4, D-059 section 6): Kaan's meter with playable thresholds, plus locked teasers
 // for Mila and Ada. Drawn by meta-tree.js. No cost, no store link: bonds are earned by play only and never sold.
 P.Meta = P.Meta || {};
 (function (M) {
   var B = M.BondUI = {};
-  // Threshold rows: the first two do something in the slice; 75 and 100 are stubs for a later chapter.
-  var ROWS = [{ at: 0, key: 'bond.t25' }, { at: 1, key: 'bond.t50' }, { at: 2, key: 'bond.later' }, { at: 3, key: 'bond.later' }];
+  var ROWS = [{ at: 0, key: 'bond.t25' }, { at: 1, key: 'bond.t50' }];
   function el(tag, cls, parent) {
     var e = document.createElement(tag); if (cls) e.className = cls; if (parent) parent.appendChild(e); return e;
   }
@@ -12,7 +11,7 @@ P.Meta = P.Meta || {};
   function meter(card, kaan) {
     var T = P.CFG.bond.kaan.thresholds, bar = el('div', 'meta-bond-bar', card), i, tick;
     el('div', 'meta-bond-fill', bar).style.width = Math.min(100, kaan.value / kaan.max * 100).toFixed(1) + '%';
-    for (i = 0; i < T.length - 1; i++) { tick = el('i', 'meta-bond-tick', bar); tick.style.left = (T[i] / kaan.max * 100) + '%'; }
+    for (i = 0; i < ROWS.length; i++) { tick = el('i', 'meta-bond-tick', bar); tick.style.left = (T[ROWS[i].at] / kaan.max * 100) + '%'; }
     el('div', 'meta-bond-val', card).textContent = t('bond.meter', { n: kaan.value, max: kaan.max });
   }
   function row(box, kaan, r) {

@@ -64,11 +64,13 @@ P.HoodCard = (function () {
     card.appendChild(el('div', 'hc-district', hood.district));
     card.appendChild(el('div', 'hc-name', upper(hood.name)));
     card.appendChild(el('div', 'hc-km', tx('hc.km') + ' ' + hood.km.toFixed(1) + ' / ' + P.Journey.totalKm));
-    var fact = el('div', 'hc-fact'); fact.appendChild(el('b', null, tx('hc.fact') + '  ')); fact.appendChild(document.createTextNode(en() ? f[1] : f[0]));
-    card.appendChild(fact);
-    var p = plan(li);
+    if (li.index > 30) {
+      var fact = el('div', 'hc-fact'); fact.appendChild(el('b', null, tx('hc.fact') + '  ')); fact.appendChild(document.createTextNode(en() ? f[1] : f[0]));
+      card.appendChild(fact);
+    }
+    var p = li.index > 30 ? plan(li) : null;
     if (p) card.appendChild(p);
-    var pw = P.UIProgress && P.UIProgress.hoodNode(li);   // "Your power" strip and the next unlock (ui-progress.js)
+    var pw = P.UIProgress && P.UIProgress.hoodNode(li);
     if (pw) card.appendChild(pw);
     card.appendChild(el('div', 'hc-skip', tx('hc.skip')));
     card.setAttribute('data-sub', en() ? sub.en : sub.tr);
@@ -88,7 +90,7 @@ P.HoodCard = (function () {
   }
   function banner(li, th, hood) {
     var stage = li.stage || 1, sub = P.Themes.subOf(th, stage - 1), b = el('div', 'hc-banner', upper(hood.name) + ' · ' + stage + '/5 · ' + (en() ? sub.en : sub.tr));
-    var p = plan(li);
+    var p = li.index <= 30 && P.UIProgress ? P.UIProgress.hoodNode(li) : plan(li);
     if (p) b.appendChild(p);
     return b;
   }

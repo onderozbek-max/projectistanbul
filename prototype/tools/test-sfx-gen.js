@@ -111,7 +111,7 @@ function sandbox(o) {
 function load(o) {
   const sb = sandbox(o);
   vm.createContext(sb.ctx);
-  for (const f of ['js/view/sfx-bank.js', 'js/view/sfx-bank2.js', 'js/view/sfx.js', 'js/view/sfx-gen.js']) {
+  for (const f of [...require('./lib-sfx').RECIPE_SCRIPTS, 'js/view/sfx.js', 'js/view/sfx-gen.js']) {
     vm.runInContext(read(f), sb.ctx, { filename: f });
   }
   return sb;
@@ -240,8 +240,9 @@ async function runtimeTests() {
     try { sb.P.Sfx.play('bell', 0, {}); } catch (e) { threw = true; }
     tick(sb.st);
     ok(!threw, 'j. a refused buffer does not throw out of play');
+    ok(sb.st.starts.length === 1 && sb.st.starts[0].buf.file === null, 'j. the same cue plays immediately from the synth recipe');
     sb.P.Sfx.play('bell', 0, {}); tick(sb.st);
-    ok(sb.st.starts.length === 1 && sb.st.starts[0].buf.file === null, 'j. after a refused start the cue uses the synth recipe');
+    ok(sb.st.starts.length === 2 && sb.st.starts[1].buf.file === null, 'j. later plays use the synth recipe');
   }
   // k. the synth recipe for a cue with no file is unchanged in length (warm skips only covered cues)
   {
@@ -350,8 +351,9 @@ async function toolTests() {
     const html = read('index.html');
     ok(/sfx\.js"><\/script>\s*\n<script src="js\/view\/sfx-gen\.js"><\/script>/.test(html), 'index.html loads sfx-gen.js right after sfx.js');
     ok(/gen\.jitter/.test(read('js/view/sfx.js')), 'sfx.js applies the generated-file jitter');
-    // Ids: the bank exposes 95 file ids (90 cues + 5 beds)
-    ok(VALID.length === 95, `file ids: 90 cues (hit split into kinds, speech excluded) and 5 beds (got ${VALID.length})`);
+    // The two story motifs are available to replace with recordings later.
+    ok(VALID.length === 99 && VALID.includes('homeMotif') && VALID.includes('farewellMotif') && VALID.includes('heroHurt') && VALID.includes('heroHeavy'),
+      `file ids: 94 cues (including distinct light/heavy injury, speech excluded) and 5 beds (got ${VALID.length})`);
   } catch (e) {
     fails++; console.log('FAIL exception: ' + (e && e.stack || e));
   }

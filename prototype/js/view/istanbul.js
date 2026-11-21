@@ -86,7 +86,11 @@ P.Decor = (function () {
     return D.gullA;
   }
   // World signs fade under a placed bubble (P.Speech.label); they never move.
-  function signAlpha(key, X, Y, w, hh) { return P.Speech ? P.Speech.label(key, X - w / 2, Y - hh / 2, w, hh) : 1; }
+  function signAlpha(key, X, Y, w, hh) {
+    var a=P.Speech ? P.Speech.label(key,X-w/2,Y-hh/2,w,hh):1, h=D.heroRect;
+    if (h && X+w/2>h.x && X-w/2<h.x+h.w && Y+hh/2>h.y && Y-hh/2<h.y+h.h) a=Math.min(a,.22);
+    return a;
+  }
   function gullShadows(R, s) {
     var c = R.ctx, u = R.ppm, a = gullFade(s), i;
     if (a < 0.02) return;
@@ -99,6 +103,7 @@ P.Decor = (function () {
   }
 
   D.drawOverhead = function (R, s, y0, y1) {
+    D.heroRect={x:R.X(s.hero.x)-.46*R.ppm,y:R.Y(s.hero.y)-1.8*R.ppm,w:.92*R.ppm,h:1.9*R.ppm};
     if (isGen(s)) {
       genOverhead(R, s, y0, y1);
       if (P.RenderWorld.themeOf(s).id === 'galata') P.GalataProps.overhead(R, s, y0, y1);
@@ -106,7 +111,7 @@ P.Decor = (function () {
       gullsDraw(R, s);
       return;
     }
-    L1Over(R, y0, y1);
+    L1Over(R, s, y0, y1);
     l1Overhead(R, s, y0, y1);
   };
   function l1Overhead(R, s, y0, y1) {
@@ -161,11 +166,15 @@ P.Decor = (function () {
   var L1_PROPS = [ ['catbox', -5.9, 3.6, { k: 1 }], ['bags', -5.4, 52, { k: 0 }], ['spill', 5.9, 77, { k: 0 }],
     ['dog', 5.6, 150, { k: 1 }], ['geranium', -5.7, 112, {}], ['phones', 5.2, 40, { k: 1 }], ['blood', -5.6, 38, { n: 6, dir: 1, k: 0 }],
     ['devrik', 5.0, 128, { k: 0 }], ['durak', -5.7, 137, {}] ];
-  var L1_OVER = [ ['laundry', 0, 40, {}], ['laundry', 0, 112, { k: 2 }], ['laundry', 0, 190, { k: 4 }],
-    ['cumba', -7.6, 18, {}], ['cumba', 7.6, 108, {}], ['cumba', -7.6, 176, {}] ];
+  var L1_OVER = [ ['laundry', 0, 40, {}], ['laundry', 0, 112, { k: 2 }], ['laundry', 0, 190, { k: 4 }] ];
+  var L1_BAYS = [ ['cumba', -7.6, 18, {}], ['cumba', 7.6, 108, {}], ['cumba', -7.6, 176, {}] ];
   function listDraw(R, list, y0, y1) { list.forEach(function (p) { if (p[2] > y0 - 4 && p[2] < y1 + 4) P.Props.draw(p[0], R, p[1], p[2], p[3]); }); }
   function l1Extras(R, s, y0, y1) { listDraw(R, L1_PROPS, y0, y1); }
-  function L1Over(R, y0, y1) { listDraw(R, L1_OVER, y0, y1); }
+  function L1Over(R, s, y0, y1) {
+    listDraw(R, L1_OVER, y0, y1);
+    var front = P.ArtRasterWorld && P.ArtRasterWorld.place(R, s, 'facade', -1);
+    if (!front || !front.projected) listDraw(R, L1_BAYS, y0, y1);
+  }
 
   // ---------- generated levels (levelIndex > 1): sidewalk props from theme weights, hashed per (level, slot) ----------
   var SLOT = 4.5, BIG = { cinar: 1, palm: 1, playground: 1, shelter: 1, kiosk: 1, iskele: 1, tower: 1 };
@@ -192,8 +201,16 @@ P.Decor = (function () {
     for (var y = Math.floor(y0 / SLOT) * SLOT; y < y1; y += SLOT) [-1, 1].forEach(function (sd) {
       if (hash(seed + y * 3.1 + sd * 7.7) < 1 - mix.keep) return;
       var kind = pick(mix.w, hash(seed + y * 5.3 + sd * 2.1)), x = sd * (BIG[kind] ? 6.2 : 5.3 + hash(y * 2.3 + sd));
+      var yy = y + hash(y * 4.7 + sd) * 2.5;
+      if (kind === 'cinar' || kind === 'palm') {
+        if ((Math.floor(y / SLOT) + (sd > 0 ? 1 : 0)) % 3 !== 0) return;
+        if (s.geo.blocks.some(function (b) { return Math.abs(x - b.x) < b.w / 2 + 1.05 && Math.abs(yy - b.y) < b.h / 2 + 1.25; })) return;
+        x = sd * 6.35;
+      }
+      if (kind === 'tower') return;   // this silhouette belongs to the fixed world landmark
       if (covered && (kind === 'gull' || kind === 'pigeon')) return;   // no birds under a roof
-      var yy = y + hash(y * 4.7 + sd) * 2.5, o = { k: Math.floor(hash(y * 9.1 + sd) * 4), rt: th.id };   // rt: the hood, for raster art (D-066)
+      if (P.BridgeWater && Math.abs(x) >= P.BridgeWater.shore(s, yy, sd)) return;
+      var o = { k: Math.floor(hash(y * 9.1 + sd) * 4), rt: th.id };   // rt: the hood, for raster art (D-066)
       if (kind === 'cat' || kind === 'catbox') o.alert = Math.hypot(h.x - x, h.y - yy) < 2.2;
       if (kind === 'pigeon') o.fly = flyFor(seed + ':' + y + ':' + sd, x, yy, s);
       if (th.id === 'bridge' && s.levelIndex === 16 && kind === 'rods' && P.BridgeProps && P.BridgeProps.hasRail()) return;
@@ -212,19 +229,17 @@ P.Decor = (function () {
       else if (rig === 'vault') P.Props.draw('vault', R, 0, y, {});
       else if (rig === 'lamps') { P.Props.draw('lamp', R, 6.4, y, {}); P.Props.draw('lamp', R, -6.4, y + 6, {}); }
     }
-    if (rig !== 'none' && P.ArenaOverhead && P.ArenaOverhead.has(th.id, 'canopy')) for (var ty = Math.ceil(y0 / 18) * 18; ty < y1; ty += 18) {   // street trees reaching over the lane edge (Ataköy)
-      P.ArenaOverhead.draw(R, s, th.id, 'canopy', 0, ty + 2, { v: hash(ty * 0.11) < 0.5 ? 0 : 0.99 });
-    }
     if (hp >= 5 && hp <= 17) for (var q = Math.floor(y0 / 40) * 40; q < y1; q += 40) {
       if (hash(q * 0.7) < 0.5) P.Props.draw('smoke', R, (hash(q) < 0.5 ? -1 : 1) * 8.6, q, { n: 6, a: 0.22 });
     }
-    genSigns(R, th, y0, y1, t);
+    genSigns(R, s, th, y0, y1, t);
   }
   // Hanging shop signs from the theme's word list; a few flicker (no neon).
-  function genSigns(R, th, y0, y1, t) {
+  function genSigns(R, s, th, y0, y1, t) {
     var c = R.ctx, u = R.ppm, n = th.sign.length;
     for (var y = Math.floor(y0 / 6) * 6; y < y1; y += 6) [-1, 1].forEach(function (side) {
       if (hash(y * 1.7 + side) < 0.45) return;
+      if (P.BridgeWater && P.BridgeWater.shore(s, y + 1.2, side) < 6.1) return;
       var txt = th.sign[Math.floor(hash(y * 9 + side * 3) * n)], col = SIGN_COL[Math.floor(hash(y + side * 5) * SIGN_COL.length)];
       var X = R.X(side * 5.35), Y = R.Y(y + 1.2), w = 1.5 * u, hh = 0.55 * u;
       var flick = hash(y * 4.4 + side) < 0.2 && Math.sin(Math.floor(t * 3) / 3 * 6 + y) > 0.2 && !(P.Settings && P.Settings.reduceFlash) ? 0.25 : 1;   // all flickering signs step together, 3 times a second at most, so the screen never flashes more than 3 a second (design-system 11)

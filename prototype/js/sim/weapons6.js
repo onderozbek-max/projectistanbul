@@ -14,7 +14,7 @@ P.Weapons6 = {};
     var out = [], R = P.CFG.terrainR, pr = s.props || {}, recs = s.env && s.env.recs || [], i, r;
     function near(list, r) { return (list || []).some(function (p) { return p.alive !== false && Math.hypot(p.x - x, p.y - y) - (p.r || 0) <= r; }); }
     if (near(pr.canisters, R.gas)) out.push('gas');
-    if (near(pr.carts, R.car)) out.push('car');
+    if (near((pr.carts || []).filter(function (p) { return P.Env.isCar(p.kind); }), R.car)) out.push('car');
     // Lane A records: gas cans are 'gas', parked cars (bomb or not) are 'car'. Read the live records only.
     for (i = 0; i < recs.length; i++) {
       r = recs[i];
@@ -28,15 +28,20 @@ P.Weapons6 = {};
   };
 
   // A weapon's hit at (x, y). Emits one envHit per kind (rate-limited per weapon and kind) and marks the kind seen.
-  P.Weapons6.terrainHit = function (s, fam, tag, x, y) {
-    var kinds = P.Weapons6.terrainAt(s, x, y), W = P.Weapons.state(s), now = s.t, E = P.CFG.evoFx.envHitEvery;
+  P.Weapons6.recordTerrain = function (s, fam, kind, tag, x, y, rule) {
+    var W = P.Weapons.state(s), key = fam + ':' + kind, now = s.t, E = P.CFG.evoFx.envHitEvery;
     W.seen = W.seen || {}; W.envT = W.envT || {};
+    var last = W.envT[key]; W.seen[key] = true;
+    if (last !== undefined && now - last < E) return;
+    W.envT[key] = now;
+    var ev={ type:'envHit', kind:kind, w:fam, tag:tag, x:x, y:y, src:fam };
+    if(rule)ev.rule=rule;
+    s.events.push(ev);
+  };
+  P.Weapons6.terrainHit = function (s, fam, tag, x, y) {
+    var kinds = P.Weapons6.terrainAt(s, x, y);
     kinds.forEach(function (k) {
-      var key = fam + ':' + k, last = W.envT[key];
-      W.seen[key] = true;
-      if (last !== undefined && now - last < E) return;
-      W.envT[key] = now;
-      s.events.push({ type: 'envHit', kind: k, w: fam, tag: tag, x: x, y: y, src: fam });
+      P.Weapons6.recordTerrain(s, fam, k, tag, x, y);
     });
     return kinds;
   };
@@ -90,10 +95,10 @@ P.Weapons6 = {};
   };
 
   // ---------- burn and arcs ----------
-  P.Weapons6.burnAround = function (s, x, y, r, n) {
+  P.Weapons6.burnAround = function (s, x, y, r, n, variant) {
     s.enemies.forEach(function (e) {
       if (e.dead || e.state !== 'active' || Math.hypot(e.x - x, e.y - y) - e.r > r) return;
-      for (var k = 0; k < n; k++) P.Combat.addBurn(e);
+      for (var k = 0; k < n; k++) P.Combat.addBurn(e, variant);
     });
   };
 
@@ -121,7 +126,8 @@ P.Weapons6 = {};
       dx = t.x - h.x; dy = t.y - h.y; d = Math.hypot(dx, dy) || 1;
       P.Mods.hit(s, t, dmg, dx / d, dy / d, 0.1, src, A);
       if (!t.dead) P.Status.apply(t, 'stun', lv.stun, 1);
-      s.events.push({ type: 'stormZap', x0: h.x, y0: h.y, x1: t.x, y1: t.y, n: k, orbitR: lv.orbitR, tag: 'electric' });
+      s.events.push({ type: 'stormZap', x0: h.x, y0: h.y, x1: t.x, y1: t.y, n: k, orbitR: lv.orbitR,
+        grade: 6, targetId: t.id, targetR: t.r, tag: 'electric' });
     }
     if (picks.length) P.Weapons.fired(s, 'cable', Math.atan2(picks[0].y - h.y, picks[0].x - h.x), picks.length, 'stormshield');
     return picks.length;
@@ -218,6 +224,7 @@ P.Weapons6 = {};
       q = s.enemyShots[i]; dx = q.x - w.x; dy = q.y - w.y; d = Math.hypot(dx, dy);
       if (d > w.range || (d > 0.05 && (dx * ax + dy * ay) / d < cosHalf)) continue;
       s.enemyShots.splice(i, 1);
+      P.Combat.evolutionEffect(s, 'foamstorm', 'blocked_spit', 1);
       s.events.push({ type: 'spitBlock', x: q.x, y: q.y });
     }
   }

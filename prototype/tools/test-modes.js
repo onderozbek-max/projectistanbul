@@ -212,10 +212,12 @@ section('save: additive modes block, damaged values', () => {
   ok(read.modes && read.modes.nm[1] === undefined && read.modes.title === 0, 'a damaged v3 save reads without throwing and grants nothing');
 });
 
-section('golden: normal runs are unchanged', () => {
-  // Pinned on the pre-change tree (snapshot before part 18): L1, L5, L12, L30, L50 run 40 to 60 s with fixed input.
-  const want = { 'L1-s7': '18c940bb021e6a4a', 'L5-s7': 'f25b4700017d61bb', 'L5-s3': 'ea13259351c379e1', 'L12-s9': 'b24c061a71dccb40',
-    'L30-s4': '0a7419f646563b7b', 'L50-s2': '6336cec22c9ede5e' };
+section('golden: normal runs stay deterministic', () => {
+  // Reset final11: actual swept knife/Cleaver contacts, delayed ground pulse, blade-category repair
+  // and authorized route consequences intentionally change these traces. Exact old/new hashes and reasons:
+  // reviews/telemetry/first30-reset/golden-rebaseline-final11.json. L1-s7 remains pinned unchanged.
+  const want = { 'L1-s7': '18c940bb021e6a4a', 'L5-s7': 'de732ca1aac42288', 'L5-s3': 'd6bca21ecab8f2ec', 'L12-s9': '4523e1c91180fb3d',
+    'L30-s4': 'f66e426e167981a2', 'L50-s2': '3d437cb42be6308c' };
   const got = {};
   [[1, 7, 40, false], [5, 7, 60, true], [5, 3, 60, true], [12, 9, 60, true], [30, 4, 50, true], [50, 2, 50, true]].forEach(([i, sd, secs, ex]) => {
     const lo = ex ? P.Power.expectedLoadout(i) : { gear: {}, stats: {} };
@@ -235,7 +237,7 @@ section('golden: normal runs are unchanged', () => {
       diff: s.diff || null, tally: s.tally.kills };
     got['L' + i + '-s' + sd] = crypto.createHash('sha256').update(JSON.stringify(snap)).digest('hex').slice(0, 16);
   });
-  Object.keys(want).forEach(k => ok(got[k] === want[k], 'normal trace ' + k + ' matches the pre-part-18 build (' + got[k] + ')'));
+  Object.keys(want).forEach(k => ok(got[k] === want[k], 'normal trace ' + k + ' matches its reference (' + got[k] + ')'));
 });
 
 section('the sim reads no settings or clock', () => {

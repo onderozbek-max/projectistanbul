@@ -7,6 +7,39 @@
 P.DLG = P.DLG || { beats: {}, tr: {}, en: {} };
 P.Dialogue = (function () {
   var D = {}, used = {}, last = {}, missed = {}, listeners = [], rng = mulberry(1337);
+  var memoryKey = 'nsi.dialogue.session.v1', memoryLoaded = false, queued = false, epoch = 0;
+  var known = { seen: {}, met: {} };
+  function ambient(id) { return /^BK\.(self|mom|dad|idle|still|close|zq|zr|zreact|hd[0-9]+)(\.|$)/.test(id); }
+  function restoreMemory() {
+    if (memoryLoaded) return;
+    memoryLoaded = true;
+    var data, raw;
+    try { raw = sessionStorage.getItem(memoryKey); if (!raw || raw.length > 200000) return; data = JSON.parse(raw); } catch (e) { return; }
+    if (!data || data.v !== 1) return;
+    Object.keys(data.used || {}).forEach(function (key) {
+      var parts = key.split('|'), list = D.pool(parts[1], parts[0]), saved = data.used[key], clean = {};
+      if ((parts[0] !== 'tr' && parts[0] !== 'en') || !list || !ambient(parts[1])) return;
+      Object.keys(saved || {}).forEach(function (n) { var i = Number(n); if (i >= 0 && i < list.length && i === Math.floor(i) && saved[n]) clean[i] = true; });
+      used[key] = clean;
+      var previous = data.last && data.last[key];
+      if (typeof previous === 'number' && previous >= 0 && previous < list.length && previous === Math.floor(previous)) last[key] = previous;
+    });
+    ['seen', 'met'].forEach(function (kind) {
+      Object.keys(data.known && data.known[kind] || {}).forEach(function (id) {
+        if (D.has('BK.fk.' + id) && data.known[kind][id] === true) known[kind][id] = true;
+      });
+    });
+  }
+  function rememberMemory() {
+    if (queued) return;
+    queued = true; var token = epoch;
+    Promise.resolve().then(function () {
+      if (token !== epoch) return;
+      queued = false; var u = {}, l = {};
+      Object.keys(used).forEach(function (key) { if (ambient(key.split('|')[1])) { u[key] = used[key]; l[key] = last[key]; } });
+      try { sessionStorage.setItem(memoryKey, JSON.stringify({ v: 1, used: u, last: l, known: known })); } catch (e) { /* private/storage-disabled sessions keep the in-memory behavior */ }
+    });
+  }
   function mulberry(seed) {
     var s = seed >>> 0;
     return function () {
@@ -40,6 +73,7 @@ P.Dialogue = (function () {
   // A random line: every variant once before any repeats, never the one shown last, jokes only when allowed.
   // opts: { pin: fixed index, noJoke, rng, lang }. Returns { id, i, key, t, j, spk, mood } or null.
   D.line = function (id, opts) {
+    restoreMemory();
     var o = opts || {}, lg = langOf(o), list = D.pool(id, lg), r = o.rng || rng, sk = lg + '|' + id, u, cand = [], i, e, b;
     if (!list) return miss(id, lg);
     u = used[sk] || (used[sk] = {});
@@ -56,6 +90,7 @@ P.Dialogue = (function () {
       i = cand[Math.floor(r() * cand.length)];
     }
     u[i] = true; last[sk] = i; e = list[i]; b = P.DLG.beats[id] || {};
+    if (ambient(id)) rememberMemory();
     return { id: id, i: i, key: id + '#' + i, t: e.t, j: e.j ? 1 : 0, spk: e.spk || b.spk || 'spk.arda', mood: e.mood || null };
   };
   // The fixed line of a beat (variant 0): story pages, pops and calls, where the text must not change between views.
@@ -68,7 +103,19 @@ P.Dialogue = (function () {
   };
   D.text = function (id, lg) { var l = D.get(id, lg); return l ? l.text : ''; };
   // Clears the no-repeat memory and reseeds the default view stream (a new run).
-  D.reset = function (seed) { used = {}; last = {}; rng = mulberry(seed || 1337); };
+  D.reset = function (seed, keepHistory) { restoreMemory(); if (!keepHistory) { used = {}; last = {}; } rng = mulberry(seed || 1337); };
+  D.knowledge = function () { restoreMemory(); return known; };
+  D.rememberEnemy = function (id, kind) {
+    restoreMemory();
+    if ((kind !== 'seen' && kind !== 'met') || !D.has('BK.fk.' + id)) return;
+    known[kind][id] = true; rememberMemory();
+  };
+  D.clearSessionHistory = function () {
+    epoch++; queued = false; memoryLoaded = true; used = {}; last = {};
+    ['seen', 'met'].forEach(function (kind) { Object.keys(known[kind]).forEach(function (id) { delete known[kind][id]; }); });
+    try { sessionStorage.removeItem(memoryKey); } catch (e) { /* optional local session storage */ }
+    if (P.Barks && P.Barks.clear) P.Barks.clear();
+  };
   // Beats or languages a caller asked for that do not exist (the tests read this).
   D.misses = function () { return Object.keys(missed); };
   D.clearMisses = function () { missed = {}; };

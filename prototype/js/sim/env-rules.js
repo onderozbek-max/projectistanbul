@@ -42,7 +42,7 @@ P.EnvRules.ignite = function (s, x, y) {
   for (i = 0; i < s.enemies.length; i++) {
     e = s.enemies[i];
     if (!P.Env.foe(e) || dist(e, { x: x, y: y }) - e.r > R.r) continue;
-    e.dotAcc += R.burn; n++;
+    e.dotAcc += R.burn;P.Combat.dotSource(e,R.burn,'terrain:ignited-gas');n++;
   }
   P.Env.chainAt(s, x, y, R.r, 'ignite', C.fuse.ignite);
   s.env.stats.ignites++;
@@ -58,7 +58,12 @@ P.EnvRules.lob = function (s, e) {
   for (i = 0; i < recs.length; i++) {
     r = recs[i];
     if (!r.alive || dist(r, e) - r.r > reach) continue;
-    if (r.bomb && r.fuseT <= 0 && P.Env.fuse(s, r, 'canister', C.fuse.car)) n++;
+    if (r.bomb && r.fuseT <= 0 && P.Env.fuse(s, r, 'canister', C.fuse.car)) {
+      n++;
+      // A real canister landing that actually lit a car is car contact even when
+      // the landing centre lies beyond the smaller point-only terrain probe.
+      if (P.Env.isCar(r.kind)) P.Weapons6.recordTerrain(s, 'canister', 'car', 'gas', r.x, r.y, 'lob');
+    }
     else if (r.kind === 'gascan' && P.Env.fuse(s, r, 'canister', C.fuse.chain)) n++;
   }
   if (n) s.events.push({ type: 'envHit', kind: 'gas', w: 'canister', tag: 'gas', rule: 'lob', x: e.x, y: e.y, n: n });

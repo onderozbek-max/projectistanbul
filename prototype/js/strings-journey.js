@@ -2,7 +2,7 @@
 Object.assign(P.STR.tr, {
   'ui.title.proto': 'Prototip v0.8 · Eve yürüyüş: İstiklal → Ataköy',
   'ui.pause.level': '{hood} · {s}/{of} · {t}', 'ui.down.survived': '{hood} · {s}/{of} · {t} dayandın',
-  'ui.pause.quit': 'Haritaya dön', 'ui.res.title': 'Haritaya dön', 'ui.res.next': 'Sonraki bölüm',
+  'ui.pause.quit': 'Haritaya dön', 'ui.res.title': 'Harita ve gelişim', 'ui.res.next': 'Sonraki bölüm',
   'ui.res.progress': '{km} / {total} km yürüdün',
   'ui.hud.ult': 'Nazar patlaması', 'ui.hud.dash': 'DEPAR', 'ui.hud.dashHint': 'Hızlı kaydır: depar at',
   'ui.hud.stage': '{s}/{of}', 'ui.hud.adr': 'Adrenalin {n}', // TR owner check
@@ -12,7 +12,7 @@ Object.assign(P.STR.tr, {
 Object.assign(P.STR.en, {
   'ui.title.proto': 'Prototype v0.8 · The walk home: İstiklal → Ataköy',
   'ui.pause.level': '{hood} · {s}/{of} · {t}', 'ui.down.survived': '{hood} · {s}/{of} · survived {t}',
-  'ui.pause.quit': 'Back to map', 'ui.res.title': 'Back to map', 'ui.res.next': 'Next level',
+  'ui.pause.quit': 'Back to map', 'ui.res.title': 'Map & upgrades', 'ui.res.next': 'Next level',
   'ui.res.progress': '{km} / {total} km walked',
   'ui.hud.ult': 'Evil-eye burst', 'ui.hud.dash': 'DASH', 'ui.hud.dashHint': 'Quick flick: dash',
   'ui.hud.stage': '{s}/{of}', 'ui.hud.adr': 'Adrenaline {n}', 'ui.hud.journey': 'LEVEL {n}/{of}',

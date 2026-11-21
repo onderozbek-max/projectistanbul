@@ -50,6 +50,7 @@ P.Meta = P.Meta || {};
   function dailyCard(parent) {
     var s = M.state(), d = M.dailyStart(), st = M.Daily.status(d, today()), c = el('section', 'meta-hub-card meta-daily', parent);
     el('div', 'meta-hub-head', c).textContent = t('hub.dailyHead');
+    el('p','meta-ars-help',c).textContent=t('exp.mode.daily');
     el('div', 'meta-daily-level', c).textContent = t('hub.dailyLevel', { n: d.level });
     var mods = el('div', 'meta-daily-mods', c);
     (d.mods || []).forEach(function (m) {
@@ -94,6 +95,7 @@ P.Meta = P.Meta || {};
   function nightShiftCard(parent) {
     var c = M.NightShift.card(today()), p = c.plan, NS = P.CFG.nightshift, box = el('section', 'meta-hub-card meta-ns', parent);
     el('div', 'meta-hub-head', box).textContent = t('ns.card.head');
+    el('p','meta-ars-help',box).textContent=t('exp.mode.shift');
     el('div', 'meta-ns-seed', box).textContent = t('ns.card.seed', { name: M.NightShift.seedName(p.name, t) });
     el('div', 'meta-ns-rota', box).textContent = p.level ? t('ns.card.rota', { hood: M.level(p.level).hood.name }) : '';
     el('div', 'meta-hub-head', box).textContent = t('ns.card.mods');
@@ -113,8 +115,11 @@ P.Meta = P.Meta || {};
     return box;
   }
   function renderDaily() {
-    nightShiftCard(body);
+    el('p','meta-ars-help',body).textContent=t('exp.mode.optional');
     dailyCard(body);
+    var extra=el('details','meta-coll-future',body);
+    el('summary','',extra).textContent=t('ns.card.head');
+    nightShiftCard(extra);
     achievementList(body);
   }
 
@@ -129,12 +134,31 @@ P.Meta = P.Meta || {};
   function renderCollection() {
     var s = M.state(), cat = M.Collect.catalogue(), got = cat.filter(function (it) { return !!s.collection[it.id]; }).length;
     el('div', 'meta-hub-head', body).textContent = t('hub.collHead', { a: got, b: cat.length });
+    el('p', 'meta-ars-help', body).textContent = t('exp.memory.intention', { hood: M.level(M.unlockedLevel()).hood.name });
     var grid = el('div', 'meta-coll-grid', body);
-    cat.forEach(function (it) {
-      var on = !!s.collection[it.id], c = el('div', 'meta-coll-item' + (on ? ' is-on' : ''), grid);
-      el('div', 'meta-coll-kind', c).textContent = t('col.kind.' + it.kind);
-      el('div', 'meta-coll-name', c).textContent = on ? itemName(it) : t('col.locked');
-    });
+    cat.filter(function (it) { return !!s.collection[it.id]; }).forEach(function (it) { collectionItem(it, grid, true); });
+    var future = el('details', 'meta-coll-future', body);
+    el('summary', '', future).textContent = t('exp.memory.future');
+    var locked = el('div', 'meta-coll-grid', future);
+    cat.filter(function (it) { return !s.collection[it.id]; }).forEach(function (it) { collectionItem(it, locked, false); });
+  }
+  function collectionItem(it, parent, on) {
+    var page = it.kind === 'page' && P.Story.pages[it.n];
+    var c = el(on && page ? 'button' : 'div', 'meta-coll-item' + (on ? ' is-on' : ''), parent);
+    el('div', 'meta-coll-kind', c).textContent = t('col.kind.' + it.kind);
+    if (on && page) {
+      var panel = page.panels[0], cv = el('canvas', 'meta-memory-thumb', c); cv.width = 288; cv.height = 144;
+      var draw = function () {
+        if (!cv.isConnected) return;
+        P.ComicRaster.scene(cv.getContext('2d'), 288, 144, panel.bg);
+        (panel.ch || []).forEach(function (actor) { P.ComicRaster.bust(cv.getContext('2d'), actor[0], actor[1], 288 * actor[2], 144, 135, { flip: actor[3] }); });
+      };
+      P.ComicRaster.whenReady(draw);
+      var line = (panel.it || []).filter(function (x) { return x[1] && P.Dialogue.beat(x[1]); })[0];
+      el('div', 'meta-coll-name', c).textContent = line ? P.Dialogue.text(line[1]) : itemName(it);
+      el('div', 'meta-coll-kind', c).textContent = t('exp.memory.replay');
+      c.onclick = function () { P.MemoryReplay.open(it.n); };
+    } else el('div', 'meta-coll-name', c).textContent = on ? itemName(it) : t('col.locked');
   }
 
   // ---- Shell ----
@@ -151,8 +175,9 @@ P.Meta = P.Meta || {};
     back.textContent = '←'; back.setAttribute('aria-label', t('meta.back'));
     back.addEventListener('click', function () { if (onBack) onBack(); });
     el('div', 'meta-title', head).textContent = t('hub.title');
+    var nav=el('nav','meta-hub-nav',root);
     tabs = ['daily', 'coll'].map(function (k) {
-      var b = el('button', 'meta-hub-tab', root); b.dataset.tab = k; b.textContent = t('hub.tab.' + k);
+      var b = el('button', 'meta-hub-tab', nav); b.dataset.tab = k; b.textContent = t('hub.tab.' + k);
       b.addEventListener('click', function () { tab = k; sfx('uiTap'); renderBody(); });
       return b;
     });

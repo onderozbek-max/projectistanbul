@@ -1,0 +1,44 @@
+Complete the next first-30 player-experience pass for Project Istanbul's active JS prototype using the REVISED audit-8 implementation brief. This is a whole-experience correction pass, with selective animation investment. Continue through implementation and integrated verification before handing it back.
+
+Read AGENTS.md and docs/handoff-codex.md, then:
+1. reviews/AUDIT8-IMPLEMENTATION-BRIEF-2026-11-18.md — sections 0–7 are the execution scope; section 0 reflects the owner's latest priorities.
+2. reviews/GAMER-AUDIT-PASS8-2026-11-18.md — observed defects, evidence and limits.
+3. reviews/AUDIT8-PRD-CLOSURE-2026-11-18.md — E01–E14 closure requirements.
+4. reviews/AUDIT8-LEVELS-AND-ASSETS-2026-11-18.md — all 30 levels, ten bosses, 17 weapons, 18 evolutions and enemy-role directions.
+5. reviews/CHARACTER-VISUAL-CORRECTIONS-2026-11-18.md — the newer character fixes to preserve. Original experiential footage predates them.
+
+The original experiential PRD remains the detailed reference for interaction, scene, accessibility and progression contracts. The revised audit-8 brief governs this round's effort allocation. Reconcile against the actual current source and preserve working changes; do not reimplement a defect that is already fixed.
+
+ANIMATION ALLOCATION
+
+- Treat Arda's latest running as the working baseline. Keep the authored strides, proportions and input response. Perform a brief regression check and repair only a clearly visible ordinary-play defect or a weapon/carry integration regression. Do not build another locomotion system or spend the pass polishing details visible only in enlarged slow motion.
+- Ordinary zombies need recognizable roles and fair tells, not boss-level limb detail. Reuse current art/animation. Make the smallest effective corrections to silhouette, posture, commitment, attack source and dangerous combinations. Replace the seven frozen recordings even if no animation edit is required.
+- All ten bosses need the bodily credibility Arda now has: grounded movement, purposeful turning, coordinated body/arms/tool, directional preparation, actual release/contact, readable recovery and weighted defeat. Respect each boss's mass and personality. Heavy does not mean static; detailed does not mean every boss dashes. Use Cook and Captain as internal references, then finish the other eight without stopping for an intermediate handoff.
+- Prioritize knife, bike chain and chainsaw contact while retaining Cable's successful electrocution identity. Inspect the remaining weapons/evolutions and correct weak source/contact/consequence, icons and crowd legibility. Preserve actual hit geometry and attack ownership.
+
+COMPLETE THE REST OF THE EXPERIENCE
+
+1. Fix truthful presentation: interrupted Mom-call portrait (separate from the already-fixed opening-rule portraits), viewed/replayable Memories, mastery-badge catalogue, beneficial armor/cooldown wording, Gear/build layout, consistent tool icons and scenery occlusion.
+2. Make object interactions and health visibly understandable. Show approach/intent, real contact, actual effect and persistent object state. Damage, shield, restored HP, critical health and recovery must remain distinguishable on mute. Verify full HP, zero benefit and simultaneous damage/healing; do not count a tooltip or number as sufficient feedback.
+3. Establish dramatic changes through visible arrival/behavior, body posture, framing and release of pressure. Distinguish player frenzy from hostile horde pressure and injury. Keep threats/escape space readable. Remove incidental dialogue, loot prompts and obsolete combat visuals from protected emotional scenes; preserve reduced-motion and flash limits.
+4. Improve all ten boss encounters and the earned difficulty curve. Address short L2–4 first encounters, L10 punish access, L15 entry deaths, relevant failed/timeout seeds and late evolution payoff. Keep first encounters teachable and strong rematches satisfying. Do not solve this with blanket HP increases, hidden scaling or mandatory invulnerable phases. A committed eligible build needs meaningful use of its evolution before the route is already won.
+5. Apply the all-30 level directions. Change the spatial decision and useful consequence of existing actions, reducing repeated stand-in-ring waits, redundant trips and empty travel. Exercise actual street-object offense/cover/lure and meaningful choice chains, including L22→24 and L23→25, with neutral paths intact. Keep purposeful relief between peaks.
+6. Execute the specific L1/L20/L25/L30 scene direction in the revised brief. Show physical attention, approach, recognition, tool release and shared departure. Let world acting be visible, then give full comics a dedicated reading phase. Preserve the exact native story facts, variant eligibility, protected clock, coherent skip/retry and exactly-once settlement. Stop repeating first-sighting introductions each level. Illustrations should depict the action the line describes.
+7. Finish pause, attributes, perks, mastery, gear, relationship, results and return clarity. Explain what improves, how it is earned, what it affects and whether it persists. Put actionable active/ultimate selection and useful next improvements where players can find them. Fix the existing modes' presentation. Keep the no-spend/no-ad progression route and optional monetization agreement.
+8. Review the actual sound mix and silence against contact, threat and emotional timing using the existing music/cues. Validate interruption, accessibility and performance after the presentation changes. State honestly when listening, physical-phone or unfamiliar-player evidence is unavailable.
+
+DEFERRED THIS ROUND
+
+Do not implement N1 alternative starters, N2 a new environmental boss-counter rule, or N3 new replay variants from section 8. First make the existing mechanics and narrative deliver their promised experience. These proposals are preserved for a later decision. No post-30 production is authorized.
+
+HOW TO FINISH
+
+Use the brief's internal sequence: repair confirmed defects; establish health/interaction clarity and Cook/Captain/priority-weapon acting; carry the standard across the scoped roster and balance; complete all-30 pacing, major scenes and progression; then integrated verification. Continue useful work while an external evidence gate is unavailable. Do not return only a stronger boss, a reference clip or a list of implemented hooks.
+
+Record current-build normal-speed before/after footage at actual phone-scale framing. Watch it yourself with the ordinary HUD and overlays, not just isolated canvas output. Keep seeds/power/assists labeled; reject obscured or frozen captures. Show an ordinary first-session flow and genuine earned L20/25/30 transitions. Include muted/reduced variants. Source assertions, video file duration and valid audio streams do not establish perceptual success.
+
+Run meaningful focused regressions and one final integrated full suite after edits settle. Reuse the existing harnesses. Correct the Cook policy comparison, street event names and enemy fixture reset/state/time checks. Run earned all-30 campaigns, actual choice policies and relevant weak/typical/strong boss/evolution cases; investigate failures instead of reporting aggregate wins alone. Log adopted balance/design deviations. Do not claim phone or human enjoyment proof from desktop/bot results.
+
+Deliver reviews/AUDIT8-IMPLEMENTATION-2026-11-18.md with a closure matrix for this revised brief and P8-01–15/E01–14, exact build/source identity, tests, balance outcomes, complete level/roster coverage, normal-speed evidence, changes the player should notice and remaining limitations. Include the short before/after reel described in section 7 and keep full clips available. Update REVIEW-R1 and necessary source-of-truth/proposed decision notes. Separate implemented, visually demonstrated, earned-play verified and externally pending. If a named phone, listener or unfamiliar-player check cannot be performed, give its exact remaining script and complete all independent work first.
+
+Preserve the active JS architecture, current approved artwork, native TR/EN workflow, one-thumb play, automatic combat and canon. No engine migration, new dependency/paid service, real ad/IAP integration, unsolicited messages, automatic commit/push/merge or expansion beyond Level 30. Use the existing authorized art workflow for specific missing boss/scene/contact poses. Routine implementation choices within this brief do not require repeated permission. Finish with whether the whole first-30 experience is ready for independent review; do not self-certify masterpiece status or expansion approval.

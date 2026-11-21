@@ -58,13 +58,10 @@ if (!fs.existsSync(CHROME)) {
   console.log('note: Chrome not found at ' + CHROME + ', silhouette and scale checks skipped');
 } else {
   try {
-    const url = 'file://' + path.join(ROOT, 'tools/enemy-lineup.html') + '?mode=masks';
-    const dom = execFileSync(CHROME, ['--headless=new', '--user-data-dir=/tmp/chrome-es-' + process.pid, '--no-first-run', '--disable-gpu',
-      '--allow-file-access-from-files', '--hide-scrollbars', '--virtual-time-budget=20000', '--window-size=800,600', '--dump-dom', url],
-    { maxBuffer: 1 << 29, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 180000 });
-    const m = dom.match(/<pre id="out"[^>]*>([\s\S]*?)<\/pre>/);
-    if (m) masks = JSON.parse(m[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'));
-  } catch (e) { masks = null; }
+    const json = execFileSync(process.execPath, [path.join(__dirname, 'read-enemy-lineup.cjs')],
+      { maxBuffer: 1 << 29, encoding: 'utf8', timeout: 180000 });
+    masks = JSON.parse(json);
+  } catch (e) { console.error("Mask fixture failed:", e.message); masks = null; }
   ok(masks !== null, 'the lineup page renders the masks in headless Chrome');
 }
 const SIDE = 40;

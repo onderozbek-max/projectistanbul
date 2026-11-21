@@ -566,7 +566,7 @@ Written as JSONL locally (architecture.md §4.16). Every event has: `ts`, `insta
 | `player_hit` (sampled 10%) | `source_id`, `damage`, `hp_after` |
 | `death` | `cause_id`, `t_s`, `run_level`, `build[]` |
 | `revive_offer` / `revive_used` | `method` |
-| `level_end` | `result` (win/lose/quit), `t_s`, `stars`, `kills`, `rewards` |
+| `level_end` | `result` (win/lose/quit), `t_s`, `stars`, `kills`, `rewards`, `route_clear`, `bonus_id`, `bonus_result` |
 | `cinematic` | `id`, `action` (complete/skip), `t_s` |
 | `tutorial_step` | `step_id`, `t_s` |
 | `meta_upgrade` | `type` (hero/skill/mastery/gear/merge/**attribute**), `id`, `cost` (attribute: also `points`, `rank_after`; built for attributes only so far) |
@@ -600,3 +600,12 @@ Written as JSONL locally (architecture.md §4.16). Every event has: `ts`, `insta
 | Human enemies with cover/flanking | 2+ | New AI behaviors on top of the swarm system |
 | Bonds & combo ultimates | 2+ | See §9.4 |
 | Day/night cycle within a level | 2+ | The slice has the `night` modifier only |
+
+
+## Active prototype experiential checkpoint · 2026-11-18
+
+Proposed implementation detail under Product D-115; see [the complete experiential matrix](../reviews/EXPERIENTIAL-IMPLEMENTATION-2026-11-18.md) for evidence and deviations. The first-30 prototype retains current weapon/boss damage, attack cooldowns, evolution eligibility and eight-second placed cover. Deliberate route-pad choice requires 0.38 s stationary intent; prop candidate hysteresis is 0.12 s and a recent actual hit cancels acquisition/station work for 0.18 s. Healing-station progress requires stillness. Mission loads and portable props cannot own both hands simultaneously. Positive heal feedback reports only restored HP; full-health food remains saved.
+
+`config-experience.js` owns presentation timings: 100 ms take-up, 140 ms settlement, 90 ms turn; health trail hold/decay 0.12/0.38 s, heal mark 0.65 s, critical hysteresis 25%/36%; boss entry/repeat 1.75/0.38 s. Selected L20/L25/L30 aftermath acting uses 5.2/6.4/5.2 s overlapping native reading at the actual defeat anchor. All gameplay clocks pause together during protected reading/acting; ordinary world actions stay live. L2 explicitly retains its previously accepted protected crowd/tram payoff after live approach/calling; this is recorded as a deviation from the appendix’s all-live wording. Camera caption bias is 0.18 of the protected frame height. Stormshield’s existing conditional zap uses an actual Nazar dodge, not Dash. The actual exit remains required and result settlement remains exactly once. Active player flow ends at the L30 review boundary; the longer campaign remains design/data context.
+
+Owner visual follow-up, 2026-11-18: Arda’s front/back/side locomotion uses the existing four illustrated leg poses intact, joined at the painted waist (not outward two-knee IK from idle). The upper-body work/attack grip and shared scene-clock rules remain. Fleeing civilians retain their seeded variant and use the new six-identity illustrated run atlas; the restaurant actor is separate. Opening rule portraits derive from `Story.forLine` and all three belong to Arda. See the [correction evidence](../reviews/CHARACTER-VISUAL-CORRECTIONS-2026-11-18.md).

@@ -6,8 +6,21 @@
 // Voice slider; a saved voiceVol is ignored. Render and input read them; P.applySettings pushes the ones that have a live hook.
 (function () {
   var KEY = 'istanbul_proto_v1';
-  var MUSIC_BASE = 0.5;   // music level 100 = the default mix: -6 dB from the file level, so effects stay clearly above it (phone playtest: music masked the SFX at 0.7)
+  var MUSIC_BASE = 0.32;   // music level 100 leaves headroom for effects in the phone mix
   var SHAKE_STEPS = [0, 50, 100], TEXT_STEPS = [100, 125, 150];   // shake and text size: DS 4
+  var palettes = {
+    deutan: { ring: '#6DDCFF', danger: '#FFAB39', xp: ['#85C4A9', '#7CAAFB', '#D7C0FF'], heal: '#B8FFDE', elite: '#EDAFFF' },
+    protan: { ring: '#6DBDFF', danger: '#FFD03C', xp: ['#8BC2B7', '#92ABFF', '#F0C1FF'], heal: '#D8FFDE', elite: '#DE9DFF' },
+    tritan: { ring: '#FFA6E6', danger: '#FF7952', xp: ['#91D5D4', '#9FB8F5', '#DAB5FF'], heal: '#E1FFF1', elite: '#B9B5FF' }
+  };
+  var colorVision = ['standard'].concat(Object.keys(palettes));
+  Object.keys(palettes).forEach(function (key) {
+    var p = palettes[key];
+    ['ring', 'danger', 'heal', 'elite'].forEach(function (name) {
+      var n = parseInt(p[name].slice(1), 16);
+      p[name + 'RGB'] = [n >> 16 & 255, n >> 8 & 255, n & 255].join(',');
+    });
+  });
   // First launch: the phone's language picks the script. Any tr* gives Turkish, anything else gives English (D-051). The result is
   // saved as the player's setting and the Settings control overrides it. ?lang=tr|en overrides for testing and is not saved.
   P.detectLang = function (list) {
@@ -15,10 +28,10 @@
     return 'en';
   };
   var phoneLangs = typeof navigator === 'undefined' ? [] : navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
-  var defaults = { lang: P.detectLang(phoneLangs), sound: true, subs: true, reduceMotion: false, dmgNumbers: true, blood: true,
+  var defaults = { lang: P.detectLang(phoneLangs), sound: true, subs: true, reduceMotion: false, dmgNumbers: false, blood: true,
                    firstRunDone: false, l1Cleared: false, coldOpenSeen: false, installId: null,
                    musicVol: 100, sfxVol: 100, haptics: true, joySide: 'any', shake: 100, reduceFlash: false,
-                   devTools: false, textSize: 100 };
+                   devTools: false, textSize: 100, colorVision: 'standard' };
   var LANGS = ['tr', 'en'];
   var BOOLS = ['sound', 'subs', 'reduceMotion', 'dmgNumbers', 'blood', 'firstRunDone', 'l1Cleared', 'coldOpenSeen',
                'haptics', 'reduceFlash', 'devTools'];
@@ -47,20 +60,28 @@
   delete P.Settings.voiceVol;
   if (SHAKE_STEPS.indexOf(P.Settings.shake) < 0) P.Settings.shake = defaults.shake;
   if (TEXT_STEPS.indexOf(P.Settings.textSize) < 0) P.Settings.textSize = defaults.textSize;
+  if (colorVision.indexOf(P.Settings.colorVision) < 0) P.Settings.colorVision = defaults.colorVision;
   if (P.Settings.joySide !== 'left' && P.Settings.joySide !== 'right' && P.Settings.joySide !== 'any') P.Settings.joySide = defaults.joySide;
   // The old default was 'right', which silently ignored every touch in the left 45% of the screen (design: the stick spawns anywhere in
   // the lower 60%). A save made before this migration moves to 'any' once; the choice made afterwards is kept.
   if (data.joyMig !== 2) { P.Settings.joySide = 'any'; P.Settings.joyMig = 2; }
-  P.SettingSteps = { shake: SHAKE_STEPS, text: TEXT_STEPS };   // offered values (screens.js cycles through them)
+  // Clear the old on-by-default setting once. Explicit choices made with the quieter default are kept.
+  if (data.damageNumbersVersion !== 1) { P.Settings.dmgNumbers = false; P.Settings.damageNumbersVersion = 1; }
+  P.SettingSteps = { shake: SHAKE_STEPS, text: TEXT_STEPS, colorVision: colorVision };
   P.saveSettings = function () {
     try { localStorage.setItem(KEY, JSON.stringify(P.Settings)); } catch (e) { /* private mode: ignore */ }
   };
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && !('reduceMotion' in data)) {
     P.Settings.reduceMotion = true;
   }
+  function applyPalette() {
+    P.SemanticColors = palettes[P.Settings.colorVision] || null;
+  }
+  applyPalette();
   // Pushes the settings that have a live hook: the two volumes (at boot too), HUD mirror (joystick side), the flashing
   // class, the motion class and the UI text size.
   P.applySettings = function () {
+    applyPalette();
     if (P.Music && P.Music.setVolume) P.Music.setVolume(MUSIC_BASE * P.Settings.musicVol / 100);
     if (P.Sfx && P.Sfx.setVolume) {
       var fx = P.Settings.sfxVol / 100;   // the voice bus is not set here: it sits inside the sfx bus (sfx.js)
@@ -68,9 +89,18 @@
     }
     var ph = typeof document !== 'undefined' ? document.getElementById('phone') : null;
     if (!ph) return;
+    if (P.SemanticColors) {
+      ph.setAttribute('data-color-vision', P.Settings.colorVision);
+      ph.style.setProperty('--access-ring', P.SemanticColors.ring);
+      ph.style.setProperty('--access-danger', P.SemanticColors.danger);
+      ph.style.setProperty('--access-xp', P.SemanticColors.xp[0]);
+    } else {
+      ph.removeAttribute('data-color-vision');
+    }
     ph.classList.toggle('lefty', P.Settings.joySide === 'left');
     ph.classList.toggle('reduce-flash', !!P.Settings.reduceFlash);
     ph.classList.toggle('reduce-motion', !!P.Settings.reduceMotion);   // the in-game switch does what the OS query does
+    ph.classList.toggle('large-text', P.Settings.textSize >= 150);
     ph.style.setProperty('--ui-text', String(P.Settings.textSize / 100));   // UI text scale (css: calc(Npx * var(--ui-text))); canvas art does not scale
     // Street Cred: in the XP line below 150% text; in HUD row 2 at 150%, so the streak chip keeps the XP bar at least 120 px
     // wide (at 150% it was 58 px). Row 2 is the objective and the call strip; the move is a DOM move, never mid-run.

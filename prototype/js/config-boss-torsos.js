@@ -1,0 +1,2 @@
+// Closed shoulder artwork, measured from the authorized ImageGen repair.
+P.CFG.bossTorsos={"file":"assets/landmarks/first30-reset/boss-torsos-v2.png","cells":{"cook":[25,17,207,221],"switchkeeper":[279,28,209,200],"roaster":[535,20,211,215],"linekeeper":[790,21,205,214],"vatman":[27,286,206,193],"bellkeeper":[279,278,209,213],"dockBride":[539,283,206,211],"bigFisher":[790,272,211,225],"quayCaptain":[19,535,221,208],"ticketMan":[283,528,202,225]}};

@@ -102,8 +102,6 @@ function momentsWorld(opt) {
     if (g) { grants.push(clock); if (kind !== 'moment') hitG.push(clock); }
     return g;
   };
-  const forceReal = S.flashForce;                    // the last-stand pulse is a forced start (a hit, in the hit pool)
-  S.flashForce = function (now) { forceReal(now); grants.push(clock); hitG.push(clock); };
   const scStreak = SC.streak;
   const W = { P, S, M, SC, grants, streaks, hitG, momG, momAsk, momRef, kills: 0, sim: { t: 0, mode: 'play', levelIndex: 6, levelInfo: { hood: { name: 'GALATA' } }, hero: { x: 0, y: 40, hp: 100, maxHp: 100 }, enemies: [] } };
   SC.streak = function (n) { streaks.push({ n: n, kill: W.kills }); scStreak(n); };
@@ -119,7 +117,7 @@ const bossHit = (i) => ({ type: 'hit', boss: true, id: i, x: 0, y: 40, dx: 1, dy
 { // Config: every key the moments read is a finite number, and the rates are within the limits
   const K = momentsWorld({}).P.CFG.moments;
   const need = ['dash.ghostN', 'dash.tearRate', 'dash.tearT', 'dash.fringe', 'shock.max', 'shock.zoom', 'shock.life', 'shock.slamKick',
-    'shock.stompKick', 'shock.gap', 'streak.bannerT', 'streak.wipeT', 'streak.queueT', 'crit.gap', 'crit.hold', 'crit.life',
+    'shock.stompKick', 'shock.gap', 'streak.bannerT', 'streak.fadeT', 'streak.queueT', 'crit.gap', 'crit.hold', 'crit.life',
     'ripple.life', 'ripple.wobbleHz', 'ripple.fringe', 'clear.n', 'clear.life', 'clear.bounceHz', 'clear.grav', 'low.pulseHz',
     'low.max', 'low.veil', 'low.veilIn', 'impact.gap', 'impact.hold', 'impact.life', 'impact.spikes'];
   const missing = need.filter((p) => { const v = p.split('.').reduce((o, k) => (o ? o[k] : undefined), K); return typeof v !== 'number' || !isFinite(v); });

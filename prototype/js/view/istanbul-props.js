@@ -20,7 +20,7 @@ P.Props = (function () {
   //   plain              landmarks, overhead rigs, decals and fx: drawn as before.
   // ROLE is by kind; a kind with no entry is dressing. Blocks follow the sim's kit (journey.js) and env kinds (config-env.js).
   var ROLE = {
-    bin: 'breakable', bench: 'breakable', tables: 'breakable', tavlatable: 'breakable', cart: 'breakable', planter: 'breakable', crates: 'breakable',
+    bin: 'breakable', bench: 'breakable', tables: 'breakable', tavlatable: 'breakable', cart: 'breakable', planter: 'solid', crates: 'breakable',
     crate: 'breakable', kiosk: 'breakable', antique: 'breakable', extinguisher: 'breakable',
     bollard: 'solid', barrier: 'solid', tree: 'solid', car: 'solid', taxi: 'solid', dolmus: 'solid', bus: 'solid',
     lx_pillar: 'solid', lx_stall: 'solid', lx_wall: 'solid', lx_truck: 'solid', lx_boat: 'solid',
@@ -169,10 +169,14 @@ P.Props = (function () {
     for (var i = 0; i < 4; i++) rc(c, X, top - d * 0.3 + i * d * 0.2, w * 0.7, 0.05 * s, '#D9D4C7', 0);
   };
   REG.bench = function (c, X, Y, s, o) {
-    var w = (o.w || 1.6) * s, d = (o.h || 0.5) * s, hg = 0.3 * s, top = Y - hg;
+    var w = (o.w || 1.6) * s, d = (o.h || 0.5) * s, hg = 0.32 * s, top = Y - hg;
     shadow(c, X, Y, w * 0.55, d * 0.6);
-    box(c, X, Y, w, d, hg, '#8B5A2B', '#5C3A1C');
-    for (var i = 1; i < 4; i++) ln(c, X - w / 2 + i * w / 4, top - d / 2, X - w / 2 + i * w / 4, top + d / 2, '#5C3A1C', 1);
+    [-0.44, 0.44].forEach(function (k) {
+      ln(c, X + w * k, Y + d / 3, X + w * k, top - d / 2 - 0.35 * s, '#343B42', 3);
+    });
+    box(c, X, Y - hg, w, d, 0.1 * s, '#B98551', '#715034');
+    rc(c, X, top - d / 2 - 0.24 * s, w, 0.21 * s, '#9D693C', 1.2);
+    ln(c, X - w * 0.47, top - d / 2 - 0.24 * s, X + w * 0.47, top - d / 2 - 0.24 * s, '#704B2F', 1);
   };
   REG.bin = function (c, X, Y, s, o) {
     var r = (o.w || 0.5) * s * 0.5, hg = 0.8 * s;
@@ -393,15 +397,22 @@ P.Props = (function () {
   // Draw one prop at world (x, y) by its role (see the grammar above). Re-entrant: lamp_row calls draw inside draw.
   M.draw = function (kind, R, x, y, o) {
     o = o || {};
+    if (kind === 'bollard' && (o.theme || o.rt) === 'bridge' && P.BridgeProps) {
+      P.BridgeProps.drawBlock(R, kind, x, y, o);
+      return;
+    }
+    if (P.StreetArt && P.StreetArt.prop(kind, R, x, y, o)) return;
     var c = R.ctx, X = R.X(x), Y = R.Y(y), s = R.ppm, role = roleOf(kind, o), pd = dressOn, pb = blockOn;
     var block = role === 'solid' || role === 'breakable', dress = role === 'dressing';
     blockOn = block; dressOn = dress;
     if (dress) { c.save(); c.transform(DRESS.scale, 0, 0, DRESS.squash, X * (1 - DRESS.scale), Y * (1 - DRESS.squash)); }   // flatter and smaller about the footprint centre
-    var raster = !!(P.ArtRasterItems && P.ArtRasterItems.block(R, kind, x, y, o));   // D-066: raster art under ?art=raster (false when off or not ready)
+    var straightBench = kind === 'bench' && (o.theme === 'istiklal' || o.rt === 'istiklal');
+    var raster = !!(!straightBench && P.ArtRasterItems && P.ArtRasterItems.block(R, kind, x, y, o));
     var galata = !raster && o.theme === 'galata' && P.GalataProps && P.GalataProps.draw(R, kind, x, y, { v: o.v });
+    var shared = !raster && !galata && P.StreetArt && P.StreetArt.shared(kind, c, X, Y, s, o);
     var fallback = kind === 'tavlatable' ? 'tables' : kind;
-    if (!raster && !galata && !(o.theme && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, fallback, o))) (REG[fallback] || REG.crate)(c, X, Y, s, o);   // R1-T3: authored art for the hood's kit, else the procedural painter
-    if (block) c.drawImage(markCanvas(kind, role, o.w * s, o.h * s), X - o.w * s / 2 - 1, Y - o.h * s / 2 - 1);   // blocks always carry a footprint (roleOf)
+    if (!raster && !galata && !shared && !(o.theme && !straightBench && P.ArenaProps && P.ArenaProps.draw(R, x, y, o.theme, fallback, o))) (REG[fallback] || REG.crate)(c, X, Y, s, o);
+    if (block && !o.airborne) c.drawImage(markCanvas(kind, role, o.w * s, o.h * s), X - o.w * s / 2 - 1, Y - o.h * s / 2 - 1);
     if (dress) c.restore();
     blockOn = pb; dressOn = pd;
   };

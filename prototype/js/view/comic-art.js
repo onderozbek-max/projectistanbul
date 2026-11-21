@@ -23,7 +23,7 @@ P.ComicArt = (function () {
   var INIT = { arda: 'A', anne: 'L', baba: 'S', usta: 'U', friend: 'K', kaan: 'K', mila: 'M', ada: 'D', dede: 'H', ahmet: 'A', shopkeeper: 'A', news: 'H', stranger: '?', zombie: 'Z' };
   var KIND = { body: 'speech', speech: 'speech', display: 'title', title: 'title', hand: 'hand' };
   var halfPat = null, waiting = [];
-  A.ready = false;   // true once the faces have loaded or failed (the fallback stack is then final)
+  A.ready = false;   // lettering has settled; pages separately wait for their own artwork
   A.faces = [];      // [{family, weight, status}] after the load settles (the audit reports it)
 
   A.font = function (kind, px) {
@@ -44,8 +44,7 @@ P.ComicArt = (function () {
           if (/CM (Comic Relief|Bangers)/.test(f.family)) A.faces.push({ family: f.family, weight: f.weight, status: f.status });
         });
       }
-      A.ready = true;
-      waiting.splice(0).forEach(function (fn) { fn(); });
+      A.ready = true; waiting.splice(0).forEach(function (fn) { fn(); });
     }
     if (!fonts || !fonts.load) return settle();
     Promise.all(A.FACES.map(function (f) { return fonts.load(f, 'ÇĞÜŞİÖçğüşıöI'); })).then(settle, settle);
@@ -193,6 +192,7 @@ P.ComicArt = (function () {
     dusk: { sky: ['#F59E6B', '#2B3B57'], far: { kind: 'skyline', col: '#2B3550' }, ground: '#3E4A58', rails: 0, near: [], wash: 'warm' }
   };
   A.scene = function (c, w, h, key, seed) {
+    if (P.ComicRaster) return P.ComicRaster.scene(c, w, h, key);
     var r = SCENES[key] || SCENES.street, rnd = A.rng(seed || 7);
     if (r.map) return mapScene(c, w, h);
     grad(c, w, h, r.sky);

@@ -1,13 +1,11 @@
-// Signature moments, screen layer (T4 part 13): the ink wipe and the streak word, the dash tear, the ground-shock lens, the
+// Signature moments, screen layer (T4 part 13): the streak chip, the dash tear, the ground-shock lens, the
 // last-stand grey veil, the level-clear confetti and the hood ribbon. View only: the sim never reads this file. Numbers: P.CFG.moments.
 // Drawn from RenderOverlay.screen (render.js) after the world and the lighting, under the HUD. The device-pixel passes (the lens and
 // the tear) save and restore their transform. Every bright start was granted by the budget (P.Fx.flashGo) in moments.js or here.
 P.MomentsScreen = (function () {
-  var S = { t: 0, W: 390, H: 844, tearOn: false, tearAge: 0, wipe: null, word: null, pending: null, ribbon: null, pieces: [],
+  var S = { t: 0, W: 390, H: 844, tearOn: false, tearAge: 0, word: null, pending: null, ribbon: null, pieces: [],
     veilA: 0, veilG: null, veilC: null, lens: null, lensC: null };
   var TAU = Math.PI * 2, INK = '20,21,31', GOLD = '255,209,102', PIECES = 40;
-  var JAG = [0.4, -0.6, 0.9, -0.2, 0.7, -0.8, 0.3, -0.4];                                     // ink wipe edge (unit jitter)
-  var BLOB = [1, 0.86, 1.08, 0.92, 1.12, 0.88, 1, 0.9, 1.1, 0.84, 1.06, 0.94, 0.98, 1.04];     // ink splash outline (unit jitter)
   function C() { return P.CFG.moments; }
   function rm() { return !!(P.Settings && P.Settings.reduceMotion); }
   function rf() { return !!(P.Settings && P.Settings.reduceFlash); }
@@ -18,7 +16,7 @@ P.MomentsScreen = (function () {
   function font(px) { return 'italic 900 ' + px + 'px "CM Bangers", Bangers, Impact, sans-serif'; }
 
   S.reset = function () {
-    S.t = 0; S.tearOn = false; S.tearAge = 0; S.wipe = null; S.word = null; S.pending = null; S.ribbon = null; S.veilA = 0;
+    S.t = 0; S.tearOn = false; S.tearAge = 0; S.word = null; S.pending = null; S.ribbon = null; S.veilA = 0;
     S.pieces.forEach(function (p) { p.on = false; });
   };
 
@@ -26,17 +24,15 @@ P.MomentsScreen = (function () {
   // The dash tear takes one budget slot; without one the ghosts still show.
   S.tear = function () { if (go()) { S.tearOn = true; S.tearAge = 0; } };
 
-  function showStreak(n, wipe) {
+  function showStreak(n) {
     var k = C().streak;
     S.word = { key: 'mo.streak' + n, age: 0, T: k.bannerT };
     S.pending = null;
-    if (wipe && !rm()) S.wipe = { age: 0, T: k.wipeT };
   }
-  // A kill-streak mark. The ink wipe and the word are bright starts: one budget slot. With none free the word waits up to queueT s
-  // for one. Under Reduce flashing the word shows steady, with no wipe and no pop.
+  // A kill-streak mark waits briefly for the effects budget, then uses a compact badge.
   S.streak = function (n) {
-    if (rf()) { showStreak(n, false); return; }
-    if (go()) showStreak(n, true);
+    if (rf()) { showStreak(n); return; }
+    if (go()) showStreak(n);
     else S.pending = { n: n, until: S.t + C().streak.queueT };
   };
 
@@ -58,11 +54,10 @@ P.MomentsScreen = (function () {
     var k = C(), i, p, lo = P.Moments && P.Moments.lowOn, target, step;
     S.t += dt;
     if (S.tearOn && (S.tearAge += dt) >= k.dash.tearT) S.tearOn = false;
-    if (S.wipe && (S.wipe.age += dt) >= S.wipe.T) S.wipe = null;
     if (S.word && (S.word.age += dt) >= S.word.T) S.word = null;
     if (S.pending) {
       if (S.t > S.pending.until) S.pending = null;
-      else if (go()) showStreak(S.pending.n, true);
+      else if (go()) showStreak(S.pending.n);
     }
     if (S.ribbon && (S.ribbon.age += dt) >= S.ribbon.T) S.ribbon = null;
     target = lo ? 1 : 0; step = Math.min(1, dt / k.low.veilIn);
@@ -82,8 +77,7 @@ P.MomentsScreen = (function () {
     drawLens(c, R);
     drawTear(c, R, s);
     drawVeil(c, R);
-    drawWipe(c, R);
-    drawWord(c, R);
+    if (!s || s.mode === 'play') drawWord(c, R);
     drawConfetti(c, R);
     drawRibbon(c, R);
     c.globalAlpha = 1;
@@ -145,46 +139,25 @@ P.MomentsScreen = (function () {
     c.globalAlpha = S.veilA * k.veil; c.fillStyle = S.veilG; c.fillRect(0, 0, R.W, R.H); c.globalAlpha = 1;
   }
 
-  // Ink wipe: two dark bands run in from the left and right edges, meet the middle, and run back out (edges are ragged).
-  function drawWipe(c, R) {
-    var w = S.wipe, k = C().streak, t, inn, W = R.W, H = R.H, wd, i, n = JAG.length;
-    if (!w) return;
-    t = w.age / w.T;
-    inn = t < 0.5 ? ease(t * 2) : ease((1 - t) * 2);
-    if (inn <= 0) return;
-    wd = k.wipeFrac * W * inn;
-    c.globalAlpha = k.wipeA; c.fillStyle = 'rgb(' + INK + ')';
-    c.beginPath(); c.moveTo(0, 0);
-    for (i = 0; i < n; i++) c.lineTo(wd + JAG[i] * k.wipeJag, i * H / (n - 1));
-    c.lineTo(0, H); c.closePath(); c.fill();
-    c.beginPath(); c.moveTo(W, 0);
-    for (i = 0; i < n; i++) c.lineTo(W - wd - JAG[i] * k.wipeJag, i * H / (n - 1));
-    c.lineTo(W, H); c.closePath(); c.fill();
-    c.globalAlpha = 1;
-  }
-
-  // Streak word: an ink splash (a wide blob, pops in with an overshoot) with the gold word on it. Steady under Reduce flashing and
-  // Reduce motion (no pop).
+  // Draw within the same bounds reserved against speech, controls and world cues.
   function drawWord(c, R) {
-    var w = S.word, k = C().streak, a, sc, t, rr = k.splashR * R.W, i, n = BLOB.length, ang, x, y, txt, fit;
+    var w = S.word, k = C().streak;
     if (!w) return;
-    t = w.age / k.popIn;
-    sc = rm() || rf() ? 1 : (t < 1 ? clamp01(t) * 1.12 : 1.12 - 0.12 * clamp01((w.age - k.popIn) / 0.12));
-    a = clamp01((w.T - w.age) / k.fadeT);
-    c.globalAlpha = a;
-    c.save(); c.translate(R.W / 2, R.H * k.wordY); c.scale(sc, sc);
-    c.beginPath();
-    for (i = 0; i <= n; i++) {
-      ang = (i % n) / n * TAU; x = Math.cos(ang) * rr * BLOB[i % n]; y = Math.sin(ang) * rr * 0.3 * BLOB[i % n];
-      if (i) c.lineTo(x, y); else c.moveTo(x, y);
+    var label = P.t(w.key), h = 26, max = R.W * .43;
+    c.save();
+    c.font = font(18);
+    var width = Math.min(max, Math.ceil(c.measureText(label).width) + 20);
+    var y = Math.round(R.H * k.wordY), x = (R.W - width) / 2;
+    var rect = { x: x, y: y, w: width, h: h };
+    if (!P.Speech || P.Speech.clearBox(rect)) {
+      c.globalAlpha = clamp01((w.T - w.age) / k.fadeT);
+      c.fillStyle = 'rgb(' + INK + ')';
+      c.beginPath(); c.roundRect(x, y, width, h, 8); c.fill();
+      c.fillStyle = 'rgb(' + GOLD + ')';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(label, x + width / 2, y + h / 2, width - 18);
     }
-    c.closePath(); c.fillStyle = 'rgba(' + INK + ',' + k.inkA + ')'; c.fill();
-    c.font = font(k.fontPx); c.textAlign = 'center'; c.textBaseline = 'middle';
-    txt = P.t(w.key); fit = Math.min(1, rr * 1.6 / Math.max(1, c.measureText(txt).width));
-    c.scale(fit, fit);
-    c.lineWidth = 6; c.strokeStyle = 'rgb(' + INK + ')'; c.fillStyle = 'rgb(' + GOLD + ')';
-    c.strokeText(txt, 0, 0); c.fillText(txt, 0, 0);
-    c.restore(); c.globalAlpha = 1;
+    c.restore();
   }
 
   // Level clear: paper simit rings and tulip tea glasses falling past the screen (screen pixels, spin and a flip that changes width).
@@ -236,7 +209,7 @@ P.MomentsScreen = (function () {
   S.active = function () {
     var i, n = 0;
     for (i = 0; i < S.pieces.length; i++) if (S.pieces[i].on) n++;
-    return { pieces: n, tear: S.tearOn, wipe: !!S.wipe, word: S.word ? S.word.key : '', ribbon: S.ribbon ? S.ribbon.name : null,
+    return { pieces: n, tear: S.tearOn, wipe: false, word: S.word ? S.word.key : '', ribbon: S.ribbon ? S.ribbon.name : null,
       pending: !!S.pending, veil: S.veilA };
   };
 

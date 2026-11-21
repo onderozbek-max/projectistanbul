@@ -3,6 +3,7 @@
 //   node prototype/tools/bot.js [--seeds=30] [--policy=kite|straight] [--verbose]    Level 1 (scripted)
 //   node prototype/tools/bot.js --level=N [--seeds=8] [--verbose]                    one generated level (2..100)
 //   node prototype/tools/bot.js --levels=2,3,5,8,12,20,25,50,75,100 [--seeds=8]      summary table
+// Add --from=7 to start the seed batch at 7, or --seed=7 to replay a single seed.
 //   node prototype/tools/bot.js --campaign=30 [--out=file.jsonl]   play levels 1..N in order through the meta layer (real saves,
 //        Street Tree learned and respecced, Kaan bond) and dump the meta telemetry events (R1-T5 step 5)
 // Generated levels run with the expected progression at that level (P.Power.expectedLoadout: hood rank, attributes,
@@ -12,8 +13,9 @@
 // and the boss, push through stalls, walk to a near heal station (eczane or kiosk) when hurt: R1-T4 parts 14, 17). Both link hacks (INT) and count events. One revive (as in L1). Exceptions are
 // caught and reported as result 'crash'.
 'use strict';
+const { planCard, useActiveSkills, auditChoiceInput, routeEscape, repulsion } = require('./lib-bot-play');
 const fs = require('fs'), path = require('path'), vm = require('vm');
-const ROOT = path.join(__dirname, '..');
+const { ROOT, indexScripts } = require('./lib-load');
 // The modules come from index.html's script order (minus the view, story and flow files), so the bot runs the same
 // sim as the browser build. A new sim file only needs its script tag (AUDIT-6 F2: this list used to drift).
 // --campaign needs the real meta layer (save, collect, daily), so those three are loaded then, with an in-memory localStorage.
@@ -27,8 +29,7 @@ if (META_LOADED) {
   const store = {};
   globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
 }
-const FILES = [...fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').matchAll(/<script src="([^"]+)"/g)]
-  .map(m => m[1]).filter(f => !NOT_SIM.test(f));
+const FILES = indexScripts().filter(f => !NOT_SIM.test(f));
 FILES.forEach(function (f) { vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }); });
 const P = globalThis.P;
 // --set=a.b.c=value;d.e=value: override P.CFG values after the modules load (boss-arena pass: sweep a number without editing
@@ -86,12 +87,21 @@ function botInput(s, st) {
     [tx, ty] = PATH[st.wp];
   }
   const tr = P.CFG.level.tram, inTram = x => x.x > tr.xMin - 0.5 && x.x < tr.xMax + 0.5 && x.y > tr.yMin - 0.5 && x.y < tr.yMax + 0.5;
-  const near = s.drops.filter(x => Math.hypot(x.x - h.x, x.y - h.y) < 5 && x.y > h.y - 4 && !inTram(x))
+  const near = s.drops.filter(x => Math.hypot(x.x - h.x, x.y - h.y) < 5 && x.y > h.y - 4 && !inTram(x) &&
+    !(args['skip-full-food'] && x.kind === 'simit' && h.hp >= h.maxHp))
     .sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y))[0];
   const hk = s.hacks.filter(t => t.state !== 'done' && Math.hypot(t.x - h.x, t.y - h.y) < HACK_REACH)[0];
   if (hk && !threat && !s.props.shutterOpen) { tx = hk.x; ty = hk.y; }
   else if (near && !threat && !s.props.shutterOpen) { tx = near.x; ty = near.y; }
   if (h.y > tr.yMin - 0.6 && h.y < tr.yMax + 0.6 && Math.abs(h.x) > 1 && Math.sign(tx) !== Math.sign(h.x)) { tx = h.x; ty = tr.yMax + 1.2; }
+  // L1 owns its route, so it must explicitly exercise the alternative boss policy too.
+  const cook=s.dir.trialBoss;
+  if (typeof args!=='undefined' && args.punish && cook && !cook.dead) {
+    const opening=cook.exposed && cook.ai.m!=='windup', radius=opening?1.35:4.1;
+    st.ang+=(opening?.004:.009);
+    tx=Math.max(-5.1,Math.min(5.1,cook.x+Math.cos(st.ang)*radius));
+    ty=Math.max(197,Math.min(222,cook.y+Math.sin(st.ang)*radius));
+  }
   let vx = tx - h.x, vy = ty - h.y;
   const d = Math.hypot(vx, vy) || 1;
   vx /= d; vy /= d;
@@ -110,18 +120,19 @@ function botInput(s, st) {
 
 function runL1(seed, firstRun) {
   const st = { wp: 0, ang: 0 }, segT = {}, deaths = [], evBy = {}, dmgBy = {};
+  const offers = args.build ? [] : null;
   let minFrac = 1, s = null, result = 'timeout', err = null;
   try {
-    s = P.createSim(seed);
+    s = P.createSim(seed, { tramRhythm: args.rhythm === true });
     P.startPlay(s);
     while (s.runT < MAX_T) {
       while (s.pendingChests > 0) P.Progression.openChest(s, P.Progression.chestReward(s));
       if (s.pendingLevels > 0) {
-        const offer = P.Progression.makeOffer(s);
-        P.Progression.choose(s, offer.cards[0]);
+        P.Progression.choose(s, offers ? planCard(P, s, offers, args) : P.Progression.makeOffer(s).cards[0]);
         continue;
       }
-      P.stepSim(s, DT, botInput(s, st));
+      const input=botInput(s,st);
+      P.stepSim(s,DT,args.skills?useActiveSkills(P,s,input,unit):input);
       minFrac = Math.min(minFrac, Math.max(0, s.hero.hp) / s.hero.maxHp);
       P.drainEvents(s).forEach(ev => {
         if (ev.type === 'segment') segT[ev.id] = s.runT;
@@ -131,7 +142,7 @@ function runL1(seed, firstRun) {
       if (s.mode === 'dead') {
         deaths.push({ t: s.runT, cause: s.deathCause, y: s.hero.y });
         if (firstRun && !s.secondWindUsed) P.revive(s, 'secondWind');
-        else if (!s.reviveUsed) P.revive(s, 'ad');
+        else if (!s.reviveUsed && !args['no-revive']) P.revive(s, 'ad');
         else { result = 'lose'; break; }
       }
       if (s.mode === 'won') { result = 'win'; break; }
@@ -142,7 +153,7 @@ function runL1(seed, firstRun) {
   return { seed, result, err, t: L.runT, chests: L.chestsOpened, kills: L.kills, level: L.level, levelUps: L.levelUps.length,
     lvTimes: L.levelUps.slice(), minFrac, dropHeal: L.dropHealed || 0, dmgBy,
     firstLvInA, peak: L.peakAlive, hp: Math.round(L.hero.hp), deaths, segT, evBy, hacks: L.tally.hacks, events: L.tally.events,
-    build: Object.assign({}, L.hero.weapons, L.hero.passives) };
+    build: Object.assign({}, L.hero.weapons, L.hero.passives), auditBuild: offers && { wanted: args.build, offers } };
 }
 
 // ---------- Generated levels: generic kiting policy ----------
@@ -153,6 +164,10 @@ function unit(dx, dy) {
 
 // Objective waypoints this many metres behind the hero are still walked back to (a booster or terminal the route overshot).
 const OB_BACK = 8;
+function punishWindow(s) {
+  const boss = s.gen.boss;
+  return args.punish && boss && !boss.dead && boss.exposed && boss.ai.m !== 'windup' && boss.ai.m !== 'charge' ? boss : null;
+}
 
 // Where the hero wants to go (ignoring drops, hacks and repulsion).
 function targetOf(s, st) {
@@ -160,7 +175,8 @@ function targetOf(s, st) {
   // Circle speed kept under the hero's 3.2 m/s at the circle radius (~0.5 rad/s at 6 m).
   if (b && !b.dead) {
     st.ang += 0.008;
-    return [Math.max(-5.5, Math.min(5.5, b.x + Math.cos(st.ang) * 6)), Math.max(b.y - 7, Math.min(b.y + 7, b.y + Math.sin(st.ang) * 6))];
+    const radius = punishWindow(s) ? 2 : 6;
+    return [Math.max(-5.5, Math.min(5.5, b.x + Math.cos(st.ang) * radius)), Math.max(b.y - 7, Math.min(b.y + 7, b.y + Math.sin(st.ang) * radius))];
   }
   if (s.dir.hold.active) { st.ang += 0.01; return [Math.cos(st.ang) * 3, G.exitY - 4 + Math.sin(st.ang) * 2.5]; }
   if (s.props.shutterOpen) return [0, G.exitY + 2.5];
@@ -168,55 +184,16 @@ function targetOf(s, st) {
   // a gap on the route would pull the bot past an unfinished terminal, and it would never come back for it (L12 stall).
   // Behind the hero it is followed only within OB_BACK m: with no chokepoint ahead, walking back for a booster 80 m away
   // shuttled the bot until timeout (AUDIT-7 CR-7). Defend, escort and hack levels then measure the game, not the bot.
-  const ob = P.Objectives.botTarget(s);            // lane P: crate, terminal or booster waypoint (objectives.js)
+  const required = P.RouteMilestones.target(s);
+  const ob = required || P.Objectives.botTarget(s);            // lane P: crate, terminal or booster waypoint (objectives.js)
   const lt = P.Layouts && P.Layouts.botTarget ? P.Layouts.botTarget(s) : null;   // lane B: next chokepoint (layouts.js)
   const behind = ob ? h.y - ob[1] : 0;             // metres the objective lies behind the hero
-  if (ob && (behind > 1 ? behind <= OB_BACK : !lt || ob[1] <= lt[1])) return ob;
+  if (ob && (behind > 1 ? !!required || behind <= OB_BACK : !lt || ob[1] <= lt[1])) return ob;
   if (lt) return lt;
   return [0, Math.min(G.holdY + 1.5, h.y + 8)];
 }
 
 // Repulsion from enemies and telegraphed danger (lanes, rings, stomps), zones, and blocks.
-function repulsion(s, h) {
-  const acc = { x: 0, y: 0 };
-  const rep = (dx, dy, R, w) => {
-    const d = Math.hypot(dx, dy);
-    if (d < R && d > 0.01) { const k = (R - d) / R * w; acc.x += dx / d * k; acc.y += dy / d * k; }
-  };
-  for (const e of s.enemies) {
-    if (e.dead || e.state !== 'active') continue;
-    const dx = h.x - e.x, dy = h.y - e.y;
-    if (e.boss) rep(dx, dy, 4.2, 2.5);
-    // Stiff repulsion: the equilibrium distance must sit outside the enemy's hit radius (burst 2.2, stomp 2.4).
-    else if (e.type === 'bloater') rep(dx, dy, e.swell > 0 ? 4.5 : 4.0, 5.0);
-    else if (e.type === 'brute') rep(dx, dy, 4.0, 5.0);
-    else if (e.type === 'spitter') rep(dx, dy, 2.2, 1.5);
-    else if (e.type === 'screamer') rep(dx, dy, 3.0, 2.0);   // stay out of its ring (windup)
-    else if (e.type === 'kasap') rep(dx, dy, 3.2, 4.0);      // cleaver reach 2.0 m plus its ring: keep out
-    else rep(dx, dy, 2.2, 1.5);   // walkers, runners, hardhats: keep out of the crowd edge
-  }
-  // --nododge: the bot keeps out of enemy bodies and blocks but does not react to shots, telegraphs, stomps or zones.
-  if (!args.nododge) {
-    for (const q of s.enemyShots) rep(h.x - q.tx, h.y - q.ty, 1.6, 2);
-    for (const tg of s.enemyTele) {
-      if (tg.kind === 'ring' && tg.T - tg.t < 0.8) rep(h.x - tg.x, h.y - tg.y, tg.r + 0.8, 2.5);
-      if (tg.kind === 'lane') {
-        const nx = -tg.dy, ny = tg.dx, perp = (h.x - tg.x) * nx + (h.y - tg.y) * ny, along = (h.x - tg.x) * tg.dx + (h.y - tg.y) * tg.dy;
-        if (along > -0.5 && along < tg.len + 0.5 && Math.abs(perp) < tg.w / 2 + 0.7) {
-          const side = perp < 0 ? -1 : 1; acc.x += nx * side * 3; acc.y += ny * side * 3;
-        }
-      }
-    }
-    for (const tg of s.dir.telegraphs) if (tg.then === 'stomp' && tg.T - tg.t < 1.5) rep(h.x - tg.x, h.y - tg.y, tg.r + 0.8, 2.5);
-    for (const z of s.zones) if (z.kind === 'acid' || z.kind === 'toxic' || z.kind === 'fire') rep(h.x - z.x, h.y - z.y, z.r + 0.5, 1.2);
-  }
-  for (const b of s.geo.blocks) {
-    if (Math.abs(h.y - b.y) >= 6) continue;
-    const cx = Math.max(b.rc.xMin, Math.min(b.rc.xMax, h.x)), cy = Math.max(b.rc.yMin, Math.min(b.rc.yMax, h.y));
-    rep(h.x - cx, h.y - cy, 1.0, 2);
-  }
-  return acc;
-}
 
 // A point inside a solid (its rect grown by the hero's radius): the hero is pushed out, so it cannot reach it.
 function inBlock(s, p) {
@@ -232,7 +209,7 @@ function eczaneTarget(s, st, h) {
   if (args.noeczane || !s.eczane || st.threat <= B.threat || h.hp >= B.hp * h.maxHp) return null;
   let best = null, bd = Infinity;
   for (const k of s.eczane.list) {
-    if (k.used) continue;
+    if (k.used || P.RouteMilestones.pastClosedGate(s, k.b.y)) continue;
     const b = k.b, dy = b.y - h.y;
     if (dy > B.reach || dy < -B.back) continue;
     const d = P.Eczane.touchDist(h, b);
@@ -247,6 +224,8 @@ function dropTarget(s, st, h, bossAlive) {
   let best = null, bd = 4.5;
   for (const d of s.drops) {
     if (st.skip.has(d) || !DROP_KINDS.includes(d.kind) || inBlock(s, d)) continue;
+    // Diagnostic navigation: a collectible beyond a still-closed required gate is not reachable yet.
+    if (P.RouteMilestones.pastClosedGate(s, d.y)) continue;
     const dd = Math.hypot(d.x - h.x, d.y - h.y);
     if (dd < bd && d.y > h.y - 2 && d.y < s.geo.exitY) { bd = dd; best = d; }
   }
@@ -260,22 +239,29 @@ function progress(s, st, h, bossAlive) {
   if (s.runT - st.bestT > 6) { st.push = 1.5; st.side = -st.side; st.bestT = s.runT; }
 }
 
+
 function genInput(s, st) {
   const h = s.hero, bossAlive = !!(s.gen.boss && !s.gen.boss.dead);
+  const deliberate=auditChoiceInput(P,s,st,args,unit,inBlock,punishWindow);if(deliberate)return deliberate;
   progress(s, st, h, bossAlive);
   st.threat = Infinity;
   for (const e of s.enemies) if (!e.dead && e.state === 'active') st.threat = Math.min(st.threat, Math.hypot(e.x - h.x, e.y - h.y));
-  let drop = dropTarget(s, st, h, bossAlive);
+  const required = P.RouteMilestones.target(s);
+  if (required && st.threat > 1.3 && Math.hypot(required[0] - h.x, required[1] - h.y) < 0.8) return { x: 0, y: 0 };
+  let drop = punishWindow(s) ? null : dropTarget(s, st, h, bossAlive);
   st.dropT = drop && drop === st.dropId ? st.dropT + 1 : 0;   // frames chasing the same drop
   st.dropId = drop;
   if (drop && st.dropT > 240) { st.skip.add(drop); drop = null; st.dropId = null; st.dropT = 0; }   // unreachable (inside a block): give up
   // Link a hack terminal in reach (linking needs the hero in the zone; the noise wave is fought after).
-  const hk = !drop && st.threat > 3 && !s.props.shutterOpen ? s.hacks.filter(t => t.state !== 'done' && Math.hypot(t.x - h.x, t.y - h.y) < HACK_REACH)[0] : null;
+  const hk = !required && !drop && st.threat > 3 && !s.props.shutterOpen
+    ? s.hacks.filter(t => t.state !== 'done' && Math.hypot(t.x - h.x, t.y - h.y) < HACK_REACH)[0] : null;
   const eT = drop ? null : eczaneTarget(s, st, h);   // a hurt bot's detour to a station (before a hack link, after a drop)
+  if (eT && s.eczane.list.some(k => !k.used && P.Eczane.touchDist(h, k.b) <= P.CFG.env.eczane.touchR)) return { x: 0, y: 0 };
   const [tx, ty] = drop ? [drop.x, drop.y] : eT ? eT : hk ? [hk.x, hk.y] : targetOf(s, st);
+  const escape=routeEscape(P,s,st,[tx,ty]);if(escape)return escape;
   const u = unit(tx - h.x, ty - h.y);
   if (st.push > 0) { st.push -= DT; return { x: u.x + st.side * 0.9, y: u.y }; }
-  const r = repulsion(s, h);
+  const r = repulsion(P,s,h,args,punishWindow);
   return { x: u.x + r.x, y: u.y + r.y };
 }
 
@@ -283,6 +269,8 @@ function genInput(s, st) {
 function snapshot(s, last) {
   const h = s.hero, r2 = v => +v.toFixed(2);
   return {
+    hero: [r2(h.x), r2(h.y)],
+    route: P.Layouts.botTarget(s), objective: P.Objectives.botTarget(s),
     blocks: s.geo.blocks.filter(b => Math.abs(b.y - h.y) < 8).map(b => [b.kind, r2(b.rc.xMin), r2(b.rc.xMax), r2(b.rc.yMin), r2(b.rc.yMax)]),
     enemies: s.enemies.filter(e => !e.dead && Math.hypot(e.x - h.x, e.y - h.y) < 5).map(e => [e.type, r2(e.x), r2(e.y), e.state, e.swell ? r2(e.swell) : 0]),
     zones: s.zones.filter(z => Math.hypot(z.x - h.x, z.y - h.y) < 3).map(z => [z.kind, r2(z.x), r2(z.y), r2(z.r)]),
@@ -298,16 +286,20 @@ function runGen(index, seed, loadout) {
   // lowest HP fraction from the intro on, arenaDmg = hero damage from the intro on, by cause. Never read by the sim.
   let arenaT = null, bossDieT = null, minArena = 1, arenaHp = null;
   const arenaSrc = {};   // hero damage in the arena by source (arenaSource below)
+  const showdown = { damageByWeapon: {}, nearS: 0, mediumS: 0, farS: 0, exposedS: 0, recoverS: 0, phases: [], afterBossDamage: {} };
   const arenaByT = [];   // hero damage in the arena per 10 s since the intro: [boss, others] per bucket
+  const offers = args.build ? [] : null;
   try {
-    s = P.createSim(seed, { levelIndex: index, loadout: loadout || loadoutFor(index) });
+    s = P.createSim(seed, { levelIndex: index, loadout: loadout || loadoutFor(index), tramRhythm: args.rhythm === true });
     P.startPlay(s);
     st = { ang: 0, best: s.hero.y, bestT: 0, push: 0, side: 1, skip: new Set(), dropT: 0, dropId: null, threat: Infinity, last: null };
     while (s.runT < runCap(s)) {
       while (s.pendingChests > 0) P.Progression.openChest(s, P.Progression.chestReward(s));
-      if (s.pendingLevels > 0) { P.Progression.choose(s, pickCard(s, P.Progression.makeOffer(s).cards)); continue; }
+      if (s.pendingLevels > 0) { P.Progression.choose(s, planCard(P, s, offers, args)); continue; }
       st.last = genInput(s, st);
+      if (args.skills) st.last = useActiveSkills(P, s, st.last, unit);
       P.stepSim(s, DT, st.last);
+      observeBoss(s, showdown);
       minFrac = Math.min(minFrac, Math.max(0, s.hero.hp) / s.hero.maxHp);
       if (arenaT !== null) minArena = Math.min(minArena, Math.max(0, s.hero.hp) / s.hero.maxHp);
       const evs = P.drainEvents(s);
@@ -326,13 +318,16 @@ function runGen(index, seed, loadout) {
         if (ev.type === 'pickup' && ev.station) eczUses.push({ v: ev.station, healed: ev.healed });
         if (ev.type === 'bossIntro' && arenaT === null) { arenaT = s.runT; arenaHp = Math.max(0, s.hero.hp) / s.hero.maxHp; }
         if (ev.type === 'bossDie' && bossDieT === null) bossDieT = s.runT;
+        if (ev.type === 'bossPhase') showdown.phases.push({ phase: ev.phase, time: s.runT - arenaT });
+        if (ev.type === 'hit' && ev.bossHit) recordBossHit(showdown, ev);
+        if (ev.type === 'heroHit' && bossDieT !== null) showdown.afterBossDamage[ev.cause] = (showdown.afterBossDamage[ev.cause] || 0) + ev.dmg;
         if (TRACE === seed && /^(boss|brute|summon|heroHit|death|win)/.test(ev.type)) trace(s, ev);
         countEvent(ev, evBy);
       });
       if (s.mode === 'dead') {
         const b = s.gen && s.gen.boss;   // boss HP share at the death (0 = dead boss, null = no boss yet)
         deaths.push({ t: +s.runT.toFixed(1), cause: s.deathCause, y: +s.hero.y.toFixed(1), boss: b ? (b.dead ? 0 : +(b.hp / b.maxHp).toFixed(2)) : null });
-        if (revived) { result = 'lose'; break; }
+        if (revived || args['no-revive']) { result = 'lose'; break; }
         revived = true; P.revive(s, 'ad');
       }
       if (s.mode === 'won') { result = 'win'; break; }
@@ -342,12 +337,31 @@ function runGen(index, seed, loadout) {
   const L = s || { runT: 0, kills: 0, levelUps: [], peakAlive: 0, hero: { hp: 0 }, tally: { hacks: 0, events: 0 }, geo: { exitY: 0, holdY: 0 }, dir: { hold: {} }, props: {} };
   return { seed, index, id: P.Journey.level(index).id, result, err, t: L.runT, kills: L.kills, tally: L.tally, levelUps: L.levelUps.length, stuck,
     mode: (s && s.runMode) || 'normal', score: s && P.Modes ? P.Modes.nightScore(s) : 0,
+    auditBuild: offers && { wanted: args.build, offers, evolvedAt: L.evolvedAt, remaining: L.evolvedAt == null ? null : L.runT - L.evolvedAt,
+      recipe: P.Progression.buildState(L) },
     lvTimes: L.levelUps.slice(), minFrac, dropHeal: L.dropHealed || 0,
     peak: L.peakAlive, deaths, dmgBy, evBy, segT, hacks: L.tally.hacks, events: L.tally.events,
-    arenaT, bossDieT, minArena, arenaDmg, arenaHp, arenaSrc, arenaByT, eczane: eczUses,
+    arenaT, bossDieT, minArena, arenaDmg, arenaHp, arenaSrc, arenaByT, eczane: eczUses, showdown,
     objId: s && s.obj ? s.obj.id : null, objState: s && s.obj ? s.obj.state : null,
     bossKilled: !!(s && s.gen && s.gen.boss && s.gen.boss.dead), hp: Math.round(L.hero.hp), exitY: (L.geo || {}).exitY || 0, holdY: (L.geo || {}).holdY || 0,
     stage: P.Journey.level(index).stage, at: { x: s ? +s.hero.x.toFixed(2) : 0, y: s ? +s.hero.y.toFixed(2) : 0, hold: !!(s && s.dir.hold.active), gate: !!(s && s.props.shutterOpen) } };
+}
+
+function observeBoss(s, record) {
+  const boss = s.gen && s.gen.boss;
+  if (!boss || boss.dead || boss.state !== 'active') return;
+  const distance = Math.hypot(boss.x - s.hero.x, boss.y - s.hero.y);
+  record[distance < 2.5 ? 'nearS' : distance < 5 ? 'mediumS' : 'farS'] += DT;
+  if (boss.exposed) record.exposedS += DT;
+  if (boss.ai.m === 'stall' || boss.ai.m === 'recover') record.recoverS += DT;
+}
+
+function recordBossHit(record, hit) {
+  const name = hit.src || 'dot';
+  const weapon = record.damageByWeapon[name] || (record.damageByWeapon[name] = { damage: 0, exposed: 0, hits: 0 });
+  weapon.damage += hit.bossHit.applied;
+  if (hit.bossHit.exposed) weapon.exposed += hit.bossHit.applied;
+  weapon.hits++;
 }
 
 // Source of a hero hit in the arena (observer only). The sim pushes a resolution event just before a boss ring or stomp
@@ -356,7 +370,8 @@ function runGen(index, seed, loadout) {
 const ZONE_CAUSES = ['acid', 'toxic', 'fire', 'scorch'];
 const PRE_EVENT = { bossSwing: 'swing', bossSmash: 'smash', bruteStomp: 'stomp', bossSlam: 'slam', spitLand: 'glob' };
 function arenaSource(s, ev, prev, next) {
-  const bossCause = !!(s.gen && s.gen.boss && ev.cause === s.gen.boss.type);
+  const boss = s.gen && s.gen.boss;
+  const bossCause = boss && (ev.cause === boss.type || ev.cause === boss.bossPreset);
   if (bossCause && PRE_EVENT[prev.type]) return PRE_EVENT[prev.type];
   if (bossCause && next.type === 'bruteHit') return 'charge';
   if (ZONE_CAUSES.includes(ev.cause)) return 'zone';
@@ -396,14 +411,8 @@ function bossSummary(list, idx) {
 const MODE = args.mode === 'nightmare' ? 'nightmare' : 'normal';
 function loadoutFor(index) {
   const lo = args.bare ? null : P.Power.expectedLoadout(index);
-  return MODE === 'normal' ? lo : Object.assign({ gear: {}, stats: {} }, lo || {}, { mode: MODE });
-}
-
-// Generated levels: take evolutions, then weapon upgrades, then passives (medkit first when hurt).
-function pickCard(s, cards) {
-  const h = s.hero;
-  const rank = c => c.evo ? 4 : (c.item === 'medkit' && h.hp < 0.4 * h.maxHp) ? 3 : c.id.startsWith('w:') ? 2 : c.id.startsWith('p:') ? 1 : 0;
-  return cards.slice().sort((a, b) => rank(b) - rank(a))[0];
+  if (!args.build && MODE === 'normal') return lo;
+  return Object.assign({ gear: {}, stats: {} }, lo || {}, { mode: MODE, startWeapon: args.build || lo && lo.startWeapon });
 }
 
 function summarize(list) {
@@ -428,15 +437,20 @@ function medKeys(list, field) {
   return [...keys].sort().map(k => k + '=' + med(list.map(r => r[field][k] || 0))).join(' ');
 }
 
+function seedsFor(count) {
+  if (args.seed) return [parseInt(args.seed, 10)];
+  const from = parseInt(args.from || '1', 10);
+  return Array.from({ length: count }, (_, i) => from + i);
+}
 function runLevels(indices, seeds) {
   const rows = [];
+  const seedList = seedsFor(seeds);
   indices.forEach(idx => {
     const list = [];
-    const seedList = args.seed ? [parseInt(args.seed, 10)] : Array.from({ length: seeds }, (_, i) => i + 1);
     seedList.forEach(sd => list.push(idx === 1 ? runL1(sd, true) : runGen(idx, sd)));   // L1 is scripted: its own route
     rows.push({ idx, id: P.Journey.level(idx).id, boss: P.Journey.level(idx).boss, sm: summarize(list), list });
   });
-  console.log(`generated levels, policy=kite-generic seeds=${seeds} (clear = win with one revive) loadout=${args.bare ? 'bare' : 'expected'}`);
+  console.log(`generated levels, policy=kite-generic seeds=${seedList.length} (clear = win ${args['no-revive'] ? 'without a revive' : 'with one revive'}) loadout=${args.bare ? 'bare' : 'expected'}`);
   console.log('level  id       type   clear      no-death   median s  deaths/run  lvl-ups  peak  events  hacks  timeouts crashes  objective (type, done/levels)  power: rank attr mast might hp cdr  dmg x rate');
   rows.forEach(r => {
     const c = r.sm, pw = args.bare ? null : P.Power.summary(r.idx);
@@ -534,9 +548,8 @@ function runCampaign(to) {
 // Each seed is a synthetic day ('nsbot-<seed>'), so the level, the two rules and the seed name are the ones the game gives
 // that day with --unlocked levels open (default 100). A run ends at the 12-minute cap, or on a second death (one revive).
 function runNightShift(seeds) {
-  const M = P.Meta, unlocked = parseInt(args.unlocked || '100', 10), list = [], from = parseInt(args.from || '1', 10);   // --from: first seed (split a run in parallel)
-  const seedList = args.seed ? [parseInt(args.seed, 10)] : Array.from({ length: seeds }, (_, i) => from + i);
-  seedList.forEach(sd => {
+  const M = P.Meta, unlocked = parseInt(args.unlocked || '100', 10), list = [];
+  seedsFor(seeds).forEach(sd => {
     const plan = M.NightShift.plan('nsbot-' + sd, unlocked);
     const base = args.bare ? {} : (P.Power.expectedLoadout(plan.level) || {});
     const lo = Object.assign({ gear: {}, stats: {} }, base, { mode: 'nightshift', modifiers: M.Daily.resolve(plan.mods), seed: plan.seed });
@@ -567,12 +580,11 @@ if (args.campaign) {
   const seeds = parseInt(args.seeds || '8', 10);
   runLevels(indices, seeds);
 } else {
-  const runs = [];
-  for (let i = 1; i <= SEEDS; i++) runs.push(runL1(i, true));
+  const runs = seedsFor(SEEDS).map(seed => runL1(seed, true));
   const wins = runs.filter(r => r.result === 'win'), noDeath = runs.filter(r => r.deaths.length === 0 && r.result === 'win');
   const crashes = runs.filter(r => r.result === 'crash'), timeouts = runs.filter(r => r.result === 'timeout');
-  console.log(`policy=${POLICY} seeds=${SEEDS}`);
-  console.log(`clear: ${wins.length}/${SEEDS}  clear without dying: ${noDeath.length}/${SEEDS}  timeouts: ${timeouts.length}  crashes: ${crashes.length}`);
+  console.log(`policy=${POLICY} seeds=${runs.length}`);
+  console.log(`clear: ${wins.length}/${runs.length}  clear without dying: ${noDeath.length}/${runs.length}  timeouts: ${timeouts.length}  crashes: ${crashes.length}`);
   console.log(`median time ${med(runs.map(r => r.t)).toFixed(1)} s · kills ${med(runs.map(r => r.kills))} · level-ups ${med(runs.map(r => r.levelUps))} · peak alive ${med(runs.map(r => r.peak))} · end HP ${med(runs.map(r => r.hp))} · chests ${med(runs.map(r => r.chests))}`);
   console.log(`median hacks ${med(runs.map(r => r.hacks))} · median events ${med(runs.map(r => r.events))}`);
   console.log('events per run (median): ' + medKeys(runs, 'evBy'));

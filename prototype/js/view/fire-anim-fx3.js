@@ -27,7 +27,7 @@ P.FireAnimFx = P.FireAnimFx || {};
   }
   function ringAt(F, x, y, T, r, col) { var p = F.spawn('ring', x, y, T, r, col); p.op = 0.8; return p; }
 
-  // ---------- Blacksmith (Demirci Vuruşu): the head lands on the slam; sparks and a dust ring go out from the strike ----------
+  // ---------- Blacksmith (Demirci Vuruşu): the head lands on the slam; hot sparks and the impact ring go out from the strike ----------
   X.blacksmith = {
     tick: function (F, G, k) {
       var q, x, y;
@@ -35,7 +35,6 @@ P.FireAnimFx = P.FireAnimFx || {};
       k.f.slam = true; q = G.pt(3, 0, 1.2, 0, 0); x = q.x; y = q.y;
       burst(F, x, y, 10, '255,170,70', 1.2);
       ringAt(F, x, y, 0.3, 0.35, '255,190,110');
-      var d = F.spawn('dust', x, y, 0.4, 0.12, '170,160,150'); d.op = 0.5;
     }
   };
 
@@ -51,19 +50,17 @@ P.FireAnimFx = P.FireAnimFx || {};
     }
   };
 
-  // ---------- Foam storm (Köpük Fırtınası): a fan of white foam from the nozzle, thicker than the extinguisher ----------
+  // ---------- Foam storm (Köpük Fırtınası): staggered foam jets cross and fold back together ----------
   X.foamstorm = {
-    fire: function (F, G, k) {
-      var i, a, d, n = G.pt(4, 0, 0.36, 0, 0), p;
-      for (i = 0; i < F.count(8); i++) {
-        a = G.ang + M.rnd(-0.6, 0.6); d = M.rnd(0.6, 2.4);
-        p = F.spawn('puff', n.x + Math.cos(a) * d * 0.4, n.y + Math.sin(a) * d * 0.4, 0.5, 0.15, '232,244,255');
-        p.op = 0.5; p.vx = Math.cos(a) * 1.4; p.vy = Math.sin(a) * 1.4;
-      }
+    fire: function (F, G) {
+      var n = G.pt(4, 0, 0.36, 0, 0);
+      M.foamSpray(F, n.x, n.y, G.ang - 0.42, 6, 0.28, 5.2);
+      M.foamSpray(F, n.x, n.y, G.ang + 0.42, 6, 0.28, 5.2);
     },
     tick: function (F, G, k, dt) {
-      var n, p;
-      if (F.chance(30, dt)) { n = G.pt(4, 0, 0.36, 0, 0); p = F.spawn('puff', n.x, n.y, 0.35, 0.05, '220,240,255'); p.op = 0.4; p.vx = G.ca * 0.8; p.vy = G.sa * 0.8; }
+      if (!F.chance(25, dt)) return;
+      var n = G.pt(4, 0, 0.36, 0, 0);
+      M.foamSpray(F, n.x, n.y, G.ang + Math.sin(k.t * 18) * 0.42, 3, 0.3, 4.2);
     }
   };
 
@@ -80,8 +77,8 @@ P.FireAnimFx = P.FireAnimFx || {};
   // ---------- Lake bottle (Ateş Gölü): a splash where the bottle lands and drips while it tips ----------
   X.lake = {
     fire: function (F, G, k) {
-      var q = G.pt(5, 0, 0.3, 0, 0), i, p;
-      for (i = 0; i < F.count(6); i++) { p = F.spawn('puff', q.x, q.y, 0.4, 0.06, '150,210,235'); p.op = 0.5; p.vz = M.rnd(0.3, 0.8); p.vx = M.rnd(-0.4, 0.4); }
+      var q = G.pt(5, 0, 0.3, 0, 0);
+      burst(F, q.x, q.y, 5, '150,210,235', 0.6);
     },
     tick: function (F, G, k, dt) {
       var q, p, t = k.t;
@@ -172,13 +169,11 @@ P.FireAnimFx = P.FireAnimFx || {};
       f.x = ev.x; f.y = ev.y;
     },
     lakeMerge: function (F, ev) {
-      var i, p;
-      for (i = 0; i < F.count(6); i++) { p = F.spawn('puff', ev.x + M.rnd(-0.3, 0.3), ev.y + M.rnd(-0.3, 0.3), 0.5, 0.1, '150,210,235'); p.op = 0.45; }
+      burst(F, ev.x, ev.y, 6, '150,210,235', 1.7);
       ringAt(F, ev.x, ev.y, 0.35, ev.r || 1, '150,210,235');
     },
     spitBlock: function (F, ev) {
-      var i, p;
-      for (i = 0; i < F.count(8); i++) { p = F.spawn('puff', ev.x + M.rnd(-0.3, 0.3), ev.y + M.rnd(-0.3, 0.3), 0.4, 0.12, '232,244,255'); p.op = 0.6; }
+      M.foamSpray(F, ev.x, ev.y, 0, 7, Math.PI, 2.1);
       ringAt(F, ev.x, ev.y, 0.25, 0.4, '232,244,255');
     },
     envHit: function (F, ev) {

@@ -66,14 +66,16 @@ P.ArenaEvolve = (function () {
 
   // Boss mood (0..1): 0 until the arena starts, then eases in over boss.ramp s. Reduce motion jumps straight to 1.
   E.bossK = function (s) {
-    var g = s.gen, B = cfg().boss, t0, now, x;
-    if (!g || !g.arena) return 0;
+    var trial = s.dir && s.dir.trialBoss, g = s.gen, B = cfg().boss, t0, now, x;
+    var encounter = trial || g && g.arena && g;
+    if (!encounter) return 0;
+    if (trial && trial.dead) return 0;
     now = performance.now() / 1000;
-    t0 = BOSS.get(g);
-    if (t0 === undefined) { t0 = now; BOSS.set(g, t0); }
-    if (E.reduced() || !(B.ramp > 0)) return 1;
+    t0 = BOSS.get(encounter);
+    if (t0 === undefined) { t0 = now; BOSS.set(encounter, t0); }
+    if (E.reduced() || !(B.ramp > 0)) return trial ? .60 : 1;
     x = clamp((now - t0) / B.ramp, 0, 1);
-    return ease(x);
+    return ease(x) * (trial ? .60 : 1);
   };
 
   // Colours: '#RRGGBB' tokens and [r, g, b] arrays both become rgba() strings.
@@ -155,7 +157,9 @@ P.ArenaEvolve = (function () {
     k = E.bossK(s);
     if (k > 0) {
       B = cfg().boss;
-      c.fillStyle = rgbaN(B.grade, B.gradeA * k); c.fillRect(0, 0, W, H);
+      var actor = s.dir && s.dir.trialBoss || s.gen && s.gen.boss;
+      var scene = actor && P.CFG.bossDirection && P.CFG.bossDirection[actor.bossPreset];
+      c.fillStyle = rgbaN(scene ? scene.grade : B.grade, B.gradeA * k * (scene ? .55 : 1)); c.fillRect(0, 0, W, H);
       c.drawImage(vignette(R, B.vig * k), 0, 0, W, H);
     }
   };

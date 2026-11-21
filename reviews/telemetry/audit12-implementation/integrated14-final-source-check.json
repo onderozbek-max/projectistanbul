@@ -1,0 +1,19 @@
+{
+  "source": "ceda328957e8353ebd051a2be8ef5cdae16034000b436b8bc375d81fea4cdff4",
+  "checkedUtc": "2026-11-21T13:57:54.846126+00:00",
+  "checks": {
+    "working": {
+      "files": 1185,
+      "mismatches": []
+    },
+    "snapshot": {
+      "files": 1185,
+      "mismatches": []
+    },
+    "testCopy": {
+      "files": 1185,
+      "mismatches": []
+    }
+  },
+  "manifestHashMatches": true
+}

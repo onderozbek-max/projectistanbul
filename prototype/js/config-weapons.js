@@ -25,12 +25,13 @@
   C.weapons.nailgun.stats = [['stat.dmg', 'dmg', 'n'], ['stat.shots', 'shots', 'n'], ['stat.pierce', 'pierce', 'n'], ['stat.rate', 'cdMult', 'rate']];
   C.weapons.canister.stats = [['stat.dmg', 'dmg', 'n'], ['stat.proj', 'proj', 'n'], ['stat.blast', 'blast', 'm'], ['stat.fire', 'fire', 'bool']];
   C.weapons.chain.stats = [['stat.dmg', 'dmg', 'n'], ['stat.blades', 'blades', 'n'], ['stat.radius', 'radius', 'm'], ['stat.spin', 'speed', 'ratio']];
+  C.weapons.knife.load=.045; C.weapons.knife.cut=.12; C.weapons.knife.returnT=.09;
   C.weapons.knife.heavy = false; C.weapons.canister.heavy = true;
   C.weapons.knife.unlockLevel = 1; C.weapons.nailgun.unlockLevel = 1; C.weapons.canister.unlockLevel = 1; C.weapons.chain.unlockLevel = 1;
 
   // ---------- new base weapons ----------
   C.weapons.sledge = {                        // Balyoz: periodic overhead slam at the best cluster
-    heavy: true, cooldown: 2.8, windup: 0.5, range: 6.0, clusterR: 1.6, slamGap: 0.45,
+    heavy: true, cooldown: 2.8, windup: 0.5, range: 6.0, clusterR: 1.6, slamGap: 0.45, pulseSpeed:14, groundReach:.86,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.radius', 'r', 'm'], ['stat.stun', 'stun', 's'], ['stat.slams', 'slams', 'n'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
       { dmg: 30, r: 1.5, stun: 0.5, kb: 1.2, slams: 1, cdMult: 1 },
@@ -61,7 +62,7 @@
       { dmg: 14, r: 1.0, rockets: 2, cdMult: 1 },
       { dmg: 17, r: 1.1, rockets: 2, cdMult: 1 },
       { dmg: 20, r: 1.2, rockets: 3, cdMult: 1 },
-      { dmg: 26, r: 1.4, rockets: 3, cdMult: 0.85 },
+      { dmg: 24, r: 1.74, rockets: 3, cdMult: 0.85 },
     ],
     unlockLevel: 16,
   };
@@ -71,9 +72,9 @@
     levels: [
       { dmg: 11, jumps: 3, stun: 0.25, cdMult: 1 },
       { dmg: 13, jumps: 4, stun: 0.25, cdMult: 1 },
-      { dmg: 15, jumps: 5, stun: 0.3, cdMult: 1 },
-      { dmg: 17, jumps: 6, stun: 0.3, cdMult: 0.9 },
-      { dmg: 22, jumps: 8, stun: 0.35, cdMult: 0.85 },
+      { dmg: 15, jumps: 5, stun: 0.3, cdMult: 1, branches: 2 },
+      { dmg: 17, jumps: 6, stun: 0.3, cdMult: 0.9, branches: 2 },
+      { dmg: 22, jumps: 11, stun: 0.35, cdMult: 0.85, branches: 4, jumpMul: 1.45, boltLife: 0.34 },
     ],
     unlockLevel: 21,
   };
@@ -83,9 +84,9 @@
     levels: [
       { dmg: 14, pierce: 2, root: 1.0, cdMult: 1 },
       { dmg: 18, pierce: 2, root: 1.2, cdMult: 1 },
-      { dmg: 22, pierce: 3, root: 1.4, cdMult: 1 },
-      { dmg: 28, pierce: 3, root: 1.6, cdMult: 0.9 },
-      { dmg: 36, pierce: 4, root: 2.0, cdMult: 0.9 },
+      { dmg: 22, pierce: 3, root: 1.4, cdMult: 1, pullMul: 1.32 },
+      { dmg: 28, pierce: 3, root: 1.6, cdMult: 0.9, pullMul: 1.5 },
+      { dmg: 29, pierce: 4, root: 2.0, cdMult: 0.9, ropes: 3, fan: 0.29, pullMul: 1.8 },
     ],
     unlockLevel: 11,
   };
@@ -97,12 +98,13 @@
       { dmg: 5, range: 2.6, arcDeg: 80, push: 1.4, slow: 0.45, slowT: 1.4, cdMult: 1 },
       { dmg: 6, range: 2.9, arcDeg: 90, push: 1.6, slow: 0.5, slowT: 1.6, cdMult: 1 },
       { dmg: 8, range: 3.2, arcDeg: 100, push: 1.8, slow: 0.55, slowT: 1.8, cdMult: 0.9 },
-      { dmg: 10, range: 3.6, arcDeg: 110, push: 2.2, slow: 0.65, slowT: 2.2, cdMult: 0.9 },
+      { dmg: 10, range: 3.8, arcDeg: 126, push: 2.65, slow: 0.65, slowT: 2.2, cdMult: 0.9 },
     ],
     unlockLevel: 6,
   };
 
   // ---------- evolutions (single stage; replace the base weapon in its slot) ----------
+  C.exposedAim = { margin: .28, protect: .92 };
   C.evolutions = {
     cleaver:   { from: 'knife', passive: 'gloves', name: 'cleaver' },
     nailstorm: { from: 'nailgun', passive: 'energy', name: 'nailstorm' },
@@ -111,12 +113,12 @@
     finale:    { from: 'fireworks', passive: 'magnet', name: 'finale' },
   };
   C.weapons.cleaver = {                       // 360 spinning meat-cleaver cleave
-    evo: true, heavy: true, from: 'knife', hitGap: 0.45,
-    stats: [['stat.dmg', 'dmg', 'n'], ['stat.radius', 'radius', 'm'], ['stat.spin', 'spinT', 's']],
-    levels: [{ dmg: 34, radius: 2.4, spinT: 1.0 }],
+    evo: true, heavy: true, from: 'knife', hitGap: .45, load:.14, cut:.22, returnT:.20, arc:240, knockback:.7, edgeRadius:.12,
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.radius', 'radius', 'm'], ['stat.cd', 'spinT', 's']],
+    levels: [{ dmg: 64, radius: 2.4, spinT: .82 }],
   };
   C.weapons.nailstorm = {                     // bullet-hell fan spray (fan: spread shots across spreadDeg)
-    evo: true, from: 'nailgun', cooldown: 0.24, speed: 22, life: 0.55, seekRange: 7.5,
+    evo: true, from: 'nailgun', cooldown: 0.42, speed: 22, life: 0.55, seekRange: 7.5,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.nails', 'shots', 'n'], ['stat.arc', 'spreadDeg', 'deg'], ['stat.pierce', 'pierce', 'n']],
     levels: [{ dmg: 9, shots: 9, spreadDeg: 80, pierce: 2, kb: 0.1, fan: true }],
   };

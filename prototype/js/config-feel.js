@@ -7,7 +7,8 @@ P.CFG.feel2 = {
             heavy: 1.6, crit: 1.35, boss: 0.5, life: 0.45, max: 400 },
   // Hit-stop (design-system.md section 7): a short freeze of the simulation (the view keeps animating). Heavy hits 40 ms, boss hits and crit kills 60 ms,
   // never for ordinary swarm hits, at most one per minGap s across every source (feel.js owns the limiter). Off under Reduce motion (main.js).
-  hitStop: { heavy: 0.04, boss: 0.06, critKill: 0.06, minGap: 0.25 },
+  hitStop: { heavy: 0.04, boss: 0.06, critKill: 0.06, minGap: 0.25, window:1, budget:.10 },
+  contact: { kickGap: 0.075, rankKick: 0.12, depth: 0.65 },
   // Pickup: a small ring pings at the hero when a drop is collected (one per `gap` s; a fast stream of XP is about 11 a second). Each ring is at most
   // 26 px across on a phone, far under the WCAG 2.3.1 flash area (about 150 by 150 px), so it is not rate-capped; open question for the owner
   // in reviews/A11Y-CHECKLIST-R1.md; `trail` is the length (m) of the streak behind a drop that is flying to the hero;
@@ -16,7 +17,6 @@ P.CFG.feel2 = {
   pickup: { gap: 0.09, life: 0.22, r0: 0.2, r1: 0.65, trail: 0.4, lift: 0.4, popT: 0.25, bob: 0.08, glint: { size: 0.13, spin: 0.9, pulse: 0.5 },
             col: { xp: '124,240,142', jeton: '233,162,59', simit: '217,160,80', chest: '255,209,102' } },
   // Ash wisps: a kill lets go of a few grey wisps that rise and thin out (design-system.md section 7, death dissolve). Crowd budget `perFrame`.
-  wisp: { n: 2, life: 0.6, rise: 0.9, size: 0.12, alpha: 0.38, perFrame: 6 },
   // Camera kick in screen px, opposite or along the action; decays exponentially.
   kick: { knife: 2.0, hit: 1.4, heavy: 6.0, hero: 4.0, dash: 5.0, ult: 7.0, decay: 12 },
   // Arcing drops (fake height): blood per hit, gibs per kill. Gravity matches weapons-fx debris.
@@ -73,11 +73,8 @@ P.CFG.moments = {
   //    the picture inside its band (`band` of the radius wide) by up to `zoom`, for `life` s. No colour change. Up to `max` at once.
   //    A boss slam and a brute stomp also push the picture down once: `slamKick` and `stompKick` px (the shake setting scales them).
   shock: { max: 2, life: 0.3, r0: 0.5, r1: 2.4, band: 0.35, zoom: 0.08, slamKick: 3.0, stompKick: 1.5, gap: 0.34 },   // one ring per gap s
-  // 3. Kill streak ladder: when a kill streak (the frenzy window of skills.frenzy) reaches a mark, an ink splash shows the word for it
-  //    for `bannerT` s (pops in over `popIn` s, splash radius `splashR` of the screen width), and an ink wipe runs in from both
-  //    screen edges (`wipeFrac` of the width each side, `wipeT` s) if a budget slot is free. The word sits at `wordY` of the height.
-  streak: { marks: [10, 25, 50], gapT: 25, wipeT: 0.34, wipeFrac: 0.22, wipeJag: 12, wipeA: 0.94, bannerT: 1.1, popIn: 0.12, fadeT: 0.3, splashR: 0.42,
-            wordY: 0.36, inkA: 0.92, fontPx: 40, queueT: 0.5 },
+  // 3. Kill streak ladder: a badge at `wordY` yields to speech and route cues, then fades out.
+  streak: { marks: [10, 25, 50], gapT: 25, bannerT: 1.1, fadeT: 0.3, wordY: 0.36, queueT: 0.5 },
   // 4. Crit kill: a halftone burst of gold dots (a `grid` by `grid` lattice, `step` m apart, dot radius up to `dot` m). It holds for
   //    `hold` s (two frames) at radius r0, then grows to r1 and fades over `life` s. One burst at most every `gap` s. Crit kills keep
   //    their 60 ms hit-stop (feel.js), so this adds no second freeze.

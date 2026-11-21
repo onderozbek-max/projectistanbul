@@ -2,6 +2,15 @@
 // yedikule, atakoy) share the brute body and rig. Each gets its own outfit (art-enemy-look.js, boss_*), a costume prop or layer
 // drawn through the accent hook, and its own def in EN.bossDefs keyed by the hood nameKey ('boss.<hood>', the story names are
 // spk.b.* in js/story/strings-story.js). Config: P.CFG.enemyLook.bossCostumes. No real brands, no religious dress, no gore.
+P.BossFootwork = {
+  stride: function (c, img, frame, ax, ay, cut, k, phase) {
+    var w = frame[2], h = frame[3], waist = Math.max(.57, cut[0] - .13);
+    var rect = { img: img, sx: frame[0], sy: frame[1], sw: w, sh: h, px: ax, py: ay };
+    var rig = { waist: waist, split: cut[1], hip: [.34,waist + .02,.62,waist + .02],
+      knee: [.32,cut[0] + .06,.66,cut[0] + .06], ankle: [.28,.94,.71,.94] };
+    P.ActorRig.draw(c, rect, 0, 0, k, 1, 'side', phase, .65, null, null, rig);
+  }
+};
 (function () {
   var EN = P.ArtEnemies, R = P.ArtRig, CH = P.ArtChars, LK = P.CFG.enemyLook;
   if (!EN || !R || !CH || !LK || !P.ArtEnemyLook) return;

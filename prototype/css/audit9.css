@@ -1,0 +1,52 @@
+/* Readable details live outside tiny inventory cells; every filled cell is an accessible inspection control. */
+#scr-cards .build .slots { grid-template-columns: repeat(6,minmax(0,1fr)); gap: 5px; }
+#scr-cards { overflow-y:auto; justify-content:flex-start; overscroll-behavior:contain; touch-action:pan-y; }
+#scr-cards > .center-stack { flex-shrink:0; margin-top:auto; margin-bottom:auto; padding-bottom:16px; }
+.slots button.slot { cursor:pointer; color:inherit; min-height:44px; padding:3px; position:relative; }
+.slot-count { position:absolute; top:-4px; left:-4px; width:18px; height:18px; display:grid; place-items:center;
+  background:#e8f7fb; border:1px solid #14151f; border-radius:8px; font:700 11px var(--hud-body); color:#14151f; }
+.build-detail { padding:12px; border:2px solid #14151f; border-radius:10px; background:#f4ebdd; color:#14151f;
+  width:100%; min-width:0; overflow-wrap:break-word; text-align:left; }
+.build-detail h3,.build-detail h4 { margin:6px 0; line-height:1.2; }
+.build-detail p { margin:6px 0; font:600 calc(13px * var(--ui-text,1))/1.4 var(--hud-body); }
+.build-detail .btn { min-height:44px; }
+.memory-back { position:absolute; z-index:65; left:12px; top:12px; max-width:55%; min-height:44px; }
+.meta-root[hidden] { display:none!important; }
+.build-plan { border:1px solid #9f8971; border-radius:10px; padding:8px 10px; text-align:left; margin:8px 0; }
+.build-plan summary { min-height:44px; display:flex; align-items:center; font-weight:800; cursor:pointer; }
+.build-plan .caption { margin:6px 0; }
+.build-plan button { min-height:44px; white-space:normal; background:#f4ebdd; color:#14151f; font:inherit; }
+@media(max-height:700px) { #scr-cards { padding-top:18px; justify-content:flex-start; } }
+
+.panel.build .build-detail .caption {color:#34313a;opacity:1;}
+/* The named burst stays below its icon, with a readable value contrast at large native text. */
+#skills .ult-control { display:flex; flex-direction:column; align-items:center; gap:6px; width:100px; min-height:100px; pointer-events:none; }
+#skills .ult-control #ult-visible-name { position:static; display:block; max-width:120px; padding:3px 6px; border-radius:6px; background:#14151f; color:#fff; font-size:calc(11px * var(--ui-text, 1)); font-weight:800; line-height:1.1; overflow-wrap:anywhere; text-align:center; }
+/* Quiet control surfaces; physical targets stay 68/74px and captions remain readable. */
+#skills .btn-ult { box-shadow:none; border-width:2px; background:rgba(20,21,31,.62); }
+#skills .btn-ult .ult-eye { border-width:2px; inset:17px; }
+#skills .btn-ult .ult-fill { opacity:.28; }
+#skills .btn-skill { background:rgba(20,21,31,.62); border-width:2px; }
+#skills .dash-chip { box-shadow:none; border-width:2px; }
+/* A 44px painted Dash capsule sits inside a larger transparent hit area on short screens. */
+#skills .dash-chip { height:68px; border:0; background:transparent; overflow:visible; }
+#skills .dash-chip::before { content:''; position:absolute; inset:12px 0; border:2px solid #88958D;
+  border-radius:14px; background:rgba(20,21,31,.70); pointer-events:none; }
+#skills .dash-chip .dash-fill { top:14px; bottom:14px; left:2px; max-width:calc(100% - 4px); border-radius:12px; }
+#skills .dash-chip b { position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); }
+#skills .dash-chip.ready::before { border-color:#BCEBC2; }
+
+/* Earned next-run intention stays beside Play and in the existing Arsenal. */
+.a12-kit {min-height:44px; border:1px solid #8b9c9d; background:#242f37; color:#fff4d6; border-radius:9px; padding:8px 12px; font:inherit;}
+.a12-starters {padding:12px; background:#26323a; border:1px solid #8b9c9d; border-radius:12px; color:#fff4d6;}
+.a12-starters h3 {margin:0 0 8px; font-size:20px;}
+.a12-starters p,.a12-rematch p {font-size:13px; line-height:1.4; margin:8px 0;}
+.a12-starter {display:flex; flex-direction:column; gap:4px; width:100%; min-height:52px; margin:6px 0; padding:9px 12px; text-align:left; border:1px solid #8b9c9d; background:#17222b; color:#fff4d6; border-radius:9px; font:inherit;}
+.a12-starter span {font-size:13px; line-height:1.35;}
+.a12-starter[aria-pressed="true"],.a12-rematch button[aria-pressed="true"] {border:2px solid #ffd166; background:#344a50;}
+.a12-preview {display:block; width:100%; height:auto; margin-top:10px; border-radius:8px;}
+.a12-starters small {display:block; margin:6px 0 10px; font-size:11px;}
+.a12-starters .meta-btn {width:100%; min-height:44px; margin-top:6px;}
+.a12-rematch {margin:8px 0; border:1px solid #7a8b95; border-radius:9px; color:#34313a;}
+.a12-rematch button {min-height:44px; padding:8px; background:#24313d; border:1px solid #8197a0; color:#fff4d6; border-radius:7px; font:inherit;}
+.cm-l1-static .cm-l1-portrait {display:none;}

@@ -118,8 +118,8 @@
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.range', 'range', 'm'], ['stat.sparks', 'sparks', 'n'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
       { dmg: 12, range: 5.5, sparks: 3, cdMult: 1 }, { dmg: 14, range: 6.0, sparks: 3, cdMult: 1 },
-      { dmg: 17, range: 6.0, sparks: 4, cdMult: 1 }, { dmg: 20, range: 6.5, sparks: 4, cdMult: 0.9 },
-      { dmg: 26, range: 7.0, sparks: 5, cdMult: 0.9 },
+      { dmg: 17, range: 6.0, sparks: 4, cdMult: 1, bend: 0.45 }, { dmg: 20, range: 6.5, sparks: 4, cdMult: 0.9, bend: 0.75, speedMul: 1.12 },
+      { dmg: 26, range: 7.0, sparks: 5, cdMult: 0.9, bend: 1.28, speedMul: 1.35 },
     ],
     unlockLevel: 1,
   };
@@ -127,8 +127,11 @@
     cooldown: 1.8, range: 4.5, speed: 8.0, hitR: 0.4, bounceR: 3.2, kb: 0.25, catchR: 0.4, backMul: 1.2, stagger: 0.12,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.bounces', 'bounces', 'n'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
-      { dmg: 9, bounces: 2, cdMult: 1 }, { dmg: 11, bounces: 3, cdMult: 1 }, { dmg: 13, bounces: 3, cdMult: 1 },
-      { dmg: 16, bounces: 4, cdMult: 0.9 }, { dmg: 20, bounces: 5, cdMult: 0.9 },
+      { dmg: 9, bounces: 2, cdMult: 1, speedMul: 0.82, impactR: 0.60 },
+      { dmg: 11, bounces: 3, cdMult: 1, speedMul: 1.04, impactR: 0.88, impactMul: 0.22 },
+      { dmg: 13, bounces: 3, cdMult: 1, speedMul: 1.18, impactR: 1.25, impactMul: 0.36 },
+      { dmg: 15, bounces: 4, cdMult: 0.9, speedMul: 1.23, impactR: 1.26, impactMul: 0.36, craterR: 1.68 },
+      { dmg: 18, bounces: 5, cdMult: 0.9, speedMul: 1.28, impactR: 1.34, impactMul: 0.38, craterR: 2.18 },
     ],
     unlockLevel: 2,
   };
@@ -138,39 +141,46 @@
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.range', 'range', 'm'], ['stat.arc', 'arcDeg', 'deg'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
       { dmg: 6, range: 2.5, arcDeg: 60, cdMult: 1 }, { dmg: 7, range: 2.7, arcDeg: 70, cdMult: 1 },
-      { dmg: 8, range: 2.9, arcDeg: 80, cdMult: 1 }, { dmg: 9, range: 3.1, arcDeg: 90, cdMult: 0.9 },
-      { dmg: 11, range: 3.4, arcDeg: 100, cdMult: 0.9 },
+      { dmg: 8, range: 2.9, arcDeg: 66, cdMult: 1, sweep: 32 }, { dmg: 9, range: 3.1, arcDeg: 68, cdMult: 0.9, sweep: 47 },
+      { dmg: 9, range: 3.6, arcDeg: 72, cdMult: 0.9, sweep: 78, ticks: 3 },
     ],
     unlockLevel: 1,
   };
   C.weapons.olta = {                     // Olta: hook sticks to the nearest, reels it in and slams it down
     cooldown: 2.8, range: 6.5, castSpeed: 22, reelT: 0.5, stagger: 0.3, hitR: 0.35, slamR: 0.6,
-    minCastT: 0.12, reelStop: 0.8, reelEvT: 0.1, slamKb: 0.6, sigLineR: 0.9, sigDmg: 0.6, sigKb: 0.3,
+    minCastT: 0.15, reelStop: 0.8, reelEvT: 0.1, slamKb: 0.6, dragMul: 0.38, sigLineR: 0.9, sigDmg: 0.6, sigKb: 0.3,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.reel', 'reel', 'm'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
-      { dmg: 14, reel: 2.0, cdMult: 1 }, { dmg: 16, reel: 2.2, cdMult: 1 }, { dmg: 19, reel: 2.4, cdMult: 1 },
-      { dmg: 22, reel: 2.6, cdMult: 0.9 }, { dmg: 28, reel: 3.0, cdMult: 0.9 },
+      { dmg: 14, reel: 2.0, cdMult: 1 }, { dmg: 16, reel: 2.2, cdMult: 1 },
+      { dmg: 19, reel: 2.4, cdMult: 1, spinR: 1.9, spinT: 0.44, spinMul: 0.55 },
+      { dmg: 22, reel: 2.6, cdMult: 0.9, spinR: 2.35, spinT: 0.59, spinMul: 0.62, turns: 1.25 },
+      { dmg: 25, reel: 3.0, cdMult: 0.9, spinR: 2.95, spinT: 0.75, spinMul: 0.7, turns: 1.75, slamMul: 1.32 },
     ],
     unlockLevel: 8,
   };
-  C.weapons.cardoor = {                  // Araba Kapısı: a car door ripped off and held up; blocks and reflects spit
+  C.weapons.cardoor = {                  // Araba Kapısı: the swung panel strikes along its arc and deflects spit
     cooldown: 4.5, trigR: 3.5, reflectR: 0.9, reflectBlastR: 1.0, reflectT: 0.35, blastKb: 0.3,
-    shove: 0.6, stun: 0.2, touchGap: 0.6, touchDmg: 0.5, fullArc: 360,
-    stats: [['stat.dmg', 'dmg', 'n'], ['stat.radius', 'radius', 'm'], ['stat.arc', 'arcDeg', 'deg'], ['stat.open', 'openT', 's'], ['stat.rate', 'cdMult', 'rate']],
+    shove: 0.77, stun: 0.38, reflectDeg: 55, minArcDeg: 360, approachSlack: 0.52,
+    startDeg: 65, windup: 0.17, recovery: 0.16, panelDepth: 0.16, reHitTurns: 0.91, repeatMul: 0.42,
+    toss: { windup: 0.28, flight: 0.52, range: 7.5, missRange: 3.2, radius: 1.75, radiusPerRank: 0.13, damage: 0.78 },
+    stats: [['stat.dmg', 'dmg', 'n'], ['stat.radius', 'radius', 'm'], ['stat.arc', 'arcDeg', 'deg'], ['stat.lasts', 'openT', 's'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
-      { dmg: 8, radius: 1.4, arcDeg: 110, openT: 0.8, cdMult: 1 }, { dmg: 10, radius: 1.5, arcDeg: 120, openT: 0.9, cdMult: 1 },
-      { dmg: 12, radius: 1.6, arcDeg: 130, openT: 1.0, cdMult: 1 }, { dmg: 14, radius: 1.7, arcDeg: 140, openT: 1.0, cdMult: 0.9 },
-      { dmg: 18, radius: 1.8, arcDeg: 160, openT: 1.1, cdMult: 0.9 },
+      { dmg: 10, radius: 1.64, arcDeg: 130, openT: 0.73, cdMult: 1 },
+      { dmg: 12, radius: 1.76, arcDeg: 195, openT: 0.83, cdMult: 1 },
+      { dmg: 14, radius: 1.91, arcDeg: 300, openT: 0.93, cdMult: 1 },
+      { dmg: 17, radius: 2.08, arcDeg: 515, openT: 1.13, cdMult: 0.9 },
+      { dmg: 20, radius: 2.31, arcDeg: 900, openT: 1.47, cdMult: 0.9 },
     ],
     unlockLevel: 9,
   };
   C.weapons.slingshot = {                // Sapan: steel marbles ricochet; two marbles on one enemy in one volley is a lucky shot
     cooldown: 1.6, speed: 12, hitR: 0.3, maxBounce: 5, bounces: 3, seekR: 6, bounceR: 3.5, luckyMul: 2,
-    spacing: 0.08, kb: 0.25,
+    windup: 0.16, spacing: 0.08, kb: 0.25,
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.marbles', 'marbles', 'n'], ['stat.rate', 'cdMult', 'rate']],
     levels: [
       { dmg: 9, marbles: 2, cdMult: 1 }, { dmg: 10, marbles: 2, cdMult: 1 }, { dmg: 12, marbles: 2, cdMult: 1 },
-      { dmg: 14, marbles: 3, cdMult: 0.9 }, { dmg: 17, marbles: 3, cdMult: 0.9 },
+      { dmg: 14, marbles: 3, cdMult: 0.9 },
+      { dmg: 16, marbles: 3, cdMult: 0.9, split: 2, splitMul: 0.48, splitRadius: 2.5 },
     ],
     unlockLevel: 4,
   };
@@ -179,8 +189,8 @@
     stats: [['stat.dmg', 'dmg', 'n'], ['stat.arc', 'arcDeg', 'deg'], ['stat.rate', 'tickGap', 'rate']],
     levels: [
       { dmg: 5, arcDeg: 80, revT: 1.0, tickGap: 0.16, cdMult: 1 },  { dmg: 6, arcDeg: 90, revT: 1.1, tickGap: 0.16, cdMult: 1 },
-      { dmg: 7, arcDeg: 100, revT: 1.2, tickGap: 0.14, cdMult: 1 }, { dmg: 8, arcDeg: 110, revT: 1.3, tickGap: 0.14, cdMult: 0.9 },
-      { dmg: 10, arcDeg: 130, revT: 1.5, tickGap: 0.12, cdMult: 0.9 },
+      { dmg: 7, arcDeg: 100, revT: 1.2, tickGap: 0.14, cdMult: 1, turns: 2 }, { dmg: 8, arcDeg: 128, revT: 1.3, tickGap: 0.14, cdMult: 0.9, turns: 2 },
+      { dmg: 9, arcDeg: 360, revT: 1.5, tickGap: 0.12, cdMult: 0.9, turns: 1, round: true },
     ],
     unlockLevel: 6,
   };

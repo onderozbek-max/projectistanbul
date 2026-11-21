@@ -2049,3 +2049,1717 @@ Recorded by the handoff audit from the owner's own chat messages (times are UTC;
 - **Several songs at once (2026-11-14 04:56).** He heard two or more songs at the same time, and the sound effects were hard to hear. prototype/js/view/music.js line 11 says one track at a time. Status: open. Next: reproduce on the phone with the Suno files.
 - **Map screen after Start (2026-11-14 04:56).** Recorded in docs/handoff-codex.md section 5 as the first-run map fix. No phone check recorded.
 - **Game stops responding (2026-11-14 04:56).** Recorded in docs/handoff-codex.md section 5 as the stick fix. No phone check recorded.
+
+## Phase 0.1 · Integrate the prototype into main (2026-11-14)
+
+- The owner approved [PR #1](https://github.com/onderozbek-max/projectistanbul/pull/1). GitHub `main` now points to merge commit `4f5361d`, with tested commit `2070211` as a parent.
+- The full `prototype/tools/run-tests.sh` run passed all 36 test groups on this Mac. The first-run map check passed on retry. All 615 local-source checksums matched.
+- The Chrome world-art test reproduced the known on-screen objective error at L6 and L31. It records the error as a known issue and passes. The fix remains in Phase 0.5.
+- D-051, D-066 and D-067 remain proposed. Phase 0.2 is the scripted iPhone baseline with the current and new artwork. The device benchmark and silent-switch audio check are pending.
+
+## Phase 0.2 · iPhone test links ready (2026-11-14)
+
+- Open the [current artwork test](http://192.168.4.21:8765/?bench=1&lang=en) and then the [new artwork test](http://192.168.4.21:8765/?bench=1&lang=en&art=raster) in Safari on the same Wi-Fi as the Mac. Tap **Start test** on each page and leave it open until it finishes. After both tests, tap **Save test results** on the second page and share the file with the iPhone model and what you heard.
+- Each link runs the L1 opening, L5 boss and an L6 crowd held at the 200-enemy cap. Each scene has three warm-up seconds and 60 measured seconds. A fixed seed, scripted movement and a fresh loadout make the two runs comparable. Test runs grant no progression or rewards. Backgrounding interrupts the run and offers a restart.
+- The download contains both sets of results and records median and 95th-percentile frame intervals and work time, samples at the enemy cap, peaks for live and drawn enemies, quality tier, and audio state. The graphics estimate counts the main canvas, loaded raster atlases and the sprite cache. Whole-page memory is unavailable in the Safari page itself and requires a separate Web Inspector capture.
+- Desktop verification passed 11 affected test groups, the strict dialogue guardrail check, and a Chrome smoke check through both shortened runs and one six-scene export. The full-length fixtures also passed in the simulator. Chrome drew all 200 enemies in both variants.
+- The owner completed both runs on iPhone Safari, iOS 18.7. See the results below. New Turkish test labels are available for owner review.
+
+## iPhone baseline and street art follow-up (2026-11-14)
+
+Both phone runs completed with 200 enemies drawn in the crowd scene. Figures are frame intervals in milliseconds, with a larger number meaning a slower frame. [Sanitized capture](telemetry/2026-11-14-iphone-art-baseline.jsonl)
+
+| Scene | Current artwork p50 / p95 | New artwork p50 / p95 |
+|---|---:|---:|
+| L1 opening | 17 / 17 | 17 / 17 |
+| L5 boss | 17 / 17 | 17 / 17 |
+| L6 crowd at 200 | 23 / 40 | 23 / 37 |
+
+- At 200 enemies both versions spent most of the run at reduced visual quality. The new artwork was slightly faster in the slowest frames on this run. Both are above the proposed 16.7 ms Gate A threshold. The device model and whole-page memory were unavailable in the capture. No platform decision is implied.
+- The brown patch in the second screenshot was the old code-drawn bay-window landmark over the sidewalk. In raster mode, the revised İstiklal and Galata building fronts follow the sidewalk edge with their upper storeys extending outward. The old facade billboard yields when the matching front is ready. İstiklal's legacy door shapes now fit at the base of the wall. The tram transforms its illustrated wheel line onto the track and sizes the body to its footprint.
+- Phase 0.3. Rebuilt and verified all 31 character atlases. At four bytes per decoded pixel they total 21.83 MiB, down from 85.09 MiB and under the 25 MiB target. Arda, a walker and Vatman retained their proportions and outlines in the phone-size comparison. The original source checksums all matched. The visible crowd path now skips unused procedural sprite work for loaded raster art and makes fewer canvas state changes.
+- Phase 0.5. Objective markers wait for the current scene's camera before projecting. Chrome coverage now fails on any previously allowlisted objective HUD exception. Both original phone runs reported a running audio context while the boss track never started. On iPhone the Start gesture now primes that track silently through Web Audio. A targeted playback test passed under simulated per-track gesture restrictions. Actual boss playback and the silent switch are pending an iPhone retest.
+- First-session clarity. The Turkish and English hack prompt now tells players to stay in the ring. The link mechanic and rewards stay as specified. No balance numbers changed.
+- Desktop verification. All 16 importer checks passed, including a clean rebuild of 212 assets. The full prototype run passed 35 of 37 groups. The hint check passed after shortening the English copy, and its dialogue and objective-string checks passed too. The browser's first-run map and download check passed on an isolated rerun. The strict raster world browser check passed across all six hoods without the old objective HUD exception.
+- Local preview. [Updated artwork phone test](http://192.168.4.21:8765/?bench=1&art=raster). The working copy combines the capture and follow-up so the owner can see the changes on the same Wi-Fi. D-051, D-066 and D-067 retain their proposed status.
+
+## Second iPhone capture and perspective follow-up (2026-11-14)
+
+The owner supplied three new raster samples from iPhone Safari. The export also includes the earlier capture. [Sanitized retest](telemetry/2026-11-14-iphone-raster-retest.jsonl)
+
+| Scene | First raster p50 / p95 (ms) | Retest p50 / p95 (ms) | Retest graphics estimate (MiB) |
+|---|---:|---:|---:|
+| Opening | 17 / 17 | 17 / 17 | 31.0 |
+| Boss | 17 / 17 | 17 / 17 | 46.8 |
+| Crowd at 200 | 23 / 37 | 26 / 39 | 61.5 |
+
+- Peak estimated graphics memory in the crowd fell from 81.4 MiB to 61.5 MiB. The p95 frame interval still exceeds the Gate A target. Safari did not report whole-page memory. The boss track started on the retest. That build recorded the requested track and its playback flag, so the export cannot show which other songs were audible.
+- The restaurant cutaway now has a paved doorway, a sign mounted on the wall and furniture with shallow sides and ground shadows. The İstiklal and Galata walls feature cropped street-level fronts and roofs within the building footprint. The tram now uses an overhead drawing aligned with the rails and retains the red body and cream roof. These are rendering changes with no changes to the room, door or track collision geometry.
+- The street now uses the calm recording alone. Scene changes silence the old track before the next one fades in. The intense recording stays available as an alternate take. Benchmark audio entries now list each audible music track. D-069 records the proposed direction for owner review after a phone test.
+- Phone-size Chrome captures covered the restaurant, doorway, street and tram. Chrome played the street and boss tracks in sequence. The world art, item art, benchmark, quality, canvas accessibility and dialogue test groups passed. Playback tests also covered rapid scene changes, returning from the background and simulated iPhone gesture restrictions. All 615 commission source checksums matched. The audio importer's separate synthesis check hit a temporary disk-space limit on this Mac. The phone has yet to run this revision.
+
+## Hero arms and the restaurant corner (2026-11-14)
+
+- The painted Arda frames already include his sleeves and hands. The renderer now places the knife, nail gun and held weapon animations at the painted grips. Grip positions are measured per frame and follow the sprite's mirroring and motion. The nail-gun flash starts at the barrel. The procedural figure still draws its own arms.
+- The adjacent shop row ends in a masonry side wall across a short paved forecourt. A planter marks the part of the forecourt outside the playable sidewalk. The existing doorway and walkable area use the same coordinates as before.
+- Verified the doorway from inside and outside at phone size. Captured Arda standing and firing in four directions. The character and six-district world-art checks passed in Chrome, and the quick weapon suite passed. A separate drawing smoke run exercised both painted and procedural grips. The six-district test used a smaller browser cache and skipped saving duplicate screenshots because the Mac was low on disk space.
+
+## Restaurant and neighboring roof projection (2026-11-14)
+
+- The paved setback separated the footprints in the previous pass, but the flat cutaway wall and the cropped neighboring facade still suggested different camera angles. The sign read as part of the cut edge and the softer facade made the join more visible.
+- The first building now has visible street and end walls that meet its roof at the projected corners. The restaurant entrance uses the same direction of height, with a lintel and sign above a flush threshold. Both drawings are cached at the same backing resolution. The entrance position and walking bounds still come from the existing level.
+- Reviewed the corner at phone size from inside, at the threshold and along the sidewalk. The raster world unit checks, raster browser checks, quality and canvas accessibility checks passed.
+
+## Illustrated storefront join (2026-11-14)
+
+- The rebuilt corner and illustrated İstiklal walls share the same roof-to-street projection. The end of the illustrated block beside the corner now turns the source artwork around a visible end wall. The sidewalk-side base stays on its original line.
+- The three-window box was the old `cumba` dressing prop, a projecting bay window. Projected storefronts skip the detached prop. In the phone-size browser preview it no longer appeared over the illustration.
+
+## Combat direction and playtest analysis (2026-11-15)
+
+- The owner set Hades as the combat look-and-feel reference. The active execution plan now records a proposed playable weapon and boss comparison, with local playtest analysis alongside the run-outcome work. The saved iPhone exports in `reviews/telemetry/` contain scripted benchmarks, so the player behavior baseline needs ordinary runs.
+
+## Local prototype improvements · 2026-11-15
+
+- **Run recovery.** Wins settle before the ending and carry a saved recap that stays available until the map presents it. Recent run IDs prevent repeat callbacks from paying twice. Quitting keeps the displayed share of Jeton, while Restart discards the run's Jeton. The win screen's Hurda now goes into the player's saved balance. Save tests recovered the previous valid backup from a malformed primary record. A fresh-browser check exercised the outcome routes, a single Jeton and Hurda payout after a duplicate result event, the Continue label and chapter count, and the recap after reloading during the ending. The free playtest revive can be used once per run, with the next death settling as a loss.
+- **Combat and first run.** Arda leans into the knife cut and braces away from the nail gun's recoil. The painted hands anchor both weapons. The saw remains visible during a rev while the nail gun keeps its muzzle cue. The sledgehammer follows through on the actual impact event, which drives its sound, dust and ground effect. A browser check observed the real half-second windup and synced follow-through. Vatman points toward his committed charge lane. The wet-ground arcs show which enemies the current reaches. These are a first pass using the shipped sprite frames. Dash is a button and uses the current steering direction. Crates reveal ordinary upgrades immediately, show fork effects before selection, and require a Continue tap after a fork choice. The active skill shows Ready, Active or the remaining seconds. The ultimate label reflects what the selected level actually grants. Low-health pulsing now uses the same flash limit as the other effects.
+- **Playtest evidence.** The local report groups ordinary runs by build and level, deduplicates repeated downloads, and tallies choices, terminal retries, objectives and exits. It records when a page was left during an open run and counts music transitions with multiple active tracks. Its input so far is nine scripted iPhone scenes and synthetic browser runs. The first-session test script is in [PLAYTEST-SCRIPT-R1.md](PLAYTEST-SCRIPT-R1.md).
+- **Readability and access.** The Level 5 bonus explains when its timer starts, then shows the clock beside boss health during the fight. The bridge objective wraps at 150% text size. Opening a weapon upgrade's details preserves the choice and closing them restores focus. Returning from Settings restores focus to the Pause menu. Nearby attack warnings and active tutorial instructions take priority over ambient speech. The color vision presets were checked on a narrow phone viewport at 150% text, including saving, focus and rendering of warning, player, XP and healing cues.
+- **Permanent upgrades.** After the first clear, the map can take players directly to unspent attribute points and then to a perk their current ranks and Street Cred can afford. A first-clear fixture used the actual point allocation and perk purchase in Chrome at 150% text. Back restored focus each time and Play stayed available.
+- **Difficulty.** In 12 paired runs at expected power, moving Level 9's boxes from a 4 m side offset to 2.2 m raised clears from 11 to 12 and clears without falling from 2 to 11. Both layouts completed the optional objective twice. Closer boxes lowered normal clears with basic gear from 8/8 to 6/8. Intermediate offsets of 3.0 m and 3.4 m cleared 6/8 and 5/8 with basic gear, so the build uses the original placements. On Level 17, moving the lines toward the middle went from 5 to 6 clears and lost both no-death clears. Reducing the route weight of heavier enemies from 0.40 to 0.20 gave 10/12 clears at expected power versus 5/12, with 3 clears without falling versus 2. Both mixes cleared 1/12 with basic gear. The local build uses that mix for Normal Level 17 and points to one nearby fishing line at a time. Six-seed screening gave 2/6 clears each at Levels 18, 19 and 28 and 3/6 at Level 29.
+- **Verification and release.** The 615 commission checksums matched. Chrome ran the opening, boss and a 200-enemy crowd in both artwork modes and exported all six shortened runs. The new fast local suite ran in about 13 seconds. The art tool split produced byte-identical output for all 419 art prompts, both order files and the tracker. All 348 sound cue variants rendered byte-identical samples at 22,050 Hz after their source split. The prior iPhone retest reported the boss track playing and a 39 ms frame interval in the slowest 5% at 200 enemies. The next phone run needs to check the new effects, touch controls, crowd speed and the reported music overlap. The platform and TestFlight decision still needs that evidence. The provenance ledger identifies the eight imported Suno tracks and the active effects manifest, with account-level usage records pending.
+
+The opening cleared in 12/12 automated attempts, 9 without falling, with a median of 2:35. The separate six-seed screen of Levels 2 to 30 found the largest drops on Level 23 (1/6), then Levels 14, 18, 19 and 28 (2/6 each). Level 3's cart defense and Level 7's escort went 0/6 on the optional objective. These are automated outcomes with preset equipment, so use them to choose where to observe real players. The campaign smoke check uses a scripted Level 1 reward record, then runs the remaining levels through actual settlement and spends earned ranks and perks. It moves on after a retry even if a level is still blocked. Across the full chapter it recorded 95 wins including the scripted opening, two losses at 14 and 18, and three timeouts at 43, 69 and 89. Level 100 cleared on this seed and the Street Cred ledger matched the saved balance. A repeat on the final build through Level 30 matched all 30 rows, including both losses.
+
+The Level 28 roster trial raised expected-power clears from 4/12 to 7/12 overall, but went from 2/6 to 1/6 on the second batch and from 1/8 to 0/8 with basic gear. The Level 23 trial raised expected-power clears from 3/12 to 6/12, with 2/6 on both versions in the second batch and 0/8 on both versions with basic gear. Keep their current roster mixes pending playtests and investigate route geometry and upgrade use. The simulator now honors `--from` when running a named level so follow-up batches can start at different seeds.
+
+Two fresh expected-power checks on the later sentinels both reached the final Level 43 segment and completed the optional boat objective. One then timed out. At Level 100 both cleared after using a revive. One death happened on the opening route and the other during the boss fight. Keep both as later pacing checks.
+
+The Night Shift defeat screen now promises the full share it actually keeps. A browser check recorded a single 40-Jeton payout plus the first shift's 70-Jeton daily pay, with zero scrap and Normal progress untouched. The audio preparation test hit a disk-space limit while writing raw intermediate audio. Feeding the same samples directly to FFmpeg eliminated that temporary file. The full music test passed afterward, and both implementations produced byte-identical victory audio from the same source.
+
+All 37 prototype test groups passed across the full run and isolated retries. The first-run map check passed on retry. World-art and music hit low temporary disk space in the full run. World-art passed all 50 checks after moving screenshot writes after Chrome cleanup. The full music test passed with smaller lossless inputs that exercise the same durations. The six requested art, font, quality and dialogue groups passed together. `git diff --check` and the commission checksum verification passed.
+
+Before TestFlight, run the updated browser build on the reference iPhone, check the reported song overlap and crowd slowdown, then choose the iOS build path. Run the first-session script with new players and use their reports to prioritize the remaining Level 1–30 balance work. The art and music account records are still needed for the release provenance audit.
+
+### 2026-11-15 · İstiklal phone playtest follow-up
+
+- Normal İstiklal now shows the current destination and distance independently of the optional objective. Bölüm 3 passes a stopped tram, crosses the plaza and ends at the exit. The tram has one fixed solid footprint and the new shelter uses the existing footprint. The end-of-run recap explains which progress carries forward.
+- The first signal cart waits for Arda before it takes damage. Its ring shows the upload, and completing it confirms the message and the coin bonus payable at the finish. A missed bonus clears its action prompt. Standalone phone terminals show progress and confirm completion. The health bar uses integers and the Dash button accepts a second touch during movement.
+- Upgrades from route crates now appear on the street. Picking one up plays a short skippable opening with a reduced-motion alternative. The standard music mix was lowered so weapon and pickup cues have more room.
+- The tall shapes that appeared to drift came from the scrolling skyline layer. İstiklal omits that layer and Galata Tower is fixed at one position on routes that feature it. A small music display replaces the large repeated stalls, while İstiklal benches follow the street grid. The yellow doorway warning is now drawn as a partially open dark doorway.
+- Varyoz uses one held wind-up, including the second slam at higher ranks. Pürmüz has a defined nozzle and fan of curved flames. Ateş Şişesi leaves a separate pool with layered fire, and Frenzy has a steady warm tint and a faster-attacks label. Weapon details show the base cooldown at that rank. The full weapon and enemy animation pass remains open.
+
+**Deviations**
+
+- Normal Levels 2–5 have 24 opening spawn-budget units plus 0.9 per new metre north. The Level 5 boss adds have an 80-unit budget. Re-entering the same terminal in Normal İstiklal cannot create a second noise wave. One Level 5 deterministic reference run changed as expected.
+- The Level 3 tram sits at metre 42, with the original Level 1 dimensions and room to pass on either side. Its plaza starts after the tram. The first cart has 100 HP and an eight-second upload, compared with the generic cart's 45 HP and 16 seconds.
+- Ground chests open from within 1.15 m. The ordinary opening takes roughly 1.1 seconds. At the same slider setting, music gain moves from 0.50 to 0.32.
+
+**Verification**
+
+- Six expected-gear bot runs each yielded 5, 6, 5 and 6 clears for Levels 2–5. A follow-up on the final Level 3 cart yielded six clears without a revive, and all six completed the bonus. A separate standing test exhausted the route's local enemies, then verified that forward movement opens another group and that backtracking does not refill it.
+- The phone-sized Chrome run checked the route text, integer HP, second-finger Dash, missed-bonus cleanup, signal terminal and cart completion, the ordinary chest reveal, and both max-rank hammer impacts while other weapons fired. Audio balance, pacing and combat feel still need an iPhone playthrough.
+- The opening cleared in six of six automated runs, with four clears without a revive. All six art, font, quality and dialogue test groups passed together. The replay suite passed 271 checks, weapon tiers passed 838, and all 615 commission checksums matched.
+
+**ImageGen prompts and assets**
+
+- `prototype/assets/istiklal/istiklal_stop_shelter.png`, built-in ImageGen. “Isolated game sprite of a small vintage tram stop shelter for a stylized Istanbul action game, entire object on transparent alpha. High three-quarter orthographic camera around 55 degrees above ground, upright edges, front faces frame bottom, roof seen clearly, recognizable narrow muted blue glass panes, charcoal wrought iron posts, low dark zinc cap and warm ivory base, modest weathering. Crisp dark outlines and economical hand-painted cel shading like a comic game environment, readable in a 100px sprite. No lettering, character, scenery, paving, ground patch, cast shadow, or glow. Centered with small transparent margins.”
+- `prototype/assets/galata/galata_tower_landmark.png`, built-in ImageGen. “Isolated game sprite of Istanbul's Galata Tower for a stylized action game, entire object on transparent alpha, high three-quarter near-orthographic camera, recognizable slate conical roof, observation gallery, arched windows and warm limestone cylindrical tower. Crisp dark outlines and economical hand-painted cel shading like a comic game environment, architectural silhouette readable in a 120px sprite. Single upright tower, neutral lighting. No text, sky, paving, hills, ground patch, cast shadow, or glow. Centered with small transparent margins.”
+
+### 2026-11-15 · Weapon contact and rank pass
+
+- All 17 base weapons have distinct contact shapes. The 18 evolutions use their own color, size and recoil settings with the related weapon's contact motion. Döner Bıçağı cuts on a diagonal, the nail gun punches a short puncture, Varyoz fractures the ground, and Olta snaps into a hooked pull. Pürmüz burns upward while Ateş Şişesi spreads along the pavement. Ranks 3 and 5 add follow-through to each shape, with recoil at a different strength and pace for each weapon.
+- Knife swings and Varyoz strikes now each use a single readable trail or wind-up. Varyoz's target ring follows its actual damage footprint. Overlapping hits from the same weapon share a contact mark locally. Reduce motion keeps a steady shape and gentler recoil. Reduce flashing retains the impact outline and gates the brief bright accents.
+- Phone-sized Chrome ran actual attacks for all 17 base weapons at ranks 1 and 5. Six comparisons were captured from real game frames with isolated targets. The focused tests passed for feel, animation, accessibility, weapon tiers, quality, the benchmark and the upgrade UI. The quick arsenal test passed. The tier tests exercise all 35 impact profiles and check that combat produces identical sim state with the effects on or off. Physical iPhone crowd readability and feel remain to be checked.
+
+### 2026-11-15 · Phone weapon comparison
+
+- The Wi-Fi prototype's `?weaponlab=1&art=raster&lang=tr` entry isolates one weapon with 96 seeded zombies and replenishes the crowd. Changing a weapon or rank restarts the same opening. All 17 base weapons can switch between ranks 1 and 5. All 18 evolutions are selectable at their fixed rank. Arda is invulnerable, and the test runs without campaign rewards or telemetry.
+- The weapon-lab test compares the starting crowd for every choice and exercises real movement and hits. The input, telemetry, canvas accessibility, progression UI, weapon tier and benchmark tests passed. Phone-sized Chrome checked touch movement, rank switching, resets, and normal title boot. This is ready for the owner's physical iPhone playtest.
+
+### 2026-11-15 · Mac playtest follow-up
+
+- Opening the HTML file directly used the original hero, paving and frontages because the browser could not fetch the raster manifest. Ordinary previews now select the illustrated art. The art importer generates a file-preview index from the same manifest. The benchmark keeps the original artwork for its baseline measurement.
+- The oversized fixture was a bookseller's stall painted from straight above. The street-stall family now uses compact, ground-anchored props where artwork is available. The illustrated shelter is used by the shelter recipe and chicane walls have more legible roof edges, window bays and plinths.
+- Teal chests have a gold ground outline, a soft column of light, and a floating diamond. Guarded chests have a muted trim. The opening animation uses the same chest. Reduce motion and Reduce flashing make the ground marker steady.
+- The results button reads “Map & upgrades”. Both growth pages are beside Play even with zero points to spend. An earned point or available perk highlights its button.
+- The Bölüm 3 trial slows new waves around the existing tram between metres 32 and 53. Enemies already chasing Arda still participate. A side ambush and an elite runner appear after the crossing. The runner drops one chest. The existing signal cart and finale remain in the route. Link parameters `?level=3&rhythm=1`. The trial does not award campaign progress.
+- Weapon reactions now follow the strike on both axes. Contact camera kicks are rate-limited within big crowd hits and scale with rank. Light attacks against bosses leave the animation running. Heavy hits retain the brief freeze. Combat animations still need a deeper authored pose pass.
+
+**Verification**
+
+- On Mac Chrome, the direct file rendered the illustrated hero, bookseller and weapon-card icon. The same browser exercised the ground chest and reveal, both progression pages, and the quiet section and runner encounter over the preview server.
+- Six paired expected-gear Bölüm 3 seeds cleared on each route. The original cleared all six without a revive and the trial cleared five without a revive. Median times were 257s and 258s. All twelve completed the signal-cart bonus. Keep the trial optional for the owner's comparison.
+- All 17 focused test groups passed, along with the commission source checksums and `git diff --check`.
+
+### 2026-11-15 · Arda’s weapon stances
+
+- All 17 base weapons have a body motion specific to the attack. The knife turns through the hips, the nail gun plants for a short backward kick, Varyoz lifts and drops into its slams, and Olta rises into the cast and counters with a low pull. Rank changes the reach, twisting and weight shifts. The 18 fixed-rank evolutions keep their held art and inherit the corresponding full-strength body motion.
+- The painted wrists and attached weapons use the same transform. Guarded actions such as a throw stay visible while a lighter shot still fires and produces its effects. Hammer recovery starts on the real slam and the disc catch starts when a disc returns. Reduce motion softens the full-body effect.
+- The seeded 96-zombie browser comparison triggered all 17 base attacks at ranks 1 and 5. Each rank-five attack had a larger peak body motion in the recorded comparison. Four comparisons were captured from the game renderer. The quick arsenal run covered 272 build paths and mixed-weapon draw passes.
+- The raster and grip suite passed 141 checks. The tier suite passed 949 checks. The animation, game feel, canvas accessibility and weapon test suites also passed.
+
+**Roadmap**
+
+- Phase 0 supplied the benchmark and reduced atlas sizes, plus a fast local test run. The iPhone audio and crowd checks, automated GitHub checks, and the iOS build decision remain open.
+- Phase 1 is active. Illustrated street art, visible chests, map progression, weapon contacts and Arda’s attack stances are playable. The Bölüm 3 pacing change is an optional trial. Early levels still need different encounter rhythms and playtests with people new to the game. The existing local telemetry export and playtest script are ready for those sessions.
+- Phase 2 extends the art and pacing work across Chapter 1, Levels 1–30. Bot runs already check balance and later trouble spots. Human playthroughs are still needed to tune difficulty, validate the Turkish text and close remaining art and accessibility issues.
+- TestFlight and a broader alpha follow the iOS build decision and the Chapter 1 playthrough gate.
+
+### 2026-11-15 · Combat screen and high-rank effects
+
+- Removed the helmet-off lettering and the elite kill word. A lethal hit clears its damage number. The old on-by-default preference is cleared once. The regular game still offers small, short-lived damage numbers as an advanced visual option. The weapon lab hides them for all runs.
+- The illustrated bottle, gas can and hammer are the reference for rank five. Fourteen other base weapons now change their contact motion at rank five. The knife crosses through a second cut, the chain snaps across its links, the saw curls back through its contact, and the extinguisher leaves a rolling foam wake.
+- Fourteen evolutions now use distinct body motion and contact animation. The Net Spear closes a lattice, the Twin Saw counter-rotates its two edges, and the Minibus Door uses its own panel and skid marks around the real knockdown. Usta’s Cleaver has a larger held blade and Nail Storm a visibly different launcher. Arc Chain, Car Bomb, Fire Lake and Wedding Finale guided the evolution scale.
+- During a burst, one large contact leads and the remaining marks stay compact. Contact visibility now uses screen coordinates, restoring effects in the upper-left part of the view.
+
+**Verification**
+
+- The Chrome crowd check delivered real impacts for 17 rank-five weapons and 18 evolutions. A five-weapon build rendered six contact shapes across 505 hits. The check exercised the old damage preference on reload, lab number suppression, helmet breaks and elite kills. The tier suite checked 28 distinct revised contact paths and identical simulation traces with the view effects enabled and disabled.
+
+### 2026-11-15 · Weapon identity through all five ranks
+
+- Removed the universal death wisp and the puffs on physical weapons. Fire bottles, firework exhaust and canister blasts carry the brief combat smoke. Speargun launch snaps the tether, Varyoz throws paving chips, the slingshot gives a sharp recoil stroke, and the extinguisher and Foam Storm spray distinct foam cells.
+- All 17 base weapons use authored impact cues for ranks two through four and a rank-five finish. The knife adds a tip glint, curved exit and hooked stroke on its way to a crosscut. Olta adds a ripple, taut line and second ripple before its full reel. Arda follows each weapon through its recovery, including the real returning disc catch.
+- All 18 evolutions have a separate body motion and contact shape. Arc Chain recoils as its circuit closes. Fire Lake spreads beyond two banks. Car Bomb throws a backblast, and Wedding Finale leaves a falling canopy. Large marks lead clustered hits, with smaller contacts resolving the rest of the crowd.
+- The Mac Weapon Lab exposes all five base ranks and each fixed-rank evolution. Every selection restarts with the same 96 zombies.
+
+**Verification**
+
+- Chrome switched ranks through the lab controls and ran all 103 weapon configurations. Smoke appeared only with canisters, rockets or lit flasks. Both foam weapons emitted foam cells. A five-weapon build drew six contact shapes across 505 hits.
+- Ten focused test groups passed. The character suite checked that higher-rank recoveries change direction, that Reduce Motion softens them, and that every evolution has its own body motion.
+
+### 2026-11-15 · Changes from the owner’s weapon playtest
+
+- The torch uses a short blue-cored jet at first and sweeps distinct ribbons at its upper ranks. Forge carries the sweep further and leaves two scorch marks. The car door has a solid painted panel, clean window, and forward shove. The Minibus Door drives forward and drops into a stun.
+- The chainsaw develops a return cut and a full-circle sweep. Grinder reverses its broad sweep and keeps its stacking hits. The extinguisher develops a rolling foam crest and stronger push. Foam Storm lays down overlapping fronts and still blocks spit.
+- Fireworks burst through one, two, or three colored layers of stars with separate timings. Wedding Finale drops those bursts across the arena. Varyoz draws impact cracks through the crowd. Blacksmith uses a hot-metal strike and keeps healing per enemy hit.
+- Olta reels one enemy through others at low ranks and spins the catch at rank five. Hookpull gathers enemies before a wider spin. Live Cable branches to more enemies. Stormshield keeps its protective orbit and dodge discharge. High-rank spears spread into three lines with a stronger pull at the pin. Net Spear launches two lines and binds enemies with the net.
+- High-rank saw blades cut an outward and return curve. Twin Saw splits the two curves across opposite flanks. The manhole cover speeds up and knocks neighboring enemies back at the top ranks. Slingshot marbles split into two smaller shots after the first contact with nearby targets.
+- The browser captures identified another death effect responsible for broad dust, smoke and grime clouds. Ordinary kills now leave the collapse and ground marks, with small sparks or embers for elemental deaths. The Weapon Lab also hides the large streak banner.
+
+**Deviations**
+
+- Base level rows in `config-weapons*.js` set cable jump counts and branch reach, saw travel speed and curvature, manhole splash reach, torch sweep and ticks, Olta drag and spin, door press, slingshot split, chainsaw sweep, foam push, and spear spread. The affected evolutions have their own values. Speargun, torch, Olta, slingshot and chainsaw rank-five per-hit damage was reduced to account for their wider or additional hits.
+
+**Verification**
+
+- Chrome exercised all 103 loadouts in the 96-zombie crowd. It checked that ordinary deaths add no clouds and that streak words stay out of the lab. A separate pass captured ranks 1, 3, and 5 for the twelve revised weapons and the ten related evolutions. Their opaque colors read over the street, including the red door and orange torch.
+- Ten focused regression groups and the quick arsenal suite passed. The latter exercised 272 build paths. The level 5 and level 21 bots cleared all eight runs each with up to one revive. There is room for a full-run balance playtest of the stronger ranks.
+
+### 2026-11-15 · Weapon Lab follow-up
+
+- The car door has a wing mirror, framed window, handle and hinge. It braces and turns into one real bash at low ranks, alternates two swings at rank three, then aims a third ram at rank five. The Minibus Door ends with a wider stun slam. Enemy reactions and the contact sound are timed to the bash.
+- The extinguisher emits a directional white plume from the nozzle, broadening into a two-sided fan and overlapping Foam Storm plumes. Live Cable and Stormshield show an outlined cartoon skeleton on each struck enemy, with larger arcs at higher ranks.
+- The manhole cover is a visible gridded disc that lifts and banks between contacts, then sends out metal chips and a shock ring when it lands. The slingshot winds up, sends distinct steel shots along the actual path, and marks each ricochet. The speargun has defined metal barbs and a braided tether. Net Spear draws its binding lines between the actual linked enemies.
+- Fireworks start with two colors and build to a wider four-layer burst with branching comets. Fishing rod spins begin at rank three and gain reach and turns. The nail gun shows longer steel tracers and stronger recoil marks. Saw blades gain a larger serrated edge and wake. Hammer echoes and shockwaves read from rank one and build to wider, forked strikes at rank five.
+- Dedicated weapon cues replace the older, generic contact shapes for these attacks, freeing the weapon and enemy reaction to read.
+
+**Deviations**
+
+- Door timing and damage are per bash, including a third aimed swing at rank five. Olta gains its first full spin at rank three. Later spins get more reach and turns. Rank-five fireworks gain a larger real blast with lower damage per rocket. The higher manhole ranks gain a wider landing impact. Slingshot release follows a brief windup.
+
+**Verification**
+
+- Chrome ran 42 comparisons in the 96-zombie crowd, covering ranks 1, 3 and 5 of eleven weapons and nine evolutions. Captures include the third rank-five door bash, the white suppressant spray, the x-ray electrocution poses, the cover in flight, and the three spear tethers.
+- Ten focused suites, the quick arsenal run across 272 build paths, the art source checksums and the whitespace check passed.
+- The previous eight-seed samples cleared levels 5 and 21 eight times each. The revised level 5 sample cleared seven. Level 21 cleared six with the first door timing. A 0.38 s stagger on a landed bash brought it to seven and is the value in this build. Campaign balance still needs a playthrough with mixed builds.
+
+### 2026-11-15 · Held door sweep and elemental attacks
+
+- Arda grips the visible door handle throughout the swing. His stance and the trailing arcs follow the panel's angle. Enemy hits and the impact sound happen as the panel crosses them. The Minibus Door has three turns and a finishing ground slam.
+- Live Cable and Stormshield briefly replace struck zombies with an opaque skeleton pose, a jagged gold outline and branching bolts. The pose holds and stretches without repeated switching. Early Varyoz hits now have a forked lightning strike and a visible hammer head at the landing point.
+- The Speargun sends a gold trident through a blue-green wake. A pinned target draws a whirlpool. At rank five, three tridents spread across the crowd. Net Spear also draws connections between bound targets.
+- The Manhole Cover has a distinct metal hit even at rank one. Its middle rank gets the wider bounce. Ranks four and five bank higher and crack the pavement on the first landing while knocking back surrounding enemies.
+
+**Deviations**
+
+- Car Door sweep angles are 130°, 195°, 300°, 515° and 900°. Swing durations progress from 0.73 to 1.47 seconds including windup and recovery. A repeat hit after approximately one turn deals 42% damage. The 0.38-second stun applies at contact.
+- Manhole first-hit radius is 1.25 m at rank three, 1.68 m at rank four and 2.18 m at rank five. Rank-five direct damage is 18. Following bounces have smaller impact radii.
+
+**Verification**
+
+- Chrome rendered 22 comparisons in the seeded 96-zombie crowd and ran a mixed loadout. It checked the rank-five door's rotation, Live Cable replacing living actors with the skeleton pose, and the absence of smoke from the revised weapons.
+- Ten focused groups passed. The quick arsenal suite exercised 272 build paths. The sweep test confirmed that rank one deals zero damage during the windup and only hits the enemy in the swing path. The commission source checksums and whitespace check passed.
+- Automated campaign trials cleared level 5 in seven of eight runs and level 21 in eight of eight runs, with up to one revive. The weapon feel still needs the owner's Mac playtest.
+
+### 2026-11-15 · Phase 1.3, Bölüm 2 tram stop
+
+The opt-in Bölüm 2 route puts the tram's controls beside an illustrated shelter. Four crawlers advance along the tracks. Completing the link sends the tram along the rails, drops one chest on the platform, and completes the bonus objective. The player can walk on to the exit without operating the tram. The Bölüm 3 plaza trial still has its own link.
+
+**Deviations**
+
+- The Bölüm 2 trial uses the stop at 22 m and a 1.5 m control radius. It uses the existing link time and slows while enemies are near. The tram uses the existing width, length, and damage. The chicane starts past the tram lane. Street props and canisters keep clear of the platform.
+- Ordinary Bölüm 2 uses a timer-based survival objective. Both route trials are standalone previews. Telemetry identifies the stop and crossing trials separately, including older crossing exports that used a boolean.
+
+**Verification**
+
+- The tram regression checks that the control completes the bonus, the tram clears the tracks, the chest drops once, and players can bypass the optional encounter. The station, chest and crawler entry points have clearance across 200 generated layouts.
+- Chrome played the control sequence, confirmed the tram and chest on screen, and checked that the export recorded the trial and the completed link.
+- Seven focused suites and the objective string check passed. The final eight-seed bot trial cleared 8/8 versus 7/8 on ordinary Bölüm 2, with up to one revive. Median times were 233 and 202 seconds. The trial completed the bonus in 7/8 runs. Human play is needed to tell whether the extra time feels worthwhile.
+
+Next is a distinct encounter for Bölüm 4, followed by a first-session comparison through the İstiklal boss. Use the existing playtest script and export to check where new players stall, skip a bonus or stop playing.
+
+### 2026-11-15 · Bölüm 2 pacing and playtest fixes
+
+- The shelter's long edge now runs parallel to the rails. The stop's bell sounds before the tram arrives, the tram crosses the marked track more slowly, and enemies are hit at the front of the moving tram. The chest drops afterwards. The gold rectangle from the temporary tram entrance painter was removed.
+- The chest screen keeps Continue in a fixed footer. Weapon forks explain that the player must choose an upgrade. The choice list scrolls if it needs more room.
+- The Bölüm 2 preview gives the player time to assemble a build, a horde countdown, two pressure waves, and Makasçı at the final gate. The boss moves across the player, recovers after a hook sweep, and ignites another rail lane in the second phase. The route bar shows the current objective and when to counterattack.
+
+**Deviations**
+
+- The tram warning is 0.9 s, followed by a 2.2 s track sweep. The horde warning starts 63% of the way to the last gate and counts down from nine seconds. The horde runs for up to 18 seconds. Nine kills earn a chest. The second pack includes an elite runner.
+- Makasçı starts at 600 base HP and switches phases at 46% HP. A hook sweep leaves 1.65 s of vulnerability. The rail attack gives at least 1.25 s of warning in either phase.
+- Normal İstiklal's generated stages get 24 opening ambient enemies and 0.8 more per new metre, alongside the existing route budget. Storefront openings fire once. Bölüm 5 gets up to 26 ambient arena adds and 20 summons alongside its existing finite add budget. The Bölüm 2 preview pauses fresh ambient reinforcements when its boss fight starts.
+
+**Verification**
+
+- Chrome drew the rail-side shelter and checked the warning, tram movement, chest choice and visible footer at 150% text, horde countdown, boss health bar, hook opening, and rail warning. The export recorded the preview revision and each encounter phase.
+- Focused tram, horde, environment, progression, accessibility, UI motion, Weapon Lab and telemetry suites passed. The new regressions cover camping, backtracking, repeat boss summons, and the safe rail lane. Source checksums passed.
+- Automated runs cleared the updated Bölüm 2 preview 8/8 with up to one revive. Normal Bölüm 5 cleared 6/6 after the summon cap. Human playtests are still needed to tune the difficulty and length of each beat.
+
+**ImageGen asset**
+
+The built-in tool produced `prototype/assets/istiklal/istiklal_stop_shelter_railside.png`. Prompt used below.
+
+> Use case: precise-object-edit. Asset type: isolated transparent PNG game sprite for a portrait top-down Istanbul action game. Edit target is the attached tram-stop shelter sprite. Redraw the same open-sided vintage shelter with dark steel framing, blue glass, cream pillars and a wood bench, changing only the camera and orientation. Orthographic camera around 70 degrees down from horizontal, matching a top-down road with vertical rails. Its long roof ridge and long ground footprint must run exactly vertically along the image's Y axis, from image bottom toward top, with no diagonal axis or perspective vanishing point. The glass back is on the right, the boarding opening faces left toward the tracks, and the top of the roof is the largest visible surface. Show a narrow strip of the left face and the short lower end, and keep columns upright in the projection. Roof is elongated, narrow and rectangular; its intact silhouette is entirely in frame. Keep the current cel-shaded inked architectural game-art style and gray-blue metal with warm stone. Draw a single prop isolated on real transparent alpha, with no platform, paving, tracks, signs, cast shadow, people, text or ground. Centered and tight with clean alpha margins.
+
+### 2026-11-15 · İstiklal route and boss preview
+
+- **Bölüm 1.** Escape the restaurant, defend the shutter, then fight Lokantacı through a three-step cleaver combo and thrown cleavers.
+- **Bölüm 2.** The station bell gives the incoming crowd time to fill the tracks. The front of the tram clears each row, then the chest lands. Later a countdown leads into the two-part frenzy and Makasçı's rail and hook attacks.
+- **Bölüm 3.** Take a breath at the stopped tram, fight through the plaza ambush and the signal-cart encounter, then dodge Kestaneci's charges and hot chestnut volleys.
+- **Bölüm 4.** Three optional live wires let Arda shock and stun nearby zombies on the way to Elektrikçi. He moves sideways, lays horizontal bands of electricity across the street, and leaves an opening after each attack.
+- **Bölüm 5.** Reach the depot and face Vatman. His tram advances through a marked lane at real travel speed. He closes in with the brake lever, bell and charges in the later phases.
+
+**Deviations**
+
+- The trial runs through all five Normal levels via `?level=N&rhythm=1&lang=tr`, with Next Level carrying it forward within İstiklal. The Bölüm 2 bell lasts 1.45 s. The 32 staged zombies use the game sprites and add zero XP or damage. The four original crawlers still take normal tram hits.
+- The Bölüm 1 shutter defense runs for 19 s before Lokantacı appears. Base HP for Lokantacı, Kestaneci, Elektrikçi and Vatman is 300, 660, 580 and 1420 respectively. Each has a phase change and Vatman has two. His arena has five opening and four second-phase passengers, with the hostile tram telegraphed for 1.4 s before its 1.75 s pass.
+- Each Bölüm 4 wire pulses in a 4.2 m radius for 52 damage and 1.1 s of stun. Elektrikçi's vulnerable window lasts 2.05 s. The route bot now aims through market gaps so its stopping distance cannot leave it stuck at a waypoint.
+
+**Verification**
+
+- Chrome rendered the incoming and knocked-aside crowd using the character artwork, showed the tram crossing the lane and the chest dropping, and exercised the wire pickup and all four new bosses.
+- Nine focused suites passed. The encounter regression covers the shutter staying closed until the Cook dies, a cable pulsing once, the tracks staying safe until the tram arrives and the clear space to its side. Objective text, art source checksums and whitespace checks passed.
+- Six automated runs per level cleared Bölüms 1 through 4 in 24 of 24 attempts and Bölüm 5 in five of six with up to one revive. The bot cut all three wires in five of six runs. Vatman was the hardest encounter and needs human tuning for opening readability and difficulty.
+
+### 2026-11-15 · Required street milestones and character development
+
+- The route card names the obstacle, switches to the ring instruction when in range, shows progress and confirms when the road opens. A gold marker guides Arda to the next required interaction. The bonus chip yields while that instruction is needed.
+- Dialogue keeps its text in a compact strip near the active interactions, where the portrait pop would cover the ring or the actors.
+- **İstiklal 1–5.** The Tünel shutter requires the Cook fight. The tram-stop crowd enters from either side and up the street during the approach and link. The tram clears it at track speed to open the road. The plaza signal cart sends a visible signal to retract the barrier once the near side is clear. Arda stops and works pliers around each live wire, then the dead circuit releases its barricade. Turning the depot crank raises the shutter before the Vatman encounter.
+- **Develop Arda** is one Map entry with Attributes and Skill Tree in the same flow. The six attribute cards show their current effect, training and next perk. A perk explains its attribute rank and Street Cred cost, and returns straight to the attribute if its rank is too low. A draft survives moving between the two pages during the visit. The confirmation and learning rules still use the saved progression model.
+
+**Candidates for the rest of the chapter**
+
+| Levels | Neighborhood | Required encounter candidates in level order |
+|---|---|---|
+| 6–10 | Galata | Turn a clock repairer's hoist to clear the uphill steps. Escort a street musician who unbolts a passage. Ring the tower courtyard bell and slip through while the crowd follows the sound. Crank down the service footbridge under pressure. Open the tower courtyard grille for the boss. |
+| 11–15 | Karaköy | Drag a cargo hook onto a crate blocking the quay and hoist it away. Help a deckhand throw the ferry mooring line. Redirect a stalled tram with the points lever. Open a fish-market aisle by rolling three stall shutters. Empty the dock ramp and lower a gangway into the arena. |
+| 16–20 | Galata Köprüsü | Reel in snagged fishing lines to lift a row of rods off the deck. Throw a rescue line to a fisher below the railing. Close two wind screens to cross an exposed walkway. Brace the under-deck stair until the wave passes. Wind up the maintenance platform for the waterside boss fight. |
+| 21–25 | Eminönü | Raise a vendor awning to reveal a side passage. Defend a handcart as it carries a load off the market steps. Move three sacks to free a jammed pivot. Turn the loading semaphore so a trolley clears the lane. Roll open the loading yard to enter the boss fight. |
+| 26–30 | Sirkeci | Pull the departure lever to move a stationary service car. Follow a station guide to a locked staff passage. Restore the station clock drive and watch it trip the gate. Restore a platform light circuit while holding the concourse. Set the points and draw the guard out to the last platform. |
+
+**Deviations**
+
+- The trial closes the tram road 5.1 m beyond its controls, the plaza crossing 5.8 m after the cart, and the wire barrier 3.8 m before the gate encounter. Cutting a wire takes 0.75 s while stopped within its 1.45 m ring. The signal cart needs eight seconds within 2.4 m and pauses progress if a zombie reaches 1.15 m. The depot crank takes 2.4 s. The cart, wire barrier and depot shutter animate open over 0.85 s.
+- Vatman has 1310 base HP and a two-second attack opening. He holds his position while the first-phase tram crosses. His bell attack leaves an opening as well.
+- The later-district table is a proposal for local context, obstacles and payoffs. Those encounters still need individual layouts, animations, numerical tuning and playtests before use in the campaign.
+
+**Verification**
+
+- Chrome showed characters approaching the tram controls before the link, the tram sweep, the roadway release, the cart signal, the pliers at the wire and the turning depot crank. It followed a locked Strength perk to its attribute, spent a training point, then learned the perk with Street Cred. The character panels fit at 150% text.
+- Required goals completed in all 18 automated runs of Bölüms 2–4. Those levels cleared 6/6 each. Bölüm 5 cleared 5/6 with up to one revive. Interaction points had clearance in a 200-seed layout sample per level. Vatman's difficulty still needs a Mac playtest.
+- Focused encounter, horde, environment, progression UI, accessibility, motion, Weapon Lab, tree, dialogue, telemetry and benchmark suites passed. The string and ID checks, commissioned source checksums, and whitespace check passed.
+
+### 2026-11-15 · Tram, wire cut and map follow-up
+
+- Completing the link starts the tram scene. The 32 staged zombies enter from all four edges while run time, combat and movement pause. The camera frames the tracks, moves closer for contact, then returns toward Arda. The chest, road and controls become available at the end. Live enemies on the tracks can still be struck by the passing tram. The four extra approach crawlers were removed.
+- Arda pulls the cable taut, leans into the pliers, snaps it, and holds the pose long enough for the two loose ends and the shock to read. The camera returns to regular framing after the snip. Reduce Motion keeps the camera steady in both scenes.
+- The map gives **Arda’yı geliştir** its own light card with Arda's portrait and the ready status. Route distance is a slimmer, quieter row above it. The card opens the same Attributes and Skill Tree screens.
+
+**Deviations**
+
+- The crowd gathers for 3.2 s after the link, the bell sounds 0.48 s before the tram enters, and the tram sweeps for 2.2 s. The 0.85 s pullback precedes the handoff. The camera narrows the field of view by up to 12% for the sweep and 11% for wire cutting. Wire cutting takes 1.4 s, with a 0.44 s follow-through.
+
+**Verification**
+
+- Chrome verified the crowd is absent while the link is filling, approaches from four directions, and is cleared in focus. It checked that input and the level clock pause until the handoff. It exercised the cable close-up and Reduce Motion path, and opened character progression from the portrait card at 150% text.
+- Eight focused suites passed. The map first-run regression passed 140 checks on rerun, including both languages at each phone size. The initial Turkish 448-width case stayed on the title.
+- Six of six scripted runs cleared all required milestones in each of Bölüms 2 and 4. Bölüm 4 cleared in all six runs. Bölüm 2 cleared in four. One run stalled on a street prop and one lost to Makasçı after the tram scene.
+
+### 2026-11-15 · Device-specific confirmations and Galata
+
+- The Bölüm 2 ring calls the tram and says **Tramvay çağrıldı**. Other terminals report their outcome, such as coins dispensed, an alarm sounding or a shutter opening. The phone booster says the signal was restored. It says Mom is back on the line when the first-level conversation actually resumes.
+- **Bölüm 6** raises a crate in the uphill lane. **Bölüm 7** walks a musician to a side gate. The musician waits when separated or surrounded, then unbolts the gate. **Bölüm 8** rings a bell that draws living zombies toward the square and clears the stairs.
+- **Bölüm 9** has a counterweight to carry to the winch before the footbridge lowers. The deck and the gaps beside it have matching collision. **Bölüm 10** opens the courtyard grille to the Tower Keeper, whose counterweights fall one at a time onto marked spots. A third weight joins the sequence in phase two.
+- Ring stations show the action while Arda works the lever or rope. The camera moves slightly closer while he stands at the controls, subject to Reduce Motion. The preview can continue through Bölüm 10 with Next Level.
+
+**Deviations**
+
+- The hoist, bell, bridge winch and courtyard lever require 1.9, 1.15, 1.4 and 2.2 seconds in the ring. The bridge also requires a counterweight found 5.5 m back. The guide waits for Arda within 5.8 m and stops if an enemy gets within 1.5 m. The bell leaves 2.3 s for zombies to start moving before the stairs open.
+- The preview final holds in Bölüms 6–9 are 8, 12, 9 and 14 seconds. The Tower Keeper has 970 base HP and a phase change at 48%. His weights land with 0.34 s between drops. The first windup is 1.32 s before phase scaling.
+- The generated hold now has its own function name. The authored restaurant hold had been shadowing the generated one in the shared script scope.
+
+**Verification**
+
+- Chrome verified the tram label, each Galata interaction and its release, the preview’s Next Level button, and the Tower Keeper’s first weight sequence. The phone-state regression confirms that Mom’s lines are queued only when the opening call comes back.
+- All 20 seeded Galata preview runs cleared with up to one revive. All required interactions had clear floor placement in 150 layouts per level. Bölüm 9 took the longest, with a median of 290 seconds in the test sample.
+- Nine focused suites passed. The checks for IDs, objective strings, commissioned art checksums and whitespace passed.
+
+### 2026-11-15 · Karaköy quay, market and dock finale
+
+- **Bölüm 11** requires two steps at the crane. Align the hook, then attach the sling to the crate. The crane lifts it aside and the quay opens.
+- **Bölüm 12** calls the ferry. Throw the mooring line, then defend the berth while the countdown runs. Two groups enter from opposite ends of the quay. Leaving the area pauses docking. The gangway lowers after the ferry arrives.
+- **Bölüm 13** sends the parked tram onto its siding. The switch moves and the barrier stays shut until the car clears the crossing.
+- **Bölüm 14** raises three individual fish-stall shutters. The required marker moves to the next stall and the card counts the raised shutters.
+- **Bölüm 15** requires clearing the ramp guards before lowering the gangway. The Bride circles Arda, rolls crates down marked lanes and swings a weighted mooring rope. The rope stops for a counterattack. Phase two adds a second cargo lane and a full-circle sweep.
+- On these routes the gold marker and card name the required action. Roaming reinforcements are finite and tied to distance reached. Once the required objective is complete, Bölüms 11–14 open the end gate on approach.
+
+**Deviations**
+
+- The crane steps take 1.05 s each. The ferry ring takes 1.25 s and docking takes 9 s inside a 3.2 m area. The tram switch, market shutters and gangway lever take 1.45, 1.15 and 1.35 s. The tram takes 2.8 s to clear the crossing.
+- Preview route lengths are 140, 154, 172, 188 and 155 m before the seed variation. The two roaming spawn budgets start at 32 budget and 31 enemies and grow by 1.55 budget and 1.32 enemies per metre of new progress. The route pressure drops near the required stations.
+- The Bride has 990 base HP, a second phase at 49%, a 1.24 s cargo warning and a 1.28 s rope warning before phase scaling. Her counterattack window lasts two seconds. D-092 records the proposed preview design.
+
+**Verification**
+
+- Chrome exercised all five objectives and their release animations, and showed both of the Bride's attack cues and her counterattack window. The required stations were clear in 150 seeded layouts per bölüm.
+- The route test confirms that remaining in place exhausts the roaming spawn budgets, that the dock guards gate the lever and that narrow sidesteps can avoid the moving cargo. Four bots per bölüm completed 19 of 20 runs with up to one revive. The loss was on the approach to the tram switch in Bölüm 13.
+- The existing font check exposed missing inheritance on the Weapon Lab controls. The controls now inherit the game's fonts.
+- Fifteen focused suites passed, including the art, fonts, quality and dialogue checks. The ID, hood key, objective string, commissioned source checksum and whitespace checks passed.
+
+### 2026-11-15 · Galata Köprüsü fishing rail and lower pier
+
+- **Bölüm 16** reels in snagged lines and swings the fishing rods back against the railing to reopen the bridge span.
+- **Bölüm 17** throws a rescue line to a stranded fisher. The fisher moves toward the deck as Arda pulls. Stepping away pauses the haul and returning resumes it. The rescue leaves a simit by the winch.
+- **Bölüm 18** closes two windbreaks, one on either side of the walkway. Gusts push Arda across the deck. The card points to the next control and shows how many screens are closed.
+- **Bölüm 19** requires sheltering at the lower stairs for two wave impacts. The card counts down to the crest. The wave knocks zombies back and washes away acid and toxic patches on the stairs. It hurts Arda if he is exposed. Missing a wave leaves the passage closed for the next one.
+- **Bölüm 20** lowers the maintenance platform to reach the Big Fisherman. He casts along a marked path, reels in a hooked Arda, and drops a net that slows Arda while he is inside it. After reeling in the casts he leaves a counterattack window. His second phase uses a wider net and two staggered casts.
+- The bridge's roaming spawn budgets are finite and grow with new ground covered. The exit in Bölüms 16–19 opens on approach after the required objective.
+
+**Deviations**
+
+- Preview route lengths are 147, 160, 180, 173 and 162 m before the seed variation. The new bridge and Karaköy routes share the same pacing and gate logic with their own tuning. The bridge budgets start at 33 route budget and 30 ambient enemies, adding 1.55 and 1.3 per new metre.
+- The snagged lines take 2 s, the rescue cast takes 1.25 s and the haul takes 4 s. The windbreaks take 1.2 s each and gust for 1.1 s after a 1.5 s warning. The waves have a 2.9 s warning. The platform takes 1.6 s at the lever and 2.2 s to lower.
+- Bölüms 18–19 use the bridge deck layout in the preview, with the windbreaks and stairs placed between its railings.
+- The Big Fisherman has 1010 base HP and a phase change at 48%. His casts and nets have 1.32 s and 1.38 s warnings before phase scaling. The second cast trails by 0.34 s. A landed net slows movement to 55% inside it for up to 2.55 s. The counterattack window lasts 2.1 s. See proposed decision D-093.
+
+**Verification**
+
+- Chrome exercised the five Turkish objective flows and the Fisherman's marked cast, net and recovery. Required stations had clear collision placement in 150 seeded layouts per bölüm.
+- Four automated runs per bölüm cleared 19 of 20 attempts with up to one revive. The sole loss was in the Bölüm 20 arena. The test covers wave impact inside and outside the shelter, the hook pulling Arda, and movement returning to full speed outside the net.
+- Fourteen focused suites passed, including the İstiklal, Galata and Karaköy routes, horde, accessibility, art items, fonts and dialogue. The ID, hood key, objective string, commissioned source checksum and whitespace checks passed.
+
+### 2026-11-15 · Eminönü spice route and loading yard
+
+- **Bölüm 21** pulls up the striped stall awning on the waterfront. The side passage has matching collision and a marker points through the opening on the right.
+- **Bölüm 22** escorts a porter with a loaded spice cart through the market aisle. It waits if Arda falls back or zombies reach its wheels. Two small groups enter from opposite ends of the aisle.
+- **Bölüm 23** carries three sacks to a marked pallet. Carrying slows Arda and each delivery updates the count. The last sack frees the gate wheel.
+- **Bölüm 24** turns the loading signal. It warns before a loaded trolley crosses from the right. Stepping onto the track during the crossing can hurt Arda. The barrier opens when the trolley clears it.
+- **Bölüm 25** rolls up the loading shutter to reach Kaan's Captain. The Captain casts his anchor and hauls himself down the marked path. When the anchor catches, Arda can counterattack. The Captain also throws spice sacks that spill damaging pepper clouds. His second phase throws a third sack and makes back-to-back chain lunges.
+
+**Deviations**
+
+- Route lengths before seed variation are 144, 158, 171, 174 and 158 m. The escort has a clear centre aisle through the market. The freight crossing uses the plaza layout. Roaming spawns remain finite and the gates for Bölüms 21–24 open on approach after their required encounter.
+- The awning takes 1.5 s at the rope. The porter moves at 1.6 m/s with Arda within 3.9 m. Carrying a sack reduces move speed to 84%. The trolley has a 0.95 s warning and a 2.65 s crossing. The loading-yard crank takes 1.85 s.
+- The Captain has 1060 base HP and changes phase at 47%. The anchor and spice warnings begin at 1.32 s and 1.31 s before phase scaling. The anchor recovery exposes him for 2 s. Pepper clouds last up to 3.1 s. See D-094.
+- Bonus terminals on the sack route use the hero's walking width. The balance bot prioritizes an active required marker over a bonus terminal.
+
+**Verification**
+
+- Chrome exercised the five Eminönü objectives in Turkish, the Captain's anchor and dust attacks, and the handoff from Galata Köprüsü using **Sonraki bölüm**.
+- The route checks cover 150 layouts per bölüm, clearance through the awning, cart motion and blockage, each sack delivery, trolley contact, the Captain's displacement and pepper damage. Fifteen focused suites passed. ID, hood key, localization, commissioned source checksum and whitespace checks passed.
+- Nineteen of 20 seeded automated runs cleared with up to one revive per run. The four Captain runs cleared without a revive. One run died beyond the sack gate in Bölüm 23.
+
+### 2026-11-16 · Grounded landmarks and new comic art
+
+- Galata and Karaköy place a mosque with an attached dome, minarets and plinth. The level chooses a single street-side position clear of layout zones and leaves the landmark out when no placement fits. The artwork, depth sorting and collision footprint use the same ground position. The same placement rule applies to the other neighborhoods that used the repeating skyline.
+- All 13 comic characters and 35 illustrated settings now use generated raster art, including the opening and five finale illustrations. Arda, Anne and Kaan have alternate expressions. Live dialogue, the phone card and character screens also use the refreshed portraits where they display comic art.
+
+**Deviations**
+
+- The landmark centers are 4.72 m from the road center and the solid footprints are 1.55 m deep. Landmark placement searches up to 28 m either side of its preferred position to leave key layouts clear. See proposed decision D-095.
+
+**ImageGen prompts and artwork**
+
+- [Lead cast](../prototype/assets/comic/cast-core.webp) and [supporting cast](../prototype/assets/comic/cast-support.webp). Generate waist-up transparent portraits on a 4×2 grid. Use the in-game costume colors, warm ink contours, painted cel shading and natural expressions. Give Arda his swept brown hair and red hoodie, Anne a brown bob and teal cardigan, and Kaan blond hair, sailor stripes and a red towel. Use the existing character descriptions for the remaining faces and wardrobes.
+- [Neighborhoods A](../prototype/assets/comic/scenes-a.webp), [neighborhoods B](../prototype/assets/comic/scenes-b.webp), [neighborhoods C](../prototype/assets/comic/scenes-c.webp) and [finale and theater](../prototype/assets/comic/scenes-d.webp). Generate 3×3 grids of wide Istanbul graphic-novel scenes with warm cinematic lighting, readable foregrounds and no embedded lettering. Give each scene its own setting and keep the foreground open for the existing portraits and dialogue. The scene order and crops are in `prototype/js/view/comic-raster.js`.
+- [Mosque](../prototype/assets/landmarks/mosque.webp) and [street structures](../prototype/assets/landmarks/structures.webp). Generate upright transparent cutouts in a slightly downward, three-quarter view. Give the mosque attached minarets and a limestone plinth with a contact shadow. Match that view for the clock tower, fire tower, gate, crane, walls, chimney, sailboat and trees. The original generation IDs are in `art/PROVENANCE.csv`.
+
+**Verification**
+
+- Chrome exercised the moving camera in Bölüms 6 and 11, the new phone portrait, the cast sheet and a finale panel. The regression test checks projection, visibility after passing the mosque, collision alignment and the availability of the art for every comic page.
+- Thirteen focused suites passed. Eight seeded runs across Bölüms 6 and 11 cleared with up to one revive. ID, hood key, objective localization, commissioned source checksum and whitespace checks passed.
+
+### 2026-11-16 · Comic conversation framing
+
+- The lettering fit treated Arda's long campfire line and Kaan's short reply independently. The campfire conversation row now has 70 px more height. Side-by-side panels in the same scene try a shared portrait scale and font size, with wider balloons available for longer lines.
+- Chrome measured both campfire portraits at 130 px in Turkish and English. The lettering audit found no clipping, truncation or overflow across 234 entries per language. The scene art, dialogue, font and canvas accessibility suites passed.
+
+### 2026-11-16 · Fixed portrait framing across the comic
+
+- Portrait size now comes from the panel geometry and authored framing. Longer text can use wider balloons. When the lettering needs more room, the next tap continues the text in the same panel. The layout preserves the speaker, script order and signal bars. The bridge introduction uses the taller conversation row from the campfire. See proposed decision D-096.
+- Chrome played all 27 pages through all 96 text steps in each language and checked that the complete dialogue was shown. All 84 panels fit in Turkish and English, with zero clipped or truncated lines. Portrait heights matched across languages and when the text was removed. The scene-art regression test also feeds a long single speech balloon through the layout and checks that every word survives at the same portrait size.
+- Scene art, dialogue, fonts, canvas accessibility and quality passed.
+
+### 2026-11-16 · Sirkeci and the 30-level player audit
+
+- Finished the Sirkeci service-car dispatch, attendant escort, clock fuse, platform-light defense and Ticket Man finale. The final fight alternates a ticket punch with visible rail warnings. The second phase adds a delayed second row. The final call and comic carry Arda and Kaan forward toward home.
+- Normal play uses the revised route through Bölüm 30 and earns and saves the ordinary rewards. Explicit preview runs keep their isolated save behavior. Results point to Character Development when a training point or perk is available, and closing the map dismisses training and cancels delayed map callbacks. New players learn the first three combat inputs in stages.
+- The audit identified long Galata farming loops, two early difficulty jumps, a repeated station arch obscuring an objective, a railcar collision left behind, and hard-to-see low-rank attack cues. The crane stall trace exposed a healing prompt behind a closed gate. The refreshed title features Arda and the tram, and run transitions now clear old phone dialogue. The affected implementations were revised. The full findings, weapon and level breakdowns, playback evidence and open checks are in the [player audit](PLAYER-SLICE-AUDIT-2026-11-16.md). See proposed decision D-097.
+
+**Deviations**
+
+- Sirkeci’s nominal lengths are 142, 156, 165, 174 and 165 m. The departure bell has 0.65 s of lead, with 12.6 m of travel over 3.15 s. The light defense uses eight in-ring seconds, with progress retained while Arda steps out. Ticket Man adds a second track row 0.46 s after the first in phase two.
+- Makasçı health is 545 from 600 and recovery is 2.05 s from 1.65 s. Vatman health is 1,150 from 1,310, ticket swing damage is 19 from 23, windup is 1.58 s from 1.40 s and recovery is 2.35 s from 2 s. Galata’s moving budgets start at 36 route and 35 ambient, grow by 1.55 and 1.28 per meter and use a lower rate at closed checkpoints.
+- The nail gun muzzle cue spans 0.11–0.158 s and its radius goes from 0.18 to 0.292 m. Nailstorm uses a green cue. The hammer and chainsaw get more visible held shapes and stronger stance changes. Weapon damage and firing behavior are unchanged.
+
+**ImageGen artwork**
+
+- [Station props](../prototype/assets/landmarks/sirkeci-station.webp). A transparent 3×2 sheet of lever, clock, fuse panel, signal light, iron gate and toolkit. Inked limestone, brass and steel in a common downward three-quarter view.
+- [Service car](../prototype/assets/landmarks/sirkeci-railcar.webp). A narrow, north-facing blue and cream service car. Roof-dominant high angle, hand-inked contours, transparent exterior.
+- [Attendant and Ticket Man](../prototype/assets/landmarks/sirkeci-cast.webp). A transparent 3×2 sheet. Ticket Man has idle, anticipatory punch and finishing poses. The capped attendant has idle and two walking poses. Preserve grounded feet and the game’s comic linework.
+
+- [Title art](../prototype/assets/title/arda-istiklal.webp). Arda carries a phone on a dusk Istanbul street alongside a red tram. Warm shop light, dark inks and the original props link the key art to the new comics.
+
+**Verification**
+
+- The automated balance batch covers eight seeds per Sirkeci level. All 40 cleared with at most one revive per run.
+- Chrome exercised 17 base weapons at ranks 1 and 5 plus 18 evolutions. All 52 settings registered hits. One mixed loadout rendered four distinct contact shapes over 509 hits.
+- Chrome played all 28 comic pages in both languages. Each language showed 86 panels and used 98 text steps without clipping or overflow.
+- Fresh-save Chrome cleared all 30 levels and unlocked Bölüm 31. Eight levels used a revive. The separate Mac-layout run cleared Levels 11–30. The results fixture applied a real upgrade through the menu, preserved it across reload and verified preview save isolation.
+- All 45 prototype suites passed across the full run and targeted reruns. The full run initially caught an obsolete L5 trace, a stale signal-cart rendering assumption and the main file exceeding 600 lines. The three suites then passed. Commissioned source checksums, required strings, IDs, dialogue, death causes and whitespace passed.
+
+### 2026-11-16 · Full-body combat and illustrated street services
+
+- Arda can bend at the knees, lean into a step and shift his shoulders above grounded shoes. Each base weapon shapes this movement differently. A knife cut shifts forward, the nail gun kicks back, the hammer drops through both knees at the real impact, and the fishing rod pulls the hero back against the line. Higher ranks carry more weight through the movement. Grips follow the illustrated hands through the body motion.
+- Overlapping attacks share the body. The first pose holds briefly, then a fresh attack can take over at its current phase. The chainsaw and door retain their live attack effects, a genuine hammer contact regains the body on the impact, and the render pass drops old queued cues. The Weapon Lab’s Mixed weapons button starts the selected weapon alongside four others.
+- Replaced the shared pharmacy and simit-and-tea kiosk art, and illustrated six street terminals. The new props retain their original interaction position. The kiosk and pharmacy keep the used-state sign and a used terminal stays visible when its ring is gone. The shared art applies to every Bölüm that uses those services. See proposed decision D-098.
+
+**Deviations**
+
+- Normal pose ownership lasts at least 0.07 s and at most 0.105 s before another eligible attack can take over. Short cues expire when fewer than 0.04 s remain or they have waited over 0.24 s. The nail gun has a 0.20 s visible recoil and recovery. These timings affect presentation. Fire cadence, travel, healing and collision continue to use the same gameplay rules.
+
+**ImageGen artwork**
+
+- [Pharmacy](../prototype/assets/services/eczane.webp), [kiosk](../prototype/assets/services/bufe.webp) and [ATM](../prototype/assets/services/atm.webp). Commission compact Istanbul fixtures at a consistent downward angle with warm limestone, dark ink, forest green and a clear service window or screen.
+- [Traffic control](../prototype/assets/services/traffic.webp), [signal relay](../prototype/assets/services/cell.webp), [shutter control](../prototype/assets/services/shutter.webp), [tram switch](../prototype/assets/services/tram.webp) and [alarm relay](../prototype/assets/services/car.webp). Use grounded steel cabinets with distinct buttons, antennae or levers and no baked text. Crop and encode each prop as a transparent WebP. Generation records are in the [art provenance](../art/PROVENANCE.csv).
+
+**Verification**
+
+- The Chrome Weapon Lab exercised 17 base weapons at two ranks and 18 evolutions. Each featured base weapon also drew its own body pose alongside all four backup weapons in a seeded crowd. The fight checks cover contact and body selection. A real playtest is still needed to tell how quickly a player recognizes each attack at normal speed.
+- A Chrome fixture rendered every service in the Sirkeci world and checked the used ATM still drew after its interaction ended. Node checks cover mirrored grips, the surviving recoil when two attacks overlap, the actual hammer impact and reduced motion.
+
+### 2026-11-16 · Campaign street readability and finishing impacts
+
+The [world and combat audit](WORLD-COMBAT-AUDIT-2026-11-16.md) traces the Ataköy screenshot bugs, logs the ImageGen prop and layout fixes, and records evidence for visible consumable markers, break and blast reactions, six regular zombie deaths and one finish per district boss. See D-099 for the proposed rule and timing changes. Chrome: 24 campaign street samples, 20 boss finishes, six regular death triggers and booth fuse/collision checks. Generated layouts: 297 passable routes. Bölüm 96 bot: 7/8 clears.
+
+### 2026-11-16 · Complete Turkish dialogue audit and revision
+
+**Owner result:** all 1,177 existing Turkish lines reviewed (100% of the implemented corpus),
+565 rewritten, 3 joke-tag-only corrections, 609 kept. All 28 comic pages read in sequence.
+Natural speech, situation-based absurdity and actual responses replace disconnected jokes;
+Kaan's loss and the homecoming retain their quiet beats. The opening diner no longer uses
+Kaan's portrait. Existing English dialogue and pre-existing workspace work are preserved.
+
+**Review:** [short audit and examples](TR-DIALOGUE-AUDIT-2026-11-16.md),
+[all comic dialogue in reading order](TR-COMICS-READTHROUGH-2026-11-16.md).
+The audit links the complete before/TR/EN/location tables; rewritten lines are drafts,
+not automatically owner-approved. Proposed D-100 records the updated tone and the replacement
+of the former riddle pool. No gameplay numbers, new beats or new dependencies.
+
+**Desktop validation:** dialogue coverage and language-independent sim digest pass;
+all Turkish lines fit 60/90-character limits. Real-browser layout audit: zero flags in
+2,209 TR+EN checks. Five comic screenshots inspected; the letter's continuation taps retain
+its full text. The scene-art test checks that the opening diner and Kaan are distinct.
+Full suite: 43 suites passed; fonts, map-first-run and modes failed. The isolated map
+rerun then passed 140/140; font and simulation-reference failures remain outside this pass.
+Details and logs are in the short audit. The build is not green. No commit, push or merge.
+
+**Owner check:** read the bridge meeting, Captain aftermath and campfire aloud, then play
+a short Turkish run. The preview is at `http://127.0.0.1:8765/tools/comic-preview.html` on this
+Mac (choose the page). Phone performance and whether players laugh are not established by
+desktop text-fit tests. Stop here for feedback; do not expand to a new story phase.
+
+### 2026-11-16 · Independent gamer audit of Bölüm 1–30
+
+**Review packet:** [Gamer audit and implementation handoff](GAMER-AUDIT-L01-L30-2026-11-16.md).
+This pass evaluates the current dirty JS prototype and preserves the existing implementation
+and Turkish dialogue work. No gameplay, asset, configuration, dependency or baseline changes.
+
+**Coverage:** a complete directly controlled L1; short browser samples across L2–30;
+240 authored-route seed runs; a 30-run fresh-save campaign; 29 focused-build probes.
+These are not 30 manual clears or a human retention study. Phone ergonomics, audio quality
+and sustained iOS performance remain unverified. Screenshots and reproducible raw evidence
+are linked from the packet.
+
+**Findings:** competing live overlays and stale instructions; unreliable access to a chosen
+build transformation; L13–14 attrition; animation needing a phone-scale quality proof;
+Kaan's unembodied gameplay role; encounter staging and results motivation. Ten prioritized
+tickets include evidence, implementation areas and acceptance criteria, plus a 30-level table.
+First recommended bounded task: GA-01/02, combat hierarchy and navigation clarity.
+
+**Validation:** 232/240 simulated clears, 180/240 death-free; no sweep crashes/timeouts.
+Full suite: 39 pass / 7 fail. Four local-server failures were sandbox-bound; a headless mask
+render failed; the font assertion and Normal traces L12-s9/L30-s4 remain unresolved.
+The packet distinguishes environmental failures from behavior/reference assertions.
+No commit, push or merge. Recommendations remain proposed; stop here for owner feedback.
+
+### 2026-11-16 · Implementation after the independent gamer audit
+
+| Audit item | Local implementation and remaining questions |
+|---|---|
+| GA-01/02 | Keep live dialogue outside Arda, incoming attacks, route markers and controls. Compact the phone and incidental captions, give the required action priority, and let stale banter expire. Mark the two actual exits in Bölüm 1. The closed shutter during the escape beat no longer reactivates boss instructions. The ring prompt only applies while its terminal is usable and relevant. |
+| GA-03 | Test one guided choice out of three in authored Normal Bölüm 1–4. Investing in a weapon can surface a rank upgrade, its partner item, or an earned evolution. Record offers, the recipe state, choices, chest timing and time spent with the evolution. The focused knife policy reached the evolution in 8/8 runs each in Bölüm 3 and 4, with 62–134 simulated seconds left. With the guided choice in Bölüm 5, the same policy cleared 5/8 versus 8/8 with the choice disabled. Keep the existing boss-level offer rules. |
+| GA-04 | Add an accurate radius warning around swelling bloaters in Bölüm 13 and 14, and a short recovery window between their direct hits. A delayed blast made the earlier probe worse and was removed. In the current eight-seed comparisons, the new spacing produced the same clear counts as the control. The active-skills policy cleared 8/8 and 7/8 with one revive available, and 4/8 and 5/8 without reviving. No global health or damage tuning. Bölüm 5 and 19 still need player observation. |
+| GA-05 | Strengthen the knife crouch and recovery, hammer plant, and thrown-canister release using Arda's existing animated body. The browser Weapon Lab exercised individual ranks, evolutions and a mixed build. Real-time phone readability, audio and physical effects still need playtesting. |
+| GA-06 | Kaan can intercept nearby enemies once per qualifying route after his Bölüm 20 join. The Ticket Man intercept is available during phase 2. Use three painted gameplay poses that match Kaan's comic identity. The single-character save and two-phase fight still need a separate decision for tag switching. |
+| GA-07 | Mark the newly usable slope after the Galata hoist and visibly indicate shelter once the bridge wind screens close. The six-district spatial and encounter redesign remains open. |
+| GA-08 | Prioritize plot above incidental barks. Let Mom's Bölüm 30 call play after combat in the cleared station as a comic beat. Keep the existing native scripts and the quiet Bölüm 25 aftermath. Broader scene direction and voice review remain open. |
+| GA-09 | Lead results with the cleared stage or district and a new weapon or recipe to try when available. Keep the growth and next-level actions directly accessible. |
+| GA-10 | Rerun the localhost and Chrome checks with local access. Make the first-run test wait for actual app readiness. Fix the street hint font token. Restore the pre-edit layout in memory to confirm the two changed Normal golden references came from earlier booth/layout moves. Pin the new references and keep the other four. Physical iPhone QA remains outstanding. |
+
+**Deviations.** The early recipe option runs through Bölüm 4. The bloater recovery window
+is 0.7 s in authored Normal Bölüm 13–14. Kaan's 0.28 s intercept windup, 3.15 m radius
+and four-target cap live in bond configuration. No dependencies were added.
+
+**Kaan sprite.** Built-in ImageGen, with the current Arda sprite and the cast atlas as
+references. The game loads the 512 × 256 production export from the
+[Kaan assist sprite sheet](../prototype/assets/companions/kaan-assist.png).
+
+> Create a production gameplay sprite sheet for Kaan in Project Istanbul. The first attached bitmap is the game's actual Arda action sprite sheet and is a reference for scale, crisp chunky outline, restrained highlights, hand-painted comic pixel edges, body proportions and consistent shallow 3/4 overhead action camera. The second image is the cast's visual identity reference, Kaan is bottom-left: young blond Turkish man, friendly angular face, cream and dark navy horizontal striped short-sleeve shirt, red towel hanging from his left shoulder, navy work trousers and dark trainers. Render only Kaan, transformed into the same perspective and art resolution vocabulary as the Arda sheet. Exact layout: landscape 2:1 image divided into THREE equal-width side-by-side invisible columns, figure centered in each individual column with the feet aligned at the same baseline, ample truly transparent padding between, no cell lines. Three heroic unarmed full-body poses facing screen right, same height and scale: (1) running in to intercept with elbows bent and planted front foot, (2) braced low shoulder check with trailing red towel and front elbow leading, (3) upright guarded recovery hands up, red towel drops. His silhouette reads at 34 to 42 pixel screen height. Preserve his blond swept hair, navy and ivory stripes and coral red towel in all poses. No weapons, no magic marks, no FX, no ground, no shadows outside his silhouette, no text, labels, badges, or watermark. Transparent PNG with genuine alpha.
+
+**Verification.** A browser run cleared Bölüm 1 at a 390 × 844 viewport. Browser fixtures
+verified the two doorway cues, the suppressed stale prompts in Bölüm 23 and 28, Kaan's
+intercept sprite and Mom's call in the cleared station.
+The comic layout audit checked 240 rows each in Turkish and English with zero failures.
+All four localhost-dependent suites passed after local reruns. The enemy silhouette
+suite passed with Chrome access. The commissioned art source checksums matched.
+
+Screenshots from the browser fixtures show
+[the restaurant door](media/R1/gamer-fixes/01-restaurant-door.jpg),
+[Kaan's interception](media/R1/gamer-fixes/23-kaan-assist.jpg), and
+[the station call](media/R1/gamer-fixes/30-cleared-station-call.jpg).
+
+### 2026-11-16 · District rhythm and boss counterplay
+
+| Neighborhood | What the player does | How the finale uses it |
+|---|---|---|
+| İstiklal, 1–5 | Open the restaurant exit, call the tram, follow the signal cart and cut the wires to reach the depot. | The Vatman's moving tram clears zombies on its track. When Arda gets out of its way, he can strike the Vatman after it passes. |
+| Galata, 6–10 | Open climbing routes with the hoist, escort the musician, draw the horde aside with the bell and lower the footbridge. The bell shows where the zombies are headed. The late footbridge hold is shorter. | The Bellkeeper drops counterweights in sequence and only opens up after the last weight lands. |
+| Karaköy, 11–15 | Move cargo, moor the ferry, switch the tram and raise the fish-market shutters. | The Bride's moving carts hit zombies and can knock her off balance. Her rope still threatens the outer arc. |
+| Galata Köprüsü, 16–20 | Secure screens and lines. On the lower stairs, brace behind one rail and cross to the other before the second wave. | The Fisherman's hook reels Arda in if it catches him. Dodging the cast gives a longer opening. |
+| Eminönü, 21–25 | Keep the delivery moving, clear the stalls and move sacks to reach the Captain. | The Captain's anchor charge cuts a lane through his spice clouds. Dodge across it, then use the cleared ground to close in. |
+| Sirkeci, 26–30 | Move a railcar, help the station guide, repair the clock and follow the platform's three signal lights in order. | Dodging both live rail lanes gives a window to hit the Ticket Man. A missed dodge preserves his shorter recovery. |
+
+**Deviations.** Galata's footbridge finish hold drops from 14 to 6 seconds. The bridge
+wave uses two brace points 2.96 m apart. Sirkeci's signal task replaces an 8-second
+stationary hold, with 10 m between the power panel and gate to fit the route. The
+Fisherman's recovery increases from 1.05 to 1.65 seconds on a missed cast.
+Vatman and dock carts use their own configured crowd damage. The route revision is 11.
+
+**Verification.** Eleven focused suites passed. Both route suites passed again after the
+last bridge and Sirkeci adjustments. The view checks exercise the actual objective text
+and ring drawing for the second bridge brace and next platform light. Eight-seed automated
+checks covered the six finales, which each cleared 8/8 in the main sweep, and the changed
+routes. Bölüm 9 cleared 8/8 and the final Bölüm 29 tuning cleared 8/8. Bölüm 19 cleared
+7/8, with the remaining run dying to regular enemies. The browser screenshot check
+stalled at the local browser connection. Human pacing and presentation review remain open.
+
+### 2026-11-16 · Bölüm 19 asset follow-up
+
+The first corrected screenshot showed the retired `pier:deck` landmark overlay. Removed it
+from all bridge stage definitions and deleted its unused painter. The normal bridge and
+lower-deck floor render through their existing layers.
+
+The second screenshot showed the earlier ImageGen bollards with a second bright stroke
+drawn over them by the generic collision-prop renderer. The bridge now uses lower,
+weathered octagonal bollards directly, with one world anchor and uniform scaling.
+The geometry, collision width and route objective are the same. If the sprite cannot
+draw, solid posts retain a clear footprint without substituting the old sprite.
+
+**Asset.** Built-in ImageGen with the Arda art as a style reference. The production
+[bollard sheet](../prototype/assets/bridge/bollard-v2.png) is 640 × 213 with alpha.
+The generation prompt was
+
+> Create a small environmental game asset in the hand-painted inked illustration style of the attached Project Istanbul sprite sheet. Use that bitmap for line quality and camera only. Near-overhead 3/4 orthographic mobile game camera looking down, read even as 25 pixels. Render exactly three low historic Galata Bridge cast-iron safety posts beside one another in one landscape PNG with genuine alpha transparency. Three evenly spaced equal cells in one row, feet share a horizontal baseline. Draw each as a very squat tapered OCTAGONAL block rising from a broad octagonal bolted base, with an angled polygonal stone-gray flat top, similar to old industrial bridge guard posts. Height (top-to-bottom in projected image) only about 1.15 times width. No cylinder, no domed top, no neck, no stacked rings, no long shaft. Choose a subtle sloping shape with wide shoulders, weathered charcoal cast iron, warmer slate gray metal corners peeking through with subtle scratched off paint. One painted short diagonal stripe on the FRONT face in worn ochre or cream, not a belt around the object. Variant 1 sandstone/charcoal with soft ivory paint; variant 2 warm graphite with muted ochre paint; variant 3 paler blue-gray graphite with a small paint chip, no stripe. Different small bolts and chipped paint. Use enough larger light planes for muted brown wood underneath to contrast. Clean, refined materials, confident not thick outlines. Standalone props only, no shadows on ground, no surface or scenery, no floor, no text, no logos or borders. Each discreet, historic and firmly grounded.
+
+**Verification.** Chromium loaded Bölüm 19 from the Mac preview. Its canvas drew the
+replacement sheet at the bridge posts. The inspection showed the curb without the
+old slab. The rendering regression covers loading, collision and incidental sidewalk
+posts, crop bounds and all three variants. Bridge route, raster items and fonts passed.
+
+### 2026-11-16 · Galata Köprüsü ferry and water
+
+Bölüm 19 uses the same overhead camera as ordinary play. The rescue and lift
+scenes can pan or zoom that camera. The lower-stairs wave has no camera override.
+The earlier tilted screenshot could not be reproduced. A normal Bölüm 19 run
+showed less than 0.2 degrees of shake over 12 sampled frames.
+
+The blue rectangles were the original paint for the sea collision strips. The
+open water outside those strips used a second look. One ImageGen water texture
+now reaches the bridge edge. Street signs and sidewalk props stop at the shore.
+The new ImageGen ferry sails bow-first beside the deck and leaves a wake. Its
+position depends on time and the route in the world. Bridge collision and the
+lower-stairs objective retain their existing geometry and rules.
+
+**Asset prompts.** Water used no source image. The ferry used the old production
+image as a style reference. Both were generated with built-in ImageGen.
+
+> Create one square 1024x1024 hand-painted seamless tile of open sea water for an overhead Turkish comic-style mobile game, the Golden Horn in Istanbul under diffuse daylight. Camera looking straight down, no horizon, shoreline, objects, lettering or framing. Dominant desaturated deep petrol teal and cool blue slate, with smooth softly changing overlapping broken wavelets of a few different lengths. Very subdued lighter bluish highlights, a few narrow curved softly broken strokes, darker irregular water eddies, subtle readable translucent reflections. Clear sense of liquid from curved ripples, no straight parallel lines, no grid, no angle cues, no repeating streaks or bright cyan. Low contrast against enemy and character art, game environment ground texture. Shade consistent and EXACT TILEABLE at all four edges, compact organized texture for repeating across one contiguous body of water. Entire canvas is filled by the water, no transparency.
+
+> Full single isolated traditional Istanbul Golden Horn passenger ferry game sprite for Project Istanbul. The attached original ferry art references the ship's style, cream passenger cabin with dark teal hull, small ochre-and-cream funnel, mast and bow deck. Use a different camera: genuine overhead near 3/4 orthographic action game camera with roof and decks dominant, ship axis perfectly VERTICAL and centered, pointed bow at top center (heading straight north), symmetrical port and starboard silhouette, rounded flat wide stern at bottom center. BOTH sides of hull visible symmetrically and much less sidewall than the reference. Use the bridge game's painted comic ink and warm weathered cream shell colors. Render one entire ship with ample transparent padding, upright vertical exact alignment with canvas edges, rough length-to-beam ratio 2.8 to 1. Natural crafted rail details and subtle dark outlines. No perspective diagonal or horizon, no dock, no water, no waves, no wake, no ground shadow or reflections, no people, no emblems, no letters. Genuine alpha background. Portrait PNG tall canvas.
+
+**Verification.** Chrome loaded the Bölüm 19 route and drew the overhead ferry
+with an upright canvas transform. The scene art, bridge route, quality, raster world
+and raster items suites passed. The scene art regression checks both shore geometries, sprite proportions,
+bow-first travel and independence from camera position.
+[In-game screenshot](media/R1/bridge-art/bolum-19-ferry-and-water.jpg).
+
+### 2026-11-16 · District art rule and Bölüms 1–30 sweep
+
+The owner's art rule is a standing requirement in [AGENTS.md](../AGENTS.md) and
+[the design system](../docs/design-system.md#121-in-game-art-review).
+
+The sweep found legacy paths shared between districts and separate paths in
+scripted scenes. The updated street renderer selects an illustration for each
+bench axis, uses overhead bodies for road and rail vehicles, and keeps replaced
+façades from switching to the old frontage on a failed load. The tram uses
+one illustration across idle, rush and switching scenes. Karaköy's ferry comes
+in along the quay. The waterfront renderer clips water and props to the shore
+and keeps moored skiffs out of the ferry lane. Boat-shaped cover in the quay's
+collision layout is now shown as a skiff on supports. Generic route arches
+introduced by the placeholder renderer were removed.
+
+The scene check rendered four poses from each of Bölüms 1–30, plus a second seed
+at the lowest quality tier in eight levels. The poses cover the entrance,
+objective, hold or boss approach and exit. The renderer traces cover the retired
+water and vehicle paths and the current files for the poses. The scene-art test
+covers both bench orientations, the centered tram rotation and the failed-image
+footprint. This was a sampled art review. Full animation and alternate-seed
+coverage remain open, as do individually illustrated replacements for the
+restaurant furnishings and bespoke objective props such as Karaköy's crane and
+Eminönü's awning. Playable template Bölüms 31–100 share the new renderers and
+still need their own district reviews.
+
+The final browser recheck covered Bölüms 12, 13, 18, 19, 21 and 26. Scene art,
+bridge route, Karaköy route, street readability, raster world, fonts and quality
+checks passed. Captures show the [Karaköy mooring](media/R1/district-art/bolum-12-mooring.jpg),
+the [tram switch](media/R1/district-art/bolum-13-tram-switch.jpg) and the
+[bridge rail ending at the deck](media/R1/district-art/bolum-18-deck.jpg).
+
+**Production art.** Built-in ImageGen, with artwork saved under
+[street illustrations](../prototype/assets/streets/) and sources listed in
+[provenance](../art/PROVENANCE.csv). The existing overhead ferry was the style
+reference for the bench views, truck, pillar, shop wall and rowboat. The approved
+tram used the earlier tram illustration as its reference.
+
+**bench**
+
+> Create one traditional Istanbul park bench for Project Istanbul, a game sprite on transparent alpha. Shallow 3/4 overhead orthographic view looking downward, bench centered and perfectly horizontal parallel to the image edge. The bench faces the lower edge of the picture. Both ends at the same screen height, slats and back rail perfectly horizontal without any diagonal recession. Warm brown weathered wood with simple clear black ink outlines, dark cast iron frame and rounded ends. Overhead angle high enough to see a generous seat surface as well as a narrow front plane. Readable at 60 pixels wide. Reference image is entirely for art style and material shading, do not draw a boat. No ground shadow, flooring, surroundings, label, or watermark. Wide landscape format, one complete silhouette, isolated on true transparent alpha.
+
+**rowboat**
+
+> Create one small Istanbul wooden fishing skiff as a production in-game sprite with transparent alpha. Exactly top-down orthographic, hull centerline vertical, pointed bow at top center and transom stern at bottom. Port and starboard symmetrical, no tilt, no vanishing point. Pale worn wood inside, teal gunwales, dark navy hull edge, two straight crosswise wooden seats and a coiled rope kept inside the hull. No oars protruding from boat. Length roughly 3 times beam. Match the attached ferry game's hand-painted ink line, texture and lighting style only. No passengers, scenery, water, dock, shadows, motion lines, text or logo. Portrait PNG on genuine transparent alpha. Draw the entire individual boat with a small even margin.
+
+**bench-lengthwise**
+
+> Create one traditional Istanbul street bench, isolated as an in-game sprite on true transparent alpha. Designed for a north/south sidewalk axis. The wood slats run exactly vertically up the screen, its feet and two ends are on that same vertical axis, the backrest on image right and the bench faces image left. Orthographic predominantly overhead view; show the wood seat, iron arms and small hint of the legs, with no vanishing point or skew. Match the game reference's hand-painted ink, warm wood and dark cast iron palette. Readable at small size. The reference is for style only. No shadow on ground, floor, background, lettering or watermark.
+
+**truck**
+
+> Draw one compact muted blue-gray cab-over cargo truck for Project Istanbul. Absolutely top-down, camera sees light warm gray corrugated box roof, a pale steel blue cab above it, distinct dark windscreen and two mirrors, everything clearly aligned along a vertical center axis, front at the top, rear at the bottom. Parked on the left or right curb parallel to the road, so no tilt, no perspective taper, no sidewalls prominent. Around 2.8 times as long as wide. Match the supplied game ferry's textured ink, line weight and palette as inspiration only. Full vehicle on genuine alpha transparency, no cast shadow, asphalt, lettering, brands or labels.
+
+**shop-wall**
+
+> Create a single horizontally aligned run of historic Istanbul storefronts as one game sprite for Project Istanbul. Steep three-quarter top-down orthographic angle from south, seen over their roof. One modest charcoal zinc shallow roof, facing the bottom edge contiguous amber and muted burgundy cloth awnings and shop window bays, roughly six narrow bays. 6:1 wide strip of building, designed as an obstacle laid exactly from LEFT to RIGHT, roof and sill lines perfectly horizontal and perpendicular walls straight up/down, no angular perspective. Entire visible silhouette including ends, no floor or sidewalk. Muted painterly warm aged stone, dark ink edge and gently textured cedar from the reference style only. Ground contact along the entire bottom edge; no shadow ripped into sprite. no signs, lettering or logos. Genuine alpha background, no background scene.
+
+**pillar**
+
+> Create one short Istanbul pedestrian stone pier, a square-footprint stone bollard, as an isolated hand-drawn game sprite on actual transparent alpha. Like the in-game art reference in line, palette and subtle texture only. Steep three-quarter top-down orthographic camera, a warm gray sandstone cap and a dark aged gray pilaster wall below it. The foot is a firmly planted squat square plinth, no dramatic perspective or diagonal rotation, and the top and base align horizontally with the frame. Visually simple and readable at 48px. No lamps, symbols, environmental elements, ground, floor or cast shadow.
+
+**tram**
+
+> Make a video game sprite of the SAME urban electric streetcar pictured, red waist, old cream metal roof, dark squared windshield. Switch the camera to a strict overhead 90 degree orthographic view, looking exactly straight down from above. The streetcar is perfectly vertical with the FRONT at TOP and rear at bottom. The rigid rail tram body is a long straight rectangle with only SMALL corner radii like a rectangular railcar, blunt square ends, straight parallel sides, almost the same width across every row. Clean narrow black steel bumpers and one round lamp on the flat front. Roof dominates, stacked small rectangular roof vents, one black trolley pole over the center. Clear narrow visible strips of red steel cab and window edge, tiny undercarriage at ends. No boat features at all: no railing, no bow, no passenger decks, no masts, no marine elements. True 4.2:1 length-to-width, one whole rail vehicle. Match the black ink and graphic colors of the reference and draw only the tram, transparent alpha, slight transparent margin, portrait canvas, no tracks, road, pavement, shadow, labels, number or text.
+
+### 2026-11-16 · Second independent gamer audit
+
+[Second-pass report](GAMER-AUDIT-PASS2-2026-11-16.md) reassesses the implemented fixes,
+with new browser evidence and repeated progression probes. No production changes.
+Compact dialogue, navigation-state rules, early recipe support, Kaan's intercept and
+new district counterplay are recognized as improvements, not reported as missing again.
+
+Remaining findings: celebration still covers speech; a browser recipe chip exposes
+`card.needRank` although source loading resolves it; build payoff falls off after the
+L1–4 guidance; Nightmare omits the authored trials in six independently initialized
+samples; Kaan's once-per-run assist does not yet fulfill the playable/tag-switch intent.
+The report gives scoped tasks and acceptance checks. No masterpiece, retention or
+Hades-parity claim is established by desktop simulations or screenshots.
+
+The repeated seed-42 campaign cleared 30/30 with seven recovered runs and two evolutions.
+Focused knife/gloves cleared 28/29 with five evolutions, up from 27/29 and two in pass one.
+Detailed sweep and test status are recorded in the linked report and evidence directory.
+Physical iPhone input, audio, sustained performance and uncoached repeat-play appeal remain
+unverified. No commit, push or merge. Recommendations remain proposed; stop for feedback.
+
+**Second-pass final validation:** the 240-attempt sweep completed: 230 clears, 183 death-free,
+10 losses, zero crashes/timeouts. Previous sweep: 232 clears and 180 death-free. L13–14
+remain hotspots; L19/L30 need human learning checks against their changed mechanics.
+Gamer-route, fonts, bridge-route, Karaköy-route and Sirkeci-route all passed. This audit's
+full suite was deliberately interrupted during arsenal stress to reduce contention;
+its earlier arena-evolve failure was a localhost sandbox block. No full green claim.
+
+### 2026-11-16 · Turkish narrative second pass (proposed D-103)
+
+Owner requested a further clarity, continuity and engagement pass, explicitly allowing
+necessary dialogue and comic additions. Implemented locally: **81 revised TR lines and
+11 new beats**, including short post-victory comics at L10 and L15. The family calls now
+advance information; Kaan has a clear shared plan and reason to stay; the campfire,
+garage and arrival connect personal motives to the route. The broadcast/letter conflict
+is explicit. Death and the empty home retain quiet space around the humor.
+
+Fixed bark exchanges overwriting unread setups and rescue-start lines incorrectly
+using the completion pool. New delivery regression passes and fails against the old
+scheduler at the expected 1.4-second replacement. Dialogue, strict guardrail and
+scene-art checks pass; language-independent sim digest stays `a2a5874e85`. Browser
+layout audit: 0 flags / 2,219 rows; final preview limitations are recorded in the report.
+The full suite was stopped during prolonged arsenal stress after four passes; no
+full-green or pre-push clearance claim.
+
+**Deviations:** earlier confirmation of the family destination, new connective story
+facts, an explicit radio/letter disagreement, two optional-to-skip victory pages, and
+view-side reading-time scheduling. No sim/balance numbers, new cast, dependencies or
+new input system. Preserved concurrent L30 post-fight call and route changes.
+
+[Full review and validation](TR-NARRATIVE-PASS2-2026-11-16.md) ·
+[Current narrative in play order](TR-NARRATIVE-READTHROUGH-2026-11-16.md) ·
+[Every second-pass edit](TR-NARRATIVE-PASS2-CHANGES-2026-11-16.md).
+
+Nothing committed, pushed or merged. Wording and D-103 remain review drafts. Stop here
+for owner feedback; verify the final wording on a fresh phone build before acceptance.
+
+### 2026-11-16 · Second gamer audit implementation (proposed D-104)
+
+This pass addresses [Astra's findings](GAMER-AUDIT-PASS2-2026-11-16.md) inside the
+existing Chapter 1 slice. Bölüms 31–100 currently available via the map have
+received no new district design in this pass.
+
+- **P2-01:** The streak celebration is a 26 px badge with no wipe or entrance
+  overshoot. It checks its painted rectangle against the settled bark, route
+  marker, attack warnings, hero and controls on every frame. This may suppress
+  the badge during a crowded moment. The streak count stays in the HUD.
+- **P2-02:** Warm reload over the old local server with a study save, then a
+  fresh no-cache launch, produced identical Turkish L30 card text. English,
+  150% text sizing, and a deliberately removed rank key also passed. The
+  capture's original mismatch did not recur on the current files. The compact
+  recipe wraps and the established localized level phrase handles missing
+  tables. The preferred playtest server sends no-store.
+- **P2-03:** Past onboarding the player can spend one existing reroll to redraw
+  with one card tied to their last weapon upgraded to rank 2 or higher. Two
+  weighted choices still appear, and the normal redraw is available. Guidance
+  ends when the recipe has no eligible action. Ordinary late offers keep
+  their distribution. No new XP, currency, damage or passive requirements.
+- **P2-04:** Nightmare keeps the authored route and boss mechanics. It changes
+  each district boss's phase-one opening sequence and reverses the first
+  shelter brace on L19 and the signal side order on L29. Existing warning
+  timing, stats and mode rewards are preserved. Night Shift has its own route.
+- **P2-05:** Kaan's protective sweep has more time on screen and now responds
+  to one follow-up Dash while enemies and a shared objective are nearby. A
+  small cue appears when that Dash is useful. L25's quiet scene acknowledges
+  cover only if the sweep hit a threat. Playable/tag-switch Kaan is an open
+  design decision. Lead review requested on the prototype behavior in D-104.
+- **P2-06:** New ImageGen illustrations are anchored to the Karaköy crane and
+  Eminönü awning, with their procedural moving parts retained. New restaurant
+  counter, fridge, table and chair art shares the existing gameplay camera and
+  foot anchors. Modern art failures use simple silhouettes where necessary.
+  See the [physical phone and learning protocol](PLAYTEST-SCRIPT-R1.md).
+- **P2-07:** L19's Çöpçü shows the lane its bin or crate will roll through,
+  matched to that object's reach. An outline draws above crowd sprites
+  during the roll. This replaces a small warning at the start position for
+  the authored bridge encounter. Retest L13's bloater pressure and L19's
+  shelter decisions with players. No attack speed, damage or health changes.
+
+**Controlled build samples.** Same seed 42, expected meta power, chosen test
+starter, and active skills. The bot recorded original and replacement offers,
+selected ranks and forks, missing requirements, and time left after evolution.
+Across L3, 5, 10, 15, 20, 25, and 30 the focused policy evolved the knife at L5
+with 96 seconds remaining and the canister at L20/L25 with 51/52 seconds
+remaining. None of those three evolved with ordinary offers in the matching
+samples. All three evolved on L3 with either policy. Nail gun had no later
+evolution in either run and the L15 nail-gun policy timed out in both. This
+comparison isolates the card mechanic with a chosen starter. The campaign
+gives Arda the knife and players still need to find the other weapons.
+
+**No-revive Normal, seeds 1–8.** Clear counts without/with active skills:
+L5 4/8 and 6/8, L13 3/8 and 3/8, L14 2/8 and 7/8, L19 4/8 and 4/8,
+L30 5/8 and 8/8. L19's active-skill recheck after the roll cue was still 4/8.
+Prior L19 failures included three rolling-object deaths. Three of the
+five L13 active-skill failures were direct bloater hits. This is a cue and
+learning check, not evidence for an ideal difficulty curve. Nightmare smoke
+runs across L5/10/15/19/20/25/29/30 cleared 22/24 with up to one revive
+before adding the L19 roll cue.
+
+**Deviations.** Route revision 12, one optional guided reroll past onboarding,
+Nightmare order tweaks, one gated follow-up sweep after 8 seconds, Kaan's
+visible action 1.05 → 1.45 seconds, a conditional L25 line, and the L19 moving
+hazard warning. New assets and labels are local. Shared art placement and
+the movement/impact lessons still need player observation at normal speed.
+
+**Browser and regression checks.** Chrome sampled the actual L14 and L28
+renderers at seed 42 with a bark and route cue active. At 390×844 and 320×640
+emulated viewports, a conflicting rectangle suppressed every sampled streak
+frame from start to expiry. Free space let the badge draw again. The second
+viewport used reduced motion and flashing. The L30 card check compared cold
+and warm loads. Live draw tracing confirmed all five restaurant assets and
+the L11/L21 fixed anchors through two movement states. Arda's current atlas
+now starts decoding at manifest load so it is ready earlier.
+[Restaurant](media/R1/gamer-pass2-implementation/l1-restaurant.jpg) ·
+[Crane and cargo](media/R1/gamer-pass2-implementation/l11-dock-crane.jpg) ·
+[Awning mid-lift](media/R1/gamer-pass2-implementation/l21-market-awning.jpg).
+
+The focused run passed gamer-route, anim-flavor, progress-ui, modes, dialogue,
+scene-art, fonts, bridge-route, Karaköy-route, Sirkeci-route and enemy-behaviors.
+The raster-art suite passed on retry with localhost access. Its Node-only run
+also passed all 159 checks.
+Actual iPhone reach, audio, sustained performance, retry learning, and the wish
+to replay remain unverified. Hold expansion until that playtest is reviewed.
+
+### 2026-11-16 · Mila reunion continuity correction
+
+Owner caught a missed knowledge gap: Mila named Sarıyer before Arda shared his news.
+Revised two existing lines and added six native TR/EN beats plus `fin_arrive_c`, a
+four-panel conversation page after the door scene. Recognition, family news and the
+shared-route decision now happen in that order. Existing generated apartment art,
+tap-to-advance and hold-to-skip; no combat interruption or sim change.
+
+Dialogue, strict guardrails and scene-art checks pass; TR/EN sim digest `a2a5874e85`.
+Browser preview timed out, so this new page is not visually verified. Earlier layout
+audit results do not cover this follow-up. No full-suite rerun, commit, push or merge.
+The concurrent `E25cover`/Captain branch is preserved and excluded from authorship claims.
+See the correction section in [the narrative report](TR-NARRATIVE-PASS2-2026-11-16.md)
+and the regenerated [readthrough](TR-NARRATIVE-READTHROUGH-2026-11-16.md). Stop for feedback.
+
+### 2026-11-16 · Mac movement hotfix
+
+Reproduced a dead zone when mouse drags start in the upper playfield. The Mac
+preview applied the phone's floating-stick placement rules to mouse presses.
+Primary mouse drags now steer from anywhere on the playfield. Touch starts
+still use the documented lower area and handedness setting.
+
+Input regression suite passed. Local Chrome verified arrow keys, WASD and an
+upper-playfield mouse drag in Bölüms 1 and 19. The normal opening also handed
+over control after holding Skip. The direct playtest link skips the opening.
+
+### 2026-11-16 · Keep Arda visible when hit
+
+The opening screenshot matches the full-white hero hit flash. The illustrated
+hero now keeps his colors under a fading hit tint. The tint expires on the
+real clock, including when play pauses. The game's hit effects budget and
+Reduce flashing setting still apply.
+
+**Deviations.** Hero-only tint starts at 36% opacity and fades over the
+existing 60 ms. This is visual feedback. Movement and damage rules are unchanged.
+
+Feel, input and fonts passed. The Node raster suite passed all 160 checks,
+including the fading tint. The exact player tab was unavailable for inspection.
+
+### 2026-11-16 · Bölüm 1 playtest fixes (proposed D-105)
+
+- Replaced the Tünel entrance with a fixed, illustrated stone arch with an open
+  passage and a localized plaque. Low graphics uses the same sprite. If the
+  sprite is unavailable, the plaque stays readable and the floor stays visible.
+- Restored comic portraits and full speech bubbles to Mom and Arda's live
+  dialogue. The existing overlay placement protects the hero, destination and
+  attack warnings. The panel follows the current scripted line.
+- The call timer runs during speech. The indicator clears on silent stretches,
+  starts again with the next exchange, and clears on signal loss.
+- The Pause build shows all twelve item positions in three columns. Rank
+  badges and mod chips stay within their tiles. Deferred icon loading updates
+  only the icon, and the pause menu scrolls vertically at large text sizes.
+
+**Verification.** Dialogue, gamer-route, scene-art, progress-ui and fonts passed.
+Chrome checked the opening call, silence, the passage exchange and signal loss.
+It traced the current Tünel illustration at high and low graphics and simulated
+a missing sprite to confirm the legacy arch stayed out of the player build.
+The pause grid fit twelve filled items with mod chips at 100% and 150% text.
+At the shortest viewport the last row scrolled fully into view. These were
+in-game browser fixtures. A continuous player run and physical touch testing
+remain open.
+
+[Call during play](media/R1/istiklal-playtest-fixes/mom-live.jpg) ·
+[Tünel entrance](media/R1/istiklal-playtest-fixes/tunel-arch.jpg) ·
+[Full pause build](media/R1/istiklal-playtest-fixes/pause-build.jpg).
+
+
+## Third player experience audit — 2026-11-16
+
+Review-only follow-up after D-103/D-104 and the latest portrait, movement and art fixes. Report: [GAMER-AUDIT-PASS3-2026-11-16.md](GAMER-AUDIT-PASS3-2026-11-16.md). Verdict: substantially stronger prototype, not yet demonstrated masterpiece or competitor parity. The next investment is coherent player-caused moments, reciprocal companionship and musical/emotional continuity, rather than additional system breadth.
+
+Current evidence: all 30 normal levels at seed 42 with active skills/expected per-level loadouts, plus 24 Nightmare cases. Combined 51/54 clears, 36/54 without death; no reported crash/timeout. Normal L20 loses; this small sample is diagnostic, not a balance target. Short Chrome L1/L19 interaction, map/growth inspection, current TR narrative review and Captain/L30 comic preview complement source and asset inspection. No claim of thirty manual clears, critical audio listening, current physical-phone acceptance or a fresh earned campaign.
+
+Ten valid focused suites passed. An initial invalid suite name (`dialogue-delivery`) produced MODULE_NOT_FOUND; corrected `barks-delivery` passed separately. Full suite not run; no full-green or pre-push clearance claimed. Evidence: [telemetry/gamer-pass3/README.md](telemetry/gamer-pass3/README.md); screenshots under `media/R1/gamer-pass3/`.
+
+New concrete findings include misleading restaurant exit wording, inconsistent Street Cred terminology, and relaxed portraits weakening the Captain grief scene. The unused intense track is a documented current design limitation, not a missing asset. The report provides 15 prioritized findings, three bounded signature-experience prototypes, a 30-level improvement table, implementation stages and human acceptance gates. Prior implemented fixes are explicitly preserved.
+
+No gameplay code, balance numbers, assets, dependencies or accepted design decisions changed. No commit, push or merge. Design changes remain proposals for the owner and implementation chat. Audit complete; awaiting owner feedback.
+
+### 2026-11-16 · Third audit implementation (proposed D-106)
+
+**Comprehension.** The restaurant wall opening, collision gap and arrow now share the door coordinates.
+Both languages point to the marker. The growth screen consistently uses Sokak Kredisi / Street Cred
+and gives one concrete action that trains each attribute. The missed-bonus HUD uses a neutral badge.
+The results header shows the optional reward outcome even at a viewport where the recap scrolls.
+The local telemetry records `route_clear`, `bonus_id` and `bonus_result` separately. The cue sheet
+and music comments identify the eight prepared owner tracks and the 49 prepared sound effects.
+
+**İstiklal, Bölüm 3.** After walking around the parked tram, players can use a curbside switch to sweep
+the live crowd. An outlined lane shows where to lure them. The curbside ring signals the tram,
+the bell warns before the vehicle arrives, and movement remains live. Only enemies actually on the
+tracks count toward the payoff. Normal play can bypass the switch and carry on to the chestnut cart.
+Calling an empty tram gives feedback and leaves the route to the cart available. The second level keeps its
+staged teaching encounter. The local `route_beat` events record the call, actual kills and rail contact.
+
+**Eminönü, Bölüm 23.** Kaan clears enemies from the delivery path and stays visible briefly. When a
+crowd remains near him, the route strip gives Arda an optional Dash instruction. The Dash must pass
+through a live threat near Kaan to shove it back. The confirmation follows the contact. The delivery
+continues if the player Dashes the other way or misses the opening. The Captain’s aftermath still branches on the existing witnessed-cover condition.
+
+**Deviations.** The live switch has a one-second nominal link, reduced by crowd pressure. The warning
+lasts 1.4 seconds in normal and one second in Nightmare. The tram travels across a 13 m lane, with
+1.9 seconds from entry to its far endpoint and a clearing tail. Rail contact can deal up to 18 base
+damage. Kaan's return-cover window is 4.2 seconds. Both mechanics use the existing inputs and assets.
+The authored route revision is 13.
+
+**Automated play.** Seed 1 finished all thirty levels using earned progression. The following
+eight-seed runs used expected per-level equipment, active skills and no revives. The bot bypassed
+the optional switch in Bölüm 3. These runs are diagnostic samples.
+
+| Bölüm | Normal clears | Nightmare clears | Follow-up |
+|---|---:|---:|---|
+| 3 | 8/8 | 6/8 | Both Nightmare losses near the crossing came from regular enemies |
+| 13 | 3/8 | 2/8 | Three normal losses ended on a bloater hit across different points of the route |
+| 14 | 7/8 | 3/8 | Three Nightmare losses ended on a bloater hit |
+| 19 | 4/8 | 2/8 | Losses include toxic zombies, bloaters and one Nightmare rolling-lane hit |
+| 20 | 6/8 | 2/8 | Both normal losses occurred in the Fisherman's arena, one to a bloater and one to the boss |
+| 23 | 8/8 | 6/8 | Check the optional Dash under mixed weapons |
+| 29 | 8/8 | 3/8 | All sixteen runs missed the optional booster bonus |
+
+**Remaining acceptance.** Observe uncoached players choosing when to call the tram and deciding
+whether to return Kaan's cover. Critical listening, the four-scene musical motif and the scene-specific
+comic acting remain open. A cold Chrome start can still expose older fallback sprites before the
+raster sheets finish loading. Verify the opening frame, missing assets, lowest effects settings
+and sustained touch and performance on an actual iPhone before carrying these patterns beyond
+the current slice. The failure counts identify playtest scenarios. They do not identify which
+losses were unavoidable or establish a target clear rate.
+
+**Portrait verification.** Chrome used a 390 × 844 playfield and seed 42. The opening exit
+worked with a keyboard and an emulated touch drag at 150% text. Controlled scenarios verified
+the tram warning and live sweep, both the cue and the result of returning Kaan's cover, and
+passing Bölüms 18 and 29 with the optional objective missed. In both clears the results
+heading and bonus status fit above the rewards. Archived the following captures.
+
+[Restaurant exit](media/R1/gamer-pass3-implementation/restaurant-tr.jpg) ·
+[Tram preview clip](media/R1/gamer-pass3-implementation/tram-preview.mp4) ·
+[Tram sweep](media/R1/gamer-pass3-implementation/tram-sweep.jpg) ·
+[Kaan's cover prompt](media/R1/gamer-pass3-implementation/kaan-cover.jpg) ·
+[Arda returns cover](media/R1/gamer-pass3-implementation/kaan-return.jpg) ·
+[Clear with a missed bonus](media/R1/gamer-pass3-implementation/clear-and-bonus-29.jpg) ·
+[Attribute training](media/R1/gamer-pass3-implementation/growth.jpg).
+
+To reproduce the live action, enter Bölüm 3 with seed 42, go around the parked tram
+and lead the crowd toward the marked track before linking at the curbside ring.
+In Bölüm 23 with Kaan already recruited, pick up a sack under pressure and watch for
+the cue to Dash through the enemies next to him. The automated fixtures cover
+a successful sweep, empty tracks and getting caught in the lane. They also cover
+a successful, missed and late return Dash.
+
+**Checks.** All 48 prototype suites passed on the final build, including the Chrome
+suites. The local art-source checksum check and `git diff --check` also passed.
+
+### 2026-11-17 · Arda artwork at launch
+
+Cold Chrome launches could reach the first gameplay frame before the current Arda image
+finished loading. The player build now waits at the title after Start if that image is
+pending. The title offers a retry if the image fails or the wait exceeds six seconds.
+Retry keeps the selected launch and save. Arda uses his current front pose if a directional
+frame is unavailable. The old hero remains in the explicit legacy comparison mode.
+
+The automated browser check holds Arda's image request on a cold Bölüm 1 launch and
+verifies that the first render uses the current sprite. A second check simulates a missing
+image on Bölüm 29 and verifies that Retry opens the intended level after the image returns.
+This check targets Arda. Other character sheets, landmarks and district art still need
+the same cold and missing-image review.
+
+**Checks.** Raster character, raster world, first-run map, progress UI, UI motion and
+gamer route suites passed. The export smoke test now counts the JSONL download link
+activated by each tap. Browser tracing showed one export from the pause menu while
+the old object-URL counter advanced twice.
+
+### 2026-11-17 · Weapon isolation, sound routing and the simit-cart prototype (proposed D-107)
+
+The weapon lab now lists every extra weapon equipped in Mixed Weapons mode. That
+mode reproduces nails alongside the hammer and blowtorch. The solo attack regression
+runs all 17 base weapons at ranks 1–5 and all 18 evolutions against the same 96-zombie
+crowd. It verifies the weapon and rank emitted by the actual fire event, rejects
+cross-weapon damage sources, and rejects nail fire from every other weapon family.
+The isolation fixture removes environmental blasts, which have their own damage
+sources. The lab panel is smaller during a run so the attacks remain in view.
+
+Chrome decoded 44 prepared effect files without failures and selected the prepared
+hammer and nail recordings from actual combat events. The blowtorch's burn cue
+uses the synthesized recipe because the prepared set has no burn recording. Pages
+opened from disk and the explicit synth comparison also use synthesized cues.
+A prepared buffer refused by the browser now falls back on the same cue immediately.
+This was a routing check. Sound quality on a phone speaker remains open.
+
+Eligible non-explosive simit carts in authored runs can be used once. Stop beside a
+cart for 0.22 seconds while a threat is nearby. Arda braces to lift it, alternates
+his grip direction through three progressively wider strikes, then winds up overhead.
+The cart travels to the densest nearby group and breaks on landing. The player can
+move while carrying it, at 72 percent of normal walking speed. New automatic attacks
+give way during the grab and wind-up. Existing projectiles continue in flight.
+The final launch uses an 8 m search and a 2.55 m impact radius. Parking, trajectory,
+contact and landing are all driven by the simulation, including under reduced motion.
+
+The portrait lab verified the lift, three swings, wind-up, throw and landing in sequence.
+Lab tests also cover a farther cluster winning over a nearer single zombie. A local
+eight-seed automated sample completed 36 of 48 runs without revives across Bölüms
+2, 3, 8, 13, 19 and 23. It was a route smoke check using the normal bot, which does
+not deliberately set up a cart attack. Bench and bin versions remain outside this
+first prototype while the cart's weight and readability are being evaluated.
+
+[Portrait capture of the cart attack](media/R1/street-weapon/simit-cart.mp4)
+
+Ten focused suites passed, including weapon lab, weapon tiers, generated sound,
+environment, route, UI, street readability, accessibility and scene art.
+
+### 2026-11-17 · Car Door follow-through and combat audio (proposed D-108)
+
+The Car Door finishes each sweep with a short heave and a throw toward the densest
+nearby group. The panel turns edge-on in flight and rebounds briefly on the paving.
+Contact damage and the shock ring occur at the landing point. The Minibus Door
+uses its own larger landing and stun. The sweep still deflects spit before the
+wind-up for the throw.
+
+Cart and door strikes send regular zombies out of their stance and into a short
+arcing fall. Survivors get a ground-locked shadow and a landing burst. Fatal hits
+carry the same flight into the death pose, with the destination clipped to valid
+ground. Floor bursts are visual feedback. The thrown door's landing deals area damage.
+
+Routine kills now use the attack's impact sound. Removed the common death splat
+and the Brute death groan. The butcher finale uses a quieter impact from the
+existing blunt-hit set. The browser log recorded the door's release and crash
+cues with zero calls to the old death sounds during the rank-five crowd run.
+
+**Deviations.** The door has a 0.28-second throw wind-up and 0.52-second flight.
+Its landing radius starts at 1.75 m and increases by 0.13 m per rank. The original
+Minibus slam radius and stun now apply at the landing point. Lift height and
+duration scale with the strength of the strike.
+
+**Checks.** Nine focused suites passed. Chrome verified three door throws with
+29, 30 and 31 targets struck on landing across the recorded run. It also verified
+the cart's complete sequence after the shared reaction change. With the Car Door
+as the starting weapon, eight Normal seeds each cleared 8/8 in Bölüm 9, 4/8 in
+Bölüm 19 and 8/8 in Bölüm 23 without revives. Physical phone mix and motion
+review remain open.
+
+[Portrait clip of the rank-five throw](media/R1/door-throw/car-door.mp4)
+
+
+## Audit-only — Fourth player-experience pass (2026-11-17)
+
+**Request.** Reassess the implemented improvements holistically and across Bölüms
+1–30, bosses, progression, narrative, art/animation, audio and the mobile experience.
+
+**Packet.** [Full fourth audit](GAMER-AUDIT-PASS4-2026-11-17.md), including
+12 prioritized work packets, all 30 level reviews, six boss analyses and three
+signature-moment proposals. [Reproduction and evidence](telemetry/gamer-pass4/README.md).
+
+**Verdict.** Distinctive mechanics and clearer growth navigation; not yet a
+masterpiece. Confirmed gaps include old guide/flag dialogue over the Tower Keeper
+encounter, different essential plot facts in TR/EN, missing explicit training
+categories for new weapon families, rounded/incomplete attribute benefits and
+results advice that recommends an already-owned pairing. The Captain still uses
+the big-brother atlas; Ticket Man does have a dedicated three-pose body override.
+Scene-specific acting, musical motif and physical-phone acceptance remain open.
+
+**Checks.** Full prototype suite **48/48 passed, zero failures**, exit 0; no reruns
+reported. Initial sandbox port restrictions required a restart with local-server
+permission and are not game failures. Normal matrix: **108/120 clean wins**, no
+crash/timeout. Boss sensitivity: **48 executions** (12 deliberately repeat natural
+baselines); supplemental equipment is a counterfactual, not an earned build.
+Fresh earned campaign: **all 30 levels in 31 attempts**, no revive, one L15 retry;
+no purchased gear upgrades or focused rerolls. Comic fit audit: **2,231 rows, zero
+flagged** across TR/EN, including material beyond the narrative scope of this pass.
+
+**Key balance evidence.** Natural L15 seed 1 killed the boss in 9.8 seconds with
+two signature windups; supplemental Car Door L5 seed 2 needed 235.2 seconds and
+47 windups. These are encounter-specific sensitivity cases, not global win-rate
+or human-fun claims. Report includes exact seeds, policy and all-level metrics.
+
+**Limits.** Live desktop inspection covered selected gameplay, failure/results,
+growth and current combat/comic fixtures. It was not a manual completion of all
+30 levels or a physical iPhone listening/motion/thermal test. Retention and
+voluntary replay remain unmeasured.
+
+**Deviations / decisions.** None implemented. Gameplay, numbers, narrative and
+assets were not edited. All design changes in the packet are proposed. Existing
+shared working-tree changes were preserved; no commit, push or merge.
+
+### 2026-11-17 | Astra audit pass 4, Chapter 1
+
+**Encounter contract.** The following beats belong to the live encounters. The browser still supports legacy comparison flags for development. Ordinary play uses the authored fights and these cues. English and Turkish share the plot facts below. Dialogue remains authored separately in each language.
+
+| Bölüm | Fighter and actionable tell | What Arda learns or gains |
+|---|---|---|
+| 5 | Vatman. Step off the lit rails and get clear of the bell. Close in when he is exposed. | Mom and the family left the apartment for Sarıyer. Dad's kitchen note gives Arda a reason to go home first. |
+| 10 | Tower Keeper. Dodge the counterweights and move across the charge. | The tower falls quiet and wedding music leads Arda downhill toward Karaköy. |
+| 15 | Dock Bride. Find an empty lane for the carts and back away from her rope sweep. | With the wedding over, Paşa leads Arda toward the bridge. |
+| 20 | Big Fisherman. Sidestep the cast and exploit the unwound line. | The gate opens when he falls, and the HUD calls out the remaining crowd. Kaan joins after the crossing. He wants to find the Captain in Eminönü. |
+| 25 | Captain. Read the anchor lane, sidestep the tow, and approach during recovery. | Kaan remembers his first day with the Captain and chooses to keep walking. Successful reciprocal cover on a cleared Normal L23 adds a specific memory. |
+| 30 | Ticket Man. Clear the marked tracks and punish the missed punch. | The phone call confirms Dad mapped a route in the kitchen note and that the highway is unsafe. Arda and Kaan head for the side streets. |
+
+**Training and build choices.** All 17 base weapons and 18 evolutions have a category and an impact tag, verified by tests against the registered arsenal. Car Door, Chainsaw, and their evolutions train Strength. Wielded-cart kills earn Strength training and count toward lifetime kills. They have no weapon-specific mastery track. The wire-cut pulse, tram, and incidental blasts count toward lifetime kills, with the existing elite bonus when applicable. Brute Force still affects only the attacks configured as heavy. The weapon detail shows that rule using the same flag as damage resolution. Minibus hit events now identify the evolved weapon so attribution and mastery agree. The Attributes screen shows actual and draft bonuses with fractional precision, expandable secondary effects and a separate Street Cred cost. After a loss, results include earned practice, mastery, and a recipe action based on what was missing. A paired rank-3 build can earn one matching candidate in the ordinary three-card offer. A lower-rank side weapon does not displace that focus.
+
+**Directed scenes and street interactions.** The new ImageGen Captain asset uses planted-foot anchors and distinct anticipation, release, pull, recovery and defeat poses. The rope begins at the illustrated hand. The game waits for this asset on L25 and reports a failed load so the retired body does not appear in ordinary play. Kaan's farewell uses two new ImageGen portraits with a held towel and an eyeline change. The repaired L28 clock has a moving second hand and an audible cue. Sustained nearby pressure brings in the existing intense music. Boss defeat fades to quiet ahead of the aftermath, and the result sting comes after the story. L14's first two fish shutters draw nearby ordinary enemies to opposite sides and name the opening. Wieldable carts use a lift icon and show commitment as a ring that clears if Arda moves away or Dashes before pickup. Food remains on the ground at full health. Food that has reached the healing budget is visually quieter and flagged near Arda. The arena heal remains available independently.
+
+**Numbers and decisions.** The cart hold changes from 0.22 to 0.60 seconds. Music enters intense after four sustained seconds with 14 nearby threats (or Frenzy), and returns to calm after eight quiet seconds with a 12-second minimum intense dwell. The shutter distraction lasts 3.2 seconds. Boss HP, defense and damage stay at their current settings. The balance observer records damage by source, the share during exposure, distance bands, phases and damage taken after a boss dies. The unchanged seed-2 Vatman reproduction took 235.2 seconds with the supplemental Car Door and 47 windups. Changing only the bot's positioning to exploit exposure gave 48.6 seconds and 11 windups. The natural build went from a loss to a 58.8-second kill under the same comparison. The 9.8-second Bride kill still reproduces. In Bölüms 13 and 19 the four-seed sample again returned two clears each. The recorded L19 hazard deaths were before the wave brace. Their damage histories include substantial bloater, thrown-object and contact damage. These traces do not support reducing the wave or increasing all boss HP.
+
+**Review remaining.** The Captain is the first pose reference. Remaining work includes dedicated locomotion and additional action poses for the other encounters, the Bride's first-fight pacing, wider route and story treatment, the recurring home motif, cold-load coverage across all scenery packs, and human trials with earned saves. The browser scenarios use prepared encounter checkpoints. Physical iPhone feedback, sustained frame pacing, touch and the speaker/headphone mix still require device runs.
+
+**Evidence.** The browser replay at portrait size verified the Captain windup, pull, recovery, Kaan's farewell, the repaired clock and the exact Strength preview. Captures are in `reviews/media/R1/pass4-implementation/`. The final Captain staging brings his first anchor into range and frames the new pose below the HUD. The recipe replay used the same ten focused knife fixtures before and after the offer change. None evolved before. Four evolved afterward with 28–67 seconds of the run remaining. Two additional fixtures reached a ready recipe. This compares bot policies and build rules, and does not estimate how frequently people evolve in live play.
+
+The browser checked 255 comic layout rows per language with zero failures. Blocking the Captain asset produced the localized load message and prevented the level from starting. Retrying after restoring the file started the level. The final Captain encounter also cleared in all four expected-loadout bot seeds with the opening-aware policy. The focused regression tests, music tests, arsenal stress test and source checksums passed.
+
+### 2026-11-17 | Throwable spice stalls and street furniture
+
+The Eminönü spice stall sets the limit. In Chapter 1's authored routes, portable street props may be picked up if both sides of their ground footprint are at most 1.8 m. This covers small stalls, carts, benches, bins, crates and tables. Fixed fixtures and explosive props keep their current interactions. Eligible scenery uses the blue lift cue. The existing three swings and throw use the prop's original district artwork and variant.
+
+**Deviations.** Eligible small spice stalls use the existing 30 HP stall value for their environment record. Pickup timing, swing damage and landing damage stay at the cart values. Proposed D-110.
+
+**Verification.** The seeded route test checks normal Eminönü stall eligibility. The weapon lab checks the pickup, three swings, throw, crowd impact, one break and cleared collision. Chrome replay verified the same painted variant on the ground, held and in flight. The two-seed balance sample completed ten runs across Bölüms 10, 20, 23, 25 and 30 with nine clears and no crashes or timeouts.
+
+### 2026-11-17 | Fifth player-experience audit
+
+**Combat and rewards.** Exposed bosses take a different pose and get inward chevrons at their feet. The cue survives mute and replaces the oversized weak-spot word over the fight. The Captain leans and braces through the anchor work, with the chain following the painted grip during the deformation. The boss bar identifies the optional bonus and shows when it was missed. Defeat uses the actual attacker where one is recorded, including the runner or a district boss, and shows hazards by name. Both the ground chest and its opening use the illustrated chest. The normal reward animation lasts about 0.74 s, with a separate 1.7 s beat for evolutions.
+
+**Builds and travel.** The two Knife forks name their follow-on effects. From L6, a build with a rank-4 focused weapon can receive its missing partner in one ordinary offer. A player who declines keeps the other options and can use the existing focused reroll. The guidance carries into legacy L31 independently of authored-route flags. Card events record the guided offer, and the result records first hit, last hit and hit count for each evolution. L4 keeps its cable operations in a 270 m base route. L9 keeps the bridge crossing in a 250 m base route. Both previously inherited the 325 m stage route. Those are the gameplay-number deviations in D-111.
+
+**Story and art.** L30’s station switches and service passage lead Arda and Kaan toward the Grand Bazaar. The later calls and apartment arrival share facts across the two native scripts. The broadcast promises a safe zone, setting up Dad’s warning. The Captain farewell uses a calmer expression for Arda. A three-note phrase recurs at the farewell, Sirkeci departure and apartment arrival. Failed essential comic art offers Retry or Read without artwork. Each Sirkeci encounter waits for its required station art, with a localized retry path. Kaan’s menu shows the two usable ability unlocks.
+
+**Verification.** All 14 focused suites passed, along with the commissioned source checksums. At 390 × 844, Chrome showed the Captain pulling and recovering, the bonus clock, the current runner portrait and the illustrated chest. Blocking one comic image surfaced the retry controls. Restoring the image recovered the same page. Blocking station art prevented an incomplete start. Restoring it let the same level start. The final lettering audit passed 255 rows per language. Captures are in `reviews/media/R1/pass5-implementation/`. The route check cleared L4 and L9 on all four seeds. Winning medians in this sample were about 184 s and 191 s respectively. L13 remained at two clears in four expected-loadout runs.
+
+**Build experiment.** With the shorter routes, the earlier offer policy cleared L1–30 in 35 attempts. An offer guaranteeing a missing partner from rank 3 repeatedly stopped the same campaign at L5. The retained one-time version cleared L1–30 in 33 attempts. The unfocused policy still evolved only at L3. Eighteen focused trials on L7/L15/L23 produced 11 evolutions with 42–171 s of run time remaining. Their clear counts were three of six for Knife, six of six for Nail Gun and six of six for Picnic Gas Can. These are bot policy comparisons. The late-build and return-rate decisions need human play.
+
+**Review remaining.** The readiness brief records the expansion inheritance contract, late reward checkpoints and the plan for three earned profiles. The full L29→35 handoff depends on authored Kapalıçarşı. The Captain still needs dedicated walking and transition art, and the other bosses and contrasting weapon pairs need the same motion review. The Bride’s short first encounter and L13’s hazard overlap are open balance cases. The phone protocol covers touch, speaker/headphone mix, frame pacing, reading, suspend/resume and voluntary return. The full regression run has a separate status from the focused checks.
+
+
+## Independent gamer audit — pass 5 (2026-11-17)
+
+**Scope:** current JS slice L1–30 plus the readiness of L31–100. Audit only; no gameplay, balance, art, canonical story or architecture changed by this pass. No commit, push or merge. The shared implementation work was preserved.
+
+**Deliverables:** [full fifth audit](GAMER-AUDIT-PASS5-2026-11-17.md), [L31–100 readiness and proposed seventy-level encounter spine](CHAPTER1-L31-L100-READINESS-2026-11-17.md), [evidence and reproduction](telemetry/gamer-pass5/README.md). The reports distinguish verified fixes, unresolved outcomes and proposed new design.
+
+**Verdict:** materially more coherent, still not a demonstrated mobile masterpiece. First-30 taxonomy, numerical previews, failure learning, Captain identity, Kaan farewell, shutter lures, cart commitment, clock consequence and threat-sensitive music have improved. Boss learning/duration tails, ordinary build payoff, motion continuity, early route cadence, secondary-screen art and actual phone/return evidence remain open.
+
+**Evidence:** 120 expected-power Normal runs: 107 wins / 13 losses / no crashes or timeouts. Two 48-run boss matrices separate the original policy from optional exposure-seeking positioning. Original L5 seed-2 supplemental Car Door case remains 235.2 s / 47 windups; exposure-seeking case 48.6 s / 11. Natural L15 seed 1 remains 9.8 s / 2 windups. Fresh earned campaign: 32 attempts through all 30, retries at L15/L25, 71.5 simulated minutes, only L2/L3 evolved under this weapon-preferring/no-focused-reroll policy. Current comic preview: 2,237 rows, zero flagged. Selected live ordinary L1/results/progression, three explicitly isolated boss fixtures and Captain farewell inspected; not thirty manual clears or a phone listening/retention study.
+
+**Expansion gate:** all seventy current L31–100 runtime inspections lack authored route milestones. Kaan's visible support stops at 30 and recipe guidance is route-trial gated. Base weapon unlocks finish at 21; Kaan bond caps around L38–42 with 75/100 still later-chapter placeholders. Resolve those inheritance contracts, current TR/EN northern-forest contradiction, later call/finale knowledge, and stale boss/letter numbering before scaling. The companion report preserves current canon and proposes a distinct required decision/payoff for every level 31–100.
+
+**Build boundary and validation:** HEAD stayed `4f5361dc0f5306a0243719a8afba9382d4c9e9d3`, with pre-existing dirty work. During the audit the implementation chat began a separately owner-requested portable-prop expansion; sixteen files diverged from the audit's source-hash checkpoint. Completed sim results apply to loaded code at process start. The full suite was started in the background, completed four suites, and was interrupted after the moving build was confirmed; no full-suite pass or failure is claimed. Targeted-check final status is recorded below and in the evidence log. A fresh complete regression and device pass on the finished stable build remains required.
+
+**Cleanup:** temporary visual fixture preserved only in the evidence folder; served copy removed. Audit localhost server stopped; owner's server left running. No assets were generated or replaced, and no new dependency/service was added.
+
+**Deviations / decisions:** none implemented. Recommendations are proposals for the lead/owner; use the ordinary decision workflow before changing canon or architecture. Implement the prioritized outcomes in the main report and prove L31–35 as a coherent block before multiplying the design.
+
+**Targeted validation final:** 8/8 passed, zero failures or reruns reported: dialogue, music, progress-ui, scene-art, gamer-route, karakoy-route, eminonu-route and sirkeci-route. Raw output: `reviews/telemetry/gamer-pass5/focused-suite.txt`. This does not supersede the moving-build limitation or the outstanding complete regression/device run.
+
+### 2026-11-17 | Bölüm 1 restaurant, simit and the Cook
+
+The two rings were simit from a broken cart. The full-health rule deliberately saves the food. The saved simit now appears without a pickup glow and has a localized nearby explanation. If Arda takes damage, the normal pickup glow returns and the food heals as soon as he reaches it. The later run healing cap remains in force.
+
+The restaurant has a new ImageGen terracotta floor with a tulip tile border, an illustrated serving counter, warmer lighting, and a camera that frames the whole dining room before easing toward the street. The artwork brief used a quiet central aisle, a stone threshold aligned to the street exit, and a walnut and brass counter with a working döner station. The unnamed patron in the introduction has new resting and recoiling poses in the same elevated viewpoint as Arda. The opening waits for its art. A failed load returns to the menu with a retry message.
+
+The Cook's original windup and hit frames were 160 and 130 pixels tall against a 256-pixel idle. The new ImageGen sheet follows the Cook's comic costume and uses one foot anchor and body scale. It has two distinct walking steps, bracing and raised-cleaver poses, a contact swing, a release and a breathless recovery. The warning and impact share a ground location. The camera draws a little closer when Arda is within range. Incidental barks wait during the strikes so the body motion remains visible.
+
+**Deviations and decisions.** The combo starts within 2.65 m. A Cook that just threw can take a short 2.75 m/s step toward Arda. The ranged cleaver leaves his hand 48% into its marked warning, followed by 0.48 s of recovery. The final combo hit uses the existing 1.3 s exposure. Boss health, damage and simit healing amounts are unchanged. D-112 records these changes for review.
+
+**Verification.** Chrome at 390 × 844 exercised the normal cold open and hold-to-skip, the playable dining room, both cart drops before and after taking damage, and the Cook's windup, hit, exposed recovery and cleaver flight. Blocking the floor image produced the localized retry message. Restoring it and opening the level again succeeded. Thirteen focused suites and the art source checksums passed. The expected-skill balance bot cleared all six Bölüm 1 seeds, five without a down, with a median run of 141 seconds. Physical phone play remains open. [Opening still](media/R1/level-1-opening/cold-open.jpg) · [Cook windup](media/R1/level-1-opening/cook-windup.jpg)
+
+### 2026-11-17 | Boss size across poses
+
+Eleven boss atlases use action drawings from a separate source sheet. The game applied the source scale of the idle sheet to both, even when the figure was drawn at a different size. The importer now records an action-sheet correction for each boss, based on the character's proportions. Canvas applies it around the existing pivot. The contact sheets show the poses at one consistent magnification per boss. The Cook, Captain and Ticket Man use their authored sheets, and the Cook's authored body also carries into his defeat animation.
+
+The view also used the remaining recovery time directly to compress and rotate the figure. The Fisherman's cast and the Bellkeeper's counterweights can leave this timer at infinity while their effects resolve. Recovery now has a bounded lean, with only small squash coming from the existing animation and hit responses. This is a presentation fix. Boss timings, hitboxes and balance are unchanged.
+
+**Verification.** The importer rebuilt and matched all 212 assets pixel for pixel. Automated checks cover the calibration and pivot of every boss atlas pose and finite transforms during indefinite recovery. Chrome at portrait size verified normal attacks at the Vatman, Bride and Fisherman checkpoints in Bölüms 5, 15 and 20, including the Fisherman during his indefinite cast recovery. All 11 focused suites passed, with the world-art browser test passing when rerun on its own. Master source checksums passed.
+
+### 2026-11-17 | Sixth end-to-end audit — frozen latest slice
+
+**Packet:** [sixth player-experience audit](GAMER-AUDIT-PASS6-2026-11-17.md), [reproduction/evidence](telemetry/gamer-pass6/README.md), [30-level metrics](telemetry/gamer-pass6/level-metrics.csv), [boss-policy comparison](telemetry/gamer-pass6/boss-metrics.csv), [visuals](media/R1/gamer-pass6/).
+
+**Verdict:** improved, but not yet a demonstrated masterpiece or ready for production expansion beyond30. Latest fifth-audit changes and subsequent restaurant/simit/Cook work were included in a frozen copy. The report explicitly closes implemented fixes and supplies a finite remaining plan: actor continuity, earned-build payoff, readable hazard/mastery decisions, opening/UI clarity, direction of existing emotional highlights, and uncoached physical-phone evidence. The existing31–100 plan is reviewed with current fixes distinguished from its stale conflict tables.
+
+**Verified progress:** saved-food explanation, consistent dedicated Cook sheet, new restaurant art, actual runner defeat portrait, Bonus label, shorterL4/L9, meaningful evolution hit telemetry, explicit Bazaar motivation and recurring home motif. Confirmed remaining visual defect: Keeper attack/hurt body shrinks under the shared atlas scale.
+
+**Fresh diagnostics:** normal104/120 wins (103 no-down),16 losses, zero crash/timeout; fresh earned campaign30 clears/32 attempts but one evolved run. Knife-focused campaign15 clears/23 attempts,17 evolved attempts with actual hits, blocked after threeL16 losses. L13 extended sample11/24 wins.96 boss sensitivity runs across orbit/exposure-seeking policies: the separate orbit matrix has one supplementedL5 Cleaver timeout; do not confuse it with the timeout-free normal matrix. L5 seed2 natural293.2s/58 windups orbit versus54.5s/11 exposure-seeking. Supplemental loadouts and policy limits are documented. Fresh bilingual comic fit2237 rows, zero flags.
+
+**Full regression finished:46/48 pass, two failures after automatic reruns, exit1.** `hints` omits the new Combat.dropHealRoom dependency in its isolated VM. `quality` lacks createTextNode and deterministic readiness for the new opening-art gate; audit-only diagnostics expose its never-entered-play condition. These are test-fixture integration failures, not reproduced ordinary browser crashes or measured30fps play. All logs archived. Implementation should repair the fixtures and rerun the stable full suite before claiming all green.
+
+**Build integrity and limits:** all1229 checkpointed prototype files unchanged in workspace and frozen snapshot. No gameplay source, numbers, assets or user saves edited; no commit/push/merge. Selected live desktop views and simulations do not equal thirty manual phone clears. Physical touch/audio/performance and voluntary-return evidence remain open. Recommendations are proposals; no design decision was silently implemented.
+
+### 2026-11-17 | Consolidated creative direction after audit six
+
+The owner asked for more complete feedback to reduce piecemeal iteration, particularly bosses that lack occasion, agility and expressive attacks. Added [Masterpiece direction and closure contract](MASTERPIECE-DIRECTION-AND-CLOSURE-2026-11-17.md) as the implementation entry point alongside the sixth audit's evidence. It specifies the finished experience across 36 areas, movement/attack/camera/light/audio choreography for all ten named encounters, four emotional highlights, integrated delivery order and an observable completion bar. It separates confirmed issues, creative proposals and unverified player/device questions.
+
+**Additional findings:** L2 Switchkeeper, L3 Roaster and L4 Linekeeper needed explicit encounter direction; the first five levels each have a named finale, so ceremony must distinguish local threats from district bosses. An isolated phase-2 movement probe confirms the direct-chase branch ignores configured phase speed multipliers for Captain, Fisherman and Keeper, while Bride/Ticket Man apply them. This is a consistency issue to resolve with intent/balance, not a recommendation to blindly speed up every boss. Existing zoom, shared grade, defeat effects and directional attacks were acknowledged; the brief directs them coherently rather than requesting duplicate systems.
+
+**Current work boundary:** implementation chat is already repairing body-scale/rendering issues; four prototype files had diverged from the frozen sixth audit at this extension's checkpoint. Those repairs were not re-certified here. Sim/config files used by the movement probe were unchanged. No gameplay source, assets, balance or saves changed by this extension; no new full-suite or physical-phone claim. [Probe and source checkpoint](telemetry/gamer-pass6-direction/).
+
+**Deviations/decisions:** no design changes implemented. Proposed reference fights are Vatman (heavy spatial) and Bride (agile angular), followed by the complete cast and whole-run flow. A normal-speed integrated recording, earned-save checks and player/device evidence are required to close an experience; merely adding its named feature is insufficient. No message was sent to the implementation chat.
+
+### 2026-11-17 | Holistic gameplay redesign and single implementation prompt
+
+The owner requested a substantially more holistic and innovative brief, plus one prompt that directs the implementation chat to execute and verify the entire package. Added [Holistic experience redesign](HOLISTIC-EXPERIENCE-REDESIGN-2026-11-17.md) as the primary implementation entry point, with [one copyable prompt](IMPLEMENTATION-PROMPT-HOLISTIC-2026-11-17.txt). Earlier audit evidence and detailed boss direction remain supporting documents; their entry links now point to the expanded scope.
+
+**Concrete gameplay proposals:** deliberate street-object acquisition with offensive versus placement/lure use; six local route opportunities with bounded, remembered consequences; reciprocal Kaan help using several useful established actions. They are connected to every level's encounter decision, build economy, story and aftermath. These are proposed additions, not features claimed to be already implemented or proven fun.
+
+**Additional source findings:** current prop use runs an automatic sequence and requires a nearby threat; current pause renders menu/build rather than objective context; attribute-specific READY ranks can resemble a shared allocation pool; perk eligibility checks rank/Cred rather than previous-node ownership; melee training differs from heavy-weapon perk eligibility. Grit's damage-based training and scarce hack/rescue opportunities are flagged as incentive/balance risks to measure, not demonstrated human exploits. Existing elemental interactions and Kaan support/repayment are explicitly retained as foundations.
+
+**Coverage and completion:** H01–H18 covers all 36 prior areas, with a 30-level design table, progression architecture, four directed story scenes, six playable signature moments, all ten named encounters, native-dialogue review, in-context asset/audio inventory, earned-build verification, save/interrupt/accessibility checks and future-level inheritance. The prompt authorizes one integrated implementation pass when the owner sends it; reference fights and passing tests alone are not the handoff boundary.
+
+**Validation and limits:** document links and the complete G01–G36 crosswalk checked; main brief remains below the 600-line file limit. [Source checkpoint](telemetry/holistic-brief/source-checkpoint.json) records the inspected source at authoring completion, not a frozen new playtest. No new manual 30-level clear, listening/device study or full-suite result claimed. No gameplay, assets, saves, canon or balance changed; no external message, commit, push or merge. Physical-phone and unaided-player evidence remains explicitly separate from autonomous implementation verification.
+
+
+### 2026-11-18 | Expansion plan reconciled with holistic implementation
+
+At the owner's request, updated [the existing L31–100 plan](CHAPTER1-L31-L100-READINESS-2026-11-17.md) in place; retained its filename, all seventy encounter rows and the canonical walk home. The narrative spine remains valid. The revision now inherits the holistic brief's deliberate prop use, bounded local choices and memory, reciprocal Kaan actions, practical progression/pause architecture, complete boss acting and experience verification.
+
+**Current-source distinctions:** closed the plan's obsolete claims about opposite radio advice, late-call/empty-apartment facts, boss numbering, letter prose, the old Kaan last-level cutoff and core recipe guidance depending on an authored route. New source has level-specific street setups, six enumerated local-choice levels and three callback mappings; these require authored expansion definitions. The newer `entryBuildThrough: 30` boundary governs several initial/invested-offer and survival-choice paths and needs an intentional earned-save comparison at L30→31. Core guidance continuity alone does not settle that policy.
+
+**Planning changes:** explicit run-local versus persistent/memory/knowledge state; distinct first-clear street-memory versus later-qualifying Kaan-help settlement; old-save neutral outcomes; fourteen district applications; novelty/capability budgets; actual practice/perk/build/bond checkpoint evidence; a detailed L29→35 handoff matrix; all-workstream first-30 acceptance before expansion authorization. Clarified that L54 retains the owner-directed combat approach followed by a protected scene; no silent conversion into a wholly non-combat level. Existing pipe/cover/light rules are preferred before assuming new light-carrying or moving-platform technology.
+
+**Evidence boundary:** source/doc inspection while implementation is in progress, not a fresh gameplay audit or confirmation of its completion. The implementation packet still had evidence statuses pending when inspected; source presence was distinguished from verified experience. No implementation statuses were changed. All 70 level rows, links, whitespace and the <=600-line document limit checked (369 lines at validation). No runtime content, balance, saves, assets, canonical dialogue, dependencies or future levels changed. No full suite started or interrupted, no message sent to the implementation chat, and no commit/push/merge. The completed first-30 audit remains the next expansion gate.
+
+### 2026-11-18 | Holistic first-30 implementation checkpoint
+
+**Playable:** [current Mac build](http://127.0.0.1:8765/). Base commit `4f5361dc0f5306a0243719a8afba9382d4c9e9d3`, branch `r1/p2.1-turkish-dialogue-audit`, with prior and current local worktree changes. [Runtime fingerprint](telemetry/holistic/checkpoint.txt)
+
+**Implemented:** deliberate street-object handling, placement and Dash drop, six bounded local choices and saved first-clear facts, alternate Kaan repayment, route-aware pause, build-directed offers and attribute-specific application. Added illustrated memory panels, adjusted the joining/farewell/station compositions, preserved the scale correction and added direction, framing and warning cues across ten bosses. Verified and repaired the Galata bell’s frame error in Chrome. Moved authored moored boats off decks and removed the successful-load toast from active station play.
+
+**Verified:** 48/48 regressions, local source hashes, 500/500 authored layout cases, desktop route samples for all 30, ten normal-speed staged boss samples, four story sequences and six signature moments. Earned melee, ranged and terrain campaigns each reached L30, with 90 clears in 105 attempts. Three known pressure cases cleared 7/8, 7/8 and 8/8. Separate boss stress profiles yielded 43/48 orbit wins and 45/48 wins when entering openings.
+
+**Remaining:** the ranged simulation timed out once on the L5 approach and a supplied Cleaver orbit case still timed out. Complete choreography, natural consecutive play, full weapon-family and audio review, interruption, phone and uncoached-player acceptance remain open. The package report lists each gap and separates desktop fixtures, earned simulations and actual-play coverage. Expansion remains design-only.
+
+**Deviations and decision:** documented under Proposed D-113. Changes include the L2/L3 route distances, carry/cover lifetimes, offer scope, clear-earned Grit, capped auto-target preference, Vatman recovery and three nearby pressure limits. [54-requirement implementation packet](HOLISTIC-IMPLEMENTATION-2026-11-17.md) · [Encounter cards](HOLISTIC-ENCOUNTERS-2026-11-17.md) · [Audio, story and progression](HOLISTIC-PROGRESSION-AND-STORY-2026-11-17.md) · [Expansion plan](CHAPTER1-L31-L100-READINESS-2026-11-17.md)
+
+
+## Independent gamer audit · pass 7 · 2026-11-18
+
+Read [GAMER-AUDIT-PASS7-2026-11-18.md](GAMER-AUDIT-PASS7-2026-11-18.md) and its [reproducible evidence](telemetry/gamer-pass7/README.md). Verdict: improved first-30 slice, not yet masterpiece or expansion-ready. No gameplay implementation changes, save changes on the user origin, commits or pushes were made by this audit.
+
+Fresh verification: 48/48 suites; expected-power sweep 112 wins, seven defeats, one timeout across 120 attempts; earned broad 30/33, melee 30/38, ranged 30/36 and terrain 30/31. Three focused campaigns reproduce the implementation packet. The 1,233 recorded prototype hashes matched the workspace at verification.
+
+New reproduced defects: live cards/pause use next-run result copy; evolved Netspear/Twin Saw/Foamstorm damage can leave evolution-use counters at zero; automatic prop contact commits offense even when the player subsequently places cover; L29 light selection adds no distinct circuit or wave benefit over no selection. L30 also repeats L26’s service-car line. Recorded zero-hit evolution counts must not drive balance until variant attribution is repaired.
+
+Remaining experience closure: boss acting, L5 low-progress orbit versus L30 two-windup earned clears, visible consequences for the six local choices, level-specific world actions, chronological dialogue and full progression/reward flow. The report provides ten bounded closure items, all-30 encounter rows, ten boss finish targets and ordered acceptance. Existing H01–H18 remains the scope; no new systems or post-30 production is authorized.
+
+Evidence limits: desktop L1 failure/result/progression loop and short direct-entry L14 sample, source/ordered-story inspection, supplied staged images/sample video and fresh simulations. No all-30 manual-clear, critical-listening, physical-iPhone or human-retention certification. Those named acceptance gaps remain open. The expansion roadmap remains a design document with the first-30 gate, then an earned 29→35 pilot.
+
+### Pass 7 implementation checkpoint
+
+Local JS prototype on `r1/p2.1-turkish-dialogue-audit`. [Audit](GAMER-AUDIT-PASS7-2026-11-18.md)
+
+| Finding | Status | Change | Evidence and remaining work |
+| --- | --- | --- | --- |
+| P7-01 | Implemented | Upgrade and pause recipe hints show actions available in this run, including an ingredient on the current offer. Results keep their retrospective copy. | Regression covers the screen wiring. Locale copy needs normal-speed review across all offer shapes. |
+| P7-02 | Implemented | Weapon actions carry the variant when fired through direct, delayed and area effects. Evolution telemetry includes first effect, applied damage and observed control separately from the family used for practice. | The audit's Netspear, Twin Saw, Foamstorm and Cleaver fixture recorded 4, 21, 11 and 6 hits. The delayed spear regression verifies the pre-swap shot cannot count for Netspear. All 18 evolved variants recorded actual contact in a controlled trial. |
+| P7-03 | Implemented | Automatic swings can supply offense evidence. Placing cover takes precedence until the route opens. | Regression covers both outcomes in L12, L17 and L22 and first-clear persistence. |
+| P7-04 | Partial | Cover is placed closer where geometry permits, survives eight seconds and shatters at expiry. L12 retains a second ferry line after the cover branch. L27 light previews the escort endpoint and second wave area. L29 light previews the circuit before power-on. | Route simulation and geometry coverage. Paired populated playthroughs and the complete Kaan sequence still need a player-facing review. |
+| P7-05 | Partial | Vatman closes distance before ringing his bell and plants for longer on recovery. The Ticket Man enters the split-rail phase earlier and alternates his signature actions. | L5 seed 3 orbit reached phase two but still lost. Its opening-punish retest cleared in 113 s. L30 still needs a fresh earned-build playthrough after the final timing edits. |
+| P7-06 | Partial | Knife contact has a clearer core and follow-through. Chain runs from Arda's grip and trails its sprocket. The car door pushes a directional impact forward. The saw remains in Arda's hands for the rev, with animated teeth and distinct defeated-zombie motion. Captain and Ticket Man have separate moving boots. | Focused animation, combat and route regressions. Full normal-speed checks for every weapon, all directional poses and all ten bosses remain open. |
+| P7-07 | Partial | Stand beside a marked object to break it, light its fuse, spray foam or lift it. Moving away cancels the hold. | Regression verifies contact, cancellation and the escape window. Consecutive manual play and the broader physical-readability review across L1–30 remain open. |
+| P7-08 | Implemented, playback open | No recycled mid-route lines across L21–24. L30 names the rail points. The family explains why the route map is worth going home for. The Captain's reveal stays with Kaan. Mom's live panel gets priority over incidental quips. | Dialogue and route checks. Chronological first-clear review and optional paths still need playback. |
+| P7-09 | Partial | Strength perks list compatible weapons. Arsenal marks the starter and card-pool weapons. Gear distinguishes owned from equipped, and bond explains that support carries over. The Cook and Vatman have specific defeat advice. | Menu and route tests. Independent mastery, gear, bond and return-flow usability remains open. |
+| P7-10 | Device review open | Existing music, SFX and accessibility paths are included in the test run. | Physical iPhone speaker/headphones, interruption, sustained performance and critical listening remain unverified. |
+
+**Owner playtest follow-through.** The optional L1 booster briefly interrupts a live comic panel, pauses its dialogue timer and resumes the same line at completion. Skipping the ring leaves the call uninterrupted. Using the ring before Mom calls leaves the first call tied to its existing story trigger.
+
+**Deviations.** The prop hold is 0.72 s with 0.60 m reach outside the hero radius. L1's deliberately ignited legacy canisters get the existing 1.2 s gas fuse. Placed cover expires after eight seconds and drops no additional loot when it expires. Vatman recovery extends to 1.55 s after the tram and 1.45 s after the bell. The Ticket Man changes phase at 62% health. See Proposed D-114. The audit's first-30 acceptance remains open.
+
+**Verification.** The content checksum and targeted game, art, music and sound tests passed. Earned broad, melee, ranged and terrain campaigns reached L30 using the telemetry fix before the final boss timing and presentation edits. Foamstorm credited blocked spit in the terrain campaign. The full suite was started with local browser access. The world-art Chrome check failed while reading atlas status, so the full suite is still unverified. The browser smoke captured the opening and did not complete the interaction retest. Physical iPhone verification and the full normal-speed chapter review remain open.
+
+### 2026-11-18 · English dialogue audit
+
+Reviewed all 1,205 EN entries; revised 212, retained 993. Corrected story knowledge,
+character motivation, family-call answers, Paşa continuity, Dad's approved letter
+voice, and mismatches between hack/event triggers and spoken outcomes. Existing
+Mila knowledge exchange preserved. Native English authoring; no TR rewrites.
+
+Dialogue, strict guardrails, bark delivery and scene-art checks pass. English browser
+layout audit: 1,121 rows, zero flags. Current TR/EN sim digest: `7ee009df2f`. Full suite
+not rerun; no full-green merge/push claim. Global editorial advisories are documented.
+No new content systems, pages, beats, balance or simulation changes. Revised lines
+are drafts with approval markers removed. Nothing committed, pushed or merged.
+
+[Audit and validation](EN-DIALOGUE-AUDIT-2026-11-18.md) ·
+[Story readthrough](EN-STORY-READTHROUGH-2026-11-18.md) ·
+[All changes](EN-DIALOGUE-CHANGES-2026-11-18.md). Stop for owner review.
+
+### 2026-11-18 · Experiential quality PRD packet (documentation only)
+
+Owner requested detailed execution direction for the ten experiential concerns plus adjacent factors, and explicitly accepted optional monetization with a viable free progression path. Created [the main PRD](PRD-EXPERIENTIAL-QUALITY-2026-11-18.md), [combat direction](PRD-EXPERIENTIAL-COMBAT-2026-11-18.md), [scene direction](PRD-EXPERIENTIAL-SCENES-2026-11-18.md), [acceptance/delivery](PRD-EXPERIENTIAL-ACCEPTANCE-2026-11-18.md), and [the implementation prompt](IMPLEMENTATION-PROMPT-EXPERIENTIAL-2026-11-18.txt).
+
+Scope: E01–E14, all 30 world beats, ten boss treatments, 17 base weapons/18 evolutions, live enemy roles, four major story sequences, health/interactions, progression information hierarchy, sound/camera, interruption/accessibility/performance and free-path balance. Reconciles the current pass-7 checkpoint and latest native English audit; their implementation reports remain reports rather than new independent verification by this chat. Recorded owner direction and proposed production design under D-115.
+
+No game code, assets, balance numbers or runtime state changed. No gameplay test suite was run for this documentation task, no physical-device/player acceptance claimed, and no other chat was messaged. Document validation covers links, required roster/level/requirement coverage and new-file line limits. Implementation and final experience evidence belong to the execution packet; independent first-30 review still gates expansion.
+
+### 2026-11-18 · Experiential implementation and available acceptance
+
+Implemented the complete E01–E14 first-30 packet locally. [Implementation matrix](EXPERIENTIAL-IMPLEMENTATION-2026-11-18.md) · [complete roster/weapon/evolution/boss coverage](EXPERIENTIAL-COVERAGE-2026-11-18.md) · [all-30 pacing](EXPERIENTIAL-PACING-2026-11-18.md) · [44 scene contracts and player walkthrough](EXPERIENTIAL-SCENES-2026-11-18.md) · [evidence and exact external checklist](EXPERIENTIAL-EVIDENCE-2026-11-18.md).
+
+Current illustrated Arda/enemies use articulated steps, contact and transitions; physical work/carry ownership and truthful hit/heal/critical feedback were extended. Knife contact/grips and concurrent saw ownership were refined while retaining other working weapon identities. Protected boss entry and actual L20/L25/L30 defeated-body/native aftermaths share the suspended gameplay clock, safe reading/skip/background/resume and variant-specific seen history. Actual exit and existing exactly-once settlement remain authoritative. Scope on pause/results/equipped comparisons and the L30 review boundary are explicit. Latest native TR/EN, evolution firing attribution, eight-second cover and first-clear/relationship facts remain current.
+
+**Verification:** final background full suite **49 groups, zero failures**, plus current focused scene/feedback regression, browser art-failure/retry/neutral-reading/background/reload checks, earned attribute/perk transaction and music/mute checks. Runtime (1113 files) and local-source SHA-256 checks pass; `git diff --check` passes. [Exact dirty build and manifests](telemetry/experiential/build.json). All **155 primary audiovisual files** use the same frozen runtime hash, with 17 base weapons × ranks 1/3/5, 18 evolutions, six conditional outcomes, all live roles, 30 first-action world fixtures, ten bosses, conflict/accessibility, opening, actual Dash/defeat, six simultaneous weapons and three actual first-clear earned scenes. Supplied assists, automated input and desktop-only provenance are identified. [Indexed media validation](telemetry/experiential/media-validation.json).
+
+Four independently earned/no-spend/no-ad/no-revive campaigns: **120 clears / 136 attempts, 15 deaths and one pre-boss navigation timeout**. Four-seed supplied expected-power sweep: 109/120 wins, zero timeouts. Ten bosses × three earned samples × two policies: 30/30 evasive and 28/30 punish wins. Losses, short early boss clears and late low-payoff evolutions are retained in the raw diagnostics. These are route/balance diagnostics, not player enjoyment or retention evidence.
+
+**Evidence correction:** the original diagnostic `saveBefore` retained a mutable state reference and serialized after rewards. It was fixed by cloning at entry, then all four campaigns were rerun: sim outcomes, entry loadouts and evolution traces are identical. L20/L25/L30 were re-recorded from genuine pre-clear saves and assert first-clear results. Earlier replay-save films and intermediate staging remain archived and are excluded from final primary evidence. A real captain-walk crash and largest-text resume font issue found during integration were fixed; obsolete fixture assumptions and recording-tool failures are documented separately.
+
+**Adopted details/deviations:** Proposed D-115 records deliberate intent/health/presentation timings. The previously accepted L2 tram payoff remains protected after live approach/calling, an explicit retained exception to the appendix's all-live wording. Existing Stormshield procs on actual Nazar dodge, not Dash; source mechanics and truthful conditional footage were retained. No weapon damage/cooldown/boss-HP changes were made to fit presentation. No real monetization flow or SDK was added; free progression remains independently viable.
+
+**Recommendation:** ready for a fresh independent first-30 audit; no unresolved functional blocker was found in completed checks. Artistic acceptance remains open for rig joins/contact weight, dense six-weapon occlusion near an edge, role recognition, short early bosses, repeated work verbs, late evolution payoff, civilian variety and audio fatigue. Named physical-phone sustained/touch/audio/interruption evidence and 5–8 consenting unfamiliar-player checks remain pending with an exact checklist. Desktop capture and bot wins do not substitute for those gates. This checkpoint grants no masterpiece/Hades-parity, release or expansion approval.
+
+Nothing committed, pushed, merged, installed, purchased or sent to another chat. Godot remains paused; no production beyond L30 was authored.
+
+### 2026-11-18 · Independent experiential audit, pass 8
+
+**Verdict: not a masterpiece yet; first-30 artistic acceptance and expansion remain gated.** [Main player-experience audit](GAMER-AUDIT-PASS8-2026-11-18.md) · [E01–E14 closure matrix](AUDIT8-PRD-CLOSURE-2026-11-18.md) · [all-30 levels and complete weapon/boss directions](AUDIT8-LEVELS-AND-ASSETS-2026-11-18.md) · [consolidated implementation brief](AUDIT8-IMPLEMENTATION-BRIEF-2026-11-18.md).
+
+Audited a frozen copy of the dirty build based on `4f5361dc0f5306a0243719a8afba9382d4c9e9d3`; all 1,113 runtime files matched the supplied evidence manifest. Independently reran the full suite (**49 groups, zero failures**) and broad earned campaign (**30 clears in 33 attempts, three deaths, no Second Wind**); outcomes/times match the supplied broad run. Direct fresh-English L1 play covered opening, fight, defeat/revive, first clear, story, result, attribute improvement and menus. Reviewed all-30 world-action fixtures, ten boss fixtures, all base ranks/evolutions, major scenes, conflict cases, source and the supplied wider balance data. [Evidence and limits](media/R1/audit8/README.md) · [machine-readable result](telemetry/audit8/audit-summary.json).
+
+Confirmed defects include static Mom call using the stranger portrait, read comic pages not becoming usable Memories, zero weapon-badge catalogue entries from the wrong namespace, misleading beneficial stat labels, Gear art over stats and sign occlusion. Evolution arrived after Cook in direct play. Major aftermaths still compete with a full illustrated panel, loot prompts and obsolete threat visuals. Movement/contact, boss identity, repeated work decisions and scene acting need a coordinated craft pass. L2–4 short boss demonstrations, L10 punish losses and L15's first-attempt losses require targeted earned-build review, not a global HP increase.
+
+**Evidence correction:** Screamer pauses on an upgrade card; the following seven enemy movies remain frozen at 103.083333 sim seconds. Their file-validity checks do not establish active animation. Current Cook “two-policy” diagnostics use the same L1 route, generic campaigns exercise no choice branches, and the street collector listens for names the runtime does not emit. These gaps are explicit in the new closure requirements.
+
+**Late workspace reconciliation:** eight runtime edits and one new civilian atlas landed after the frozen-build checks. The 1,114-file visual-follow-up manifest matches the later workspace. Source diff and selected supplied stills support authored hero strides, six civilian identities and corrected opening-rule speaker mapping. Preserve those corrections; this audit's original gait frames no longer describe the latest stride. The separate static Mom-call defect remains. The new build was not independently replayed/full-suite tested here; the implementation's new suite was still running at inspection. [Exact scope/delta](telemetry/audit8/late-workspace-delta.json).
+
+No physical iPhone, perceptual audio audition, unfamiliar-player sample or full manual first-30 campaign is claimed. Direct play used one explicit free prototype revive and may have triggered the first-run Second Wind; tool-input gaps preclude treating it as a human difficulty measurement. Tests/fixtures do not establish Hades parity or retention. D-116 records three new **unapproved proposals** separately from approved-PRD corrections. No runtime, asset or balance edits; no commits, push, merge or other-chat message. Audit browser tabs closed, temporary viewport reset and own server stopped; owner's server/save untouched. Documentation packet is ready for owner review and handoff.
+
+### 2026-11-18 · Owner screenshot corrections: portraits, civilians, Arda gait
+
+The owner caught three visual regressions after the experiential handback. Fixed the opening's second rule using `Story.forLine` instead of a hardcoded stranger portrait; actual TR/EN rendering now requests Arda for all three rules. The bearded portrait is the anonymous stranger, also legitimately used by the Galata opening, not a replacement hero.
+
+Fleeing civilians now retain their seeded variant and use six distinct illustrated identities with four run frames each. The one restaurant-patron asset no longer represents every fleeing crowd member. Created a new atlas with built-in ImageGen using the existing hero only as a style reference; source, exact prompt, alpha and provenance are retained. Arda's lower body now uses intact authored side/front/back strides joined at the actual painted waist; the outward knee reconstruction was removed from his locomotion while attack/work grips and upper-body acting remain.
+
+[Correction report, artwork and prompt](CHARACTER-VISUAL-CORRECTIONS-2026-11-18.md) · [new build/source identity](telemetry/visual-corrections-2026-11-18/build.json) · [seven normal-speed recordings](media/R1/visual-corrections-2026-11-18/index.json). Fresh openings and the ordinary naturally spawned L1 crowd are separated from supplied movement/weapon/lineup fixtures. The earlier experiential media remain dated frozen-build evidence, not footage of this correction.
+
+Focused scene/art/quality/feedback checks pass, including stable six-row identity, intact lower-body pixels/waist and hand mapping. Normal-speed playback covers all eight directions, minimum quality/reduced motion, and run+knife/chainsaw/hammer. **Final integrated full suite: all 49 groups passed, zero failures.** Source/media/asset hashes and report links verified; `git diff --check` passes. No sim, native dialogue, balance, collision, dependency/service, future-level production or Git publication changed. The earlier test passes missed these visual regressions; artistic quality still needs owner/independent playback judgment. Physical phone/player gates remain open.
+
+### 2026-11-18 · Revised audit-8 handoff after owner priorities
+
+Owner sees visible Arda movement progress, questions the value of further locomotion work, deprioritizes highly detailed regular-zombie animation and wants comparable bodily credibility for bosses. Prepared [one execution prompt](IMPLEMENTATION-PROMPT-AUDIT8-2026-11-18.txt) and updated [the existing brief](AUDIT8-IMPLEMENTATION-BRIEF-2026-11-18.md) rather than issuing another full PRD.
+
+Recommended allocation: retain Arda's current strides and repair only demonstrated defects; ordinary enemies get bounded role/tell clarity; all ten bosses get purposeful feet/body/tool/turn/recovery/defeat acting. Cook and Captain are internal references, not intermediate handoff gates. Health/object feedback, all weapons, earned balance/evolution timing, all-30 spatial variety, progression and exact major-scene direction remain required. Added a complete boss action contract, explicit healing/damage demonstration and a short normal-speed before/after evidence reel. N1–N3 are deferred from this round's recommended scope. Updated the owner ledger, D-116/D-117, handoff pointer and level/asset scope note so older broad animation wording does not override the current priority.
+
+Read the latest visual-follow-up result: its implementation-run full suite has now finished at 49 groups, zero failures. That does not relabel the earlier independent audit as a test of the newer build. This turn changes documentation only; checks cover local links, coverage, consistency and file limits. No gameplay tests rerun, runtime/asset edits, new tools/services, commits, Git publication or messages to the implementation chat. The owner can forward the prepared prompt; nothing starts automatically.
+
+### 2026-11-18 · Neighbor-aware civilians and global portrait identity guard
+
+Owner found adjacent civilian copies and the stranger returning during the booster interruption. Fixed both shared paths. Fleeing actors receive a stable view-only appearance selected with nearby/projected runners in mind; no actor positions, movement or RNG are changed. Unknown portrait names no longer fall back to the stranger. The booster uses canonical `anne`, the existing Mom alias resolves to Anne, and popups also retain neutral identity instead of inventing a stranger. Legitimate stranger roles remain explicit.
+
+[Correction and evidence](CROWD-PORTRAIT-GUARD-2026-11-18.md). All 407 current Arda dialogue bindings resolve to Arda. Actual source-crop regressions verify Mom and all hero moods; unknown identities stay neutral without blocking a page. Two hundred seeded opening scenarios retain stable appearances with zero adjacent copies across 93,091 near-neighbor observations. Focused experience, scene-art, quality, bark, dialogue and raster/browser groups pass; no new full-suite claim is made for this small view-only follow-up. The preceding 49-group full run remains attached to its own source snapshot.
+
+Normal-speed browser evidence follows the ordinary L1 crowd and real booster with automated movement/card choices, no supplied actors or power. The shared guard applies across current and future level presentation paths. No new art, native script, mechanics, dependency/service, post-30 production, commit/push/merge or message to another chat.
+
+### 2026-11-19 · Revised Audit8 implementation and integrated verification
+
+Completed revised brief §§0–7 across the active first 30 Bölüms. [Implementation / E01–E14 and P8-01–15 matrix](AUDIT8-IMPLEMENTATION-2026-11-18.md) · [all-30 spatial/pacing/failure review](AUDIT8-PACING-2026-11-18.md) · [complete weapon, evolution, role, boss and scene coverage](AUDIT8-COVERAGE-2026-11-18.md). N1 alternative starters, N2 new environmental boss counters and N3 new replay variants remain deferred.
+
+**Visible changes.** All ten bosses have purposeful preparation, coordinated tool/body contact, recovery and weighted defeat. Seven receive measured eight-pose atlases; Cook/Captain/Ticket Man retain grounded authored parts. Knife/chain/saw sources and hand ownership were refined; Cable and the other established identities remain. Mechanisms visibly connect to loads/landings, rescue/porter/fuse work has physical action, and meaningful resolution gets a brief release of new ambient pressure. Damage, restored health, shield and critical state remain distinct on mute. The four major sequences use visible world acting before dedicated native comic reading. Memories actually save/replay; mastery, Gear, beneficial stat labels, equipped skills, results and return hierarchy are repaired. Pause exposes an explicit owned-weapon plan using the existing recipe aid, preserving ordinary side-upgrade/chest commitment.
+
+**Retained priorities.** Arda's latest running and neighbour-aware six-civilian assignment are byte-identical to the pre-Audit8 baseline. Ordinary-zombie work is bounded to actual lure facing and role/tell verification. Native TR/EN voice files, canonical identities, current illustrated assets, protected clock/skip/retry/settlement, eight-second cover and first-clear relationship facts are retained. Dialogue-engine recent-history handling changes; voice text does not.
+
+**Exact source.** Frozen runtime `81a885795a562dd930b3428f5531548de69f03b6119ba7c2e4d19d5e587c3ce3`, 1,125 served files, dirty branch `r1/p2.1-turkish-dialogue-audit` at unchanged HEAD `4f5361dc0f5306a0243719a8afba9382d4c9e9d3`. [Metadata](telemetry/audit8-implementation/verified-build.json) · [source checks](telemetry/audit8-implementation/source-checks.json) · [exact staged deltas](telemetry/audit8-implementation/candidate-deltas.json). Older movies retain actual source identities. The final Main-only change fixes cold asset-await startup in the benchmark/weapon preview; simulation/art/native voice files match the final earned-play build `e538c15a99…`.
+
+**Verification.** Final background suite: **50 groups, zero failures**. Focused health/archive/badge/contact/lifecycle/route/commitment regressions pass. Runtime/frozen-source, local-source checksums, retained gait/native voices, JS syntax, introduced file limits, report links and `git diff --check` pass. [Completion summary](telemetry/audit8-implementation/verification-summary.json). The cold preview uses real selection/rank/start buttons and advances with live input. All three desktop benchmark scenes complete without exceptions/interruption: frame p95 16.7–16.8ms; 200-visible-enemy work p95 5.9ms. Desktop measurements do not establish phone performance.
+
+**Earned balance.** Four actual free/no-ad/no-revive all-30 profiles: 120 clears in 150 attempts, 28 losses and two audit-driver timeouts. Those exact timeout saves/seeds clear after the driver stops pursuing a destroyed object. All 60 boss policy/power comparisons clear; both Cook policies now differ. All 18 focused evolutions acquire from actual offers and affect real targets with useful remaining engagement, without granted ranks/terrain/outcomes. Actual browser recordings include L22 offense/placement→L24, linked L23 help→L25, neutral/current/stored-help endings, earned plan→Grinder, and first-session/results→Memories→replay/reload. Losses, missed offers and supplied condition fixtures remain separately labelled. Bot wins are not enjoyment evidence.
+
+**Review evidence.** [61-second full-viewport, normal-speed before/after reel](media/R1/audit8-implementation/before-after.mp4) · [197 indexed full recordings](media/R1/audit8-implementation/index.html). Source-linked films cover 30 actions, ten bosses, 17 base weapons × ranks 1/3/5, 18 evolutions, 14 natural first-30 enemy roles plus two explicitly additional fixtures, major native scenes, default/minimum six-slot crowds and mute/text150/reduced variants. Exact ImageGen prompts/source/measurements and rejected intermediates remain in [the import ledger](../art/commission/generated/2026-11-18-audit8/IMPORT.json). Stream validity supplements active-clock/contact/frame inspection; it does not certify artistic success or listening.
+
+**Adopted deviations.** Proposed D-118 records reachable Keeper exposure/reset, one moved Bride supply, reduced shutter/sack repetition, actual once-per-target trolley consequence, L2–4 phase-order diversity, post-resolution ambient relief, L30 points/service-path placement, collision/path-checked real roadside cars at L13/L25 and explicit run-scoped owned-weapon planning. Food carts no longer impersonate car terrain. No global boss-HP inflation, hidden scaling, alternative starter or new counter rule was added.
+
+**Recommendation and gates.** Ready for a fresh independent first-30 audit; no functional blocker remains in completed checks. Named physical-iPhone sustained touch/interruption/performance, human headphone/speaker listening and 5–8 unfamiliar-player observations (including one uncoached first-30 playthrough) remain pending, with exact scripts in the implementation report. These block artistic/mobile/TestFlight acceptance and expansion approval. This checkpoint makes no masterpiece/Hades-parity or human-enjoyment claim. No dependency/service/SDK, Godot migration, post-L30 production, commit/push/merge or other-chat message.
+
+### 2026-11-19 · Opening converted-diner visibility correction
+
+Owner found the first converted diner invisible. Reproduced: frozen age-zero scene projections repeatedly triggered half-size/opacity spawn effects and regenerated dust over the actor; drawing order used his original seat, and his completed approach reverted to a human pose. Seated residents now bypass ordinary spawn effects, projected positions control their shadow/body/depth, conversion remains visible through the strike, and hit flash releases on the cutscene clock. Real new-enemy entrances and all simulation/gameplay values remain unchanged. Diner art decodes from the menu; current Arda running/civilian identities/native dialogue are retained.
+
+[Fix, exact build and evidence](OPENING-DINER-FIX-2026-11-19.md). Five focused groups pass with zero failures, including a new regression and browser raster checks. A fresh normal-speed 31-second opening confirms zero recurring spawn dust, full actor opacity/scale, no browser errors and actual movement after control returns. Current local port 8785 serves frozen `1ef652232e…`; prior Audit8 artifacts keep their actual hashes and full-suite scope. No new full-suite/phone/artistic-acceptance claim, dependency/service or Git publication.
+
+
+## 2026-11-19 — bilingual contextual narrative and comic-reading audit
+
+Owner requested a contextual EN/TR pass, specifically questioning zombie introductions during the restaurant escape and the current comic reading sound. Implemented 157 native line revisions (84 EN / 73 TR), corrected the opening speaker and reaction, put Kaan’s L18 question/answer together, reconciled route/action claims, and added context checks for queued/live barks. Captain aftermath remains quiet.
+
+Paper-turn sound now belongs to a page change; panel reveals use their own cue. Narration/thoughts and quiet scenes no longer produce inappropriate speech/zoom sounds. The source audit found no newer comic recording: these cues still use the synthesized bank. No new blocking pages, sim/balance change or expansion work.
+
+[Full packet, deviations and limitations](NARRATIVE-CONTEXT-AUDIT-2026-11-19.md) · [before/after](NARRATIVE-CONTEXT-CHANGES-2026-11-19.md) · [current bilingual scene order](NARRATIVE-CONTEXT-READTHROUGH-2026-11-19.md). Proposed D-119; ready for owner review, not marked decided.
+
+Focused bark/comic/dialogue/experience/opening/fonts/Audit8 checks pass; TR/EN sim digests match. Browser font-layout audit: 2,237 rows, zero flags. DSP checks pass for the page/pop/speech variants; generated-SFX quick runtime checks pass. Full suite started but stopped after a sandbox localhost-listener failure; no full-suite pass or merge claim. No critical listening or device sign-off. No commit/push/merge.
+
+
+### 2026-11-19 · Independent player audit, pass 9
+
+**Verdict: meaningful progress; not a masterpiece or expansion approval.** [Main audit](GAMER-AUDIT-PASS9-2026-11-19.md) · [all 30 levels, bosses and combat assets](AUDIT9-LEVELS-AND-ASSETS-2026-11-19.md) · [closure and verification](AUDIT9-CLOSURE-AND-VERIFICATION-2026-11-19.md). Executed scope is revised Audit8 §§0–7; N1–N3 remain deferred.
+
+Played fresh L1 through earned results/progression and Memories into L2; used one Second Wind and one prototype revive, no debug progression grants. Independently reproduced all 35 broad campaign simulation results (30 clears/five losses/no revive); save differences are timestamps only. Independently accounted for all 50 passing groups: the isolated full run first missed repository art-prompt dependencies, then the affected group passed after those nonruntime files were supplied. Reviewed all-30 world actions, ten bosses, 17 base weapons at ranks 1/3/5, 18 evolutions, 16 active role fixtures and major earned scenes through sampled frames, source and telemetry. This is not a manual full-30 playthrough, continuous viewing of every movie, audio audition or phone/human acceptance.
+
+**Confirmed ordinary-flow defects:** earned mod chips become vertical letter columns and clip upgrade layout; Memories replay renders under the hub and later leaks into the next run. Emotional staging retains Arda's damage blink, uses unvalidated relative actor marks and returns L20 to solo combat after promising companionship. Boss posing improved more than continuous action-specific acting. Mechanisms have real consequences but still often share corridor/ring/banner grammar. Plan discovery, next mastery benefit, crowded contact/threat clarity and meaningful evolution timing remain open.
+
+**Preserve the gains:** Arda gait, correct Mom/Nail Gun identity, clearer Gear/benefits/active hierarchy, world acting before comics, real offense/placement and car outcomes, recorded Kaan-help consequences, all-18 focused earned evolution proof and repaired Keeper access. Free progression remains supported.
+
+Audited runtime manifest `81a885795a562dd930b3428f5531548de69f03b6119ba7c2e4d19d5e587c3ce3`, 1,125 files. Later opening-rendering, dialogue/context and comic-audio changes are timestamped separately in the packet; they were not independently played/tested as the integrated newer build. Do not reintroduce an already-corrected opening defect or treat later source edits as retroactive acceptance.
+
+No game changes, Git publication, dependency, post-L30 production or other-chat message. Next work is the prioritized corrective/acceptance packet; physical iPhone, listening, unfamiliar-player and complete manual campaign gates remain open.
+
+### 2026-11-19 · Audit9 internal checkpoint A (owner authorized continued integration)
+
+Audit9 requirements and all roster/level rows were mapped before runtime edits in `telemetry/audit9-implementation/coverage-initial.json`. Preserved the later diner correction, D-119 native TR/EN/context/comic-audio changes and the accepted Arda gait. The two UI defects were reproduced on immutable baseline `12e6e8a…`; 24 populated interface cases plus real Memories completion/skip/back/reload/next-run pass with explicitly supplied inventory/archive eligibility. Earned flow is a separate active browser journey.
+
+Implemented collision-aware companion paths and local post-reading persistence, action-specific boss pose timing/contact anchors, selective knife/chain/chainsaw craft, compact inspection/upgrade planning/next mastery benefits, optional prop verbs/priority, and local route release using existing regular-enemy lure rules. D-120 is proposed, not an expansion approval. Focused regressions passed; integrated full suite and earned campaign/walkthrough checks are still running. The initial full suite caught a missing local reduced-effects guard on chainsaw vibration; its focused recheck passes. An initial supply relocation targeted the non-reward C mark; corrected to the actual D reward and retained the failed candidate data. A first recording driver confused nonblocking live dialogue with comic pages; its partial artifacts are retained under `media/R1/audit9-implementation/walkthrough-driver1`, and the corrected driver uses actual page DOM and ordinary CDP controls. These are not game softlocks or positive acceptance claims.
+
+### 2026-11-19 · Audit9 internal checkpoint B · integrated verification
+
+The final UI candidate fixes a demonstrated ancestor-scroll leak: selecting a perk/training item at large text could move the hidden map container. Owning panels now reveal their own selection. All 24 populated build layouts, eight growth-return cases and actual Memories completion/skip/back/reload/next-run checks pass on immutable candidate 8 (`b7af308f…`). These inventory/archive states are supplied fixtures, not earned six-slot campaigns.
+
+Six real rendered protected-scene lifecycle fixtures pass on candidate 8: L20/L25/L30, normal native reading and reduced-motion/muted skip, actual second-tab interruption, ordinary pointer departure, real exit/result and exactly-once settlement. Companion path tests preserve the protected gameplay clock, collision, HP and pre-Fisher eligibility. The earlier departure-controller failures are retained; releasing held input across chest/cards repaired the fixture controller. The earned progressive-build rendered journey has independently cleared L20's complete reunion and subsequent departure and is continuing through the remaining levels. A second untouched-candidate-8 fresh-save rendered journey is also running; neither is an uncoached human run.
+
+Four frozen-7 earned headless policies (simulation/config byte-identical to candidate 8) complete all 30: broad 33 attempts/3 losses, cover 35/5, offense 31/1, banked-growth 39/9; no timeouts, ads, payment or prototype revives. All losses remain in the raw records. Sixty full-route boss comparisons retain four losses with low entry HP; the separately labelled supplied-full-health control clears all 60. This separates approach attrition from boss access; it is not human fairness evidence. Actual blast source was being lost before prop damage, preventing truthful CarBomb contact attribution; forwarding that source fixes the pipeline without granting a terrain flag for proximity strikes. The exact immutable-8 earned known-seed CarBomb case records acquisition at 79.1s and meaningful effect through 144.4s. Focused offer misses remain evidence, not failures to hide.
+
+All 69 arsenal clips, 16 role clips, all ten boss clips, 29 world-action fixtures and fresh native TR/EN opening captures are source-labelled; older films retain their original build identity. The final isolated full suite is running from a stable copied runner with all nonruntime dependencies available. Earlier infrastructure/harness failures and superseded runs remain in the logs. No phone, critical listening, continuous-motion artistic acceptance or unfamiliar-player result has been claimed. Owner-authorized integration continues; no merge, push, dependency, post-L30 production or expansion approval.
+
+Closure remains in progress in `AUDIT9-IMPLEMENTATION-2026-11-19.md`. No commit, push, merge, dependency, service or post-L30 production change. The user explicitly requested continuing through internal milestones, so this checkpoint does not request another approval.
+
+
+### 2026-11-19 · Turkish end-to-end narrative, comic art and reading audit
+
+Audited all 1,202 authored Turkish variants and the Chapter 1 comic/call sequence, with later Chapter 1 and Chapters 2–3 outline continuity read-only. Implemented 158 Turkish text revisions plus one joke-metadata correction, preserving native voice, D-119 restraint and current Audit9 work. The scooter/map pickup gives the home detour a practical purpose; knowledge precedes reactions, Kaan's trust is earned, and action observations match their triggers. Two English wedding lines align with the shared new art.
+
+Three versioned ImageGen assets provide restrained Arda/Mom listening expressions, interrupted-life scenery without flags, and a visible Paşa. Existing L10/L15 panel locations now follow the actual route; L30's distance caption no longer gets an unearned zoom. Reading accents follow word starts at least 150 ms apart with punctuation pauses, retaining silent thoughts, quiet grief and no skipped-text catch-up. Elite/action warnings bind to an unambiguous nearby living actor and discard stale sources. No new blocking page, gameplay/sim number, dependency or post-L30 production.
+
+[Full audit and remaining story decisions](TR-END-TO-END-AUDIT-2026-11-19.md) · [story comparison](TR-STORY-EDITOR-2026-11-19.md) · [bark comparison with EN/placement](TR-BARK-CHANGES-2026-11-19.md) · [verification and source hashes](telemetry/tr-end-to-end-2026-11-19/verification.json). D-121 is proposed for owner review.
+
+Focused scene-art/dialogue/barks-delivery/comic-reading/fonts/quality checks pass; UI-motion also passes. Final portrait/art-band and enemy-source checks supplement that run. No new full-suite or manual-campaign claim. Source images were visually inspected, but the browser was unavailable and sandbox/URL policy blocked preview attempts; rendered default/150% text/reduced-motion pages, phone presentation and critical speaker/headphone listening remain open. The later highway contradiction, radio trust, scooter payoff, mystery pacing and Ahmet Abi's aftermath remain explicit readiness blockers. Tests do not certify literary excellence or retention. No Git publication.
+
+### 2026-11-19 · English end-to-end narrative and comedy pass
+
+Reviewed all 1,205 English variants and the later story outline. Implemented **378 text revisions and 2 joke-metadata corrections** across eight native English files, using the owner's South Park / Rick and Morty direction through original satire, absurd reasoning and character friction. The shared first-30 story now establishes the scooter/map motive, answers questions in sequence, earns Kaan's trust and preserves Nuri's quiet aftermath. Warnings, upgrades and world-event reactions avoid claiming unobserved hits, outcomes, purchases or phone conversations. No new blocking page was needed.
+
+[Main audit and later readiness findings](EN-END-TO-END-AUDIT-2026-11-19.md) · [complete before/after inventory](EN-END-TO-END-CHANGES-2026-11-19.md) · [first-30 comic/call readthrough](EN-FIRST30-READTHROUGH-2026-11-19.md) · [verification and selected-source hashes](telemetry/en-end-to-end-2026-11-19/verification.json). D-122 is proposed for owner review. Updated the English voice bible and shared narrative motive; older examples remain explicitly historical.
+
+**Validation:** dialogue, barks-delivery, comic-reading, scene-art, fonts and quality pass on applicable final source. The first comic check caught implicit rather than explicit Sarıyer confirmation at C15c; the English answer now names Sarıyer and both affected groups pass on recheck. Initial failure evidence is retained. Coverage is 583 beats, TR 1,202 / EN 1,205 variants, identical language digest `12d2b67db8`. The remaining non-strict style note is a legitimate Turkish plural addressed to Arda and Kaan. Scoped whitespace and baseline structural checks pass.
+
+**Deviations and limits:** native copy/metadata only in production; no sim/balance number, mechanic, timing, dependency, extra page or post-L30 production. Turkish, protected shared comic art/reading/staging code and concurrent Audit9 work are preserved. The existing shared art and sparse reading cues serve both languages. Later payoff/route/radio/agency problems remain documented; current rendered default/150% text, phone reading and critical listening remain open. No new full-suite, manual full-campaign or audience-retention acceptance; no commit/push/merge or published-preview update.
+
+### 2026-11-19 · Audit9 internal checkpoint C · exact final candidate and evidence repair
+
+Current immutable candidate12 is `c6a53d2de2de99abc16c203dcd17576019e8000ef5c027532af195a795e9dc64` (1,142 runtime files), served Mac-local at `http://127.0.0.1:8801/`. It retains the later diner, D-119/D-121/D-122 native text/art/reading work and accepted Arda gait. Actual source, frozen snapshot and separately copied test runtime match every manifest byte. No snapshot/runtime hardlinks to mutable workspace or test outputs are used.
+
+The full screen/populated UI checks pass on this exact candidate: 24 build configurations, eight growth returns and actual Memories completion/skip/back/reload/next-run (36 records). All six L20/L25/L30 normal/skip, desktop-interruption, actual-pointer-departure and exactly-once-result cases pass. Final source-labelled films now use a non-resizing full-viewport recorder. Earlier post-interruption screencasts were clipped and are rejected as positive visual evidence, despite their state assertions passing. The original failed recordings/logs remain available. The recorder exposed a subpixel root/cache rendering path; candidate12 retains the regression-tested renderability guard. This was capture-induced, not a claimed physical-phone reproduction.
+
+A remaining P8-12 requirement was reproduced: reloading repeated a recent ambient line and a living enemy's first introduction. Optional tab-session history now retains actual enemy acquaintance and independent TR/EN ambient recency; urgent warnings remain repeatable and profile reset cancels pending writes and clears history. Real reload, denied-storage, native independence and reset checks pass; canonical plot/first-clear facts are separate. No native voice line was changed for this fix.
+
+Final12 earned headless results reproduce all four completed policies: 138 attempts, 120 clears, 18 losses, no timeouts or ad/payment/revive requirement. All 18 evolution targets have useful actual encounter contexts within 170 retained trials; the longer NailStorm and declared CarBomb cases also reproduce on final12. Sixty full-route boss comparisons retain four losses; separately supplied full-health-at-spawn controls clear 60/60. Initial positions and phase-separated damage/recovery observations are being added without changing simulation outcomes.
+
+The final full suite, complete exact-build roster/world recaptures and fresh rendered first-30 journey continue. The first rendered attempt includes a disclosed controller detour/idle, ordinary keyboard reorientation and pointer re-anchor repair; it ultimately dies to a real walker and settles actual earned rewards. The same exact runtime/origin/profile resumes with the corrected controller, without save import, power grant or outcome injection. The controller's idle is not human pacing evidence. Older progressive-build earned completion and all failed retries remain separately labelled. Phone, actual listening, continuous-motion artistic review and consenting unfamiliar-player gates remain pending. No Git publication, new dependency/service, real monetization integration or production beyond L30.
+
+### 2026-11-19 · Audit9 closure D · final whole-journey candidate
+
+Final candidate `8b02fbff46d1bef7db62dc3c1480fead8acd0a8d5fed2479ebb66e1efba44fdc` (1,142 runtime files) passes all 54 groups, three affected follow-ups,36 retained UI/growth/replay cases,32 current result cases and local-source checksums. The fresh source12 earned rendered journey clears30/38, retaining8 failed attempts and the ordinary first-run Second Wind. Final13 repairs only the winning30 recap that still suggested31;1141 other served files are identical. Current earned rematches, full visible recap and return prove that affected branch; the older full journey is not relabelled. It uses disclosed assisted ordinary handlers, not imported main-campaign power/state or human/phone play. All attempts settle once; earnedL20/25/30 preserve protected clock/HP, walkable shared departures and real results. Reopening the completed profile preserves rewards and explicitly refuses31.
+
+Complete17×3+18 weapon,ten-boss,16-role,30-world and native scene coverage is indexed. 264 positive full-viewport media files pass technical validation; the normal-speed comparison reel retains source labels and supplied/earned conditions. The shortenedL20 tail and announcement-obscured Nazar supplement remain rejected/qualified originals; complete same-source replacements are linked. Six lifecycle assertions pass; five positive scene films include actual background interruption, with theL20 English replacement uninterrupted. Frame sampling is not continuous artistic or listening approval.
+
+Four headless earned campaigns retain138 attempts/18 deaths/0timeouts;60 full-route and60 supplied-HP boss cases distinguish approach attrition;170 evolution trials plus declared useful supplements retain failures/misses. MainL22 placed cover andL23 help are actual facts; offense/neutral and imported-earned-state continuations are separate. Accepted Arda gait, later diner/D-119/D-121/D-122 native art/context/reading fixes and unrelated dirty work remain preserved.
+
+[Complete correction packet](AUDIT9-IMPLEMENTATION-2026-11-19.md), [source/archive/commands](AUDIT9-SOURCE-AND-EVIDENCE-2026-11-19.md), [final ledger](telemetry/audit9-implementation/coverage-final.json), [evidence browser](media/R1/audit9-implementation/index.html), [external scripts](AUDIT9-EXTERNAL-ACCEPTANCE-2026-11-19.md). Ready for fresh independent first30 review. Phone, listening, continuous-motion artistic and5–8 unfamiliar-player/uncoached-full30 gates remain pending. No masterpiece/expansion approval, production beyond30, new dependency/service/SDK, engine migration, commit/push/merge or other-chat message. D-120 remains proposed.
+
+
+### 2026-11-19 · Independent player audit10 · first30 after Audit9
+
+Reviewed exact final13 runtime `8b02fbff46d1bef7db62dc3c1480fead8acd0a8d5fed2479ebb66e1efba44fdc` in an isolated APFS clone; all1,142 served files match workspace at audit end. Independently completed54 test groups with zero failures and an earned broad campaign30/33 (three losses, zero timeouts). Simulation outcomes match supplied source12 broad data after excluding only new read-only boss-entry position observations. The first sandboxed test attempt was interrupted for localhost permission, then the full approved run completed; not a product failure.
+
+Live fresh EnglishL1 through result/growth, actual earned Memories Back/skip/reload and cleanL2 start, plus two tool-pacedL2 losses/settlement/mastery. All30 world and earned-route recordings, ten bosses,17 bases×3,18 evolutions,16 roles and major scenes were frame-sampled;325 indexed frames plus32 closer temporal samples. No manual full30, physical-phone, continuous artistic or listening claim. No selected prototype revive; ordinary first-run assistance remained enabled.
+
+**Verdict: real visible progress, not masterpiece/expansion approval.** Close the original compact-mod and Memories failures; acknowledge clearer next mastery/perk relations and repaired physical companion staging. Remaining priorities: late/obscured evolution reward (direct live reproduction), first-boss teaching/identity, repeated hold/exit decisions, dense signal competition and selective continuous animation acceptance. New small defects: inspection caption contrast, retained offer scroll, hidden legacy attribute sequence after loss, system phone portrait. An accepted Molotov rank3 film contains a black-world interval requiring capture-versus-runtime classification.
+
+[Main Audit10 verdict and concrete plan](GAMER-AUDIT-PASS10-2026-11-19.md) · [all30 and asset appendix](AUDIT10-LEVELS-AND-ASSETS-2026-11-19.md) · [requirement closure/evidence/limits](AUDIT10-CLOSURE-AND-VERIFICATION-2026-11-19.md). Native narrative and other dirty work preserved. No product edit, dependency, commit, push, merge or other-chat dispatch. N1/N2/N3 remain proposals rather than failed Audit9 obligations.
+
+### 2026-11-19 · Owner feedback supersedes Audit10's optimistic weighting
+
+The owner's nine direct-play observations identify unmet perceptual outcomes in boss visibility, movement and defeat, weapon attachment and impact, hurt feedback, boss strategy and balance, progression discovery, and scene direction. Technical repairs remain verified; a substantial improvement in core game feel is not established. The main report's verdict is revised accordingly. These are attributed owner observations, not a new independent play or listening pass.
+
+[Owner feedback and revised creative direction](AUDIT10-OWNER-FEEL-ADDENDUM.md) specifies player-visible acceptance criteria and a complete L1 quality benchmark before applying the standard across the first 30 levels. Preserve verified repairs and native narrative work. No masterpiece verdict or expansion approval; documentation changes only.
+
+### 2026-11-19 · Whole-slice production brief after owner's quality-bar correction
+
+Owner clarified Cook is one example, all bosses require detailed treatment, and earlier audits/PRDs accepted technical proxies too readily. Prepared [four-part production packet](PRD-FIRST30-EXPERIENCE-RESET-2026-11-19.md) and [single autonomous execution prompt](IMPLEMENTATION-PROMPT-FIRST30-EXPERIENCE-RESET-2026-11-19.txt). Explicit scope: all ten bosses, 17 bases at ranks1/3/5, 18 evolutions, all30 level decisions, named world scenes, feedback/audio, progression discovery, assets and retained P10 defects. L1 is an internal integration check, never a scope reduction or completion sample.
+
+Fresh read-only source review identifies existing1.47-second generic boss defeat, seven atlas bosses' two-cell locomotion/body-band constraint, Cleaver's actual revolving damage line, incomplete pre-death action/tool state, and existing health/frenzy cues whose perceptual outcomes remain failed. Added specific asset, geometry and continuous-motion requirements rather than requesting the same features again. Cross-checked boss and weapon inventories, current progression model and native canon. No fresh play/listening/device acceptance claimed. D-123 proposed; no product code/assets, tests, dependency, commit/push/merge or other-chat dispatch. Implementation handback must distinguish implementation, technical, presentation and player evidence.
+
+
+### First30 reset · internal integration checkpoint, 2026-11-20
+
+The owner authorized the complete new four-document packet and autonomous execution through verification. Work is **in progress**, not returned for approval or marked complete. Baseline13 is retained; anatomy/tool sources for all ten bosses, truthful delayed blade/hammer contacts, route/progression/UI/feedback repairs are being integrated. See [live reset ledger](FIRST30-EXPERIENCE-RESET-IMPLEMENTATION-2026-11-19.md) for exact intermediate sources, failures, tests, balance deviations and unclosed acceptance. Accepted Arda gait, current native dialogue/comics, saves and first30 boundary remain protected. The intermediate boss films are supplied diagnostics, not ordinary earned acceptance. Full final suite, new earned30, final balance and presentation review remain required; physical-phone/unfamiliar-player/listening gates cannot be represented as passed.
+
+
+## First30 experience reset · sealed candidate15,20 November · integrated checks continuing
+
+Owner instruction: execute the complete four-document reset through acceptance; internal checkpoints are not stop/approval points. [Implementation packet](FIRST30-EXPERIENCE-RESET-IMPLEMENTATION-2026-11-19.md), [complete indexed coverage](FIRST30-RESET-COVERAGE-2026-11-19.md), [all30 decisions/transitions and S01–S09](FIRST30-RESET-JOURNEY-2026-11-19.md).
+
+Runtime `19f59ae3c5aff7b9c4556a97e2f0503d487b7121ad239b6a9d835d5a2fdccf87`,1177 files; [manifest](telemetry/first30-reset/candidate15.json). Fresh source15 earned rendered30, full55-group suite, all ten boss/default/reduced/dense/gray cases,51 base ranks/18 evolutions/65 advanced recordings and full interface/story/interaction checks are running. Do not label pending jobs passed. Previous candidate12 and14 full suites completed0 failing, but neither replaces the final15 suite. Superseded captures retain their saves, raw failures and explicit supervisor-stop receipts.
+
+New physical boss/Kaan parts, truthful blade/hammer/chain contacts and route consequences are integrated. Rendered inspection additionally caught and repaired pre-AI ghost boss attacks, Roaster release origin, fish lowering before arrival, hints over protected scenes, low-contrast overlapping action names and a real returned-prop registry omission that blocked regrip. These are specific repairs, not evidence of Hades parity or fun. Latest native TR/EN/choices/relationship facts and accepted lower-body gait remain; L23 wording alone now describes moving/carrying instead of breaking/opening its three sacks.
+
+No dependency/service, paid purchase, real monetization, engine migration, post30 production, commit, push or merge. Device/listening/continuous artistic/uncoached-player gates remain pending with exact scripts in the packet. Final readiness and actual results will be appended after all independently executable verification and repairs finish.
+
+
+## First30 experience reset · final local candidate17,20 November
+
+Owner's entire four-document scope was executed locally through integrated technical verification; internal checkpoints were not handback stops. [Implementation and honest acceptance status](FIRST30-EXPERIENCE-RESET-IMPLEMENTATION-2026-11-19.md) · [321 individual requirement rows](FIRST30-RESET-COVERAGE-2026-11-19.md) · [all30 levels/29 transitions/S01–S09](FIRST30-RESET-JOURNEY-2026-11-19.md) · [all60 boss comparisons/18 evolution outcomes/30 pacing rows](FIRST30-RESET-BALANCE-2026-11-19.md) · [normal-speed indexed media](media/R1/first30-reset/index.html) · [matched before/after](media/R1/first30-reset/matched-comparison.html).
+
+**Exact runtime:** `c186ad04595f929b47767e2ce75e2bf1f39323eba96b1417c7418c13f48f739c`,1179 files; [manifest](telemetry/first30-reset/candidate17.json). Working, immutable served and frozen tested copies match all1179 file hashes. Mac `http://127.0.0.1:8828/?lang=en`; Wi-Fi `http://192.168.4.25:8828/?lang=tr`. Git branch/head and inherited dirty work are preserved; no commit/push/merge. Original local commission checksum check passes.
+
+Ten new anatomical/tool boss rigs and individual contact/defeat performances; truthful finite Knife/Cleaver and propagated Sledge/Blacksmith; health/state/attention/audio separation; actual growth destination/offer/reward ownership; changed consequences at4/11/12/14/23/28/29; physical current Kaan recognition/grief/departure; current illustrated market/weather materials; bounded offscreen speech; returned-prop registry and visible action-name repairs are integrated. Current native/illustrated facts, accepted Arda gait, cover duration, evolution attribution and first-clear commitments remain. Only the explicitly recorded L23 native action verbs change to match carrying.
+
+**Verification:** final17 suite55 passed/0 failing/no rerun. All14 final diagnostic jobs resolve; three initial browser/game startup timeouts and exact unchanged serial retries remain. Final source17 all30 world actions actually open;10 boss observers;14 natural roles;51 base ranks/18 evolutions/65 geometry/mastery films, all68 mod paths;179 killable boss-phase cancellation checks; actual contact/conditional/reward/input/art regressions;30 native comic sequence/variant entries/117 stills and60 native UI records. Source15 numerical/config/sim bytes and weapon/boss/hero motion match17 exactly; its387 attempts/360 wins/27 losses and12/12 free complete30 campaigns apply with true source identity. Baseline406/360/46. All losses/fast kills/late effects and selected search denominators remain. Source15 films are not relabelled17.
+
+**Actual rendered earned journey:** all30 cleared,35 retained records (31 wins including extra9 replay,4 losses);34 full gameplay exports plus actual earned growth/menu films. The original9 reached clear but bulk export timed out; result/raw452 JPEGs retained without invented timestamps/audio. A separate fresh earned1–9 campaign (10 records/9 wins/1 planned loss) records first-clear9 fully. Acknowledged original-chunk streaming fixes recording; menu-only growth uses DOM/audio because suspended canvas produces no motion frames. Rejected pilots and tool versions/limits remain. Level29's308-sim-second driver delay is untrimmed; it completed through ordinary input before a proposed late steering attach, whose strict29 guard rejected the call at30. No completion flag, power, save or result was supplied.
+
+**Actual ending:** earned30 boundary, disabled31 and unchanged coins/stars/settlement on completed-result reload pass. Two earlier observer failures (missing assumed sheet node; querying P during reload initialization) are retained and corrected only in the harness. Active-run reload remains a fresh run from permanent state, not a simulation checkpoint. Sequential final desktop opening/boss/crowd p95 frame16.7ms each; work2.9/3.0/4.6ms versus baseline2.9/2.9/4.9. Prototype cap200. Graphics estimates omit separate StreetArt/puppet atlases and cannot establish total memory or phone budgets.
+
+**Review status:** ready for a fresh independent first30 audit, not masterpiece/expansion approval. G03/P10-01 early useful L1 evolution timing remains a tuning limit (two useful Nailstorms, one late Cleaver;16 additional Cleaver/owned-plan misses). Fast one-family and long evasive boss cases remain. Direct frame samples/source/media metadata were inspected; continuous artistic motion, actual listening, physical-phone heat/input/audio focus and unfamiliar-player understanding/return are unperformed, with exact scripts in the packet. One transient L6 strict planner rejection near the right-edge tea table is retained with neighboring valid samples/visible responsive hero; no perfect-collision claim. No missing required new local art remains. No dependency/service, purchase, real ad/IAP, engine migration, post30 production or unsolicited other-chat message was added.
+
+
+### 2026-11-20 · Independent audit11 of reset candidate17
+
+[Audit11 findings and acceptance boundaries](GAMER-AUDIT-PASS11-2026-11-20.md). Verified1179 runtime hashes with zero differences; independently passed first30-reset and experience suites. Live opening/exit/earned early Knife upgrades; supplied final earned frames sampled across30 levels, two early fight frames per boss, priority weapon/health/scene/progression samples and current source/retained balance inspection. No new manual full30, continuous video, audio, phone or unfamiliar-player acceptance. Full55 and12 campaigns remain supplied evidence.
+
+Verdict: genuine root implementation corrections, incomplete experience, no masterpiece/expansion approval. New concrete final-footage defect: L4 long contextual instruction compresses required objective into a narrow tall column. Retain early evolution timing failure, ordinary short/one-family bosses and long evasive tails; improve body/background separation and competing banners/interaction rings. Reconcile boss-loss labels claiming entry not reached despite entryHP/action data. Product unchanged; only audit artifacts/report, no commit/push/merge.
+
+
+## 20 November · Owner-reported opening clones / unequal adult scale · source22
+
+The owner's screenshot is a valid defect missed by the prior visual review. [Opening cast correction](OPENING-CAST-FIX-2026-11-20.md) records the reproduced source17 failure, new artwork/import provenance, current source identity and limits. Current sealed source `0250ab61a6e11a72234511c07eaa9211f24dfe183920c83d375cae06756d4d20`,1181 files, served at the same localhost8828 with no-cache; owner save preserved. Both customers and the bystander previously reused one illustration while using different size conventions. Now three distinct adults retain their identities through reactions/infection/death; the bystander exits through the doorway, the converted customer uses the aisle, and the fridge no longer occludes the second customer's legs. Six current matching idle/reaction identities also remove the generic shared-man fallback for stationary civilians in every district. View-owned actual displacement distinguishes stopping from cumulative walked distance, preserving frozen-clock poses and assigned identities.
+
+Eight final focused groups pass0 failures/no rerun: opening, opening-cast, experience, art-raster, art-raster-world, art-raster-items, scene-art, quality. Full current normal-speed opening and ordinary first controls/kills pass, with actual alpha/transform body measurements, zero browser errors or resident spawn dust, and matching fallen poses. Missing either new sheet safely retains title/runT0; ordinary retry and actual hold-to-skip return enabled control. Source17's prior55/full30 remain under17 identity; no claim of a new full56/current22 campaign. Earlier bad diagnostic escaping and camera-dependent raw-pixel assertion remain as rejected logs/film; corrected world-space measurement retains actual actor-scale checks. Original artwork/alpha/prompts retained; no procedural repaint or new dependency/service. Simulation modules and gameplay tuning untouched; existing opening nudge direction follows the corrected staged attack. Latest dialogue, accepted Arda gait, progression and current boss work preserved. Frames/source inspected, no listening/continuous craft/phone/player acceptance claim. No commit/push/merge.
+
+## Audit11 integrated correction ·20 November · verification in progress
+
+Owner explicitly authorizes the complete first30 Audit11 packet through integrated verification; old per-step stopping instructions do not narrow it. [Current work/evidence](AUDIT11-IMPLEMENTATION-2026-11-20.md). Baseline22 is preserved; candidate7 has exact source `d6894658bca4d05d812b9771502bdc4f17bfab4e7e67ffbe41f7d65299c74627`. Required-objective wrapping, useful early finite XP scheduling, actual boss approach/phase/recovery, individual arena value separation, safe recovery cues, competing optional prompts, quiet controls and live action composition are implemented. All named roster/level/weapon/scene requirements remain in the328-row reconciliation. This entry does not claim the full suite, final all30 film or player acceptance has completed.
+
+Retained diagnostics reproduce L23’s600s outlier: the driver chased a pickup across a closed gate while carrying the third sack. The unchanged source clears132s with unreachable-drop navigation repaired. In-fight losses receive distinct terminal classifications; no missing fight duration is relabeled absent entry. Original bad cases/pilots remain. No commit/push/merge/dependency/service/expansion approval.
+
+
+## Audit11 final local first30 correction ·20 November · final9
+
+Owner's complete Audit11 assignment executed through available integrated verification, preserving source22 opening adults, accepted Arda gait, current native D119/121/122, illustrated assets, truthful contact, cover/relationship/choice and reward/scene lifecycle. [Complete handback](AUDIT11-IMPLEMENTATION-2026-11-20.md) · [328 separate requirement stages](AUDIT11-COVERAGE-2026-11-20.md) · [exact verification](AUDIT11-VERIFICATION-2026-11-20.md) · [actual sparse inspection](AUDIT11-RENDERED-REVIEW-2026-11-20.md).
+
+Final runtime `09d9e63b0b7805c3bd0f733a36f4e4fb464d623fe1ffc97c92c9c22d47058c57`,1181files,18 changed from frozen baseline22. Current/frozen served/full-suite copies match0 mismatches. Same Mac/save origin `http://127.0.0.1:8828/?lang=en`, no-cache. Required/context HUD rows, finite useful early investment, individual boss tell/phase/approach/recovery and arena body/tool separation, quieter attention/control treatment and bounded live work framing are integrated. Actual inspection found older friendly cosmetic-particle occlusion and oversized guide marks; final8/9 repair those without changing geometry/simulation.
+
+Final frozen9 suite56 groups pass0 failing/exit0. Fresh exact9 earned journey:30 wins, one planned L1 death/retry, one original L3 observer interruption after real results; L3 replayed through the same actually earned profile, no import/grants/free revives. All30 entry/route/result/return and29 subsequent departures inspected in sparse original-time DOM samples. Earned ending,31 locked and no duplicate settled reward on completed-result reload pass. All69 rank/evolution forms,65 advanced films/68 branch inventory,14 natural roles,30 supplied physical actions, all10 clean/default/reduced/grayscale boss fixtures, current117 comic stills and60 UI operations are indexed. Health ambiguity rejected and repaired through quiet full-HP/real-injury assertions and14 direct production-canvas samples. Earlier failed/superseded captures remain with explicit classifications.
+
+Numerical12-campaign comparison final360 wins/385 attempts/24 deaths/one driver timeout versus baseline360/379/18/one same timeout; no win-rate improvement claimed. Close L1 investment7 Cleavers/8 wins with six full450HP Cook contributions and one337.6, target miss retained. Selected useful earned contribution established for17/18 evolved forms; Hookpull remains unestablished. Sixty actual earned-history boss-entry cases retain strong short wins, injured deaths and Captain long tails; no blanket HP or minimum timer. L23/L29 diagnostic navigation causes reconciled without changing game rules; six later optional-navigation observer crashes retained and corrected rerun has0. Separate controlled desktop3×60s arms exit0; final p95 frames16.8/16.8/16.7ms and work2.7/3.0/5.0ms, not phone or perceived-fluidity proof.
+
+Ready for a fresh independent first30 audit with explicit open gates: continuous craft/defeat/grip review, actual listening/fatigue, physical-iPhone controls/heat/audio interruption and unfamiliar-player discovery/emotion/return. Single-weapon signature announcement prominence, shared northbound geography and Hookpull availability remain review/tuning uncertainties. The [exact remaining scripts](AUDIT11-ACCEPTANCE-2026-11-20.md) are not fulfilled by generated films or bots. No masterpiece/Hades parity, release or expansion approval. No dependency/service/purchase/real monetization/Godot/post30 production/commit/push/merge or unsolicited other-chat message.
+
+
+### Audit11 final rendered-copy follow-up · final10
+
+Ten additional actual earned9 boss/aftermath/result sheets exposed one remaining stale player-facing description: Cleaver still claimed a continuous360 orbit. Final10 changes only two TR/EN `desc.cleaver` values to match existing finite alternating cuts. All sim/config/view/CSS/assets are byte-identical9; no mechanic or voice/story change. [Only-file difference](telemetry/audit11-implementation/source10-runtime-difference.json), [actual eight card layouts](media/R1/audit11-implementation/final10-cleaver-copy/index.json) at320/390/TR/EN/100/150 inspected and pass. Final10 complete56-group suite passes0 failing/exit0/no rerun, with [retained logs](telemetry/audit11-implementation/final10-suite-index.json). Runtime `0230642ec5e42eb26aee7eb3427a3e7837f3f263ea6f6c6f3feb99a5e028cd5f`,1181 files/19 changed from baseline22; all3×1181 working/served/test hashes match, six actual HTTP source-byte checks pass at same owner8828/save. [Final source/build/tool manifest](telemetry/audit11-implementation/handback-source-build.json).
+
+Source9 earned30/29 departures, all actual films, numerical outcomes and controlled benchmark keep9 identities and precise copy-only applicability. No10 playthrough is invented. The complete328-row ledger names10 as final and retains the separate implementation/technical/sparse-presentation/player stages. All earlier external gates and Hookpull uncertainty remain; ready for fresh independent audit with those limits, no masterpiece/expansion claim or new authority to commit/push/merge.
+
+
+## Audit12 — independent review and proposed production direction (2026-11-20)
+
+Documentation/evidence only; no runtime edits, commit, push or expansion approval. [Audit12](GAMER-AUDIT-PASS12-2026-11-20.md), [production PRD](PRD-AUDIT12-PLAYABLE-DRAMA-2026-11-20.md), [single execution prompt](AUDIT12-IMPLEMENTATION-PROMPT-2026-11-20.md). Proposed decision D-125.
+
+Independently verified final10 frozen runtime:1181 files, zero manifest mismatches. Independently ran current earned broad/punish campaign:30 wins,1 L20 loss,31 attempts;26 attempts with evolution use (25 Cleavers,1 Nailstorm). Several earned first-entry bosses still die in3–6 seconds. This is a policy trace, not population difficulty or retention. Live fresh-save Chrome L1 reached Cook defeat, chest, exit/result, attributes and perks with normal controls/offered cards. Sparse tool observations do not certify animation or audio; time gaps are not human pacing data. Inspected supplied final9 sheets for all10 bosses, all30 first-control samples and L11–16 transitions; final10 copy-only applicability retained.
+
+Useful evolution/HUD/progression corrections receive credit; boss exchange budgets, repeated blockade framing, competing presentation, scene scale and deliberate replay remain obstacles. New PRD explicitly promotes bounded starter and tactical-rematch proposals instead of misclassifying earlier deferral as an implementation omission. Physical phone, listening, continuous motion and unfamiliar-player acceptance remain open. Own isolated8844 server stopped; owner8828 save/server untouched.
+
+
+## Audit12 local implementation underway — 2026-11-20
+
+The owner forwarded the complete production packet and explicitly authorized bounded starters/rematches and all first30 corrections. Work is ongoing, not accepted or complete. [Live implementation ledger](AUDIT12-IMPLEMENTATION-2026-11-20.md). Before runtime final10 matches all1181 files. Current sealed diagnostic4: `4ecf5d514161180d7875d18aa07bf1a194712cf0a35ecc118b9383759501e260` at local8840; baseline/save origin8828 remains final10. No commit/push/merge/dependency/service/post30 production.
+
+Implemented so far: actual impact-fragment source exclusion; fixed per-boss budgets/compositions/arrival access; distinct spent/travel poses; safe earned-choice boundaries; compact combat emphasis; physical bell/fork and cart/obstruction setup; saved single starters and three bounded rematches; result experiments; native-response-before-recognition lowering; same-route station departure; optional physical Kaan loading which pauses under real pressure and credits only actual player help. Existing native prose, hero running, art and finite Cleaver stay retained. Full runtime/source and acceptance remain separate.
+
+Integrated2 full suite exposed5 failures: two real placement/pickup clearances, HTML size, new sound inventory assertion and a fixed-damage fixture no longer lethal after rebudgeting. Integrated3 exposed a Captain approach fixture which assumed the former distant spawn. Original logs and first-failure copies are retained; affected repaired checks pass. Integrated4 full suite, actual distinct-policy/seed campaigns and fresh rendered journey are underway. Earlier --seed filenames did not change the campaign's consumed --seed-base; actual row.seed values govern, and duplicate diagnostics are explicitly qualified in seed-flag-correction.json. The interrupted integrated3 journey completed1–9; L10 was aborted, not a passed walkthrough. Physical-device, continuous-motion/listening and unfamiliar-player acceptance are not claimed.
+
+
+## Audit12 integrated7 verification checkpoint — 2026-11-21
+
+Sealed runtime `d43711bfa46b2b3ad3449fd9202f1143c39a848d4efe971f0d4b5037af683fb6`, [manifest](telemetry/first30-reset/audit12-integrated7.json), local8843. Workspace byte-check passes all1185 files. Implementation remains under integrated verification; no artistic/player acceptance or expansion approval. Owner baseline8828 untouched.
+
+Diagnostic5: all12 actual distinct policies×seeds earned through30, all attempts retained; all30 supplied rendered world actions completed. Source5→7 changes only replay-description contrast and Bride pursuit/cart recovery. The exact retained earned Bride case reproduced115.65s/58.68s longest no-contact interval; bounded physical approach fallback to fully warned carts plus real command recovery yields53.30s/6.75s, with the same build/health budget. Focused regression passes. Hookpull now has real useful earned evidence at L23 seed23858:26 hits/21 pulls,42.17s remaining, explicit owned plan and one real reroll. This is reachability, not discoverability/fun.
+
+Earlier source4 suite continues; redundant partial5 suite was stopped to reduce load, with its sandbox loopback EPERM and original logs retained. Final7 full suite is queued sequentially; final7 fresh rendered all30/starter/rematch journey and12 distinct campaigns are running. Current recordings and technical/sampled/motion/audio/player verdicts remain separate. All prior partial/interrupted/superseded records are retained, not reported as finished walks.
+
+
+## Audit12 integrated8 physical-action checkpoint — 2026-11-21
+
+Current sealed8: `f2aabe02129d11b47db1183d93012b8415c5a8ad30d6cc5e8a79a10e37e95e89`, local8846; all1185 workspace files independently match. Source8 changes from7 are config-bond, EminonuTrial, KarakoyBoss, Fx and Speech. Full7 suite and its80 power cases remain explicitly source7. Fresh8 first30 rendered earned campaign and12 distinct-policy/seed campaigns are running; full8 suite queued after7. All completed and partial earlier walks, including the earned7 prefix through9 and its real starter selection, are retained. No final acceptance yet.
+
+Live S3 inspection clarified an early diagnosis: an invalid supplied test position made a path assertion fail; the actual route let Kaan finish loading, but the Walker arrived too late to interrupt it. New test uses real sack delivery plus a valid actor start. One finite offscreen Runner now arrives during the job; actual removal resumes physical work and alone earns contextual credit. Explicit walkable-target selection hardens placement. Closer live camera and optional-chatter protection make the hands/action visible, retaining control and reduced-motion behavior. Exact8 fixture passes actual blockage→weapon hit→resumption→completed loading, without auto-completing the three-sack task.
+
+A second integration check retained the Bride counter during her new cart-command recovery: real collision can interrupt that recovery; an existing counter cannot repeat until it settles. Exact8 rendered fixture passes harmless first crossing→baited commitment→lateral escape→physical cart counter→actual exposed damage. No counter/hit/outcome flags supplied. Focused physical-action and Eminonu/bond/UI/quality checks pass.
+
+Original quiet-role native recording failed twice (the video-only experiment also failed and was reverted). Original-time DOM/audio role recordings are separate, with native-motion acceptance explicitly unavailable rather than passed. The helper serialization error returned a circular sim; it was repaired with a void diagnostic call, not a game-state fix. All failures and source hashes remain. Continuous motion/listening, real phone and unfamiliar-player acceptance remain pending.
+
+
+## Audit12 integrated10 death-boundary correction and ongoing verification
+
+Current sealed10 local8848, runtime `3f1fe0a8485454131fef375f383ea4cb5ad2bac591f541ed8ce2153d03fc61b5`/1185files. [Implementation](AUDIT12-IMPLEMENTATION-2026-11-20.md), [all-scope ledger](AUDIT12-COVERAGE-2026-11-20.md). Actual80-case review found a real Fisher lethal-frame failure: authored bigFisher inherited the legacy Bloater burst **after bossDie**, killing an injured hero. Combat now excludes authored bosses from that generic death effect and guards duplicate kill settlement. Ordinary Bloaters retain their actual burst. Same earned-history close case loses on9 but wins on10 with no post-defeat damage; a no-invulnerability1HP rendered pair independently demonstrates the boundary. Original failed fixtures, first-run rescue observation and invalid operator test names are retained and distinguished from game bugs. Focused repaired suite passes.
+
+Full9 completed57 groups/0 failing/no retry; full10 is running. New10 twelve-policy/seed campaigns,80 access/power cases, exact major scenes and fresh earned first30/starter/rematch journey continue. All18 useful evolved forms reproduce on10 using explicitly selected known seeds/real pre-level histories; the Car Bomb case chooses the legally earned Canister starter and an actually offered complementary weapon, then uses real terrain. Captures do not establish motion/listening/fun. Superseded9 prefix through12, its3 real Canister-policy losses and stopped13 recording/profile remain; it is not a completed30 walkthrough. Current10 input policy explicitly chooses an offered complementary weapon rather than only investing in the slow starter. No mechanic was altered to make the driver win.
+
+All35 weapon, all10 boss and all30 world contact sheets actually inspected; continuous craft remains unaccepted, with small-tool/trail/occlusion risks recorded. All14 role active stills inspected; some independent finite route pressure and close overlap remain visible despite the original “quiet” fixture caption—qualification required. Current9 same-gull actual XP theft/return fixture passes. Complete current-source verification and report consolidation remain; no dependency/service/commit/push/merge/post30 production or owner/expansion approval.
+
+
+## Audit12 candidate12 — viability correction and final verification in progress
+
+Current sealed12 `9c692dcb9e00cc428c0837b12d8c2f4188406b8a2d911250f7da78e601969af8`, local8852. [Implementation](AUDIT12-IMPLEMENTATION-2026-11-20.md), [coverage](AUDIT12-COVERAGE-2026-11-20.md), [verification](AUDIT12-VERIFICATION-2026-11-20.md). Fixed global Canister cadence/flight/early blast after actual weak unspent character0/8 common and1/8 spacing failures: selected12-identical cases improve4/8 and6/8; Car Bomb inherits cadence/flight. Damage unchanged, no starter-specific buff or hidden scaling. All failures remain. Formatting-only11 was deliberately stopped for this repair; its partial suite is not a pass.
+
+Final12 full57/0/no-rerun suite and exact1185×3 working/snapshot/check hashes pass. Twelve complete final numerical campaigns reach30:382 attempts/360 wins/22 losses; final80 access cases ordinary20/20,base-speed20/20,injured16/20,strong replay18/20. Six genuine losses have no post-boss damage. All18 useful earned evolutions reproduce on12, including Car Bomb13/seed3 with an offered side-investment strategy before the real first chest; prior failed known/bounded/strategy cases retained. Exact12 all18 evolution/Canister three-rank/four-branch films complete. All18 current still sheets, Canister pair and small native starter/rematch UI samples actually opened, with low-tool/trail/occlusion/motion limits recorded. No continuous video or listening acceptance.
+
+The original fresh12 capture hit ENOSPC during3; actual real-save won3/unlocked4 was read-only confirmed.1373 original JPEGs/audio remain, but their frame timing/checkpoint was not persisted; no guessed-speed reconstruction. Same-profile continuation publicly replays already-earned3 then earns4 onward. An additional separate fresh1–3 recording closes first-entry demonstration coverage without pretending to recover the original history. One numerical cohort also had a truncated output despite process0; original retained, identical command repeated fresh, only complete replacement counted. Final current journey/rematches and controlled desktop measurements remain to complete. Owner8828 saves/Chrome untouched; no Git/dependency/service/post30 or expansion approval.
+
+
+## Audit12 final14 local handback — 2026-11-20
+
+Current `ceda328957e8353ebd051a2be8ef5cdae16034000b436b8bc375d81fea4cdff4`/1185files, [play](http://127.0.0.1:8828/?lang=en). [Implementation/all known bounds](AUDIT12-IMPLEMENTATION-2026-11-20.md), [174-row scope](AUDIT12-COVERAGE-2026-11-20.md), [verification](AUDIT12-VERIFICATION-2026-11-20.md), [indexed original-time comparison](media/R1/audit12-implementation/review.html), [remaining scripts](AUDIT12-ACCEPTANCE-2026-11-20.md).
+
+Available local implementation and integrated verification are complete: 57 test groups pass, zero final failures, 0 reruns; twelve fresh final14 numerical campaigns reach30 in381 attempts/360 wins/21 losses. All30 rendered coverage combines the correctly labelled source12 fresh journey (all30 plus three actual tactical rematches) with exact unchanged pre26 applicability and a declared real-earned-history branch26–30 on final14 (5 wins/0 losses). This is not an unbroken fresh14 recording. The original3 capture gap and separate fresh1–3 supplement remain explicit. Final14 has its own source/HTTP checks, ending/reload/31-lock check and sequential desktop measurement. Continuous-motion craft, actual listening, physical phone and unfamiliar-player acceptance remain unperformed.
+
+All ten bosses/all30 spatial rows/17 bases18 evolutions/61 geometry paths/14 natural roles/major+minor scenes/health/control/progression/native/earned starters/three rematches addressed. Source14 makes real26 breathing space;13 text-only relief had failed the specificS4 pressure cross-check. Actual before12/13 car-open kills96/100 versus0 on14, frenzy follows opening; live threats/normal later combat and current native prose/Arda gait remain. No hidden scaling/caps/minimum timers.
+
+Numerical before384/360/24 vs final381/360/21. Separate80 access cases16injured/20ordinary/18strong/20base-speed wins; six real losses/no post-boss damage retained. Additional20 legal max-current-equipped comparisons20/20; useful selected18 evolution cases retain exact unchanged12 contexts, not frequency claims. Source12 original3 ENOSPC capture gap/independent fresh1–3 supplement, truncated log/exact replacement, moving-map observer failures/overwritten shared failure PNG and two13 setup failures remain documented. No fabricated continuous/listening/phone/player results. No owner save/Chrome/Git/dependency/service/payment/Godot/post30 change or expansion approval.
+
+
+## Audit13 — independent Audit12 acceptance, 2026-11-21
+
+[Full independent report](GAMER-AUDIT-PASS13-2026-11-21.md). Frozen final14 manifest ceda328957e8353ebd051a2be8ef5cdae16034000b436b8bc375d81fea4cdff4: all1185 frozen/workspace files independently matched. Focused Audit12 tests pass; independent earned broad/punish campaign clears30 in31 attempts, one loss at16 to Copci,26 useful evolutions (25 Cleaver,1 Nailstorm). Direct fresh-origin L1 was earned through Cook, reward, sanctuary, result and permanent Strength application. Supplied all30 route/ten boss samples and selected current scene/weapon/UI evidence inspected with source applicability limits; no claim of thirty manual completions, continuous motion, listening, iPhone or unfamiliar-player acceptance.
+
+Disposition: partial, not full experience acceptance or expansion readiness. Concrete open findings: Cook tutorial/interaction/crowd foreground leaks; Cleaver/Chainsaw competing material silhouettes; insufficiently differentiated route/task presentation; Kaan action obscured by optional rings/effects; narrow static-phone bubble plus empty final-phone portrait; boss/build outliers needing meaningful-exchange review; rounded50% result contradicting failed threshold. Direct earned growth flow works and should be preserved. Existing PRD contracts remain the scope; no new runtime/design expansion commissioned here. Later live screenshots failed ENOSPC; saved earlier shots and returned browser observations are distinguished. Own8846 audit server stopped, other servers untouched. No runtime/Git mutation.
+
+
+## Owner-requested Git checkpoint and storage audit — 2026-11-21
+
+Owner explicitly authorizes committing/pushing latest code, then removing clearly unused files while preserving active code/assets. Current branch retained; no merge to main. All 1185 runtime files exactly match final14 SHA-256 manifest, whose retained full suite reports 57 groups/zero failures. Fresh full suite started before publication, with sandbox localhost EPERM run stopped and restarted with localhost access. Checkpoint includes game code/assets/tools/docs/review packets and final14 manifest/verification logs. Large generated review media/archives remain local.
+
+Disk exhaustion blocked Git staging. A minimal prerequisite cleanup removed only rejected-incomplete-audit9-runtime-8b02fbff46d1.tar.gz (140826885 bytes): all 1123 file contents were verified SHA-256-identical inside retained complete audit9-runtime-8b02fbff46d1.tar.gz (1146 files). No original source or runtime file removed. Full audit follows remote checkpoint verification.

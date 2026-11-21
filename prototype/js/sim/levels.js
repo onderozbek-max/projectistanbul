@@ -12,6 +12,7 @@ P.Levels = {};
 var SEG_IDS = ['A', 'B', 'C', 'D'];
 
 P.Levels.stage = function (index) { return P.CFG.levels.stages[P.Journey.level(index).stage - 1]; };
+P.Levels.earlyNormal = function (s) { return !!s.gen && s.levelIndex <= 5 && (s.runMode || 'normal') === 'normal'; };
 
 // R1-T4 part 16 (pacing P1): route length, boss approach and gate hold of a stage, scaled by config levels.pace from
 // journey level rampFrom on. Below rampFrom (L1, hand-built) the stage numbers are returned unchanged.
@@ -37,7 +38,10 @@ function levelRng(s, index) {
 P.Levels.build = function (s, index, sarayRaster) {
   var info = P.Journey.level(index), st = P.Levels.stage(index), G0 = P.CFG.level.corridor, C = P.CFG.levels;
   var rng = levelRng(s, index), boss = !!st.boss, pst = P.Levels.paced(index, st);
-  var exitY = Math.round(pst.len + rng.range(-6, 6));
+  var preview = s.routeTrial && (C.galataRoutes[index] || C.karakoyRoutes[index] || C.bridgeRoutes[index] || C.eminonuRoutes[index] || C.sirkeciRoutes[index]);
+  var routeLength = s.routeTrial === 'live-wires' ? C.routeMilestones.wires.routeLen :
+    (preview && preview.len || s.routeTrial && C.istiklalApproach[index] || pst.len);
+  var exitY = Math.round(routeLength + rng.range(-6, 6));
   var holdY = boss ? pst.approach : exitY - C.holdDepth;
   var geo = { xMin: G0.xMin, xMax: G0.xMax, length: exitY + 4, exitY: exitY, holdY: holdY,
     holdT: boss ? 0 : pst.holdT, boss: boss, blocks: [], landmarks: [], events: [], zones: [], sub: info.stage,
@@ -50,19 +54,63 @@ P.Levels.build = function (s, index, sarayRaster) {
   s.dir.hold.T = geo.holdT;
   s.gen = { info: info, st: st, stageIdx: info.stage, hood: info.hood, roster: rosterOf(info.hood, info.stage, info.hoodIndex), skins: info.hood.skins,
     marks: [], mi: 0, seg: 'A', acc: 0, next: null, arena: false, bossSpawned: false, boss: null, won: false, midDone: false, t: 0 };
-  s.layout = P.Layouts.plan(s, info, rng, geo);   // zone and centre landmarks first: street blocks keep clear of them
-  layBlocks(geo, rng);
+  if (info.hood.id === 'istiklal' && info.stage === 3) {
+    var tr = P.CFG.level.tram;
+    addBlock(geo, 'tram', 0, C.istiklalRoute.tramY, tr.xMax - tr.xMin, tr.yMax - tr.yMin);
+  }
+  var stop = s.routeTrial === 'tram-stop' ? C.tramStop : null;
+  if (stop) addBlock(geo, 'cm_tram_stop', stop.shelterX, stop.y + stop.shelterAhead, stop.shelterW, stop.shelterH);
+  var cross = s.tramRhythm ? C.tramCrossing : null;
+  var switchY = cross ? C.istiklalRoute.tramY + C.tramRhythm.encounterAfter + cross.offset : 0;
+  if (cross) geo.tramCrossing = { x: cross.x, y: switchY, r: cross.r, trackX: 0 };
+  var afterStop = stop ? stop.y + P.CFG.hack.tram.len + stop.approach : cross ? switchY + cross.len + cross.reserve : undefined;
+  s.layout = P.Layouts.plan(s, info, rng, geo, afterStop);
+  placeDistrictLandmark(geo, info.hood.theme);
+  layBlocks(geo, rng, stop);
   if (P.Eczane && P.Eczane.place) P.Eczane.place(s, index, info);   // R1-T4 part 14: at most one pharmacy station (own RNG stream), before the slots
   P.Layouts.slots(s);
   P.Layouts.spawns(s);                               // door and window spawn points (Lane A portals)
-  s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY), P.Layouts.marks(s.layout))
-    .sort(function (a, b) { return a.y - b.y; });
+  s.gen.marks = makeMarks(st, holdY, boss).concat(planEvents(s, rng, info, holdY), P.Layouts.marks(s.layout));
+  if (C.encounterPace.earlyCrate[index]) s.gen.marks.push({y:C.encounterPace.earlyCrate[index],kind:'supply'});
+  if (stop) s.gen.marks.push({ y: stop.y - stop.approach, kind: 'tramStop' });
+  if (stop) s.gen.marks.push({ y: holdY * C.tramFinale.frenzyAt, kind: 'tramFrenzy' });
+  if (s.tramRhythm) s.gen.marks.push({ y: C.istiklalRoute.tramY + C.tramRhythm.encounterAfter, kind: 'tramEncounter' });
+  s.gen.marks.sort(function (a, b) { return a.y - b.y; });
   civilians(s);
   s.events.push({ type: 'segment', id: 'A' });
   s.events.push({ type: 'story', id: info.id, when: 'start' });
   if (P.Env && P.Env.place) P.Env.place(s, info);   // Lane A: env props and hazards, once per level
   return s;
 };
+
+function startTramStop(s) {
+  var C = P.CFG.levels.tramStop, H = P.Hack.place(s, 'tram', C.x, C.y);
+  H.trackX = C.trackX; H.r = C.r;
+  s.gen.tramControl = H;
+}
+P.Levels.tramRespite = function (s) {
+  if (!s.tramRhythm) return false;
+  var y = s.hero.y, C = P.CFG.levels, tram = C.istiklalRoute.tramY, R = C.tramRhythm;
+  return y >= tram - R.respiteBefore && y < tram + R.encounterAfter;
+};
+P.Levels.routeRelief = function (s) {
+  var m = s.milestone;
+  // An authored breathing space after Nuri: operate the car and walk beyond its aperture
+  // before new route/ambient waves arrive. Existing enemies stay live and dangerous;
+  // no immunity, clock suspension, kill deletion or banked spawn burst is introduced.
+  var departure = s.levelIndex === 26 && m && m.kind === 'stationDeparture' &&
+    !s.dir.hold.active && !s.gen.arena && s.hero.y < m.y + P.CFG.levels.sirkeciMilestones.departure.reliefAhead;
+  return departure || s.t < (s.routeReliefUntil || 0);
+};
+function tramEncounter(s, y) {
+  var C = P.CFG.levels.tramRhythm, X = s.geo.tramCrossing, p = { x: 0, y: y + C.guardAfter };
+  P.World.clampHero(s, p);
+  P.Events.start(s, 'ambush', { x: 1, n: C.ambushSize, types: ['walker', 'walker', 'runner'] });
+  s.gen.tramGuard = P.Combat.spawnEnemy(s, 'runner', p.x, p.y, { elite: true, skin: pickSkin(s) });
+  var H = P.Hack.place(s, 'tram', X.x, X.y);
+  H.r = X.r; H.trackX = X.trackX; H.liveTram = true;
+  s.gen.crossingControl = H;
+}
 
 // Roster: the hood's enemy types, plus its extras (v0.5 screamer / hardhat) from stage extraFrom on, plus the v0.6
 // schedule (new types by hood and stage, config-levels.js), plus the thief (`thief`, by hood index from fromHood on).
@@ -91,7 +139,7 @@ function makeMarks(st, end, boss) {
 
 // Corridor blocks: sides only (inner edge >= sideMin) so the centre lane stays open for pathing.
 // The hood's kit (journey.js) picks the kind of each side block (B1). Layout zones are skipped (layouts.js lays them).
-function layBlocks(geo, rng) {
+function layBlocks(geo, rng, stop) {
   var B = P.CFG.levels.block, K = P.CFG.levels.kinds, y = B.startClear, end = geo.exitY - B.endClear;
   while (y < end) {
     if (P.Layouts.inZone(geo, y)) { y += B.slot; continue; }
@@ -102,6 +150,8 @@ function layBlocks(geo, rng) {
       var w = size[0], h = size[1];
       var x = side * (B.sideMin + w / 2 + rng.range(0, B.sideJit)), by = y + rng.range(-B.yJit, B.yJit);
       if (Math.abs(x) + w / 2 > geo.xMax - B.wallEdge) return;
+      if (kind === 'car' || kind === 'taxi' || kind === 'dolmus') x = side * (B.parkCurb - w / 2);
+      if (stop && side > 0 && Math.abs(by - stop.y) < stop.approach + h / 2) return;
       addBlock(geo, kind, x, by, w, h);
     });
     y += B.slot + rng.range(0, B.slotJit);
@@ -109,12 +159,32 @@ function layBlocks(geo, rng) {
 }
 
 function addBlock(geo, kind, x, y, w, h) {
+  if (P.Layouts.reserved(geo, x, y, w, h)) return;
   var clash = geo.blocks.some(function (b) {
     return Math.abs(b.x - x) < (b.w + w) / 2 + 0.6 && Math.abs(b.y - y) < (b.h + h) / 2 + 0.6;
   });
   if (clash) return;
   geo.blocks.push({ kind: kind, x: x, y: y, w: w, h: h,
     rc: { xMin: x - w / 2, xMax: x + w / 2, yMin: y - h / 2, yMax: y + h / 2 } });
+}
+
+function placeDistrictLandmark(geo, theme) {
+  var C = P.CFG.levels.districtLandmarks, entry = C.hoods[theme];
+  if (!entry) return;
+  var ideal = Math.round(geo.exitY * entry[2]), x = entry[1] * C.x, size = C.sizes[entry[0]];
+  for (var n = 0; n <= C.search; n += C.step) {
+    var candidates = [ideal + n, ideal - n];
+    for (var i = 0; i < candidates.length; i++) {
+      var y = candidates[i], count = geo.blocks.length;
+      if (y < C.edge || y + C.depth > geo.holdY - C.edge ||
+          P.Layouts.inZone(geo, y - 1) || P.Layouts.inZone(geo, y + C.depth)) continue;
+      addBlock(geo, 'districtLandmark', x, y + C.depth / 2, size[1], C.depth);
+      if (geo.blocks.length > count) {
+        geo.districtLandmark = { theme: theme, kind: entry[0], x: x, y: y, height: size[0] };
+        return;
+      }
+    }
+  }
 }
 
 // A few fleeing civilians at the start (generic version of the L1 panic crowd).
@@ -182,8 +252,14 @@ P.Levels.step = function (s, dt) {
   var g = s.gen, G = s.geo;
   if (g.won) return;
   g.t += dt;
+  if (P.Levels.earlyNormal(s) || s.milestone && P.RouteMilestones.pace(s)) g.routeFront = Math.max(g.routeFront || 2, s.hero.y);
   processMarks(s);
-  if (G.boss) bossStage(s, dt); else holdStage(s, dt);
+  if (s.milestone) P.RouteMilestones.step(s, dt);
+  if (g.boss && g.boss.bossPreset === 'dockBride') P.KarakoyBoss.step(s, g.boss, dt);
+  if (g.boss && g.boss.bossPreset === 'bigFisher') P.BridgeBoss.step(s, g.boss, dt);
+  if (g.boss && g.boss.bossPreset === 'quayCaptain') P.EminonuBoss.step(s, g.boss, dt);
+  if (s.routeTrial && g.hood.id === 'istiklal') P.IstiklalTrial.step(s, dt);
+  if (G.boss || g.arena) bossStage(s, dt); else holdStage(s, dt);
   P.Director.decor(s, dt);
   winCheck(s);
 };
@@ -193,23 +269,39 @@ P.Levels.step = function (s, dt) {
 // slower Adrenalin pace (fewer level-up cards). It is not an Adrenalin level-up and does not move s.level or s.xp.
 function crateAt(s, segId) {
   var C = P.CFG.levels;
-  if (s.levelIndex >= C.rampFrom && [].concat(C.pace.crateSeg || []).indexOf(segId) >= 0) s.pendingChests++;
+  if (s.levelIndex < C.rampFrom || [].concat(C.pace.crateSeg || []).indexOf(segId) < 0) return;
+  var claimed=s.gen.crateClaimed || (s.gen.crateClaimed={});
+  if (claimed[segId]) return;
+  claimed[segId]=true;
+  var p = { x: s.hero.x, y: s.hero.y + 1.1 };
+  P.World.clampHero(s, p);
+  P.Events.drop(s, 'chest', p.x, p.y, P.CFG.ev.chest.drop);
 }
 
 function processMarks(s) {
   var g = s.gen, h = s.hero;
-  while (g.mi < g.marks.length && h.y >= g.marks[g.mi].y) doMark(s, g.marks[g.mi++]);
+  var y = s.milestone && !s.milestone.open ? Math.min(h.y, s.milestone.y) : h.y;
+  while (g.mi < g.marks.length && y >= g.marks[g.mi].y) doMark(s, g.marks[g.mi++]);
 }
 
 function doMark(s, m) {
   var g = s.gen;
   if (m.kind === 'seg') { g.seg = m.id; s.events.push({ type: 'segment', id: m.id }); crateAt(s, m.id); }
+  else if (m.kind === 'supply') crateAt(s,m.slot||'B');
   else if (m.kind === 'mid') { g.midDone = true; s.events.push({ type: 'story', id: g.info.id, when: 'mid' }); }
   else if (m.kind === 'intro') introGroup(s);
   else if (m.kind === 'elite') eliteAt(s);
+  else if (m.kind === 'tramStop') startTramStop(s);
+  else if (m.kind === 'tramFrenzy') P.IstiklalTrial.arm(s);
+  else if (m.kind === 'tramEncounter') tramEncounter(s, m.y);
   else if (m.kind === 'ambush') ambush(s);
-  else if (m.kind === 'hold') startHold(s);
-  else if (m.kind === 'arena') startArena(s);
+  else if (m.kind === 'hold') {
+    if (s.milestone && !s.milestone.galata && P.RouteMilestones.pace(s)) openGate(s);
+    else if (!s.routeTrial || g.hood.id !== 'istiklal') startGeneratedHold(s);
+    else if (s.routeTrial !== 'tram-stop') P.IstiklalTrial.startBoss(s);
+  } else if (m.kind === 'arena') {
+    if (s.routeTrial && g.hood.id === 'istiklal') P.IstiklalTrial.startBoss(s); else startArena(s);
+  }
   else if (m.kind === 'event') P.Events.start(s, m.ev, m.o || {});
   else if (m.kind === 'hack') hackSpot(s, m.ev);
   else if (m.kind === 'landmark') P.Layouts.trigger(s, m);
@@ -225,7 +317,7 @@ function holdStage(s, dt) {
   } else if (s.hero.y < G.holdY) spawnRoute(s, dt);
 }
 
-function startHold(s) {
+function startGeneratedHold(s) {
   var hold = s.dir.hold;
   if (hold.active || s.props.shutterOpen) return;
   hold.active = true; hold.t = 0; hold.T = s.geo.holdT;
@@ -242,7 +334,7 @@ function bossStage(s, dt) {
   var g = s.gen;
   if (g.boss && g.boss.dead && !s.props.shutterOpen) openGate(s);
   if (!g.arena) spawnRoute(s, dt);
-  else if (g.boss && !g.boss.dead && !s.props.shutterOpen) spawnAdds(s, dt);
+  else if (g.boss && !g.boss.dead && !s.props.shutterOpen && !s.routeTrial) spawnAdds(s, dt);
 }
 
 function winCheck(s) {
@@ -259,8 +351,14 @@ function winCheck(s) {
 function segIndex(g) { return SEG_IDS.indexOf(g.seg); }
 
 function spawnRoute(s, dt) {
+  if (P.Levels.tramRespite(s) || P.Levels.routeRelief(s)) return;
   var g = s.gen, C = P.CFG.levels, seg = Math.max(0, segIndex(g));
-  spawnBudget(s, dt, g.st.rate * C.segRate[seg] * s.diff.spawn, routeMix(s, seg), g.st.behind);
+  var rate = s.milestone ? P.RouteMilestones.pressure(s) : 1;
+  var budget = s.milestone && P.RouteMilestones.pace(s) || (P.Levels.earlyNormal(s) ? C.istiklalRoute : null);
+  var limit = budget ? budget.startBudget + (g.routeFront - 2) * budget.budgetPerM - (g.routeSpent || 0) : Infinity;
+  if (limit < 1) return;
+  var spent = spawnBudget(s, dt, g.st.rate * C.segRate[seg] * s.diff.spawn * rate, routeMix(s, seg), g.st.behind, limit);
+  if (isFinite(limit)) g.routeSpent = (g.routeSpent || 0) + spent;
 }
 
 function spawnHold(s, dt) {
@@ -270,30 +368,48 @@ function spawnHold(s, dt) {
 
 function spawnAdds(s, dt) {
   var g = s.gen, C = P.CFG.levels;
-  spawnBudget(s, dt, g.st.rate * C.bossAddRate * s.diff.spawn, routeMix(s, 3).filter(canAdd), 0.2);
+  var limit = s.levelIndex === 5 && P.Modes.of(s) === 'normal' ? C.istiklalRoute.bossAddBudget - (g.addSpent || 0) : Infinity;
+  if (limit < 1) return;
+  var boss=g.boss,profile=boss&&P.CFG.bosses[boss.bossPreset],enc=profile&&profile.encounter;
+  if(enc&&(boss.phase<2||s.enemies.filter(function(e){return !e.dead&&!e.boss&&P.Enemies.dist(e,boss)<P.CFG.bossCrowd.near;}).length>=enc.cap))return;
+  var mix=enc?enc.adds.map(function(type){return{type:type,w:1};}):routeMix(s,3).filter(canAdd);
+  if(!mix.length)return;
+  var spent = spawnBudget(s, dt, g.st.rate * (enc?enc.rate:C.bossAddRate) * s.diff.spawn, mix, 0.2, limit);
+  if (isFinite(limit)) g.addSpent = (g.addSpent || 0) + spent;
 }
 
 // Boss adds never use the heavy types (def.noAdd: the kasap wall).
 function canAdd(m) { var d = P.CFG.enemies[m.type]; return !(d && d.noAdd); }
 
 // Budget spawner (like L1 runBudget): accumulate budget/s, spawn the picked type when affordable.
-function spawnBudget(s, dt, rate, mix, behind) {
-  var g = s.gen, guard = 0;
+function spawnBudget(s, dt, rate, mix, behind, limit) {
+  var g = s.gen, guard = 0, spent = 0;
   rate *= P.Events.spawnMul(s);
   if (P.Modes) rate *= P.Modes.spawnMul(s);   // R1-T4 part 18: Night Shift ramp (1 in every other mode)
-  if (rate <= 0) return;
+  if (rate <= 0) return spent;
   if (!g.next) g.next = pickType(s, mix);
   var cost = costOf(g.next);
   g.acc = Math.min(g.acc + rate * dt, cost + 1);
   while (g.acc >= cost && guard++ < 3) {
-    if (s.enemies.length >= P.CFG.levels.cap) break;
+    if (s.enemies.length >= P.CFG.levels.cap || spent + cost > limit) break;
     s.routeSpawn = true;                                   // enemies3.js E3.entrance: a route spawn may rise from a window, balcony or tram door
-    var placed = spawnOne(s, g.next, behind);
+    var placed = spawnOne(s, pressureRole(s, g.next), behind);
     s.routeSpawn = false;
     if (!placed) break;
     g.acc -= cost;
+    spent += cost;
     g.next = pickType(s, mix); cost = costOf(g.next);
   }
+  return spent;
+}
+
+// Keep the authored interaction or warning as the main threat in the three known overlap cases.
+function pressureRole(s, type) {
+  var C = P.CFG.levels.normalPressure[s.levelIndex], h = s.hero;
+  function areaEnemy(t) { return t === 'bloater' || t === 'spitter' || t === 'brute' || t === 'zehirli'; }
+  if (!C || !s.routeTrial || s.runMode !== 'normal' || s.gen.arena || !areaEnemy(type)) return type;
+  var near = s.enemies.filter(function (e) { return !e.dead && areaEnemy(e.type) && Math.hypot(e.x - h.x, e.y - h.y) < C.near; });
+  return near.length >= C.heavy ? 'walker' : type;
 }
 
 function costOf(type) {
@@ -311,7 +427,9 @@ function pickType(s, mix) {
 
 // Route mix for a segment: walkers and runners, the hood's specials scale up through the route.
 function routeMix(s, seg) {
-  var st = s.gen.st, share = [0.6, 0.8, 1.0, 1.1][seg];
+  var C = P.CFG.levels, special = s.runMode === 'normal' ? C.normalRouteSpecialShare[s.levelIndex] : undefined;
+  if (special === undefined) special = s.gen.st.newShare;
+  var share = [0.6, 0.8, 1.0, 1.1][seg];
   return s.gen.roster.map(function (t) {
     var w;
     if (t === 'walker') w = 1;
@@ -319,7 +437,7 @@ function routeMix(s, seg) {
     else if (t === 'crawler') w = 0.35;
     else if (P.CFG.levels.extraTypes.indexOf(t) >= 0) w = P.CFG.levels.extraShare * share;
     else if (P.CFG.levels.newTypes.indexOf(t) >= 0) w = P.CFG.levels.extraShare * share * (1 + P.CFG.levels.newGrow * s.gen.info.hoodIndex);   // v0.6 grow with progress
-    else w = st.newShare * share;
+    else w = special * share;
     return { type: t, w: w };
   });
 }
@@ -392,16 +510,23 @@ function ambush(s) {
 // Boss arena: boss ahead of the hero (intro banner via bossIntro), adds around it, story 'boss' beat.
 function startArena(s) {
   var g = s.gen, h = s.hero, hood = g.hood, C = P.CFG.levels;
-  g.arena = true;
+  g.arena = true; g.next=null; g.acc=0;
   s.dir.zoomOut = true;
   var y = Math.min(s.geo.exitY - 4, h.y + C.arenaBossAhead);
-  g.boss = P.Bosses.spawn(s, hood.boss, 0, y, { nameKey: 'boss.' + hood.id, hoodIdx: g.info.hoodIndex,
-    skin: hood.skins[0], hoodId: hood.id });
+  var galata = s.routeTrial === 'galata-courtyard', preset = s.routeTrial === 'sirkeci-stationPoints' ? 'ticketMan' :
+    s.routeTrial === 'eminonu-marketGate' ? 'quayCaptain' :
+    s.routeTrial === 'bridge-bridgeLift' ? 'bigFisher' :
+    s.routeTrial === 'karakoy-dockRamp' ? 'dockBride' : galata ? 'bellkeeper' : undefined;
+  var arrival=preset&&P.CFG.bosses[preset].arrival,at=arrival&&P.WalkPath.nearest(s,{x:arrival.x,y:Math.min(s.geo.exitY-4,h.y+arrival.ahead)},P.CFG.bosses[preset].radius);
+  g.boss = P.Bosses.spawn(s, hood.boss, at?at.x:0, at?at.y:y, { nameKey: galata ? 'boss.galataKeeper' : 'boss.' + hood.id,
+    hoodIdx: g.info.hoodIndex, skin: hood.skins[0], hoodId: hood.id, preset: preset, archetype: preset === 'quayCaptain' || preset === 'ticketMan' ? 'brute' : undefined });
   g.bossSpawned = true;
   s.events.push({ type: 'story', id: g.info.id, when: 'boss' });
-  for (var i = 0; i < C.bossAddStart; i++) {
-    var pool = g.roster.filter(function (t) { var d = P.CFG.enemies[t]; return !(d && d.noAdd); }) || ['walker'];
-    var a = (i / C.bossAddStart) * Math.PI * 2, type = pool[i % pool.length];
+  var roster = preset && P.CFG.bosses[preset].introAdds, n = roster ? roster.length : C.bossAddStart;
+  var pool = roster || g.roster.filter(function (t) { var d = P.CFG.enemies[t]; return !(d && d.noAdd); });
+  if (!pool.length) pool = ['walker'];
+  for (var i = 0; i < n; i++) {
+    var a = (i / n) * Math.PI * 2, type = pool[i % pool.length];
     P.Combat.spawnEnemy(s, type === 'crawler' ? 'walker' : type, g.boss.x + Math.cos(a) * 4.5, g.boss.y + Math.sin(a) * 4.5, { skin: pickSkin(s), state: 'turning', stateT: C.bossIntro, bossAdd: true });
   }
 }

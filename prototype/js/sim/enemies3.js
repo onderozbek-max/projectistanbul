@@ -70,7 +70,7 @@ P.Enemies3 = {};
     }
     if (a.cd <= 0 && d <= C3.sense && d >= C3.minDist) {
       a.dir = unit(h.x - e.x, h.y - e.y); a.m = 'windup'; a.t = 0; e.dvx = 0; e.dvy = 0;
-      P.Enemies.ring(s, e.x + a.dir.x * C3.reach, e.y + a.dir.y * C3.reach, C3.binR, pushT(), null, 'toxic').owner = e.id;
+      pushWarning(s, e, a, C3);
       s.events.push({ type: 'copciPush', id: e.id, x: e.x, y: e.y });
       return true;
     }
@@ -81,12 +81,27 @@ P.Enemies3 = {};
   function tele(W) { var m = cfg4().telegraphMin; return m > W ? m : W; }
   function pushT() { return tele(cfg().copci.pushWindup); }
 
+  function rollsCrate(a) {
+    var every = (cfg4().crate || {}).every || 0;
+    return every > 0 && ((a.pushes || 0) + 1) % every === 0;
+  }
+
+  function pushWarning(s, e, a, C3) {
+    var d = a.dir, x = e.x + d.x * C3.reach, y = e.y + d.y * C3.reach;
+    if (s.routeTrial !== 'bridge-bridgeWave') {
+      P.Enemies.ring(s, x, y, C3.binR, pushT(), null, 'toxic').owner = e.id;
+      return;
+    }
+    var K = rollsCrate(a) ? cfg4().crate : C3;
+    var length = K.binSpeed * K.binLife, edge = s.geo.xMax;
+    if (d.x) length = Math.min(length, Math.max(0, (Math.sign(d.x) * edge - x) / d.x));
+    P.Enemies.lane(s, x, y, d.x, d.y, length, 2 * K.binR, pushT()).owner = e.id;
+  }
+
   // Every every-th push is a crate (heavier, shorter-lived); the others are wheelie bins.
   function spawnBin(s, e, a) {
-    var C3 = cfg().copci, every = (cfg4().crate || {}).every || 0, n, crate, dir = a.dir;
+    var C3 = cfg().copci, crate = rollsCrate(a), dir = a.dir;
     a.pushes = (a.pushes || 0) + 1;
-    n = a.pushes;
-    crate = every > 0 && n % every === 0;
     state(s).bins.push({ kind: crate ? 'crate' : 'bin', x: e.x + dir.x * C3.reach, y: e.y + dir.y * C3.reach, dx: dir.x, dy: dir.y,
       t: 0, owner: e.id, hitCd: 0 });
     s.events.push({ type: 'binRoll', id: e.id, x: e.x, y: e.y, crate: crate });
@@ -132,17 +147,19 @@ P.Enemies3 = {};
 
   // Thrown object (boss throw): a visual flight from the boss to the spot for the telegraph time. kind = the boss type
   // (kasapBoss: cleaver; tourGuide: audio guide; antiquarian: vase). The view picks the sprite from it.
-  E3.launchBlade = function (s, x0, y0, x1, y1, dur, kind) {
-    state(s).blades.push({ x0: x0, y0: y0, x1: x1, y1: y1, dur: dur, t: 0, kind: kind || 'kasapBoss' });
+  E3.launchBlade = function (s, x0, y0, x1, y1, dur, kind, owner) {
+    state(s).blades.push({ x0: x0, y0: y0, x1: x1, y1: y1, dur: dur, t: 0, kind: kind || 'kasapBoss',owner:owner });
   };
 
   // Telegraph resolution for the boss swings and smashes (bosses.js). Returns true when handled here.
   E3.onTele = function (s, tg) {
     if (tg.then !== 'swing' && tg.then !== 'smash') return false;
     var h = s.hero, hr = P.CFG.hero.radius;
+    var cook = tg.cause === 'cook' && s.dir.trialBoss;
+    if (cook && cook.id === tg.owner) cook.ai.cookContact = { age: cook.age, x: tg.x, y: tg.y, r: tg.r, move: cook.ai.act };
     s.events.push({ type: tg.then === 'smash' ? 'bossSmash' : 'bossSwing', x: tg.x, y: tg.y, r: tg.r, boss: tg.cause });
     if (dist(h, tg) - hr <= tg.r) {
-      P.Combat.damageHero(s, tg.dmg, tg.cause);
+      P.Combat.damageHero(s, tg.dmg, tg.cause, tg.owner);
       P.Combat.pushHero(s, h.x - tg.x, h.y - tg.y, tg.kb || tg.shove || 0);
     }
     return true;

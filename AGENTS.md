@@ -48,6 +48,10 @@ Both builds:
   imagery, religion/politics as targets, or real brands/club crests. No flashes over 3 per second.
 - **No secrets** in the repo. No new plugins, dependencies or paid services without asking.
 - **Tests green before merging to `main`.**
+- **District artwork:** Use current ImageGen scenery and prop art in player builds. Apply this to existing and new
+  Bölüms, including cutscenes and incidental props. Once an illustration is replaced, ordinary play must never
+  fall back to the retired sprite or procedural drawing. Follow [the in-game art review](docs/design-system.md#121-in-game-art-review)
+  before marking a district complete.
 
 Prototype (`prototype/`):
 - **Sim and view are separate.** `js/sim/` never reads the view, `P.Settings` or quality. Numbers live in `js/config*.js`.

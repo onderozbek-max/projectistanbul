@@ -4,7 +4,8 @@
 //     stick when an overlay called reset() re-anchors on its next move (no jump) once play resumes.
 //  2. The hint callout (js/view/hints-view.js): a tap on the pill skips it but the touch still reaches #phone, so the stick can start.
 //  3. The sim: a held stick in a dense crowd (120 walkers around the hero, L2) moves the hero at the speed the terrain allows.
-//  4. The evolution beat (js/main.js): the 1.6 s world crawl stays on Level 1 only (design-system 7: camera punch, no slow-mo).
+//  4. No unconditional gameplay crawl on evolution. The reset packet supersedes the former L1-only crawl;
+//     actual protected reveal/reward/background ownership is exercised by check-first30-reward-ownership.cjs.
 // Usage: node prototype/tools/test-input.js
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -105,10 +106,18 @@ ok(near(I.vec.y, 5 / RAD, 1e-9), '1c: the new touch steers from its own anchor')
 up(3, CX, CY - 5);
 
 // 1d. a touch on a button never starts or drops the stick
+I.reset();
 down(4, CX, CY);
 down(5, 330, 760, btn);               // dash, ult or pause: a button
+clock += 20;
+move(5, 250, 760);
+ok(!I.get().dash, '1d: a fast drag from a button never becomes a dash');
 move(4, CX + 8, CY);
 ok(near(I.vec.x, 8 / RAD, 1e-9), '1d: a button touch does not drop the stick');
+I.requestDash();
+const steeringDash = I.get();
+ok(steeringDash.dash && near(steeringDash.x, 8 / RAD, 1e-9) && !I.get().dash,
+  '1d: a Dash tap keeps the active stick direction and is consumed once');
 up(5, 330, 760);
 ok(shown(), '1d: lifting a button touch does not release the stick');
 up(4, CX + 8, CY);
@@ -151,6 +160,22 @@ ok(shown(), '1g: a second reset before resume keeps the held finger');
 move(9, CX + 14, CY);
 ok(near(I.vec.x, 10 / RAD, 1e-9), '1g: the held finger steers after two resets');
 up(9, CX + 14, CY);
+
+// A mouse can grab the upper playfield or the side reserved against touch starts.
+function mouseDown(id, button, target) {
+  dispatch(target || TARGET, 'pointerdown', Object.assign(ptrEv(id, 110, 250), { pointerType: 'mouse', button }));
+}
+down(11, 110, 250);
+ok(!shown(), 'upper playfield still does not start the touch stick');
+up(11, 110, 250);
+mouseDown(12, 0);
+move(12, 121, 250);
+ok(shown() && near(I.vec.x, 11 / RAD, 1e-9), 'a primary mouse drag starts above the touch area and steers');
+up(12, 121, 250);
+mouseDown(13, 2);
+ok(!shown() && I.vec.x === 0, 'a secondary mouse click does not start steering');
+mouseDown(14, 0, btn);
+ok(!shown(), 'a mouse click on a game button does not start steering');
 
 // ---------- 2. the hint callout does not swallow the touch ----------
 // The pill sits in #phone (as hints-view.js builds it). A tap on it skips the hint and the touch still reaches #phone.
@@ -207,9 +232,8 @@ ok(steps === 120, '3: the hero stayed in play for the whole measurement');
 ok(ratio >= 0.98 && ratio <= 1.02, '3: held north in a 120-enemy crowd the hero moves at the terrain speed (ratio ' + ratio.toFixed(3) + ', want 0.98-1.02)');
 ok(s.hero.y > hy + 1.5, '3: the hero actually walked north (' + (s.hero.y - hy).toFixed(2) + ' m)');
 
-// ---------- 4. the evolution beat stays off generated levels ----------
+// ---------- 4. no unconditional evolution gameplay crawl ----------
 const mainSrc = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
-ok(/case 'evolve': if \(levelIndex === 1\) slow\(ev\.T \|\| 1\.6, 0\.2\);/.test(mainSrc), '4: the 1.6 s evolution crawl is Level 1 only (main.js)');
 ok(!/case 'evolve': slow\(/.test(mainSrc), '4: no unconditional evolution slow-mo remains');
 
 console.log(fails ? fails + ' failure(s), ' + passes + ' passed' : 'test-input: all ' + passes + ' checks pass');

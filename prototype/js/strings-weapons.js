@@ -1,7 +1,7 @@
 // Strings for the arsenal (workstream E1): new weapons, evolutions, passives, skills, stats, banners.
 // Merged into P.STR (TR primary, EN). Keys follow strings.js: item.<id>, desc.<id>[.up], stat.<key>.
 Object.assign(P.STR.tr, {
-  'item.sledge': 'Varyoz', 'item.molotov': 'Ateş Şişesi', 'item.fireworks': 'Havai Fişek',
+  'item.sledge': 'Varyoz', 'item.molotov': 'Ateş Şişesi', 'item.fireworks': 'Havai Fişek', 'stat.cd.base': 'Temel bekleme',
   'item.cable': 'Canlı Kablo', 'item.speargun': 'Zıpkın', 'item.extinguisher': 'Yangın Tüpü',
   'item.nazar': 'Nazar Boncuğu', 'item.magnet': 'Mıknatıs',
   'item.cleaver': "Usta'nın Satırı", 'item.nailstorm': 'Çivi Fırtınası', 'item.cluster': 'Küme Bomba',
@@ -20,7 +20,7 @@ Object.assign(P.STR.tr, {
   'desc.extinguisher.up': 'Daha geniş koni, daha güçlü itme.',
   'desc.nazar': 'Kritik vuruş şansı ve nazarla saldırıdan kaçma şansı verir.',
   'desc.magnet': 'Toplama alanını genişletir; periyodik olarak tüm toplanabilirleri çeker.',
-  'desc.cleaver': '360° dönen dev bir satır. Bıçağın yerini alır.',
+  'desc.cleaver': 'Bıçağın yerini alan satır, iki yöne güçlü kesişler yapar.',
   'desc.nailstorm': 'Geniş yelpazede hızlı, delici çivi yağmuru.',
   'desc.cluster': 'Kutu, üç ikincil patlamaya bölünür.',
   'desc.cyclone': 'Daha geniş ve hızlı zincir. Düşmanları içeri çeker.',
@@ -31,13 +31,13 @@ Object.assign(P.STR.tr, {
   'stat.pull': 'Çekim', 'stat.area': 'Alan', 'stat.crit': 'Kritik', 'stat.dodge': 'Nazar',
   'stat.pickup': 'Toplama', 'stat.pulse': 'Çekim dalgası',
   'evo.title': 'EVRİM!', 'evo.label': 'EVRİM', 'evo.from': '{from} → {to}',
-  'frenzy.on': 'ÇILGINLIK!', 'dash.name': 'Depar', 'dash.hud': 'DEPAR', 'nearMiss': 'KIL PAYI!',
+  'frenzy.on': 'ÇILGINLIK · HIZLI SALDIRI', 'dash.name': 'Depar', 'dash.hud': 'DEPAR', 'nearMiss': 'KIL PAYI!',
   'nazar.dodge': 'NAZAR!', 'ult.name': 'Nazar Patlaması', 'ult.hud': 'NAZAR', 'ult.ready': 'NAZAR HAZIR!',
   'fx.boom': 'BUM!',
 });
 
 Object.assign(P.STR.en, {
-  'item.sledge': 'Sledgehammer', 'item.molotov': 'Fire Bottle', 'item.fireworks': 'Fireworks',
+  'item.sledge': 'Sledgehammer', 'item.molotov': 'Fire Bottle', 'item.fireworks': 'Fireworks', 'stat.cd.base': 'Base cooldown',
   'item.cable': 'Live Cable', 'item.speargun': 'Speargun', 'item.extinguisher': 'Fire Extinguisher',
   'item.nazar': 'Nazar Charm', 'item.magnet': 'Magnet',
   'item.cleaver': "Usta's Cleaver", 'item.nailstorm': 'Nail Storm', 'item.cluster': 'Cluster Bomb',
@@ -56,7 +56,7 @@ Object.assign(P.STR.en, {
   'desc.extinguisher.up': 'A wider cone, a stronger push.',
   'desc.nazar': 'Adds crit chance and a chance to dodge a hit with the evil eye.',
   'desc.magnet': 'A bigger pickup radius and a periodic vacuum that pulls every pickup in.',
-  'desc.cleaver': 'A 360° spinning meat cleaver. Replaces the knife.',
+  'desc.cleaver': 'Replaces the knife with heavy, alternating cleaver cuts.',
   'desc.nailstorm': 'A rapid fan of piercing nails. Bullet-hell spray.',
   'desc.cluster': 'The canister splits into three secondary blasts.',
   'desc.cyclone': 'A wider, faster chain. Drags enemies inward.',
@@ -67,7 +67,7 @@ Object.assign(P.STR.en, {
   'stat.pull': 'Pull', 'stat.area': 'Area', 'stat.crit': 'Crit', 'stat.dodge': 'Evil eye',
   'stat.pickup': 'Pickup', 'stat.pulse': 'Vacuum',
   'evo.title': 'EVOLUTION!', 'evo.label': 'EVOLUTION', 'evo.from': '{from} → {to}',
-  'frenzy.on': 'FRENZY!', 'dash.name': 'Dash', 'dash.hud': 'DASH', 'nearMiss': 'CLOSE CALL!',
+  'frenzy.on': 'FRENZY · FASTER ATTACKS', 'dash.name': 'Dash', 'dash.hud': 'DASH', 'nearMiss': 'CLOSE CALL!',
   'nazar.dodge': 'EVIL EYE!', 'ult.name': 'Evil-Eye Burst', 'ult.hud': 'EYE', 'ult.ready': 'EYE READY!',
   'fx.boom': 'BOOM!',
 });

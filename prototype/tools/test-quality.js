@@ -37,7 +37,7 @@ const main = read('js/main.js');
 ok(/if \(!document\.hidden\) tick\(ts\)/.test(main), 'main.js: nothing runs while the page is hidden');
 ok(/RUN_MS = 1000 \/ 60/.test(main) && /MENU_RUN_MS = 1000 \/ P\.CFG\.view\.quality\.menuFps/.test(main), 'main.js: logic and world draw capped at 60 Hz, menus at menuFps');
 ok(/P\.Quality\.feed\(gap/.test(main) && /P\.Quality\.onChange\(function \(\) \{ P\.Render\.resize\(scale\); \}\)/.test(main), 'main.js: the governor is fed from the loop and a tier step re-sizes the canvas');
-ok(/visibilitychange', function \(\) \{ if \(document\.hidden\) pause\(\); \}/.test(main), 'main.js: hiding the page still pauses the run');
+ok(/visibilitychange'[\s\S]*?if \(document\.hidden\)[\s\S]*?pause\(\)/.test(main), 'main.js: hiding the page still pauses the run');
 const cfgSrc = read('js/config.js');
 ok(/maxDpr: 2,/.test(cfgSrc) && /menuFps: 30/.test(cfgSrc), 'config.js: view.maxDpr and view.quality.menuFps are set');
 
@@ -140,7 +140,7 @@ function fakeEl() {
   const store = {};
   const queue = [];
   let clock = 1000;
-  const document = { hidden: false, currentScript: { src: 'http://test/js/view/x.js' }, body: fakeEl(), documentElement: fakeEl(), head: fakeEl(), createElement: () => fakeEl(),
+  const document = { hidden: false, currentScript: { src: 'http://test/js/view/x.js' }, body: fakeEl(), documentElement: fakeEl(), head: fakeEl(), createElement: () => fakeEl(), createTextNode: () => fakeEl(),
     getElementById: (id) => (els[id] || (els[id] = fakeEl())), querySelectorAll: () => [], querySelector: () => fakeEl(), addEventListener() {}, removeEventListener() {} };
   const els = { game: { width: 0, height: 0, getContext: () => fakeEl(), style: {} } };
   class Path2D { constructor() {} }
@@ -150,7 +150,7 @@ function fakeEl() {
     parseInt, parseFloat, isNaN, isFinite, Symbol, Promise, Infinity, NaN, undefined,
     performance: { now: () => clock }, document, Path2D, DOMMatrix, navigator: { userAgent: 'test' },
     localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
-    Image: class {}, AudioContext: class {}, webkitAudioContext: class {},
+    Image: class { constructor() { this.complete = true; this.naturalWidth = 256; } }, AudioContext: class {}, webkitAudioContext: class {},
     requestAnimationFrame: (fn) => { queue.push(fn); return queue.length; }, cancelAnimationFrame() {}, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
     URLSearchParams, URL, location: { search: '?skipintro=1' }, devicePixelRatio: 3, innerWidth: 390, innerHeight: 844, addEventListener() {}, removeEventListener() {},
     };

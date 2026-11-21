@@ -12,7 +12,7 @@ const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'j
   'js/config-enemies4.js', 'js/config-enemies5.js', 'js/config-skins.js', 'js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js',
   'js/config-weapon-tiers.js', 'js/config-env.js', 'js/config-objectives.js', 'js/config-modifiers.js', 'js/config-horde.js',
   'js/strings.js', 'js/strings-progress.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/strings-weapons3.js', 'js/sim/rng.js', 'js/sim/world.js',
-  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
+  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons-knife.js', 'js/sim/weapons-cleaver.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
   'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/layouts.js', 'js/sim/levels.js', 'js/sim/enemies3.js',
   'js/sim/skins.js', 'js/sim/skins-fisher.js', 'js/sim/enemies4.js', 'js/sim/enemies4-marti.js', 'js/sim/enemies4-cayci.js', 'js/sim/events.js', 'js/sim/events-kinds.js',
   'js/sim/env.js', 'js/sim/env-kinds.js', 'js/sim/env-zones.js', 'js/sim/env-rules.js', 'js/sim/env-portal.js',
@@ -21,8 +21,8 @@ const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'j
 FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const VIEW = ['js/view/weapons-fx.js', 'js/view/weapons-fx2.js', 'js/view/weapons-fx3.js', 'js/view/weapons-fx4.js', 'js/view/fire-anim-prim.js',
   'js/view/fire-anim-held.js', 'js/view/fire-anim-held2.js', 'js/view/fire-anim-held3.js', 'js/view/fire-anim-held4.js', 'js/view/fire-anim-fx.js',
-  'js/view/fire-anim-fx2.js', 'js/view/fire-anim-fx3.js', 'js/view/fire-anim-fx4.js', 'js/view/fire-anim.js', 'js/view/weapon-sil-prim.js',
-  'js/view/weapon-sil.js', 'js/view/weapon-sil-evo.js', 'js/view/weapon-tiers.js'];
+  'js/view/fire-anim-fx2.js', 'js/view/fire-anim-fx3.js', 'js/view/fire-anim-fx4.js', 'js/view/hero-footwork.js', 'js/view/hero-attacks.js', 'js/view/fire-anim.js', 'js/view/weapon-sil-prim.js',
+  'js/view/weapon-sil.js', 'js/view/weapon-sil-evo.js', 'js/view/weapon-action-fx.js', 'js/view/weapon-tools-fx.js', 'js/view/weapon-contact-fx.js', 'js/view/weapon-impacts.js', 'js/view/weapon-tiers.js'];
 // Stand-ins for the browser-only globals the view reads (the test drives the tier layer directly, no page).
 globalThis.performance = globalThis.performance || { now: () => Date.now() };
 const P = globalThis.P;
@@ -135,8 +135,8 @@ flashCalls.allow = false;
 flashCalls.n = 0;
 T.reset();
 const fl0 = T.stats.flashes;
-for (let i = 0; i < 5; i++) T.onHit(hitEv('cable', true, 40), fakeSim);
-check(flashCalls.n === 5, 'flash gate not consulted for each crit hit (' + flashCalls.n + ')');
+for (let i = 0; i < C.contact.maxPerWeapon; i++) T.onHit({ ...hitEv('knife', true, 40), x: i * 2 }, fakeSim);
+check(flashCalls.n === C.contact.maxPerWeapon, 'flash gate not consulted for each visible crit contact (' + flashCalls.n + ')');
 check(T.stats.flashes === fl0, 'a flash was drawn while the flash budget refused it');
 flashCalls.allow = true;
 
@@ -150,6 +150,49 @@ const stubCtx = new Proxy({}, {
   set(t, k, v) { t[k] = v; return true; },
 });
 const R = { ctx: stubCtx, X: x => x * 32, Y: y => -y * 32, ppm: 32, cam: { x: 0, y: 0 }, W: 390, H: 844 };
+
+// Compare the rendered contact paths, independent of color and overall scale.
+const contact = P.WeaponImpacts;
+function contactPath(id, lv, settings = {}) {
+  const p = contact.make(id, { ...hitEv(id, false), x: 3, y: -3 }, lv);
+  p.t *= 0.66;
+  const ops = [], ctx = new Proxy({ globalAlpha: 1 }, {
+    get: (t, k) => k in t ? t[k] : (...a) => {
+      if (['moveTo', 'lineTo', 'ellipse', 'arc', 'bezierCurveTo', 'quadraticCurveTo'].includes(k)) ops.push([k, ...a]);
+    },
+  });
+  contact.draw(ctx, R, p, settings);
+  return JSON.stringify(ops);
+}
+const paths = BASES.map(id => contactPath(id, 1));
+check(new Set(paths).size === BASES.length, 'each base weapon has a distinct contact silhouette');
+ALL.forEach(id => {
+  const lv1 = contact.make(id, hitEv(id, false), 1), lv5 = contact.make(id, hitEv(id, false), 5);
+  check(lv5.w / lv1.w >= 1.65 && lv5.T > lv1.T, id + ' top-rank contact grows in reach and duration');
+  if (BASES.includes(id)) {
+    check(new Set([1, 2, 3, 4, 5].map(lv => contactPath(id, lv))).size === 5, id + ' changes contact at every rank');
+    check([2, 3, 4].every(lv => contact.make(id, hitEv(id, false), lv).detail &&
+      !contact.make(id, hitEv(id, false), lv, true).follow), id + ' keeps rank cues on the leading contact');
+  }
+  check(contactPath(id, 5, { reduceMotion: true }).length > 2, id + ' still has a contact mark under Reduce motion');
+});
+check(new Set(BASES.concat(EVOS).map(id => contactPath(id, 5))).size === ALL.length, 'all rank-five and evolution contact paths are distinct');
+check(new Set(EVOS.map(id => contactPath(id, 4))).size === EVOS.length, 'all evolutions are distinct at their live minimum visual rank');
+const leftScreen = { ...R, X: () => -105, Y: () => -110, toScreen: () => ({ x: 80, y: 120 }) };
+const marks = [];
+const leftCtx = new Proxy({ globalAlpha: 1 }, { get: (t, k) => k in t ? t[k] : () => marks.push(k) });
+contact.draw(leftCtx, leftScreen, contact.make('sledge', hitEv('sledge', false), 5), {});
+check(marks.includes('lineTo'), 'visible contacts above and left of the camera centre still draw');
+check(contact.weapon({ hero: { weapons: { grinder: 1 }, evolved: { chainsaw: 'grinder' } } }, 'chainsaw') === 'grinder', 'base-source ticks use the equipped evolution contact');
+check(contact.weapon(fakeSim, undefined) === null && contact.weapon(fakeSim, 'heroHit') === null, 'damage-over-time and hero hits receive no weapon contact');
+T.reset();
+const beforeContacts = T.stats.impacts;
+for (let i = 0; i < 32; i++) T.onHit(hitEv('sawblade', false), fakeSim);
+T.onHit(hitEv('nailgun', false), fakeSim);
+check(T.stats.impacts - beforeContacts === 2, 'clustered disc damage coalesces, leaving room for a nail contact at the same spot');
+T.onHit(hitEv('sledge', true), fakeSim);
+check(T.stats.impacts - beforeContacts === 2, 'the dedicated hammer strike owns its contact without a duplicate mark');
+
 let drawErr = null;
 const sils35 = Array.from(new Set(sils));
 ['ground', 'air'].forEach(layer => {
@@ -211,7 +254,7 @@ fs.readdirSync(simDir).filter(f => f.endsWith('.js')).forEach(f => {
   const src = fs.readFileSync(path.join(simDir, f), 'utf8');
   check(!/WTier|WSil|WFx|FireAnim|wtier|weapon-tiers/.test(src), 'sim file ' + f + ' references the view layer');
 });
-['js/view/weapon-tiers.js', 'js/view/weapon-sil-prim.js', 'js/view/weapon-sil.js', 'js/view/weapon-sil-evo.js', 'js/config-weapon-tiers.js'].forEach(f => {
+['js/view/weapon-tiers.js', 'js/view/weapon-impacts.js', 'js/view/weapon-sil-prim.js', 'js/view/weapon-sil.js', 'js/view/weapon-sil-evo.js', 'js/view/weapon-action-fx.js', 'js/view/weapon-tools-fx.js', 'js/view/weapon-contact-fx.js', 'js/config-weapon-tiers.js'].forEach(f => {
   const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
   check(!/createElement|new Image\b|new OffscreenCanvas|document\./.test(src), f + ' creates elements or images');
   const lines = src.split('\n').length;

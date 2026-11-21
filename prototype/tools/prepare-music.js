@@ -91,19 +91,19 @@ function loudness(args) {
   return { I: parseFloat(i[1]), TP: parseFloat(p[1]) };
 }
 
-function writeRaw(file, L, R) {
+function interleave(L, R) {
   const f = new Float32Array(L.length * 2);
   for (let i = 0; i < L.length; i++) { f[2 * i] = L[i]; f[2 * i + 1] = R[i]; }
-  fs.writeFileSync(file, Buffer.from(f.buffer));
+  return Buffer.from(f.buffer);
 }
-const RAW_IN = ['-f', 'f32le', '-ar', String(SR), '-ac', '2'];
+const RAW_IN = ['-f', 'f32le', '-ar', String(SR), '-ac', '2', '-i', 'pipe:0'];
 
 // Pass 1 of loudnorm: measure the shaped audio.
 function loudnormMeasure(raw) {
-  const r = spawnSync('ffmpeg', ['-hide_banner', '-nostats', ...RAW_IN, '-i', raw,
-    '-af', `loudnorm=I=${LUFS}:TP=${TRUE_PEAK}:LRA=11:print_format=json`, '-f', 'null', '-'], { encoding: 'utf8' });
+  const r = spawnSync('ffmpeg', ['-hide_banner', '-nostats', ...RAW_IN,
+    '-af', `loudnorm=I=${LUFS}:TP=${TRUE_PEAK}:LRA=11:print_format=json`, '-f', 'null', '-'], { input: raw, encoding: 'utf8' });
   const m = /\{[^{}]*"input_i"[^{}]*\}/.exec(r.stderr || '');
-  if (!m) throw new Error('loudnorm measurement failed');
+  if (r.error || r.status !== 0 || !m) throw new Error('loudnorm measurement failed');
   return JSON.parse(m[0]);
 }
 
@@ -111,9 +111,9 @@ function loudnormMeasure(raw) {
 function encode(raw, meas, mp3, comment) {
   const af = `loudnorm=I=${LUFS}:TP=${TRUE_PEAK}:LRA=11:measured_I=${meas.input_i}:measured_TP=${meas.input_tp}` +
     `:measured_LRA=${meas.input_lra}:measured_thresh=${meas.input_thresh}:offset=${meas.target_offset}:linear=true`;
-  const r = spawnSync('ffmpeg', ['-v', 'error', '-y', ...RAW_IN, '-i', raw, '-af', af, '-map_metadata', '-1',
+  const r = spawnSync('ffmpeg', ['-v', 'error', '-y', ...RAW_IN, '-af', af, '-map_metadata', '-1',
     '-metadata', 'comment=' + comment, '-c:a', 'libmp3lame', '-b:a', BITRATE, '-id3v2_version', '3', '-f', 'mp3', mp3],
-    { encoding: 'utf8' });
+    { input: raw, encoding: 'utf8' });
   if (r.error || r.status !== 0) throw new Error('encode failed' + (r.stderr ? ': ' + r.stderr.trim().split('\n').pop() : ''));
 }
 
@@ -205,8 +205,7 @@ function render(slot, file, info) {
   const shaped = isLoop ? shapeLoop(src, n, x) : shapeStinger(src, n, Math.round(STINGER_FADE * SR));
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'prepare-music-'));
   try {
-    const raw = path.join(tmp, slot.id + '.f32'), mp3 = path.join(tmp, slot.id + '.mp3');
-    writeRaw(raw, shaped.L, shaped.R);
+    const raw = interleave(shaped.L, shaped.R), mp3 = path.join(tmp, slot.id + '.mp3');
     const meas = loudnormMeasure(raw);
     encode(raw, meas, mp3, `${TAG} ${slot.id} src=${path.basename(file)} sec=${slot.sec}`);
     const out = decode(mp3, slot.sec + 1), after = loudness(['-i', mp3]);

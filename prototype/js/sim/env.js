@@ -23,45 +23,88 @@ P.Env.isCar = isCar;
 // Can an env rule hit or slow this enemy? Alive and not dormant. Enemies rising from an opening (lane C) count.
 P.Env.foe = function (e) { return !e.dead && e.state !== 'dormant'; };
 
-function coverHp(s, kind) {
+P.Env.streetSized = function (b) {
+  return Math.max(b.w, b.h) <= P.CFG.env.streetWeapon.maxSide;
+};
+
+function coverHp(s, kind, b) {
   var overrides = P.CFG.levels.sarayRaster.cover;
   if (s.geo.sarayRaster && Object.prototype.hasOwnProperty.call(overrides, kind)) return overrides[kind];
-  return P.CFG.env.hp[kind];
+  if (kind === 'lx_stall' && !P.Env.streetSized(b)) return null;
+  var k = kind.indexOf('cm_') === 0 ? kind.replace(/\d+$/, '') : kind;
+  return P.CFG.env.hp[k];
 }
 
-// Attach a breakable record to an existing block (levels.js kinds with hp). Cars have a share of bombs.
+// A placed prop's response is fixed before the first hit, so view markers can read it.
+function blastKind(E, C, kind) {
+  if (isCar(kind) && E.rng.chance(C.bombShare)) return 'car';
+  return C.explosives[kind.replace(/\d+$/, '')] || null;
+}
 function adopt(s, b, kind) {
-  var E = s.env, C = P.CFG.env, hp = coverHp(s, kind);
+  var E = s.env, C = P.CFG.env, hp = coverHp(s, kind, b), explosion = blastKind(E, C, kind);
   var rec = { env: true, alive: true, kind: kind, b: b, x: b.x, y: b.y, r: Math.min(b.w, b.h) / 2 + C.recPad,
-    hp: hp, max: hp, bomb: isCar(kind) && E.rng.chance(C.bombShare), fuseT: 0, fuseMax: 0, fuseVia: null, flash: 0, dashed: null };
+    hp: hp, max: hp, bomb: !!explosion, explosion: explosion, fuseT: 0, fuseMax: 0, fuseVia: null, flash: 0, dashed: null };
   E.recs.push(rec); b.rec = rec;
   return rec;
 }
 P.Env.adopt = adopt;
 
 // Solid env props (gas canisters, extinguishers): side lane only, clash-checked, and the level must stay passable.
-function addSolid(s, kind, x, y, w, h) {
-  var G = s.geo, C = P.CFG.env, i, b;
-  for (i = 0; i < G.blocks.length; i++) {
-    b = G.blocks[i];
-    if (Math.abs(b.x - x) < (b.w + w) / 2 + C.clashGap && Math.abs(b.y - y) < (b.h + h) / 2 + C.clashGap) return false;
-  }
-  if (Math.abs(x) + w / 2 > G.xMax - C.edgeGap) return false;
-  b = { kind: kind, x: x, y: y, w: w, h: h, rc: { xMin: x - w / 2, xMax: x + w / 2, yMin: y - h / 2, yMax: y + h / 2 } };
+P.Env.coverFits = function (s, x, y, w, h) {
+  var G = s.geo, C = P.CFG.env;
+  if(s.milestone&&P.StreetPlaces&&P.StreetPlaces.reserved(s.milestone,x,y,w,h))return false;
+  if(s.companion&&Math.abs(s.companion.x-x)<w/2+P.CFG.experience.people.radius&&
+    Math.abs(s.companion.y-y)<h/2+P.CFG.experience.people.radius)return false;
+  if (G.blocks.some(function (b) {
+    return Math.abs(b.x - x) < (b.w + w) / 2 + C.clashGap && Math.abs(b.y - y) < (b.h + h) / 2 + C.clashGap;
+  })) return false;
+  return x - w / 2 >= G.xMin + C.edgeGap && x + w / 2 <= G.xMax - C.edgeGap && y >= h / 2 &&
+    y + h / 2 < G.exitY && !P.Layouts.reserved(G, x, y, w, h);
+};
+function insertSolid(s, kind, x, y, w, h, art) {
+  if (!P.Env.coverFits(s, x, y, w, h)) return null;
+  var G = s.geo;
+  var b = Object.assign({}, art, { kind: kind, x: x, y: y, w: w, h: h,
+    rc: { xMin: x - w / 2, xMax: x + w / 2, yMin: y - h / 2, yMax: y + h / 2 } });
   G.blocks.push(b);
-  if (!P.Env.pathOpen(s)) { G.blocks.pop(); return false; }
-  if (coverHp(s, kind) != null) adopt(s, b, kind);
+  if (!P.Env.pathOpen(s)) { G.blocks.pop(); return null; }
+  return b;
+}
+function addSolid(s, kind, x, y, w, h) {
+  var b = insertSolid(s, kind, x, y, w, h);
+  if (!b) return false;
+  if (coverHp(s, kind, b) != null) adopt(s, b, kind);
   return true;
 }
 P.Env.addSolid = addSolid;   // wave 1: the hamal's crate (skins.js) places a solid cover at runtime
+P.Env.returnCover = function (s, r, x, y) {
+  var b = !r.alive && insertSolid(s, r.kind, x, y, r.b.w, r.b.h, r.b);
+  if (!b) return false;
+  b.rec = r; r.b = b; r.x = x; r.y = y; r.alive = true;
+  if (s.env.recs.indexOf(r) < 0) s.env.recs.push(r);
+  return true;
+};
 
 function placeSolids(s, kind, S) {
-  var E = s.env, G = s.geo, C = P.CFG.env, y, x, side;
+  var E = s.env, G = s.geo, C = P.CFG.env, y, x, side, at;
+  var stop = s.routeTrial === 'tram-stop' ? P.CFG.levels.tramStop : null;
   for (y = S.every; y < G.exitY - C.endGap; y += S.every) {
     if (!E.rng.chance(S.chance)) continue;
     side = E.rng.chance(C.sideChance) ? 1 : -1;
     x = side * E.rng.range(C.sideMin, G.xMax - S.w / 2 - C.edgeGap);
-    addSolid(s, kind, x, y + E.rng.range(-C.jitter, C.jitter), S.w, S.h);
+    at = y + E.rng.range(-C.jitter, C.jitter);
+    if (stop && side > 0 && Math.abs(at - stop.y) < stop.approach + S.h / 2) continue;
+    addSolid(s, kind, x, at, S.w, S.h);
+  }
+}
+
+// Existing car/combo rules get a real, optional roadside source in the active slice.
+// Collision checks preserve both the through route and reserved mechanism approaches.
+function placeComboCar(s) {
+  var C = P.CFG.env.comboCar;
+  if (!s.routeTrial || !C || C.levels.indexOf(s.levelIndex) < 0) return;
+  for (var i = 0; i < C.ys.length; i++) for (var j = 0; j < C.xs.length; j++) {
+    if (addSolid(s, 'car', C.xs[j], C.ys[i], C.w, C.h)) return;
   }
 }
 
@@ -69,9 +112,10 @@ function placeSolids(s, kind, S) {
 P.Env.place = function (s, info) {
   if (!s.geo || s.env) return s.env || null;
   var E = (s.env = newState(s)), C = P.CFG.env;
-  s.geo.blocks.slice().forEach(function (b) { if (coverHp(s, b.kind) != null) adopt(s, b, b.kind); });
+  s.geo.blocks.slice().forEach(function (b) { if (coverHp(s, b.kind, b) != null) adopt(s, b, b.kind); });
   placeSolids(s, 'gascan', C.gas);
   placeSolids(s, 'extinguisher', C.extinguisher);
+  placeComboCar(s);
   P.EnvPortal.place(s);
   P.EnvZones.placeCable(s);
   E.info = info ? { hood: info.hood && info.hood.id, stage: info.stage } : null;

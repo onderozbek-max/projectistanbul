@@ -235,7 +235,8 @@ P.Portraits = (function () {
     cv = document.createElement('canvas'); cv.width = Math.ceil(W * dpr); cv.height = Math.ceil(H * dpr);
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
     g = cv.getContext('2d'); g.scale(dpr, dpr);
-    PT.draw(g, who, mood, W / 2, H - 0.02 * h, h, {});
+    function paint() { PT.draw(g, who, mood, W / 2, H - 0.02 * h, h, {}); }
+    if (P.ComicRaster) P.ComicRaster.whenReady(paint); else paint();
     cache[key] = cv; cacheN++;
     return cv;
   };

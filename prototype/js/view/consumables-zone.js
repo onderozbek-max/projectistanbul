@@ -16,27 +16,35 @@ P.ConsumablesZone = (function () {
     return H.prog > 0 ? 'paused' : 'idle';
   };
 
+  function signalLabel(H, ph) {
+    if (ph === 'paused') return P.t('zone.paused');
+    if (H.kind !== 'cell' || (P.StreetInvitations && ph !== 'done')) return '';
+    if (ph === 'done') return P.t('zone.connected');
+    return P.t(ph === 'active' ? 'zone.connecting' : 'zone.cell', { n: Math.floor(H.prog * 100) });
+  }
+
   // Ground draw for one terminal (called from events-fx.js in place of its old ring). t = wall seconds.
   Z.draw = function (R, H, t) {
-    var c = R.ctx, X = R.X(H.x), Y = R.Y(H.y), r = P.CFG.hack.r * R.ppm, ph = Z.phase(H), rgb = RGB[ph], p = clamp01(H.prog);
+    var c = R.ctx, X = R.X(H.x), Y = R.Y(H.y), r = (H.r || P.CFG.hack.r) * R.ppm, ph = Z.phase(H), rgb = RGB[ph], p = clamp01(H.prog);
     var still = reduce(), pulse = still || ph !== 'active' ? 1 : 1 + Z_C.pulseAmp * Math.sin(TAU * Z_C.pulseHz * t);
     var rimR = r * Z_C.rimFrac, rimW = Z_C.rimPx, ir = Math.max(Z_C.iconMinPx, r * Z_C.iconFrac), k, popR, a;
     if (ph === 'done' && popAt[H.id] === undefined) popAt[H.id] = t;
     c.beginPath(); c.arc(X, Y, r, 0, TAU);
-    c.fillStyle = 'rgba(' + rgb + ',' + ((ph === 'active' ? 0.3 : ph === 'done' ? 0.12 : 0.16) * pulse).toFixed(3) + ')'; c.fill();
+    c.fillStyle = 'rgba(' + rgb + ',' + ((ph === 'active' ? 0.10 : ph === 'done' ? 0.04 : 0.025) * pulse).toFixed(3) + ')'; c.fill();
     c.setLineDash(ph === 'active' || ph === 'done' ? [] : [8, 6]);
-    c.strokeStyle = 'rgba(' + rgb + ',0.9)'; c.lineWidth = 2.5; c.beginPath(); c.arc(X, Y, r, 0, TAU); c.stroke();
+    c.strokeStyle = 'rgba(' + rgb + ',' + (ph === 'active' ? .8 : .35) + ')'; c.lineWidth = 1.5; c.beginPath(); c.arc(X, Y, r, 0, TAU); c.stroke();
     c.setLineDash([]);
-    c.lineWidth = rimW + 3; c.strokeStyle = INK; c.beginPath(); c.arc(X, Y, rimR, 0, TAU); c.stroke();
+    if(p>0){c.lineWidth = rimW + 2; c.strokeStyle = INK; c.beginPath(); c.arc(X, Y, rimR, 0, TAU); c.stroke();}
     if (p > 0) {
       c.lineWidth = rimW; c.strokeStyle = 'rgba(' + rgb + ',0.95)';
       c.beginPath(); c.arc(X, Y, rimR, -Math.PI / 2, -Math.PI / 2 + TAU * p); c.stroke();
     }
-    P.ConsumablesIcons.draw(c, 'link', X, Y, ir, ph === 'paused' ? '#C8D0D8' : '#7CC7FF', INK);
-    if (ph === 'paused') {
+    if (!P.StreetInvitations) P.ConsumablesIcons.draw(c, 'link', X, Y, ir, ph === 'paused' ? '#C8D0D8' : '#7CC7FF', INK);
+    var label = signalLabel(H, ph);
+    if (label) {
       c.font = '800 ' + Math.round(r * 0.22) + 'px "CM Bangers", Bangers, Impact, sans-serif';
       c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = INK;
-      c.strokeText(P.t('zone.paused'), X, Y + r + 10); c.fillStyle = '#E6F0FF'; c.fillText(P.t('zone.paused'), X, Y + r + 10);
+      c.strokeText(label, X, Y + r + 10); c.fillStyle = '#E6F0FF'; c.fillText(label, X, Y + r + 10);
     }
     if (ph === 'done' && t - popAt[H.id] < Z_C.popT) {   // completion pop: the ring grows and fades; no flash
       k = (t - popAt[H.id]) / Z_C.popT;
@@ -54,6 +62,10 @@ P.ConsumablesZone = (function () {
     for (i = 0; i < s.hacks.length; i++) {
       H = s.hacks[i];
       if (H.state === 'done') continue;
+      // Optional terminals never compete with the required offscreen route marker.
+      var required=P.RouteMilestones&&P.RouteMilestones.target(s);
+      if(required&&Math.hypot(H.x-required[0],H.y-required[1])>H.r)continue;
+      if(!required&&Math.hypot(H.x-s.hero.x,H.y-s.hero.y)>H.r+1)continue;
       sp = R.toScreen(H.x, H.y); dx = sp.x - cx; dy = sp.y - cy;
       if (Math.abs(dx) <= cx - m && Math.abs(dy) <= cy - m) continue;   // on screen: the ring is enough
       sc = Math.min(Math.abs(dx) > 0 ? (cx - m) / Math.abs(dx) : Infinity, Math.abs(dy) > 0 ? (cy - m) / Math.abs(dy) : Infinity);

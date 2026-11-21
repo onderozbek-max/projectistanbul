@@ -48,7 +48,7 @@ P.CFG.objectives = {
                                                            // 3.2 so she keeps up), start offset m
     defend: { hp: 60, r: 4.0, uploadT: 20, hitR: 1.3, dps: 3, ahead: 14, standOff: 1.5,   // booster: hp, upload radius m,
                                                            // upload seconds, enemy reach m, damage/s per enemy, m ahead, stand-off m
-      v: { booster: {}, cart: { hp: 45, uploadT: 16 }, bell: { hp: 60, uploadT: 8 } } },
+      firstCartHp: 100, firstCartUploadT: 8, v: { booster: {}, cart: { hp: 45, uploadT: 16 }, bell: { hp: 60, uploadT: 8 } } },
     hack: { n: 3, kinds: ['atm', 'traffic', 'shutter'], ahead: 14, gap: 22, side: 4, behind: 6,   // terminals: count, default kinds
                                                            // (a variant overrides), first m ahead, spacing m, |x| m, and m behind
                                                            // the hero before an idle one is moved ahead

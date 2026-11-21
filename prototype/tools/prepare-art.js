@@ -19,6 +19,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const L = require('./lib-art-image.js');
+const { C, KEY, Reject, reject, relPath, round1, round4, srcFile, readRgba, loadKeyed, cellOf, boxOrReject, makeFrame, buildAtlas } = require('./lib-art-frames.js');
+const { calibrateBossFrames } = require('./lib-art-frames.js');
+const { writeContactSheets } = require('./lib-art-contact.js');
 
 const ROOT = path.join(__dirname, '..', '..');
 const COMM = path.join(ROOT, 'art', 'commission');
@@ -27,25 +30,6 @@ const DEFAULT_DST = path.join(ROOT, 'prototype', 'assets', 'art');
 const MB = 1024 * 1024;
 const BUDGET_BYTES = 60 * MB, GOAL_BYTES = [30 * MB, 40 * MB];
 
-// All tunables. Changing any of them changes the recipe hash, so the cache rebuilds.
-const C = {
-  heightPx: { hero: 320, enemy: 256, boss: 512 },            // standing idle figure height in the atlas (px)
-  scale: { ground: 0.5, facade: 0.5, prop: 0.5, tier: 0.5, icon: 0.25, evo: 0.25, sprite: 0.5, vehicle: 0.5 },
-  gutter: 2,                                                  // transparent px around every frame (edge-bled)
-  figureAlpha: 24,                                            // alpha at or above this counts as figure for the box
-  feetBand: 0.03,                                             // feet = the lowest 3% of the figure height
-  jpegQ: 3,                                                   // ffmpeg mjpeg -q:v (about libjpeg 88)
-  paletteMaxOver8: 0.12,                                      // palette PNG only when at most this share of solid px is off by > 8 levels
-  seamPoor: 2.0,                                              // seam score above this is reported as poor
-  lstarMin: 30, lstarMax: 75,                                 // readability floor for the mean L* of a tile
-  upscaleWarn: 1.05,                                          // an entity enlarged by more than this is reported
-  matteTol: 60,                                               // a sampled matte within this of the inventory key is accepted
-  handwired: ['galata', 'bridge', 'saray'],                   // hoods with hand-wired atlases in prototype/assets/<hood>/
-  transparentSheets: ['kumkapi'],                             // props from prop_<hood>_<item>_transparent.png (2x2 sheets)
-  transparentFrames: ['atakoysahil'],                         // props from transparent/prop_<hood>_<item>_<suffix>.png (cells)
-};
-const KEY = { magenta: [255, 0, 255], cyan: [0, 255, 255] };
-const KEY_NAMES = [['#FF00FF', KEY.magenta], ['#00FFFF', KEY.cyan]];
 // Evolution sheet -> base weapon (handoff; the test checks each pair against the game config).
 const EVO_BASE = {
   cleaver: 'knife', nailstorm: 'nailgun', cluster: 'canister', carbomb: 'canister', cyclone: 'chain', arcchain: 'chain',
@@ -57,123 +41,7 @@ const HERO_VIEWS = { side: 'right', front: 'down', back: 'up' };   // facing: si
 const WALKER_OUTFITS = ['office', 'student', 'shopper', 'tourist'];  // handoff and art-enemy-look.js: index = variantOf(id)
 const HINT_WORDS = ['overhead', 'canopy', 'string', 'hang', 'solid', 'decorative', 'footprint', 'objective', 'sign', 'ground', 'flat'];
 
-const round1 = v => Math.round(v * 10) / 10;
-const round4 = v => Math.round(v * 10000) / 10000;
 const sha256 = buf => crypto.createHash('sha256').update(buf).digest('hex');
-const relPath = p => path.relative(ROOT, p).split(path.sep).join('/');
-class Reject extends Error {}
-const reject = msg => { throw new Reject(msg); };
-
-// ---------- source files and keying
-
-// A -v2 file wins when it exists (the handoff's preferred vehicles and Beyazıt façades).
-function srcFile(p) {
-  const abs = path.isAbsolute(p.path) ? p.path : path.join(ROOT, p.path);
-  const v2 = abs.replace(/\.png$/, '-v2.png');
-  return fs.existsSync(v2) ? v2 : abs;
-}
-function readRgba(file) {
-  if (!fs.existsSync(file)) reject('missing file ' + relPath(file));
-  return L.readPng(fs.readFileSync(file));
-}
-function nearestKey(rgb) {
-  let best = null;
-  for (const [name, c] of KEY_NAMES) {
-    const d = Math.sqrt(L.dist2(rgb[0], rgb[1], rgb[2], c));
-    if (!best || d < best.d) best = { name, d, c };
-  }
-  return best;
-}
-// Loads a source and keys its matte out. Opaque sources: the matte is sampled from the frame border (the real colour, not the
-// nominal one). Sources that already carry alpha (derivatives and frames): alpha-0 pixels are flattened onto the key first, so
-// the same keyer gives them soft, despilled edges.
-function loadKeyed(file, opts, ctx) {
-  const img = readRgba(file);
-  const target = opts.target || KEY.magenta;
-  const info = {};
-  let M;
-  if (opts.transparent) {
-    let flat = 0, notKey = 0;
-    for (let i = 0; i < img.w * img.h; i++) {
-      const o = i * 4;
-      if (img.rgba[o + 3] !== 0) continue;
-      flat++;
-      if (L.dist2(img.rgba[o], img.rgba[o + 1], img.rgba[o + 2], target) > 60 * 60) notKey++;
-      img.rgba[o] = target[0]; img.rgba[o + 1] = target[1]; img.rgba[o + 2] = target[2]; img.rgba[o + 3] = 255;
-    }
-    M = target;
-    info.flattened = flat;
-    info.notKeyShare = flat ? Math.round(notKey / flat * 100) / 100 : 0;
-  } else {
-    const s = L.sampleMatte(img, 3);
-    M = s.rgb;
-    info.coverage = s.coverage;
-    if (s.coverage < 0.5) reject(`${path.basename(file)}: matte not found on the frame border (coverage ${s.coverage.toFixed(2)})`);
-    const d = Math.sqrt(L.dist2(M[0], M[1], M[2], target));
-    if (d > C.matteTol) {
-      const near = nearestKey(M);
-      if (near.d > C.matteTol) reject(`${path.basename(file)}: matte ${M.join(',')} matches neither key (target ${target.join(',')})`);
-      ctx.warn(`${path.basename(file)}: matte is ${near.name} (sampled ${M.join(',')}), not the inventory key; used the sampled colour`);
-    }
-  }
-  const k = L.keyMatte(img, M);
-  info.matte = M;
-  info.stats = k.stats;
-  return { w: img.w, h: img.h, rgba: k.rgba, info };
-}
-function cellOf(img, rect) {
-  const [x, y, w, h] = rect ? rect : [0, 0, img.w, img.h];
-  if (x < 0 || y < 0 || x + w > img.w || y + h > img.h) reject(`cell ${[x, y, w, h].join(',')} lies outside a ${img.w}x${img.h} source`);
-  const out = new Uint8Array(w * h * 4);
-  for (let r = 0; r < h; r++) out.set(img.rgba.subarray(((y + r) * img.w + x) * 4, ((y + r) * img.w + x + w) * 4), r * w * 4);
-  return { w, h, rgba: out };
-}
-function boxOrReject(cell, what) {
-  const box = L.alphaBox(cell.rgba, cell.w, cell.h, C.figureAlpha);
-  if (!box) reject(`${what}: no figure in the cell`);
-  return box;
-}
-
-// ---------- frames and atlases
-
-// One frame at scale s. The figure box is rendered at s; the pivot is in content pixels, relative to the content top-left.
-//   feet / bottom: centre of the lowest 3% of the figure, on its bottom edge (ground contact)
-//   body:          centre of the figure box (dead, down, flying)
-//   centre:        the source cell centre (weapons, sprites): the same point in every cell of a sheet
-function makeFrame(cell, box, s, anchor) {
-  const content = L.renderRegion(cell, box, s);
-  const bw = box.x1 - box.x0, bh = box.y1 - box.y0;
-  let px, py;
-  if (anchor === 'feet' || anchor === 'bottom') {
-    const f = L.feetPivot(cell.rgba, cell.w, box, Math.max(3, Math.round(bh * C.feetBand)));
-    px = (f.x - box.x0) * s; py = bh * s;
-  } else if (anchor === 'body') {
-    px = bw * s / 2; py = bh * s / 2;
-  } else if (anchor === 'centre') {
-    px = (cell.w / 2 - box.x0) * s; py = (cell.h / 2 - box.y0) * s;
-  } else throw new Error('unknown anchor ' + anchor);
-  const touches = box.x0 === 0 || box.y0 === 0 || box.x1 === cell.w || box.y1 === cell.h;
-  return { content, px: round1(px), py: round1(py), anchor, touches };
-}
-// Packs frames into one atlas. Every frame gets C.gutter transparent px on each side, filled with bled colour.
-// usePalette: try an 8-bit palette PNG (median cut, 256 entries, alpha in tRNS); kept only when its colour error is small.
-function buildAtlas(frames, usePalette) {
-  const g = C.gutter;
-  const padded = frames.map(f => L.withGutter(f.content, g));
-  const pk = L.packShelf(padded.map(p => ({ w: p.w, h: p.h })));
-  const atlas = new Uint8Array(pk.width * pk.height * 4);
-  const rects = {};
-  frames.forEach((f, i) => {
-    L.blit(atlas, pk.width, padded[i], pk.pos[i].x, pk.pos[i].y);
-    rects[f.key] = { x: pk.pos[i].x + g, y: pk.pos[i].y + g, w: f.content.w, h: f.content.h, px: f.px, py: f.py, anchor: f.anchor };
-  });
-  if (usePalette) {
-    const q = L.quantize(atlas, pk.width, pk.height, 256);
-    if (q.err.over8 <= C.paletteMaxOver8) return { width: pk.width, height: pk.height, png: L.encodePngPalette(pk.width, pk.height, q.indices, q.palette), encoding: 'png8', err: q.err, rects };
-    return { width: pk.width, height: pk.height, png: L.encodePng(pk.width, pk.height, atlas), encoding: 'png32', err: q.err, rects };
-  }
-  return { width: pk.width, height: pk.height, png: L.encodePng(pk.width, pk.height, atlas), encoding: 'png32', err: null, rects };
-}
 
 // ---------- processors: each returns { parts, outputs } or throws Reject
 
@@ -220,6 +88,7 @@ function procCharacter(unit, ctx) {
     if (unit.group) { entry.group = unit.group; entry.outfit = unit.outfit; }
     entry.frames = {};
     for (const c of cells) entry.frames[c.role] = R[c.key];
+    if (unit.kind === 'boss') calibrateBossFrames(unit.artId, entry.frames);
   }
   return { parts: { characters: { [unit.artId]: entry } }, outputs: [{ file, buf: atlas.png, encoding: atlas.encoding, err: atlas.err }] };
 }
@@ -529,7 +398,7 @@ function recipeHash() {
   if (!RECIPE) {
     RECIPE = crypto.createHash('sha256')
       .update(fs.readFileSync(__filename)).update(fs.readFileSync(path.join(__dirname, 'lib-art-image.js')))
-      .update(JSON.stringify(C)).update(JSON.stringify(EVO_BASE)).digest('hex');
+      .update(fs.readFileSync(path.join(__dirname, 'lib-art-frames.js'))).update(JSON.stringify(EVO_BASE)).digest('hex');
   }
   return RECIPE;
 }
@@ -595,7 +464,7 @@ function assemble(R) {
       px: 'pivot in atlas pixels, relative to the frame rect top-left (x, y). Draw at (dx - px, dy - py). The rect is the content only; the gutter lies outside it.',
       anchors: { feet: 'ground contact: bottom centre of the lowest 3% of the figure', body: 'centre of the figure box (dead, down, flying)',
         bottom: 'bottom centre of the vehicle', centre: 'source cell centre (weapons, pickups, effects)' },
-      scale: 'atlas px per source px. One scale per entity: every frame of a character uses the scale that makes its idle frame heightPx tall.',
+      scale: 'atlas px per source px. The display scale is based on idle heightPx. Boss action frames include poseScale to match the body scale of the locomotion sheet.',
       facing: 'side views face right; mirror at runtime for left. The hero front view faces the camera (down), back away (up).',
       encoding: `png8 = 256-colour palette PNG, chosen when colourError.over8 <= ${C.paletteMaxOver8}; png32 = RGBA. colourError is measured on alpha >= 128 pixels: over8 is the share off by more than 8 levels in any channel.` },
     characters: {}, ground: {}, facades: {}, props: {}, weapons: {}, pickups: {}, effects: {}, vehicles: {},
@@ -672,62 +541,6 @@ function removeStale(dst, oldManifest, files) {
   return gone;
 }
 
-// Contact sheets for the characters: each entity in light and dark rows, a red cross at the pivot.
-function writeContactSheets(dir, dst, characters) {
-  fs.mkdirSync(dir, { recursive: true });
-  const bgs = [[244, 235, 221], [20, 21, 31]];
-  const entities = Object.entries(characters);
-  const cell = 260, pad = 10, perRow = 9;
-  for (let i = 0; i < entities.length; i += 3) {
-    const group = entities.slice(i, i + 3).map(([id, e]) => {
-      const img = L.readPng(fs.readFileSync(path.join(dst, e.atlas)));
-      const fr = e.views ? [...Object.values(e.views).flatMap(v => Object.values(v.frames)), ...Object.values(e.poses)] : Object.values(e.frames);
-      return { id, img, fr };
-    });
-    const rowsOf = g => Math.ceil(g.fr.length / perRow) * 2;
-    const H = pad + group.reduce((a, g) => a + rowsOf(g) * (cell + pad) + 30, 0) + pad;
-    const W = pad + perRow * (cell + pad);
-    const canvas = new Uint8Array(W * H * 4);
-    for (let p = 0; p < W * H; p++) canvas.set([40, 42, 52, 255], p * 4);
-    let y = pad;
-    for (const g of group) {
-      y += 22;
-      const chunks = Math.ceil(g.fr.length / perRow);
-      for (let c = 0; c < chunks; c++) {
-        for (let b = 0; b < 2; b++) {
-          const rowY = y + (c * 2 + b) * (cell + pad);
-          g.fr.slice(c * perRow, c * perRow + perRow).forEach((f, k) => paintFrame(canvas, W, g.img, f, pad + k * (cell + pad), rowY, cell, bgs[b]));
-        }
-      }
-      y += rowsOf(g) * (cell + pad) + 8;
-    }
-    fs.writeFileSync(path.join(dir, `characters_${String(i / 3 + 1).padStart(2, '0')}.png`), L.encodePng(W, H, canvas));
-  }
-}
-function paintFrame(canvas, W, img, fr, x0, y0, cell, bg) {
-  for (let y = 0; y < cell; y++) for (let x = 0; x < cell; x++) {
-    const o = ((y0 + y) * W + x0 + x) * 4;
-    canvas[o] = bg[0]; canvas[o + 1] = bg[1]; canvas[o + 2] = bg[2]; canvas[o + 3] = 255;
-  }
-  const sc = Math.min(1, (cell - 24) / Math.max(fr.w, fr.h));
-  const dw = Math.max(1, Math.round(fr.w * sc)), dh = Math.max(1, Math.round(fr.h * sc));
-  const ox = x0 + Math.round((cell - dw) / 2), oy = y0 + cell - 12 - dh;
-  for (let y = 0; y < dh; y++) for (let x = 0; x < dw; x++) {
-    const si = ((fr.y + Math.min(fr.h - 1, Math.floor(y / sc))) * img.w + fr.x + Math.min(fr.w - 1, Math.floor(x / sc))) * 4;
-    const a = img.rgba[si + 3] / 255, o = ((oy + y) * W + ox + x) * 4;
-    for (let c = 0; c < 3; c++) canvas[o + c] = Math.round(img.rgba[si + c] * a + canvas[o + c] * (1 - a));
-  }
-  const px = ox + Math.round(fr.px * sc), py = oy + Math.round(fr.py * sc);
-  for (let d = -7; d <= 7; d++) { setPx(canvas, W, px + d, py, [255, 60, 60]); setPx(canvas, W, px, py + d, [255, 60, 60]); }
-  const gy = oy + dh;
-  for (let x = ox - 4; x < ox + dw + 4; x++) setPx(canvas, W, x, gy, [255, 210, 80]);
-}
-function setPx(c, W, x, y, rgb) {
-  if (x < 0 || y < 0 || x >= W) return;
-  const o = (y * W + x) * 4;
-  if (o + 3 < c.length) { c[o] = rgb[0]; c[o + 1] = rgb[1]; c[o + 2] = rgb[2]; c[o + 3] = 255; }
-}
-
 function parseArgs(argv) {
   const o = { dryRun: false, force: false, dst: DEFAULT_DST, only: null };
   for (const a of argv) {
@@ -761,6 +574,7 @@ function main(argv) {
     removeStale(opts.dst, oldManifest, m.files);
     writeFileSafe(path.join(opts.dst, '.gitignore'), '.cache.json\n');
     writeFileSafe(manifestFile, JSON.stringify(m, null, 1) + '\n');
+    writeFileSafe(path.join(opts.dst, 'manifest-local.js'), require('./art-manifest-local')(m));
     const units = {};
     for (const u of R.units) {
       const r = R.results.get(u.id);

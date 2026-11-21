@@ -8,7 +8,6 @@ P.Mastery = {};
 P.Mods = {};
 
 (function () {
-  var SRC = { cleaver: 'knife', nailstorm: 'nailgun', cluster: 'canister', cyclone: 'chain', finale: 'fireworks' };
   var MUL = ['area', 'dmg', 'cd', 'life', 'spin', 'range', 'reel', 'push'];
   var ADD = ['knock', 'burn', 'pierce', 'count', 'bounce', 'pull', 'stun', 'root'];
   var OBJ = ['shards', 'chain', 'stick', 'echo', 'slow', 'crit', 'cloud', 'reflect'];
@@ -16,7 +15,7 @@ P.Mods = {};
   // ---------- mastery (pure) ----------
   P.Mastery.srcToWeapon = function (src) {
     if (!src) return null;
-    if (Object.prototype.hasOwnProperty.call(SRC, src)) return SRC[src];
+    src = String(src).replace(/^w:/, '');
     if (P.CFG.evolutions[src]) return P.CFG.evolutions[src].from;   // every evolution counts toward its base
     return P.CFG.arsenal.weapons.indexOf(src) >= 0 ? src : null;
   };
@@ -82,7 +81,7 @@ P.Mods = {};
     var W = ws(s), counts = W.acts || (W.acts = {}), k, M = P.Mods.of(s, fam), U = P.CFG.usta, MC = P.CFG.mastery;
     counts[fam] = (counts[fam] || 0) + 1;
     k = counts[fam];
-    var A = { fam: fam, n: k, M: M, area: M.area, dmg: M.dmg, cd: M.cd, sig: null, usta: false, rank: P.Mastery.runRank(s, fam) };
+    var A = { fam: fam, variant: P.Weapons.variantOf(s.hero, fam), n: k, M: M, area: M.area, dmg: M.dmg, cd: M.cd, sig: null, usta: false, rank: P.Mastery.runRank(s, fam) };
     if (M.usta && k % U.every === 0) { A.usta = true; A.area *= U.areaMul; A.dmg *= U.dmgMul; }
     if (A.rank >= MC.sigRank && k % MC.sigEvery === 0 && P.CFG.sig[fam]) {
       A.sig = P.CFG.sig[fam];
@@ -99,16 +98,16 @@ P.Mods = {};
   };
 
   // ---------- impacts ----------
-  function hitOne(s, e, dmg, dx, dy, kb, src, M, killed) {
-    var d = dmg, k = kb;
+  function hitOne(s, e, dmg, dx, dy, kb, src, A, killed, delivery) {
+    var M = A.M, d = dmg, k = kb;
     if (M.crit && s.rng.combat.chance(M.crit.p)) d *= M.crit.mul;
     if (M.knock) { P.Status.apply(e, 'stun', M.knock, 1); k *= 1.8; }
     if (M.stun) P.Status.apply(e, 'stun', M.stun, 1);
     if (M.slow) P.Status.apply(e, 'slow', M.slow.t, M.slow.m);
     if (M.root) P.Status.apply(e, 'root', M.root, 1);
     if (M.pull) P.Weapons.shove(e, -dx, -dy, M.pull);
-    for (var i = 0; i < M.burn; i++) P.Combat.addBurn(e);
-    P.Combat.damageEnemy(s, e, d, dx, dy, k, true, src);
+    for (var i = 0; i < M.burn; i++) P.Combat.addBurn(e, A.variant || src);
+    P.Combat.damageEnemy(s, e, d, dx, dy, k, true, src, A.variant, delivery);
     if (e.dead && killed) killed.push(e);
   }
 
@@ -122,12 +121,12 @@ P.Mods = {};
       var dx = e.x - x, dy = e.y - y, d = Math.hypot(dx, dy) || 0.01;
       if (d - e.r > r) return;
       hits++;
-      hitOne(s, e, dmg, dx / d, dy / d, kb, src, M, killed);
+      hitOne(s, e, dmg, dx / d, dy / d, kb, src, A, killed, o.chain ? 'chain' : o.echo ? 'echo' : 'direct');
     });
-    P.Combat.forEachProp(s, function (p) { if (Math.hypot(p.x - x, p.y - y) - p.r <= r) P.Combat.damageProp(s, p, dmg); });
+    P.Combat.forEachProp(s, function (p) { if (Math.hypot(p.x - x, p.y - y) - p.r <= r) P.Combat.damageProp(s, p, dmg, src); });
     if (M.douse) douse(s, x, y, r);
-    if (M.shards) spawnShards(s, x, y, dmg, src, M.shards);
-    if (M.cloud) addCloud(s, x, y, r, M.cloud);
+    if (M.shards) spawnShards(s, x, y, dmg, src, M.shards, A.variant);
+    if (M.cloud) addCloud(s, x, y, r, M.cloud, A.variant);
     if (M.chain && (o.depth || 0) < P.CFG.mastery.chainMaxDepth) queueChains(s, killed, dmg, kb, src, A, o.depth || 0);
     if (M.echo && !o.echo && !o.chain) scheduleEcho(s, { kind: 'blast', x: x, y: y, r: r, dmg: dmg, kb: kb, src: src, A: A }, M.echo);
     // Area damage carries its synergy tag (fire, electric, blunt, blade, gas, water) for the environment rules (lane A).
@@ -138,8 +137,8 @@ P.Mods = {};
   // Single-target hit (melee, chain, beam): knockdown, slow, crit, shards, lifesteal, echo, chain on kill.
   P.Mods.hit = function (s, e, dmg, dx, dy, kb, src, A, opts) {
     var M = A.M, o = opts || {}, killed = [];
-    hitOne(s, e, dmg, dx, dy, kb, src, M, killed);
-    if (M.shards) spawnShards(s, e.x, e.y, dmg, src, M.shards);
+    hitOne(s, e, dmg, dx, dy, kb, src, A, killed, o.chain ? 'chain' : o.echo ? 'echo' : 'direct');
+    if (M.shards) spawnShards(s, e.x, e.y, dmg, src, M.shards, A.variant, e.id);
     if (M.chain && killed.length && (o.depth || 0) < P.CFG.mastery.chainMaxDepth) queueChains(s, killed, dmg, kb, src, A, o.depth || 0);
     if (M.echo && !o.echo) scheduleEcho(s, { kind: 'hit', e: e, dx: dx, dy: dy, dmg: dmg, kb: kb, src: src, A: A }, M.echo);
     return killed.length;
@@ -179,12 +178,12 @@ P.Mods = {};
   }
 
   // Shards: small projectiles that fly out from an impact and pierce through enemies on the way.
-  function spawnShards(s, x, y, dmg, src, S) {
+  function spawnShards(s, x, y, dmg, src, S, variant, sourceVictim) {
     var list = arr(ws(s), 'shards'), C = P.CFG.mastery, n = S.n, i, a, sp, rng = s.rng.combat;
     for (i = 0; i < n && list.length < C.shardCap; i++) {
       a = i / n * Math.PI * 2 + rng.range(-0.25, 0.25); sp = C.shardSpeed * rng.range(0.7, 1.1);
       list.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0, T: C.shardLife, dmg: dmg * S.dmg,
-        pierce: S.pierce, src: src, hit: [] });
+        pierce: S.pierce, src: src, variant: variant, hit: sourceVictim === undefined ? [] : [sourceVictim] });
     }
     s.events.push({ type: 'modShards', x: x, y: y, n: n, src: src });
   }
@@ -198,7 +197,7 @@ P.Mods = {};
         if (e.dead || e.state !== 'active' || q.hit.indexOf(e.id) >= 0) continue;
         if (Math.hypot(e.x - q.x, e.y - q.y) > e.r + C.shardHitR) continue;
         q.hit.push(e.id);
-        P.Combat.damageEnemy(s, e, q.dmg, q.vx / sp, q.vy / sp, 0.1, false, q.src);
+        P.Combat.damageEnemy(s, e, q.dmg, q.vx / sp, q.vy / sp, 0.1, false, q.src, q.variant, 'splinter');
         q.pierce--;
         if (q.pierce < 0) gone = true;
       }
@@ -243,10 +242,10 @@ P.Mods = {};
   }
 
   // Slow clouds: lingering zones that slow enemies inside.
-  function addCloud(s, x, y, r, C) {
+  function addCloud(s, x, y, r, C, variant) {
     var list = arr(ws(s), 'clouds');
     if (list.length >= P.CFG.mastery.cloudCap) list.shift();
-    list.push({ x: x, y: y, r: r, t: 0, T: C.t, m: C.m });
+    list.push({ x: x, y: y, r: r, t: 0, T: C.t, m: C.m, variant: variant, seen: {} });
     s.events.push({ type: 'modCloud', x: x, y: y, r: r, T: C.t });
   }
   function updateClouds(s, dt) {
@@ -256,15 +255,17 @@ P.Mods = {};
       if (q.t >= q.T) { list.splice(i, 1); continue; }
       for (j = 0; j < s.enemies.length; j++) {
         e = s.enemies[j];
-        if (!e.dead && e.state === 'active' && Math.hypot(e.x - q.x, e.y - q.y) - e.r <= q.r) P.Status.apply(e, 'slow', 0.3, q.m);
+        if (e.dead || e.state !== 'active' || Math.hypot(e.x - q.x, e.y - q.y) - e.r > q.r) continue;
+        P.Status.apply(e, 'slow', 0.3, q.m);
+        if (!q.seen[e.id]) { q.seen[e.id] = true; P.Combat.evolutionEffect(s, q.variant, 'slowed', 1); }
       }
     }
   }
 
   // Area effects without a direct blast (a stain, an ember landing): the family's cloud and shards only.
   P.Mods.field = function (s, x, y, r, A, dmg, src) {
-    if (A.M.cloud) addCloud(s, x, y, r, A.M.cloud);
-    if (A.M.shards) spawnShards(s, x, y, dmg, src, A.M.shards);
+    if (A.M.cloud) addCloud(s, x, y, r, A.M.cloud, A.variant);
+    if (A.M.shards) spawnShards(s, x, y, dmg, src, A.M.shards, A.variant);
   };
 
   // Douse: fire pools and fire zones near a point go out (extinguisher, kolonya).

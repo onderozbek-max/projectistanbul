@@ -53,8 +53,11 @@
     // Windup: lean back, squash down (widening a little) and take a small back-hop. The timing is the sim's; these are visuals.
     var sq = 1 - FL.windupSquash * wl, sw = 1 + 0.5 * FL.windupSquash * wl, back = FL.windupBack * wl * u, hop = FL.windupHop * wl * u;
     var tw = (e.age + id * 0.37) % FL.twitchEvery < FL.twitchT ? FL.twitchAmp * (id % 2 ? 1 : -1) : 0;
-    var sway = Math.sin((e.walk || 0) * 1.1 + id) * FL.shamble * u, sc = e.age < FL.scaleIn ? 0.5 + 0.5 * e.age / FL.scaleIn : 1;
-    if (puffed && e.age < 0.06 && !e.door && !puffed.has(e) && !(P.Settings && P.Settings.reduceMotion)) { puffed.set(e, true); spawnPuff(e); }
+    // Diners are already seated when the opening begins. Their age stays zero while the scene owns the clock;
+    // fresh view projections must not shrink them or keep emitting "new spawn" dust over their bodies.
+    var resident = e.dinerIndex !== undefined;
+    var sway = Math.sin((e.walk || 0) * 1.1 + id) * FL.shamble * u, sc = !resident && e.age < FL.scaleIn ? 0.5 + 0.5 * e.age / FL.scaleIn : 1;
+    if (!resident && puffed && e.age < 0.06 && !e.door && !puffed.has(e) && !(P.Settings && P.Settings.reduceMotion)) { puffed.set(e, true); spawnPuff(e); }
     c.save();
     if (sc < 1) c.globalAlpha = sc;
     c.translate(X + sway - f * back, Y - hop); c.rotate(rot); c.scale(sc * sw, sc * sq); c.translate(-X, -Y);
@@ -180,11 +183,12 @@
     c.quadraticCurveTo(x, y + h, x, y + h - r); c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
   }
 
-  // Weak spot tell (exposed bosses): a slow pulse (1.2 Hz) on a red-orange ring around the torso. Never faster than 3/s.
+  // A spent body is a safe opportunity, not another orange danger ring. Brackets stay at the feet.
   function weakSpot(c, e, X, Y, uf, def) {
-    var p = 0.5 + 0.5 * Math.sin(performance.now() / 1000 * TAU * 1.2);
-    c.save(); c.globalAlpha = 0.45 + 0.4 * p; c.strokeStyle = '#FF8A3D'; c.lineWidth = 3 + 2 * p;
-    c.beginPath(); c.ellipse(X, Y - 0.55 * uf, 0.55 * uf, 0.7 * uf, 0, 0, TAU); c.stroke(); c.restore();
+    var w=.25*uf,h=.065*uf,arm=.09*uf;
+    c.save();c.lineCap='round';c.beginPath();
+    [-1,1].forEach(function(side){var x=X+side*w;c.moveTo(x-side*arm,Y-h);c.lineTo(x,Y-h);c.lineTo(x,Y+h);c.lineTo(x-side*arm,Y+h);});
+    c.strokeStyle='#1C2F2E';c.lineWidth=4;c.stroke();c.strokeStyle='#B6E3CE';c.lineWidth=2;c.stroke();c.restore();
   }
 
   P.ArtEnemies4 = { flinchOf: flinchOf };

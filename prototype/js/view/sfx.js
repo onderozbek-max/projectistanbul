@@ -29,7 +29,7 @@ P.Sfx = (function () {
   var DUCK_AMB = 0.5, DUCK_MID = 0.708, DUCK_MID_PRIO = 2;   // -6 dB ambience, -3 dB mid-priority SFX
   var ctx = null, comp = null, master = null, rev = null, bus = {}, vol = { sfx: 1, ui: 1, voice: 1, ambience: 1 }, mv = 1;
   var cache = {}, last = {}, lastVar = {}, active = [], amb = null, ambWant = null, warmed = false;
-  var tink = { streak: 0, t: -1e9 }, hist = {}, impactHist = [], duckTimer = null, duckOn = false;
+  var tink = { streak: 0, t: -1e9 }, hist = {}, impactHist = [], duckTimer = null, duckOn = false, threatUntil = 0;
   function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   function clamp(v, a, b) { v = Number(v); return v !== v ? a : (v < a ? a : (v > b ? b : v)); }
   function soundOn() { return !P.Settings || P.Settings.sound !== false; }
@@ -149,8 +149,8 @@ P.Sfx = (function () {
       active = active.filter(function (x) { return x !== rec; });
       try { src.disconnect(); g.disconnect(); if (pan) pan.disconnect(); if (send) send.disconnect(); } catch (e) { /* ignore */ }
     };
+    try { src.start(t); } catch (e) { src.onended(); throw e; }
     active.push(rec);
-    src.start(t);
   }
   // Ducking: ambience -6 dB, mid-priority voices start at -3 dB, and music ducks through P.Music.duckFor.
   function duck(sec) {
@@ -195,11 +195,16 @@ P.Sfx = (function () {
     }
     if (!b) return;
     last[name] = now;
-    ducked = duckOn && m.p <= DUCK_MID_PRIO;
-    if (has(DUCK, name)) duck(DUCK[name]);
+    ducked = duckOn && m.p <= DUCK_MID_PRIO && !o.urgent;
+    if(now<threatUntil&&m.p<=DUCK_MID_PRIO&&!o.urgent)o=Object.assign({},o,{vol:(typeof o.vol==='number'?o.vol:1)*.42});
+    if (has(DUCK, name)) { duck(DUCK[name]);if(name==='bruteRoar'||name==='bossIntro')threatUntil=Math.max(threatUntil,now+DUCK[name]*1000); }
     if (!gen) { start(name, m, b, o, rate, ducked, null); return; }
     try { start(name, m, b, o, rate, ducked, gen); }
-    catch (e) { P.SfxGen.drop(name, who); }   // a buffer the context refuses: this cue is synthesized from now on
+    catch (e) {
+      P.SfxGen.drop(name, who);
+      b = cueBuffer(name, typeof o.variant === 'number' ? o.variant : pickVariant(name, m.v), who);
+      if (b) start(name, m, b, o, rate, ducked, null);
+    }
   }
   // ---- Ambience beds: one seamless loop per group, crossfaded on theme change ----
   function ambBuffer(group) {
@@ -271,6 +276,7 @@ P.Sfx = (function () {
     },
     ambience: ambience,
     duck: duck,
+    threat: function (sec) { threatUntil = performance.now() + sec * 1000; duck(sec); },
     setVolume: function (cat, v) {
       v = clamp(v, 0, 1);
       if (cat === 'music') { if (P.Music && P.Music.setVolume) P.Music.setVolume(v); return; }
@@ -287,6 +293,8 @@ P.Sfx = (function () {
     // The master limiter's input. music.js routes its tracks here, so one limiter sits over music and effects (iOS
     // ignores element volume, so music gains are Web Audio gains, see music.js).
     mixInput: function () { return ensure() ? comp : null; },
+    suspend: function () { if (ctx && ctx.state === 'running') ctx.suspend().catch(function () {}); },
+    captureOutput: function () { return ensure() ? master : null; },
     has: function (name) { return !!R && R.has(name); }
   };
 })();

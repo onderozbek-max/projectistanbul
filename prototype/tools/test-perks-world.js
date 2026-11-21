@@ -211,6 +211,52 @@ function regenAfter(perks, sinceHit, medkit) {
 // ---------- learned ids: unknown ids are dropped (a bad loadout cannot switch a hook on) ----------
 check(JSON.stringify(P.Perks.set(['int.1', 'nope.9', 'int.9'])) === '{"int.1":1}', 'P.Perks.set kept an unknown perk id');
 
+// İstiklal route progression, tram collision, and a visible crate before its reward.
+{
+  const s = sim([], 3), tram = s.geo.blocks.find(b => b.kind === 'tram');
+  check(!!tram && s.geo.blocks.filter(b => b.kind === 'tram').length === 1, 'L3 has one physical tram');
+  const p = { x: 0, y: tram.y }, side = { x: tram.rc.xMax + 0.75, y: tram.y };
+  P.World.clampHero(s, p); P.World.clampHero(s, side);
+  check(p.x <= tram.rc.xMin || p.x >= tram.rc.xMax, 'L3 tram pushes the hero out of its body');
+  check(near(side.x, tram.rc.xMax + 0.75, 1e-9), 'L3 tram has a traversable side');
+  function clearSpawns(seconds) {
+    for (let i = 0; i < seconds / DT; i++) { s.enemies.length = 0; s.events.length = 0; P.Levels.step(s, DT); }
+  }
+  clearSpawns(120);
+  const atStart = s.gen.routeSpent;
+  check(atStart > 0 && atStart <= C.levels.istiklalRoute.startBudget, 'L3 camping has a finite opening budget');
+  clearSpawns(120);
+  check(s.gen.routeSpent === atStart, 'L3 no additional enemies after the standing budget is spent');
+  s.hero.y += 20; clearSpawns(60);
+  check(s.gen.routeSpent > atStart, 'L3 forward travel opens the next wave');
+  s.hero.y = 2; const spent = s.gen.routeSpent; clearSpawns(60);
+  check(s.gen.routeSpent === spent, 'L3 backtracking does not refill the budget');
+  s.hero.y = s.gen.marks.find(m => m.kind === 'seg' && m.id === 'B').y;
+  P.Levels.step(s, DT);
+  const crate = s.drops.find(d => d.kind === 'chest');
+  check(!!crate && s.pendingChests === 0, 'L3 segment crate appears before opening');
+  crate.pop = 0;
+  s.hero.y = crate.y - 4; P.Combat.updateDrops(s, DT);
+  check(s.pendingChests === 0 && s.drops.includes(crate), 'L3 the visible crate waits on the ground');
+  s.hero.x = crate.x; s.hero.y = crate.y; P.Combat.updateDrops(s, DT);
+  check(s.pendingChests === 1 && !s.drops.includes(crate), 'L3 approaching the crate opens it exactly once');
+}
+
+{
+  const s = sim([], 3), o = s.obj, b = o.b;
+  const log = [], R = { ppm: 10, W: 390, H: 844, X: () => 195, Y: () => 390, ctx: fakeCtx(log) };
+  const props = P.Props;
+  P.Props = { draw: () => {} };
+  try { P.EventsFx.drawGround(R, s); } finally { P.Props = props; }
+  check(log.some(c => c[0] === 'arc' && c[3] === C.objectives.types.defend.r * R.ppm), 'L3 shows the real upload radius');
+  P.Combat.spawnEnemy(s, 'walker', b.x, b.y, { state: 'active' });
+  P.Objectives.step(s, 20);
+  check(b.hp === b.max && b.up === 0, 'L3 booster survives before the player reaches it');
+  s.enemies.length = 0; s.hero.x = b.x; s.hero.y = b.y;
+  P.Objectives.step(s, 30);
+  check(o.state === 'done' && s.tally.objDone === 1, 'L3 completing the upload awards its objective');
+}
+
 // ---------- int.3 marker (view): a ring and an arrow over the marked terminal only, nothing else ----------
 function fakeCtx(log) {
   const store = {};

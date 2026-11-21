@@ -118,18 +118,23 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   H.hookpull = { T: 0.7, at: hookAt, held: function (F, G, k) {
     var s = hookAt(G, k.t, k.lv), c = F.c;
     arms(F, G, G.pt(0, 0, s.hf, s.hu, 0), G.pt(1, 2, s.hf + 0.1, s.hu - 0.1, -0.06));
-    c.beginPath(); c.moveTo(F.R.X(s.tip.x), F.R.Y(s.tip.y));                 // taut line (straight once the hook is out)
-    c.quadraticCurveTo(F.R.X(s.lineQ.x), F.R.Y(s.lineQ.y), F.R.X(s.hook.x), F.R.Y(s.hook.y));
-    c.strokeStyle = 'rgba(238,242,246,0.95)'; c.lineWidth = 1.2; c.lineCap = 'round'; c.stroke();
+    var liveLine = P.WTier && P.WTier.enabled;
+    if (!liveLine) {
+      c.beginPath(); c.moveTo(F.R.X(s.tip.x), F.R.Y(s.tip.y));
+      c.quadraticCurveTo(F.R.X(s.lineQ.x), F.R.Y(s.lineQ.y), F.R.X(s.hook.x), F.R.Y(s.hook.y));
+      c.strokeStyle = 'rgba(238,242,246,0.95)'; c.lineWidth = 1.2; c.lineCap = 'round'; c.stroke();
+    }
     bent(F, s.hand, s.bend, s.tip, '#4B3621', 0.022);                         // rod, bowed back under load
     M.begin(F, s.hand.x, s.hand.y, 0);                                        // reel with a turning crank
     c.beginPath(); c.arc(0, 0, 0.035, 0, TAU); M.ink(F, '#B8C0CA', 1.4);
     c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(s.cr) * 0.045, Math.sin(s.cr) * 0.045); c.strokeStyle = INK; c.lineWidth = 2 / F.m; c.stroke();
     M.end(F);
-    M.begin(F, s.hook.x, s.hook.y, 0);                                        // lure head and barb
-    c.beginPath(); c.arc(0, 0, 0.025, 0, TAU); M.ink(F, '#E9A23B', 1.4);
-    c.beginPath(); c.arc(0.012, 0.02, 0.022, Math.PI * 0.1, Math.PI * 1.1); c.strokeStyle = '#C9CED6'; c.lineWidth = 1.6 / F.m; c.stroke();
-    M.end(F);
+    if (!liveLine) {
+      M.begin(F, s.hook.x, s.hook.y, 0);
+      c.beginPath(); c.arc(0, 0, 0.025, 0, TAU); M.ink(F, '#E9A23B', 1.4);
+      c.beginPath(); c.arc(0.012, 0.02, 0.022, Math.PI * 0.1, Math.PI * 1.1); c.strokeStyle = '#C9CED6'; c.lineWidth = 1.6 / F.m; c.stroke();
+      M.end(F);
+    }
     hands(F);
   } };
 
@@ -149,6 +154,12 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   }
   H.minibus = { T: 0.6, state: minibusState, held: function (F, G, k) {
     var s = minibusState(k.t), C = G.pt(4, 2, s.fwd, s.up, 0), cx = C.x, cy = C.y, th = G.side * s.rot, c = F.c, mh, oh;
+    if (P.WTier && P.WTier.enabled) {
+      var reach = 0.28 + (k.f.press || 0) * 0.25, lift = k.t / k.T > 0.81 ? -0.08 : 0.18;
+      arms(F, G, G.pt(0, 2, reach, lift, 0.20), G.pt(1, 2, reach, lift, -0.20));
+      hands(F);
+      return;
+    }
     mh = doorPt(-0.14 * G.side, 0.3, th); oh = doorPt(0.14 * G.side, 0.3, th);   // grips on the door's bottom corners
     arms(F, G, { x: cx + mh.x, y: cy + mh.y }, { x: cx + oh.x, y: cy + oh.y });
     M.begin(F, cx, cy, 0); c.rotate(th);

@@ -34,7 +34,7 @@ P.Weapons2.nearestFree = nearestFree;
 // ---------- Sledgehammer: windup -> slam (ring, stun, knockback). Signature "quake" stuns longer. ----------
 function queueSlam(s, x, y, lv, left, windup, A, src) {
   P.Weapons.state(s).slams.push({ x: x, y: y, t: windup, T: windup, lv: lv, left: left, A: A, first: left === lv.slams, src: src || 'sledge' });
-  s.events.push({ type: 'sledgeWindup', x: s.hero.x, y: s.hero.y, tx: x, ty: y, T: windup, n: left });
+  s.events.push({ type: 'sledgeWindup', x: s.hero.x, y: s.hero.y, tx: x, ty: y, T: windup, n: left, repeat: left < lv.slams, variant: src || 'sledge' });
 }
 
 // The owned variant runs this code: sledge, or Demirci Vuruşu (blacksmith) which also heals per enemy hit.
@@ -58,10 +58,12 @@ function impactSlam(s, sl) {
   });
   if (lv.heal && hits > 0) {                       // Demirci Vuruşu: a little life back for every enemy the slam hits
     var heal = Math.min(lv.healMax, hits * lv.heal);
+    var beforeHeal = h.hp;
     h.hp = Math.min(h.maxHp, h.hp + heal);
-    s.events.push({ type: 'healPulse', x: h.x, y: h.y, amount: heal });
+    heal = h.hp - beforeHeal;
+    s.events.push({ type: 'healPulse', x: h.x, y: h.y, amount: heal, hp: h.hp });
   }
-  s.events.push({ type: 'sledgeSlam', x: sl.x, y: sl.y, r: r, stun: stun, hits: Math.max(0, hits), n: sl.left, heavy: true,
+  s.events.push({ type: 'sledgeSlam', x: sl.x, y: sl.y, r: r, stun: stun, hits: Math.max(0, hits), n: sl.left, heavy: true, variant: sl.src,
     tag: P.Weapons.tagOf(sl.src || 'sledge') });
   if (sl.first) P.Mods.announce(s, A, sl.x, sl.y, r);
   if (sl.left > 1) {
@@ -76,6 +78,13 @@ function updateSlams(s, dt) {
     var sl = list[i];
     sl.t -= dt;
     if (sl.t > 0) continue;
+    if(!sl.ground){
+      var h=s.hero,K=P.CFG.weapons.sledge,dx=sl.x-h.x,dy=sl.y-h.y,d=Math.hypot(dx,dy)||1;
+      sl.ground={x:h.x+dx/d*Math.min(d,K.groundReach),y:h.y+dy/d*Math.min(d,K.groundReach)};
+      sl.T=sl.t=Math.max(0,Math.hypot(sl.x-sl.ground.x,sl.y-sl.ground.y)/K.pulseSpeed);
+      s.events.push({type:'sledgeGroundStrike',x:sl.ground.x,y:sl.ground.y,tx:sl.x,ty:sl.y,variant:sl.src,n:sl.left});
+      if(sl.t>0)continue;
+    }
     list.splice(i, 1);
     impactSlam(s, sl);
   }
@@ -105,7 +114,7 @@ function shatter(s, f) {
   var dmg = P.Weapons.dmgFor(s, 'molotov', lv.dmg) * A.dmg * (lv.dmgMul || 1);
   P.Weapons6.terrainHit(s, 'molotov', 'fire', f.x1, f.y1);
   P.Mods.blast(s, f.x1, f.y1, rr, dmg, 0.4, f.src || 'molotov', A);
-  if (lv.burn) P.Weapons6.burnAround(s, f.x1, f.y1, rr, lv.burn);
+  if (lv.burn) P.Weapons6.burnAround(s, f.x1, f.y1, rr, lv.burn, f.src);
   var life = (isLake ? lv.lakeLife : lv.life) * A.M.life * (sig && sig.life ? sig.life : 1);
   P.Weapons.state(s).pools.push({ x: f.x1, y: f.y1, r: lv.r * A.area, t: life, T: life, tick: cfg.burnTick, A: A, lv: isLake ? lv : null });
   s.events.push({ type: 'flaskShatter', x: f.x1, y: f.y1, r: lv.r * A.area, life: life, spin: f.spin, lake: isLake,
@@ -137,8 +146,8 @@ function updatePools(s, dt) {
     var n = 0, extra = p.A ? p.A.M.burn : 0;
     s.enemies.forEach(function (e) {
       if (e.dead || e.state !== 'active' || Math.hypot(e.x - p.x, e.y - p.y) - e.r > p.r) return;
-      P.Combat.addBurn(e); n++;
-      for (var k = 0; k < extra; k++) P.Combat.addBurn(e);
+      P.Combat.addBurn(e, p.A && p.A.variant); n++;
+      for (var k = 0; k < extra; k++) P.Combat.addBurn(e, p.A && p.A.variant);
     });
     if (n > 0) s.events.push({ type: 'poolBurn', x: p.x, y: p.y, n: n, tag: 'fire' });
   }
@@ -167,7 +176,7 @@ function fireFireworks(s, dt) {
   var list = P.Weapons.state(s).rockets, col = s.rng.combat.int(0, 5), dmg = P.Weapons.dmgFor(s, 'fireworks', lv.dmg) * A.dmg;
   taken.forEach(function (t, j) {
     var a0 = Math.atan2(t.y - h.y, t.x - h.x) + (s.rng.combat.next() - 0.5) * 0.9;
-    list.push({ x: h.x, y: h.y, a: a0, tgt: t, life: cfg.life, dmg: dmg, r: lv.r * A.area, col: (col + j) % 6, trail: [], A: A, first: j === 0 });
+    list.push({ x: h.x, y: h.y, a: a0, tgt: t, life: cfg.life, dmg: dmg, r: lv.r * A.area, col: (col + j) % 6, stage: h.weapons.fireworks, trail: [], A: A, first: j === 0 });
   });
   s.events.push({ type: 'rocketLaunch', x: h.x, y: h.y, n: taken.length });
 }
@@ -202,7 +211,7 @@ function updateRockets(s, dt) {
     list.splice(i, 1);
     P.Mods.blast(s, r.x, r.y, r.r, r.dmg, 0.5, 'fireworks', r.A);
     if (r.first) P.Mods.announce(s, r.A, r.x, r.y, r.r);
-    s.events.push({ type: 'rocketBurst', x: r.x, y: r.y, r: r.r, col: r.col, big: false, tag: 'fire' });
+    s.events.push({ type: 'rocketBurst', x: r.x, y: r.y, r: r.r, col: r.col, stage: r.stage, big: false, tag: 'fire' });
   }
 }
 

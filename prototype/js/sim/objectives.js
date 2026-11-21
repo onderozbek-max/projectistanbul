@@ -61,7 +61,7 @@ P.Objectives.status = function (s) {
   var o = s && s.obj, st;
   if (!o) return null;
   st = P.ObjKinds[o.kind].status(s, o);
-  return { id: o.id, state: o.state, title: 'obj.' + o.id + '.title', line: st.line, vars: st.vars || {}, frac: st.frac,
+  return { id: o.id, state: o.state, title: st.title || 'obj.' + o.id + '.title', line: st.line, vars: st.vars || {}, frac: st.frac,
     hp: st.hp === undefined ? null : st.hp, bonus: P.Objectives.bonusFor(s.levelIndex) };
 };
 
@@ -85,7 +85,8 @@ P.Objectives.results = function (s) {
 // lets the results screen add "ended at N%"). main.js passes these to P.Meta (stars) and to the results screen.
 P.Objectives.goals = function (s, won) {
   var st = P.Objectives.results(s), o = s.obj, third;
-  if (st) third = { key: 'obj.goal.' + st.id, vars: { par: P.Objectives.clock(o && o.par ? o.par : 0) }, on: !!st.done, hp: false };
+  if (st) third = { key: s.routeTrial === 'tram-stop' ? 'obj.tramStop.goal' : s.routeTrial === 'live-wires' ? 'obj.wire.goal' : 'obj.goal.' + st.id,
+    vars: { par: P.Objectives.clock(o && o.par ? o.par : 0) }, on: !!st.done, hp: false };
   else third = { key: 'ui.res.starHp', vars: {}, on: s.hero.hp / s.hero.maxHp >= P.CFG.objectives.stars.hp, hp: true };
   return [
     { key: 'ui.res.starClear', vars: {}, on: !!won, hp: false },

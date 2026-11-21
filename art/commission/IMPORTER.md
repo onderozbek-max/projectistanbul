@@ -13,18 +13,19 @@ node prototype/tools/prepare-art.js --force               ignore the cache and r
 node prototype/tools/prepare-art.js --dst=DIR             write somewhere other than prototype/assets/art
 node prototype/tools/prepare-art.js --sheets=DIR          also write character contact sheets (PNG) to DIR
 node prototype/tools/test-prepare-art.js                  tests (synthetic, plus checks on the built output)
-node prototype/tools/test-prepare-art.js --full           also rebuild into a temp dir and compare every hash (about 2 min)
+node prototype/tools/test-prepare-art.js --full           also rebuild into a temp dir and verify the image pixels and manifest layout
 ```
 
 Exit code 1 means at least one source was rejected. The report names it and the reason. Rejected units are not written, and the manifest marks them `rejected` in `sources`. Warnings do not change the exit code.
 
-Reruns are idempotent. The cache is `prototype/assets/art/.cache.json`, which is git-ignored by `prototype/assets/art/.gitignore`. A unit is rebuilt only when its source sha256 or the recipe changes. The recipe is the sha256 of `prepare-art.js`, `lib-art-image.js` and the constants in `C`. Editing either script therefore rebuilds everything. Outputs that a rebuild no longer produces are removed.
+The cache is `prototype/assets/art/.cache.json`, which is git-ignored by `prototype/assets/art/.gitignore`. A unit is rebuilt when its source SHA-256 or the recipe changes. The recipe hashes `prepare-art.js`, `lib-art-image.js`, `lib-art-frames.js` and the evolution map. Outputs that a rebuild no longer produces are removed. PNG compression can differ across Node versions while leaving the decoded pixels identical.
 
 ## Output layout
 
 ```
 prototype/assets/art/
   manifest.json          index for the game (schema 1)
+  manifest-local.js      same render entries for browsers opening index.html directly
   .cache.json            build cache (git-ignored)
   .gitignore
   characters/<id>.png    one atlas per entity: hero, enemies, bosses
@@ -53,15 +54,15 @@ A rect is `{x, y, w, h, px, py, anchor}`. `x, y, w, h` is the content rectangle 
 
 ```
 "hero_arda": {
-  "kind": "hero", "atlas": "characters/hero_arda.png", "scale": 0.8355,
-  "srcHeightPx": 383, "heightPx": 320, "facing": "right",
-  "views": { "side":  { "facing": "right", "frames": { "idle": { "x": 643, "y": 554, "w": 124, "h": 320, "px": 38, "py": 320, "anchor": "feet" } } },
+  "kind": "hero", "atlas": "characters/hero_arda.png", "scale": 0.4178,
+  "srcHeightPx": 383, "heightPx": 160, "facing": "right",
+  "views": { "side":  { "facing": "right", "frames": { "idle": { "x": 78, "y": 447, "w": 62, "h": 160, "px": 19, "py": 160, "anchor": "feet" } } },
              "front": { "facing": "down",  "frames": { ... } }, "back": { "facing": "up", "frames": { ... } } },
   "poses": { "hurt": { ... }, "down": { ... }, "victory": { ... } }
 }
 "walker_office": {
-  "kind": "enemy", "atlas": "characters/walker_office.png", "scale": 0.6938, "heightPx": 256,
-  "flying": false, "frames": { "idle": { "x": 2, "y": 2, "w": 143, "h": 256, "px": 54.8, "py": 256, "anchor": "feet" }, "walk1": { ... } }
+  "kind": "enemy", "atlas": "characters/walker_office.png", "scale": 0.3469, "heightPx": 128,
+  "flying": false, "frames": { "idle": { "x": 2, "y": 2, "w": 71, "h": 128, "px": 27.4, "py": 128, "anchor": "feet" }, "walk1": { ... } }
 }
 ```
 
@@ -111,7 +112,7 @@ Each prop item has `slot4` (how the fourth cell is produced: `broken` or `alt90`
 - **Body** (dead, down, flying characters): the centre of the figure's alpha box.
 - **Bottom** (vehicles): bottom centre of the vehicle.
 - **Centre** (weapons, pickups, effects): the centre of the source cell, mapped through the crop.
-- **Scale** is atlas pixels per source pixel. Each character has one scale for all its frames, chosen so that its idle frame is `heightPx` tall: 256 for enemies, 320 for the hero, 512 for bosses. Props, facades, ground, vehicles and sprites use fixed scales in the constants (0.5, or 0.25 for icons and evolutions). Check `srcHeightPx × scale ≈ heightPx` to confirm.
+- **Scale** is atlas pixels per source pixel. The importer packs every character around its reference idle height: 128 px for enemies, 160 px for the hero and 256 px for bosses. Check `srcHeightPx × scale ≈ heightPx`. Each separately illustrated boss action sheet also needs a `bossActionScale` in `prototype/tools/lib-art-frames.js`. Compare head and body dimensions with the locomotion sheet, then add the same correction to all action poses. The importer records it as `poseScale` so Canvas can apply it about each pose's pivot. This preserves short silhouettes when a boss crouches or falls. Compare the corrected poses in a ground-aligned contact sheet and in a live encounter when replacing either source sheet. The total decoded character budget is 25 MiB. Props, facades, ground, vehicles and sprites use fixed scales (0.5, or 0.25 for icons and evolutions).
 - **Facing**: side views face right. Mirror at runtime for left. The hero front view faces the camera (`down`), and the back view faces away (`up`).
 
 ## Keying and colour
@@ -122,7 +123,7 @@ Downscaling is area-averaged with premultiplied alpha, so transparent colour doe
 
 ## Encoding
 
-Each PNG atlas is either `png8` (a 256-colour palette, median cut with three Lloyd iterations, alpha in tRNS) or `png32` (RGBA). A palette is used when `colourError.over8` is at most `paletteMaxOver8` (0.12). `colourError` is measured on alpha at least 128 pixels: `over8` is the share with an error above 8 levels in any channel, and `p99` and `max` are the 99th percentile and the maximum. Every character atlas in the current build is `png8` (over8 0.016 to 0.082). Props, weapons, pickups, effects and vehicles are `png8` where the gate passes. The rest stay `png32`. To force RGBA everywhere, set `paletteMaxOver8` to 0.
+Each PNG atlas is either `png8` (a 256-colour palette, median cut with three Lloyd iterations, alpha in tRNS) or `png32` (RGBA). A palette is used when `colourError.over8` is at most `paletteMaxOver8` (0.12). `colourError` is measured on alpha at least 128 pixels: `over8` is the share with an error above 8 levels in any channel, and `p99` and `max` are the 99th percentile and the maximum. Every character atlas in the current build is `png8` (over8 0.015 to 0.093). Props, weapons, pickups, effects and vehicles are `png8` where the gate passes. The rest stay `png32`. To force RGBA everywhere, set `paletteMaxOver8` to 0.
 
 ## Reading the report
 
@@ -136,8 +137,7 @@ The report prints the number of prompt outputs, units built, reused and rejected
 
 ## Current known issues
 
-- Bosses `boss_vatman` and `boss_bigbro` are upscaled (1.25 and 1.18). Their idle frames are 408 and 434 px, not the 512 px target. Regenerate at 512 px.
 - Ground tiles `gnd_halic_a`, `_b`, `_c`, `_d`, `_steps` and `gnd_istiklal_a`, `_b`, `_d` have poor wrap seams (2.2 to 3.8). Regenerate or use as features.
 - `gnd_karakoy_wateredge` is a shore-band feature. The high seam score is expected.
 - Hand-wired hoods (bridge, galata, saray) are listed in `props` with `handwired: true`, but no atlas is written for them.
-- Total output is about 27.6 MiB, under the 30 MiB goal. Storing the hero RGBA would add about 1.1 MiB.
+- Total output is about 22.82 MiB on disk. The 31 character atlases total 21.83 MiB at four bytes per decoded pixel.

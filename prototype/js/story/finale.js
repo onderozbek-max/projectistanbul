@@ -1,11 +1,11 @@
 // Chapter 1 arrival flow (L100 win). Replaces the one-line 'end' page for level 100 only: the approach to the apartment
-// (view/finale-approach.js), the comic pages fin_arrive_a and fin_arrive_b (story/finale-data.js), then the "1. Kısım Sonu"
+// (view/finale-approach.js), the three fin_arrive_* comic pages (story/finale-data.js), then the "1. Kısım Sonu"
 // card with run stats (view/finale-credits.js). Then done() runs, which main.js uses to open the normal results screen.
 // main.js calls P.Finale.start from finishWin() and P.Finale.tick from its frame loop (both guarded). Debug: play level 100,
 // then push {type: 'win'} into P.debug.sim.events (see the report) or call P.Finale.start(100, P.debug.sim, function () {}).
 P.Finale = (function () {
   var F = P.Finale || {}, FINAL_LEVEL = 100;
-  F.PAGES = F.PAGES || ['fin_arrive_a', 'fin_arrive_b'];
+  F.PAGES = F.PAGES || ['fin_arrive_a', 'fin_arrive_b', 'fin_arrive_c'];
   F.wants = function (levelIndex) {
     return levelIndex === FINAL_LEVEL && !!P.FinaleApproach && !!P.Story && !!P.Comic;
   };

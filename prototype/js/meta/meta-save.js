@@ -8,18 +8,19 @@
 // value is clamped on read, so a damaged block cannot grant anything (test-modes.js covers it).
 P.Meta = P.Meta || {};
 (function (M) {
-  var KEY = 'nsi.meta.v3', KEY_V2 = 'nsi.meta.v2', KEY_V1 = 'nsi.meta.v1', VERSION = 3;
+  var KEY = 'nsi.meta.v3', BACKUP = KEY + '.backup', KEY_V2 = 'nsi.meta.v2', KEY_V1 = 'nsi.meta.v1', VERSION = 3, RUN_LIMIT = 32;
   var num = function (x) { return Number(x) || 0; };
   var COUNTERS = ['kills', 'hacks', 'rescues', 'bosses', 'wins', 'dashes', 'ults', 'crits', 'maxStreak', 'meters',
     'flawlessTotal', 'hoodsCleared', 'dailies', 'eliteKills'];
-  M.Save = { KEY: KEY, KEY_V2: KEY_V2, KEY_V1: KEY_V1, VERSION: VERSION, COUNTERS: COUNTERS, HEROES: ['arda'] };
+  M.Save = { KEY: KEY, BACKUP: BACKUP, KEY_V2: KEY_V2, KEY_V1: KEY_V1, VERSION: VERSION, COUNTERS: COUNTERS,
+    HEROES: ['arda'], RUN_LIMIT: RUN_LIMIT };
 
   // Fresh save. Level, gear and economy defaults match v1 (see meta-data.js for the numbers).
   M.Save.defaults = function () {
-    var s = { v: VERSION, unlocked: 1, stars: {}, coins: 0,
+    var s = { v: VERSION, unlocked: 1, stars: {}, coins: 0, hurda: 0,
       gear: { hoodie_sweat: { lvl: 1 }, gloves_work: { lvl: 1 }, sneak_run: { lvl: 1 }, charm_nazar: { lvl: 1 } },
       equipped: { hoodie: 'hoodie_sweat', gloves: 'gloves_work', sneakers: 'sneak_run', charm: 'charm_nazar' },
-      pending: null, heroes: {}, mastery: {}, counters: {}, collection: {}, achievements: {},
+      pending: null, settledRuns: [], heroes: {}, mastery: {}, counters: {}, collection: {}, achievements: {},
       daily: { day: '', seed: 0, level: 0, mods: [], played: false, won: false, claimed: false },
       streak: { n: 0, last: '', best: 0 }, flags: {}, lastPlayed: 0,
       tree: P.Tree.newState(), bonds: P.Tree.newBonds(), modes: defaultModes() };
@@ -42,6 +43,7 @@ P.Meta = P.Meta || {};
     var cap = M.CFG && M.CFG.levelCount ? M.CFG.levelCount : 100;
     out.unlocked = Math.max(1, Math.min(cap, Math.round(num(src.unlocked)) || 1));
     out.coins = Math.max(0, Math.round(num(src.coins)));
+    out.hurda = Math.max(0, Math.round(num(src.hurda)));
     Object.keys(src.stars || {}).forEach(function (k) {
       var i = Math.round(num(k)), v = Math.round(num(src.stars[k]));
       if (i >= 1 && i <= cap && v >= 1) out.stars[i] = Math.min(M.CFG.starsMax || 3, v);
@@ -61,11 +63,12 @@ P.Meta = P.Meta || {};
     Object.keys(src || {}).forEach(function (k) { out[k] = Math.max(0, Math.round(num(src[k]))); });
     return out;
   }
-  function normalizeHeroes(src) {
+  function normalizeHeroes(src, stars) {
     var out = {};
     M.Save.HEROES.forEach(function (h) {
       var raw = (src.heroes && src.heroes[h]) || {}, ult = raw.ult || 'nazar';
-      out[h] = { stats: P.Stats.normalize(raw.stats), ult: String(ult), active: String(raw.active || P.CFG.skills.activeDefault || 'shield') };
+      out[h] = { stats: P.Stats.normalize(raw.stats), ult: String(ult), active: String(raw.active || P.CFG.skills.activeDefault || 'shield'),
+        starter: stars[5] && ['knife','nailgun','canister'].indexOf(raw.starter)>=0 ? raw.starter : 'knife' };
     });
     return out;
   }
@@ -108,7 +111,10 @@ P.Meta = P.Meta || {};
     normalizeLevels(src, out);
     normalizeGear(src, out);
     out.pending = src.pending && typeof src.pending === 'object' ? src.pending : null;
-    out.heroes = normalizeHeroes(src);
+    if (Array.isArray(src.settledRuns)) {
+      out.settledRuns = src.settledRuns.slice(-RUN_LIMIT).filter(function (r) { return r && typeof r.runId === 'string'; });
+    }
+    out.heroes = normalizeHeroes(src,out.stars);
     out.mastery = normalizeMap(src.mastery);
     out.counters = normalizeCounters(src);
     out.collection = normalizeMap(src.collection);
@@ -137,22 +143,31 @@ P.Meta = P.Meta || {};
   function defaultStore() {
     try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (e) { return null; }
   }
+  function parse(raw) {
+    try { var s = JSON.parse(raw); return s && typeof s === 'object' && !Array.isArray(s) ? s : null; }
+    catch (e) { return null; }
+  }
+  function readKey(st, key) {
+    try { return parse(st.getItem(key)); } catch (e) { return null; }
+  }
   M.Save.read = function (store, now) {
-    var st = store || defaultStore(), v3 = null, v2 = null, v1 = null;
+    var st = store || defaultStore();
     if (!st) return M.Save.defaults();
-    try { v3 = JSON.parse(st.getItem(KEY) || 'null'); } catch (e) { v3 = null; }
-    if (v3) return M.Save.migrate(v3, now);
-    try { v2 = JSON.parse(st.getItem(KEY_V2) || 'null'); } catch (e) { v2 = null; }
-    if (v2) return M.Save.migrate(v2, now);
-    try { v1 = JSON.parse(st.getItem(KEY_V1) || 'null'); } catch (e) { v1 = null; }
-    return M.Save.migrate(v1, now);
+    return M.Save.migrate(readKey(st, KEY) || readKey(st, BACKUP) || readKey(st, KEY_V2) || readKey(st, KEY_V1), now);
   };
   M.Save.write = function (state, store) {
     var st = store || defaultStore();
-    try { if (st) st.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode: keep in memory */ }
+    if (!st) return;
+    try {
+      var json = JSON.stringify(state), old = st.getItem(KEY);
+      if (old === json) return;
+      // Save the current state first so a failed backup can never prevent the primary write.
+      st.setItem(KEY, json);
+      if (parse(old)) st.setItem(BACKUP, old);
+    } catch (e) { /* private mode or quota: keep the session copy in memory */ }
   };
   M.Save.wipe = function (store) {
     var st = store || defaultStore();
-    try { if (st) { st.removeItem(KEY); st.removeItem(KEY_V2); st.removeItem(KEY_V1); } } catch (e) { /* ignore */ }
+    try { if (st) { st.removeItem(KEY); st.removeItem(BACKUP); st.removeItem(KEY_V2); st.removeItem(KEY_V1); } } catch (e) { /* ignore */ }
   };
 })(P.Meta);

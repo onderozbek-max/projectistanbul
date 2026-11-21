@@ -39,7 +39,10 @@ P.Sprites = (function () {
     if (!(rx > 0) || !(alpha > 0)) return;
     var ry = rx * (aspect === undefined ? P.CFG.view.heroShadow.aspect : aspect);
     var sk = P.CFG.feel2.shadow;   // one light direction for every figure: the shadow slips down and to the right
-    c.save(); c.globalAlpha *= alpha; c.drawImage(contactSprite(), X - rx + rx * sk.x, Y - ry + ry * sk.y, 2 * rx, 2 * ry); c.restore();
+    var before = c.globalAlpha;
+    c.globalAlpha = before * alpha;
+    c.drawImage(contactSprite(), X - rx + rx * sk.x, Y - ry + ry * sk.y, 2 * rx, 2 * ry);
+    c.globalAlpha = before;
   };
   S.shadow = function (c, X, Y, u, k) { S.contact(c, X, Y, 0.34 * u, 0.32 * (k === undefined ? 1 : k), 0.38); };
   // Coloured base ring at the feet: a dark under-stroke, then the colour, with a faint fill.
@@ -153,7 +156,7 @@ P.Sprites = (function () {
     var U = R.bucket(u * devScale(c)), moving = !rc.still && !o.stopped, pose = poseOf(rc, o, moving, t), pe = poseMemo(rc, pose), J = pe.J;
     var refJ = rc.refJ || (rc.refJ = R.solve(rc.B, { lean: rc.lean, hunch: rc.hunch, crouch: rc.crouch, arms: 'idle' }));
     var hit = clamp((o.flash || 0) / P.CFG.feel.hitFlash, 0, 1), sq = squash(pose, moving, hit, rc.anim || P.CFG.view.anim), ox = (o.recoil || 0) * hit * u, oy = 0;
-    if (o.spring) { sq.x *= o.spring.x; sq.y *= o.spring.y; sq.r = o.spring.r; ox += o.spring.ox * u; }   // v0.9 hit spring / hero start-stop
+    if (o.spring) { sq.x *= o.spring.x; sq.y *= o.spring.y; sq.r = o.spring.r; ox += (o.spring.ox || 0) * u; oy += (o.spring.oy || 0) * u; }
     var white = (o.flash || 0) > 0 && !o.noWhite, low, high, dx, dy, ow = o.outline ? P.CFG.view.eliteOutline.units : 0;
     rc.U = U;
     if (rc.custom) {
@@ -190,7 +193,10 @@ P.Sprites = (function () {
   // Arda: the hero. Red hoodie, quiff, earbuds, warm rim glow, ground halo. Same params as person().
   S.hero = function (c, X, Y, o) {
     var O = CH.outfit('hero'), f = o.face === -1 ? -1 : 1;
-    if (P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.hero(c, X, Y, o, f, { halo: 'rgba(255,214,150,0.32)', skin: o.skin || '#E0AC80', shirt: o.shirt || O.col })) return;
+    if (P.ArtRaster && P.ArtRaster.enabled()) {
+      P.ArtRasterChars.hero(c, X, Y, o, f, { halo: 'rgba(255,214,150,0.32)', skin: o.skin || '#E0AC80', shirt: o.shirt || O.col });
+      return;
+    }
     var rc = buildRc({ tag: 'hero', oid: 'hero', bname: 'hero', B: CH.body('hero'), O: O, skin: o.skin || '#E0AC80',
       shirt: o.shirt || O.col, pants: o.pants || O.pants, hair: o.hair || O.hc, shoe: O.shoe, face: CH.heroFace, arms: 'run',
       still: !!o.still, seed: (X * 0.013) % 4, back: !!o.back, lean: o.lean || 0.03, live: { front: o.arms === 'knife' || !!o.noArms, back: !!o.backHand || !!o.noArms },
@@ -208,11 +214,14 @@ P.Sprites = (function () {
   S.groundEnemy = function (Rd, e) {
     var c = Rd.ctx, u = Rd.ppm, V = P.CFG.view, er = e.r || 0.35, X = Rd.X(e.x), Y = Rd.Y(e.y - er * 0.6);
     var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1, def = EN.defFor(e), cs = V.contactShadow;
+    var scene=P.SceneFlow&&P.SceneFlow.current(),position=scene&&scene.kind==='entry'&&scene.actor===e&&scene.entryActor;
+    if(position){X=Rd.X(position.x);Y=Rd.Y(position.y-er*.6);}
+    var radius = cs.radius * er * u, alpha = cs.alpha * (e.type === 'crawler' ? 1.3 : 1), ring = def.ring || V.crowdRing[e.type];
+    if (!e.elite && !e.boss && !ring) { S.contact(c, X, Y, radius, alpha * emerge, cs.aspect); return; }
     c.save(); c.globalAlpha *= emerge;
     if (e.elite) eliteAura(c, X, Y, u, e);
-    if (e.boss) bossAura(c, X, Y, figUnit(Rd, e));
-    S.contact(c, X, Y, cs.radius * er * u, cs.alpha * (e.type === 'crawler' ? 1.3 : 1), cs.aspect);
-    var ring = def.ring || V.crowdRing[e.type];
+    if (e.boss && !(P.BossPuppet&&P.BossPuppet.ready(e.bossPreset))) bossAura(c, X, Y, figUnit(Rd, e));
+    S.contact(c, X, Y, radius, alpha, cs.aspect);
     if (ring) S.ring(c, X, Y, V.ringRadius * er * u, ring);
     c.restore();
   };
@@ -224,8 +233,7 @@ P.Sprites = (function () {
   //  - 'moment': the signature moments (moments.js, moments-screen.js). One start a second is reserved for them, and a moment
   //    may also take any free slot.
   // A hit may not take the last slot while a moment is in the window or pending (asked and refused in the last second). That slot
-  // is the moments' reserve, so a refused moment means a moment started within the last second, unless forced beats (flashForce,
-  // the heartbeat) fill the window. Under Reduce flashing
+  // is the moments' reserve, so a refused moment means a moment started within the last second. Under Reduce flashing
   // nothing is granted and nothing is counted.
   var FLASH_HZ = 3, FLASH_HIT = 2, flashLog = [], momentRefusedAt = -1e9;
   function trimFlashLog(now) { while (flashLog.length && now - flashLog[0].t >= 1) flashLog.shift(); }
@@ -242,8 +250,6 @@ P.Sprites = (function () {
     flashLog.push({ t: now, kind: moment ? 'moment' : 'hit' });
     return true;
   };
-  // A flash that cannot wait (the low-HP heartbeat): always shown, but it counts against the budget as a hit.
-  S.flashForce = function (now) { trimFlashLog(now); flashLog.push({ t: now, kind: 'hit' }); };
   // Starts in the current window: all of them, or only one kind ('hit' or 'moment').
   S.flashStarts = function (now, kind) { trimFlashLog(now); return kind ? countKind(kind) : flashLog.length; };
   // Guardrail (no flashes faster than 3 per second): one white hit flash per enemy per feel.enemyFlashGap. A hit that
@@ -271,26 +277,47 @@ P.Sprites = (function () {
     return hit && st.ok;
   }
   S.enemyFlashOk = enemyFlashOk;   // exported for tests/test-a11y-canvas.js
+  // Use the same authored body in combat and in the defeat animation.
+  S.bossBody = function (c, e, o, x, y, u, f) {
+    return e.boss && ((P.BossPuppet && P.BossPuppet.draw(c,e,o,x,y,u,f)) || (P.BossActing && P.BossActing.draw(c, e, o, x, y, u, f)) ||
+      (P.CookFx && P.CookFx.bossBody(c, e, o, x, y, u, f)) ||
+      (P.EminonuBossFx && P.EminonuBossFx.bossBody(c, e, o, x, y, u, f)) ||
+      (P.SirkeciFx && P.SirkeciFx.bossBody(c, e, o, x, y, u, f)));
+  };
   // Enemy at world pos; Rd is P.Render (X/Y/ppm/ctx), or a view with noGround set when render.js already drew the ground.
   // Handles emerge, turning, elite, boss, crawler.
   S.enemy = function (Rd, e, hero) {
     var c = Rd.ctx, u = Rd.ppm, V = P.CFG.view, X = Rd.X(e.x), Y = Rd.Y(e.y - (e.r || 0.35) * 0.6), f = hero.x >= e.x ? 1 : -1;
     var human = e.state === 'dormant' || ((e.civ || e.type === 'diner') && e.state === 'turning');
+    if (!e.boss && e.lure && e.lure.t>0) f=e.lure.x>=e.x?1:-1;
     var def = EN.defFor(e), uf = figUnit(Rd, e);
     var emerge = e.door ? Math.min(1, (e.age || 0) / 0.3) : 1;
     if (!Rd.noGround) S.groundEnemy(Rd, e);
     if (e.state === 'turning') X += (Math.random() - 0.5) * 3;
     c.save();
     if (emerge < 1) { c.globalAlpha = emerge; c.translate(X, Y); c.scale(0.7 + 0.3 * emerge, 0.7 + 0.3 * emerge); c.translate(-X, -Y); }
-    var rc = enemyRc(e, def, human);
+    if (e.swingAir && P.EnemyDeathMotion && Rd.simTime !== undefined) {
+      var air = P.EnemyDeathMotion.swing(e.swingAir, Rd.simTime - e.swingAir.at);
+      Y -= air.height * u;
+      c.translate(X, Y); c.rotate(air.roll); c.translate(-X, -Y);
+    }
     // Walk phase: distance walked (sim e.walk) plus a per-enemy offset, so a crowd that spawned together does not march in step.
     var o = { flash: e.flash, phase: (e.walk || 0) * 5.5 + (e.id || 0) * P.CFG.feel2.walk.phaseStep, recoil: e.kbx > 0 ? 0.1 : e.kbx < 0 ? -0.1 : 0,
       outline: e.elite ? V.eliteOutline.color : null, noWhite: !enemyFlashOk(e, performance.now() / 1000),
       spring: P.Feel ? P.Feel.hurt(e) : null, stopped: P.Feel ? P.Feel.stopped(e) : false };
-    // Raster art (?art=raster, view only): the atlas figure replaces the rig's body; the crown and the boss mark below stay.
-    if (!(P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.enemy(c, e, o, X, Y, uf, f))) drawFigure(c, X, Y, uf, f, rc, o, performance.now());
+    if (P.SceneFlow) Y -= P.SceneFlow.actor(e, o, u);
+    if(o.scenePosition){o.contactOwner=e;var projected=Object.create(e);projected.x=o.scenePosition.x;projected.y=o.scenePosition.y;
+      projected.walk=o.scenePosition.walk;projected.age=o.scenePosition.age;e=projected;
+      X=Rd.X(e.x);Y=Rd.Y(e.y-(e.r||.35)*.6);}
+    // The atlas figure replaces the rig's body. The crown and boss mark are drawn separately.
+    if (!S.bossBody(c, e, o, X, Y, u, f) &&
+        !(P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.enemy(c, e, o, X, Y, uf, f))) {
+      if (!(P.ArtRaster && P.ArtRaster.enabled())) drawFigure(c, X, Y, uf, f, enemyRc(e, def, human), o, performance.now());
+      else { c.beginPath(); c.ellipse(X, Y, e.r * u, e.r * u * .55, 0, 0, TAU);
+        c.lineWidth = 2; c.strokeStyle = '#E7D1B5'; c.stroke(); }
+    }
     if (e.elite) eliteMarks(c, X, Y, uf, e);
-    if (e.boss) bossMark(c, X, Y, uf);
+    if (e.boss && !(P.BossPuppet&&P.BossPuppet.ready(e.bossPreset))) bossMark(c, X, Y, uf);
     if (e.burn && e.burn.length) {
       var t = performance.now() / 90;
       c.fillStyle = 'rgba(255,140,40,0.75)';
@@ -346,9 +373,14 @@ P.Sprites = (function () {
   S.civilian = function (Rd, v) {
     var c = Rd.ctx, u = Rd.ppm, X = Rd.X(v.x), Y = Rd.Y(v.y), vv = (v.variant | 0) & 7, id = v.skin || EN.CIV[vv], O = CH.outfit(id);
     if (!Rd.noGround) S.shadow(c, X, Y, u);
+    if (P.ArtRaster && P.ArtRaster.enabled() && P.CivilianActing) {
+      P.CivilianActing.draw(c, X, Y, P.CivilianActing.height(u), v.drift >= 0 ? 1 : -1, v.walk * 4.5, P.CivilianActing.moving(v,Rd.simTime), !!v.scream, P.CivilianActing.look(v));
+      return;
+    }
     var rc = buildRc({ tag: 'h', oid: id, bname: 'human', B: CH.body('human'), O: O, skin: SKIN[vv & 3], shirt: O.top === 'overall' ? O.base : O.col,
       pants: O.pants, hair: O.hc || HAIR[1], shoe: O.shoe || '#2A2A2A', face: { mouth: v.scream > 0 ? 'scream' : 'open', brow: 'worried', blush: false },
-      arms: 'panic', still: false, seed: (v.x * 0.37) % 4, mot: { gait: 'walk', strideK: 1.4, liftK: 1.3, sway: 0.02 }, hook: EN.accent });
+      arms: v.routeGuide ? 'idle' : 'panic', still: !!v.routeGuide && !v.walk, seed: (v.x * 0.37) % 4,
+      mot: { gait: 'walk', strideK: 1.4, liftK: 1.3, sway: 0.02 }, hook: EN.accent });
     drawFigure(c, X, Y, u, v.drift >= 0 ? 1 : -1, rc, { phase: v.walk * 4.5, flash: 0 }, 0);
     if (v.scream > 0) {
       c.font = 'italic 900 ' + Math.round(0.5 * u) + 'px "CM Bangers", Bangers, Impact, sans-serif'; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = INK; c.fillStyle = '#FFD166';
@@ -363,7 +395,7 @@ P.Sprites = (function () {
     // p.fall (0..1) and p.alpha, when given, override the timing here: the death collapse (art-enemies5.js) drives them itself.
     if (p.fall !== undefined) fall = p.fall;
     c.save(); c.globalAlpha = p.alpha !== undefined ? p.alpha : (k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4);
-    if (P.ArtRaster && P.ArtRaster.enabled() && P.ArtRasterChars.corpse(c, p, fall, f, X, Y, u, def.scale)) { c.restore(); return; }   // raster: owns its transform
+    if (P.ArtRaster && P.ArtRaster.enabled()) { P.ArtRasterChars.corpse(c, p, fall, f, X, Y, u, def.scale); c.restore(); return; }
     if (p.fling) {
       var el = k * p.T, zz = Math.max(0, 6 * el - 10 * el * el);
       X += p.dx * el * 0.25 * u; Y -= zz * u;
@@ -391,39 +423,44 @@ P.Sprites = (function () {
     var ang = a === undefined ? (f > 0 ? 0.6 : Math.PI - 0.6) : a;
     var hx = sh.x + Math.cos(ang) * 0.28 * u, hy = sh.y + Math.sin(ang) * 0.28 * u;
     limb(c, sh.x, sh.y, hx, hy, sleeve, 0.09 * u);
-    var bx = hx + Math.cos(ang) * 0.42 * u, by = hy + Math.sin(ang) * 0.42 * u, nx = -Math.sin(ang) * 0.06 * u, ny = Math.cos(ang) * 0.06 * u;
-    c.beginPath(); c.moveTo(hx + nx, hy + ny); c.lineTo(bx, by); c.lineTo(hx - nx * 0.4, hy - ny * 0.4); c.closePath();
-    c.fillStyle = '#E6EBF0'; c.fill(); c.strokeStyle = INK; c.lineWidth = 1.8; c.stroke();
+    S.knifeAt(c, hx, hy, u, ang);
     blob(c, hx, hy, 0.06 * u, 0.06 * u, skin);
   };
 
+  S.knifeAt = function (c, hx, hy, u, ang) {
+    var bx = hx + Math.cos(ang) * 0.42 * u, by = hy + Math.sin(ang) * 0.42 * u, nx = -Math.sin(ang) * 0.06 * u, ny = Math.cos(ang) * 0.06 * u;
+    c.beginPath(); c.moveTo(hx + nx, hy + ny); c.lineTo(bx, by); c.lineTo(hx - nx * 0.4, hy - ny * 0.4); c.closePath();
+    c.fillStyle = '#E6EBF0'; c.fill(); c.strokeStyle = INK; c.lineWidth = 1.8; c.stroke();
+  };
+
   function eliteAura(c, X, Y, u, e) {
-    var pt = performance.now() / 1000;
-    c.fillStyle = 'rgba(224,64,251,' + (0.25 + 0.12 * Math.sin(pt * 6)) + ')';
+    var pt = performance.now() / 1000, colors = P.SemanticColors;
+    c.fillStyle = 'rgba(' + (colors ? colors.eliteRGB : '224,64,251') + ',' + (0.25 + 0.12 * Math.sin(pt * 6)) + ')';
     c.beginPath(); c.ellipse(X, Y, 0.7 * u, 0.28 * u, 0, 0, TAU); c.fill();
-    c.strokeStyle = '#E040FB'; c.lineWidth = 3; c.stroke();
+    c.strokeStyle = colors ? colors.elite : '#E040FB'; c.lineWidth = 3; c.stroke();
   }
   // Elite: crown marker above the head and a purple HP bar.
   function eliteMarks(c, X, Y, u, e) {
-    var top = Y - 1.22 * u;
-    c.fillStyle = '#E040FB'; c.strokeStyle = INK; c.lineWidth = 2;
+    var top = Y - 1.22 * u, fill = P.SemanticColors ? P.SemanticColors.elite : '#E040FB';
+    c.fillStyle = fill; c.strokeStyle = INK; c.lineWidth = 2;
     c.beginPath(); c.moveTo(X - 0.18 * u, top); c.lineTo(X - 0.18 * u, top - 0.16 * u); c.lineTo(X - 0.09 * u, top - 0.07 * u);
     c.lineTo(X, top - 0.2 * u); c.lineTo(X + 0.09 * u, top - 0.07 * u); c.lineTo(X + 0.18 * u, top - 0.16 * u); c.lineTo(X + 0.18 * u, top); c.closePath(); c.fill(); c.stroke();
     var w = 0.9 * u, f = Math.max(0, e.hp / e.maxHp);
     c.fillStyle = INK; c.fillRect(X - w / 2 - 2, top + 4, w + 4, 8);
-    c.fillStyle = '#E040FB'; c.fillRect(X - w / 2, top + 6, w * f, 4);
+    c.fillStyle = fill; c.fillRect(X - w / 2, top + 6, w * f, 4);
   }
   // Boss: menacing red ground aura, and a jagged danger marker above the head (no religious symbols).
   function bossAura(c, X, Y, u) {
     var g = c.createRadialGradient(X, Y, 0, X, Y, 0.9 * u);
-    g.addColorStop(0, 'rgba(255,77,46,0.35)'); g.addColorStop(1, 'rgba(255,77,46,0)');
+    var rgb = P.SemanticColors ? P.SemanticColors.dangerRGB : '255,77,46';
+    g.addColorStop(0, 'rgba(' + rgb + ',0.35)'); g.addColorStop(1, 'rgba(' + rgb + ',0)');
     c.fillStyle = g; c.beginPath(); c.ellipse(X, Y, 0.9 * u, 0.36 * u, 0, 0, TAU); c.fill();
   }
   function bossMark(c, X, Y, u) {
     var t = performance.now() / 1000, s = 1 + 0.08 * Math.sin(t * 5), cx = X, cy = Y - 1.42 * u, i, a, r;
     c.beginPath();
     for (i = 0; i < 12; i++) { a = i * Math.PI / 6 - Math.PI / 2; r = (i % 2 ? 0.06 : 0.15) * u * s; c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
-    c.closePath(); c.fillStyle = '#FFC93C'; c.fill(); c.strokeStyle = '#FF4D2E'; c.lineWidth = 2.5; c.stroke();
+    c.closePath(); c.fillStyle = '#FFC93C'; c.fill(); c.strokeStyle = P.SemanticColors ? P.SemanticColors.danger : '#FF4D2E'; c.lineWidth = 2.5; c.stroke();
   }
 
   return S;

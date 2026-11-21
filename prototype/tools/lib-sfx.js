@@ -1,9 +1,8 @@
-// Shared helpers for the sound tools (render-sfx.js, qa-sfx.js): loads the same DSP files the game uses (sfx-bank.js,
-// sfx-bank2.js) into a sandbox, enumerates every cue variant, and reads/writes 16-bit mono WAV. No dependencies.
+// Shared helpers for the sound tools: load the game's recipes, enumerate cue variants and read/write 16-bit mono WAV.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/view/sfx-bank.js', 'js/view/sfx-bank2.js'];
+const RECIPE_SCRIPTS = ['js/view/sfx-bank.js', 'js/view/sfx-layers.js', 'js/view/sfx-ui-cues.js', 'js/view/sfx-bank2.js'];
 const VOICES = ['arda', 'anne', 'usta', 'friend', 'other'];
 const SAMPLE_RATE = 44100;
 
@@ -12,7 +11,7 @@ function loadSfx() {
   const P = {};
   const sandbox = { P, console };
   vm.createContext(sandbox);
-  for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+  for (const f of RECIPE_SCRIPTS) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
   return { P, R: P.SfxRecipes, D: P.SfxDsp };
 }
 
@@ -64,4 +63,4 @@ function readWav(file) {
   return { sr, x };
 }
 
-module.exports = { ROOT, VOICES, SAMPLE_RATE, loadSfx, variants, wavBuffer, readWav };
+module.exports = { ROOT, RECIPE_SCRIPTS, VOICES, SAMPLE_RATE, loadSfx, variants, wavBuffer, readWav };

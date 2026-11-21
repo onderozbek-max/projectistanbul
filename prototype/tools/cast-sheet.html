@@ -17,6 +17,7 @@ canvas{display:block}
 <script src="../js/view/sprites.js"></script>
 <script src="../js/view/art-bosses.js"></script>
 <script src="../js/view/portraits.js"></script>
+<script src="../js/view/comic-raster.js"></script>
 <script src="../js/view/comic-busts.js"></script>
 <script src="../js/view/comic-busts-hair.js"></script>
 <script src="../js/view/comic-busts-cast.js"></script>
@@ -27,7 +28,7 @@ canvas{display:block}
   var who=(q.get('who')||'arda,anne,baba,usta,kaan,mila,ada,dede,ahmet,shopkeeper,news,stranger,zombie').split(',');
   var moods=(q.get('moods')||'neutral,happy,scared,determined,shout,sad').split(',');
   var S=+(q.get('s')||150);
-  function cell(parent,label,w,h,fn,bg){var d=document.createElement('div');d.className='c';if(bg)d.style.background=bg;var cv=document.createElement('canvas');cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+'px';cv.style.height=h+'px';var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);fn(g);d.appendChild(cv);d.appendChild(document.createTextNode(label));parent.appendChild(d);}
+  function cell(parent,label,w,h,fn,bg){var d=document.createElement('div');d.className='c';if(bg)d.style.background=bg;var cv=document.createElement('canvas');cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+'px';cv.style.height=h+'px';var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);P.ComicRaster.whenReady(function(){fn(g);});d.appendChild(cv);d.appendChild(document.createTextNode(label));parent.appendChild(d);}
   who.forEach(function(w){var h=document.createElement('h2');h.textContent=w;out.appendChild(h);var r=document.createElement('div');r.className='row';out.appendChild(r);
     moods.forEach(function(m){cell(r,w+' / '+m,S,S,function(g){P.ComicBusts.draw(g,w,m,S/2,S,S*0.95,{});},'#3a3d52');});});
   var h=document.createElement('h2');h.textContent='in-game hero (walk)';out.appendChild(h);var r=document.createElement('div');r.className='row';out.appendChild(r);

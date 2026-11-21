@@ -3,7 +3,7 @@
 // anvil, a shield orbit, a foam wall, a net, a lake of ripples, twin discs, a fire orb, arc links, a car box, a forge jet, a grinder
 // wheel, a hook haul, a bus door. Same drawer signature and table row as weapon-sil.js (see there).
 (function () {
-  var M = P.WSil.prim, TAU = M.TAU, W = P.WSil, DEG = Math.PI / 180;
+  var M = P.WSil.prim, TAU = M.TAU, W = P.WSil;
   function ease(q) { return 1 - Math.pow(1 - M.clamp(q), 2); }
 
   // cleaverRing (cleaver, a hero ring): L.count cleaver blades evenly round the ring at E.rad, a sweep arc trailing the spin (trail),
@@ -75,24 +75,11 @@
     if (L.ring > 0 && q > 0.9) M.ring(c, R, E.x, E.y, 0.4 + 1.2 * (q - 0.9) * 10, col, 0.6 * A * (1 - (q - 0.9) * 10), 1.6);
   };
 
-  // anvilHammer (blacksmith slam; E.q rises from the windup start to the drop): a warning ground circle; the anvil drops onto it with
-  // the sparks (count, ring) radiating at the strike.
+  // Blacksmith shares the real ground-pulse source; restoration is emitted only by confirmed healing.
   W.anvilHammer = function (c, R, E, L) {
-    var A = L.alpha, q = M.clamp(E.q), S = L.scale, rr = 1.2 * S, drop = 2.6 * (1 - q) * S + 0.25, k, a, n = Math.max(3, L.count), hx = E.x, hy = E.y + drop;
-    if (E.layer === 'ground') {
-      M.disc(c, R, E.x, E.y, rr * q, L.col, 0.2 * A);
-      M.ring(c, R, E.x, E.y, rr, L.col, 0.75 * A, 1.6 + S);
-      if (q > 0.92) for (k = 0; k < n; k++) {
-        a = k * TAU / n; M.seg(c, R, E.x + Math.cos(a) * rr * 0.6, E.y + Math.sin(a) * rr * 0.6, E.x + Math.cos(a) * rr * 1.1, E.y + Math.sin(a) * rr * 1.1, L.col, 0.8 * A, 2);
-      }
-      return;
-    }
-    M.fill(c, R, [[hx - 0.45 * S, hy - 0.22 * S], [hx + 0.45 * S, hy - 0.22 * S], [hx + 0.45 * S, hy - 0.1 * S], [hx + 0.22 * S, hy - 0.04 * S],
-      [hx + 0.2 * S, hy + 0.12 * S], [hx + 0.34 * S, hy + 0.2 * S], [hx - 0.34 * S, hy + 0.2 * S], [hx - 0.2 * S, hy + 0.12 * S],
-      [hx - 0.22 * S, hy - 0.04 * S], [hx - 0.45 * S, hy - 0.1 * S]], L.col, 0.95 * A);
-    if (q > 0.92) for (k = 0; k < n; k++) {
-      a = k * TAU / n; M.disc(c, R, hx + Math.cos(a) * 0.5 * S, hy + Math.sin(a) * 0.5 * S, 0.04 * S, '255,220,140', 0.9 * A);
-    }
+    if(E.layer!=='ground')return;
+    W.overheadSlam(c,R,E,L);
+    if(E.src.ground)M.arc(c,R,E.x,E.y,E.src.lv.r*.64,-.8,.8,'133,224,205',.36*L.alpha,1.6);
   };
 
   // shieldOrbit (stormshield, a hero ring): L.count shield arcs orbiting at E.rad (the orbit radius, spinning with the clock), a jagged
@@ -116,27 +103,10 @@
 
   // foamWall (foamstorm): a wide wall of foam, two rows of blobs (count) on an arc across the aim, the arc width from the shot (src.arc
   // in degrees), the wall pushing out with the spray.
-  W.foamWall = function (c, R, E, L) {
-    var A = L.alpha, s0 = E.src, half = (s0.arc || 120) * DEG / 2, range = s0.range || 3, grow = M.clamp(E.age / 0.3), n = Math.max(3, L.count), k, a, d, row;
-    M.glow(c, R, E.hx, E.hy, L.glow * 0.7, '232,247,255', 0.16 * A);
-    for (row = 0; row < 2; row++) for (k = 0; k < n; k++) {
-      a = s0.a - half + 2 * half * (k + 0.5) / n;
-      d = range * (0.55 + 0.25 * row) * grow * (0.9 + 0.2 * M.noise(E.seed + k + row * 9, 0.7));
-      M.disc(c, R, E.hx + Math.cos(a) * d, E.hy + Math.sin(a) * d, (0.18 + 0.08 * L.scale) * (1 - 0.3 * row), L.col, 0.6 * A * (1 - 0.4 * E.q));
-    }
-  };
+
 
   // netMesh (netspear, a spear with a net): the tether, and a net patch at the tip with L.count strands crossing.
-  W.netMesh = function (c, R, E, L) {
-    var A = L.alpha, s0 = E.src, S = L.scale, ang = Math.atan2(s0.dy, s0.dx), n = Math.max(2, L.count), i, t, px = -Math.sin(ang), py = Math.cos(ang), cx = s0.x, cy = s0.y;
-    M.seg(c, R, E.hx, E.hy, cx, cy, '230,216,180', 0.5 * A, 1);
-    M.glow(c, R, cx, cy, L.glow, L.col, 0.3 * A);
-    for (i = 0; i < n; i++) {
-      t = -0.45 * S + 0.9 * S * i / (n - 1);
-      M.seg(c, R, cx + Math.cos(ang) * t + px * 0.45 * S, cy + Math.sin(ang) * t + py * 0.45 * S, cx + Math.cos(ang) * t - px * 0.45 * S, cy + Math.sin(ang) * t - py * 0.45 * S, L.col, 0.75 * A, 1.1);
-      M.seg(c, R, cx + px * t * 0.8 - Math.cos(ang) * 0.45 * S, cy + py * t * 0.8 - Math.sin(ang) * 0.45 * S, cx + px * t * 0.8 + Math.cos(ang) * 0.45 * S, cy + py * t * 0.8 + Math.sin(ang) * 0.45 * S, L.col, 0.6 * A, 1);
-    }
-  };
+
 
   // lakeRipple (lake, the molotov evolution): the pool's ripples (count) spreading out over its life, a faint fill, its radius from
   // the sim (src.r) times the scale. Ground pass.
@@ -152,18 +122,7 @@
   };
 
   // twinDisc (twinsaw): L.count saw discs side by side across the direction of travel, each with 10 teeth spinning.
-  W.twinDisc = function (c, R, E, L) {
-    var A = L.alpha, S = L.scale, a = E.src.a || 0, px = -Math.sin(a), py = Math.cos(a), n = Math.max(2, L.count), k, off, cx, cy, i, pts, rr;
-    M.trail(c, R, E.hist, L.col, 0.3 * A, 2, L.trail);
-    M.glow(c, R, E.x, E.y, L.glow, L.col, 0.3 * A);
-    for (k = 0; k < n; k++) {
-      off = (k - (n - 1) / 2) * 0.55 * S; cx = E.x + px * off; cy = E.y + py * off;
-      pts = [];
-      for (i = 0; i < 20; i++) { rr = i % 2 ? 0.2 * S : 0.3 * S; pts.push([cx + rr * Math.cos(E.now * 9 + k + i * Math.PI / 10), cy + rr * Math.sin(E.now * 9 + k + i * Math.PI / 10)]); }
-      M.fill(c, R, pts, L.col, 0.9 * A);
-      M.disc(c, R, cx, cy, 0.07 * S, '30,40,52', 0.9 * A);
-    }
-  };
+
 
   // fireOrb (fireball): a big orb with L.count flame tongues round it, flickering, on its lob (the same flight as the bottle).
   W.fireOrb = function (c, R, E, L) {
@@ -210,62 +169,21 @@
     M.fill(c, R, M.local([[-0.12 * S, 0.02 * S], [0.1 * S, 0.02 * S], [0.1 * S, 0.12 * S], [-0.12 * S, 0.12 * S]], p.x, p.y + lift, a), '40,20,20', 0.7 * A);
   };
 
-  // forgeJet (forge torch): two nested flame jets (orange outside, white inside) of L.count tongues, reach from the shot, and sparks.
-  W.forgeJet = function (c, R, E, L) {
-    var A = L.alpha, s0 = E.src, range = s0.range || 2.5, half = (s0.arc || 60) * DEG / 2, i, f, a, d;
-    if (E.layer !== 'ground') return;
-    M.glow(c, R, E.hx, E.hy, L.glow * 0.8, L.col, 0.25 * A);
-    for (i = 0; i < L.count; i++) {
-      f = (i + 0.5) / L.count; a = s0.a + (M.noise(E.seed + i, E.now * 6) - 0.5) * 2 * half * 0.6; d = range * (0.4 + 0.6 * f);
-      M.fill(c, R, [[E.hx + Math.cos(a - 0.12) * 0.25, E.hy + Math.sin(a - 0.12) * 0.25], [E.hx + Math.cos(a + 0.12) * 0.25, E.hy + Math.sin(a + 0.12) * 0.25],
-        [E.hx + Math.cos(a) * d, E.hy + Math.sin(a) * d]], L.col, 0.5 * A * (1 - 0.3 * f));
-      M.disc(c, R, E.hx + Math.cos(a) * d * 0.7, E.hy + Math.sin(a) * d * 0.7, 0.05 * L.scale, '255,255,255', 0.7 * A);
-    }
-  };
+  // Forge paints a second heat layer near the end of the jet while its brighter nozzle draws in the air pass.
+
 
   // grindWheel (grinder, the revving evolution): a spinning wheel with L.count spokes at the hero's hand, sparks off its rim.
-  W.grindWheel = function (c, R, E, L) {
-    var A = L.alpha, S = L.scale, a = E.a, cx = E.hx + Math.cos(a) * 0.5, cy = E.hy + Math.sin(a) * 0.5, rot = E.now * 20, k, b, n = Math.max(3, L.count);
-    M.glow(c, R, cx, cy, L.glow, L.col, 0.35 * A);
-    M.ring(c, R, cx, cy, 0.4 * S, L.col, 0.9 * A, 2 + S);
-    for (k = 0; k < n; k++) {
-      b = rot + k * TAU / n;
-      M.seg(c, R, cx, cy, cx + Math.cos(b) * 0.4 * S, cy + Math.sin(b) * 0.4 * S, L.col, 0.6 * A, 1.4);
-      M.disc(c, R, cx + Math.cos(b * 1.7) * 0.42 * S, cy + Math.sin(b * 1.7) * 0.42 * S, 0.025 * S, '255,220,140', 0.8 * A);
-    }
-    M.disc(c, R, cx, cy, 0.07 * S, '60,64,72', 0.95 * A);
-  };
+
 
   // hookHaul (hookpull): the hook as on the olta, plus L.count strands from the target back to the hero (the haul).
-  W.hookHaul = function (c, R, E, L) {
-    var A = L.alpha, s0 = E.src, tg = s0.e, S = L.scale, i, tx = E.hx, ty = E.hy, k, off;
-    if (tg && tg.x !== undefined) { tx = tg.x; ty = tg.y; }
-    for (k = 0; k < L.count; k++) {
-      off = (k - (L.count - 1) / 2) * 0.1 * S;
-      M.seg(c, R, E.hx + off, E.hy, tx + off, ty, L.col, 0.55 * A, 1.1);
-    }
-    M.glow(c, R, tx, ty, L.glow, L.col, 0.35 * A);
-    M.arc(c, R, tx, ty, 0.2 * S, -Math.PI / 2, Math.PI / 2, L.col, 0.95 * A, 2.5 + S);
-  };
 
-  // slamDoor (minibus): a wide bus door swung round the hero on its radius, with L.count ribs and speed lines behind it.
-  W.slamDoor = function (c, R, E, L) {
-    var A = L.alpha, s0 = E.src, rad = s0.radius || 1.8, th = s0.a + (E.q - 0.5) * (s0.arc || 90) * DEG, S = L.scale, i, dx, dy, k, bx, by;
-    for (k = 1; k <= 3; k++) {
-      bx = E.hx + Math.cos(th - 0.2 * k) * (rad - 0.3 * k); by = E.hy + Math.sin(th - 0.2 * k) * (rad - 0.3 * k);
-      M.seg(c, R, bx, by, bx - Math.cos(th) * 0.4 * S, by - Math.sin(th) * 0.4 * S, L.col, 0.45 * A * (1 - k / 4), 1.5);
-    }
-    dx = E.hx + Math.cos(th) * rad; dy = E.hy + Math.sin(th) * rad;
-    M.glow(c, R, dx, dy, L.glow, L.col, 0.3 * A);
-    M.fill(c, R, M.local([[-0.45 * S, -0.14 * S], [0.45 * S, -0.14 * S], [0.45 * S, 0.14 * S], [-0.45 * S, 0.14 * S]], dx, dy, th + Math.PI / 2), L.col, 0.92 * A);
-    for (i = 1; i <= L.count; i++) M.seg(c, R, dx - Math.sin(th) * 0.0 + Math.cos(th + Math.PI / 2) * (-0.45 * S + 0.9 * S * i / (L.count + 1)),
-      dy + Math.sin(th + Math.PI / 2) * (-0.45 * S + 0.9 * S * i / (L.count + 1)), dx + Math.cos(th + Math.PI / 2) * (-0.45 * S + 0.9 * S * i / (L.count + 1)),
-      dy + Math.sin(th + Math.PI / 2) * (-0.45 * S + 0.9 * S * i / (L.count + 1)) + 0.25 * S, '60,20,20', 0.55 * A, 1.1);
-  };
+
+  // slamDoor (minibus): a wide two-window panel with tracks in the lane below it.
+
 
   Object.assign(W.layer, {
     cleaverRing: 'ground', nailSpray: 'air', podCluster: 'air', bladeWhirl: 'air', skyRain: 'air', anvilHammer: 'both', shieldOrbit: 'air',
     foamWall: 'ground', netMesh: 'air', lakeRipple: 'ground', twinDisc: 'air', fireOrb: 'both', arcLinks: 'air', carBox: 'both',
-    forgeJet: 'ground', grindWheel: 'air', hookHaul: 'air', slamDoor: 'air',
+    forgeJet: 'ground', grindWheel: 'air', hookHaul: 'air', slamDoor: 'both',
   });
 })();

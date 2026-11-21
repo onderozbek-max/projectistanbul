@@ -1,6 +1,5 @@
-// Arsenal tests (workstream E1, extended by A for v0.5): unit checks (forks, mods, mastery, ults, passives), every
-// weapon x every mod path x mastery 0 and 5 for PATH_SECS seconds with WANT enemies (no NaN, no exceptions), stress
-// scenarios, determinism replay, L1 variety, string and icon coverage, and a stub-canvas draw smoke for every hook.
+// Arsenal unit and stress tests, including every weapon and mod path at mastery 0 and 5 with WANT enemies.
+// Also checks determinism, L1 variety, strings, icons, and every draw hook using a stub canvas.
 // Usage: node prototype/tools/test-arsenal.js [--secs=60] [--paths-secs=60] [--enemies=120] [--quick]
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -8,7 +7,7 @@ const ROOT = path.join(__dirname, '..');
 const FILES = ['js/config.js', 'js/config-weapons.js', 'js/config-levels.js', 'js/config-layouts.js', 'js/config-enemies3.js', 'js/config-bosses.js', 'js/config-enemies4.js', 'js/config-enemies5.js', 'js/config-skins.js','js/config-stats.js', 'js/config-weapons2.js', 'js/config-weapons3.js', 'js/config-weapon-tiers.js', 'js/config-env.js',
   'js/config-objectives.js', 'js/config-modifiers.js', 'js/config-horde.js',
   'js/strings.js', 'js/strings-progress.js', 'js/journey.js', 'js/strings-weapons.js', 'js/strings-weapons2.js', 'js/strings-weapons3.js', 'js/sim/rng.js', 'js/sim/world.js',
-  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
+  'js/sim/combat.js', 'js/sim/weapons.js', 'js/sim/weapons-knife.js', 'js/sim/weapons-cleaver.js', 'js/sim/weapons2.js', 'js/sim/weapons3.js', 'js/sim/weapons4.js', 'js/sim/weapons5.js', 'js/sim/mastery.js',
   'js/sim/enemies.js', 'js/sim/enemies2.js', 'js/sim/skills.js', 'js/sim/bosses.js', 'js/sim/layouts.js', 'js/sim/levels.js', 'js/sim/enemies3.js', 'js/sim/skins.js', 'js/sim/skins-fisher.js', 'js/sim/enemies4.js', 'js/sim/enemies4-marti.js', 'js/sim/enemies4-cayci.js','js/sim/events.js', 'js/sim/events-kinds.js',
   'js/sim/env.js', 'js/sim/env-kinds.js', 'js/sim/env-zones.js', 'js/sim/env-rules.js', 'js/sim/env-portal.js',
   'js/sim/hack.js', 'js/sim/modifiers.js', 'js/sim/objectives.js', 'js/sim/objectives-kinds.js',
@@ -17,7 +16,8 @@ FILES.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8
 const VIEW = ['js/view/icons.js', 'js/view/icons-evo.js', 'js/view/weapons-fx.js', 'js/view/weapons-fx2.js', 'js/view/weapons-fx3.js',
   'js/view/weapons-fx4.js', 'js/view/fire-anim-prim.js', 'js/view/fire-anim-held.js', 'js/view/fire-anim-held2.js', 'js/view/fire-anim-held3.js',
   'js/view/fire-anim-held4.js', 'js/view/fire-anim-fx.js', 'js/view/fire-anim-fx2.js', 'js/view/fire-anim-fx3.js', 'js/view/fire-anim-fx4.js',
-  'js/view/fire-anim.js', 'js/view/weapon-sil-prim.js', 'js/view/weapon-sil.js', 'js/view/weapon-sil-evo.js', 'js/view/weapon-tiers.js', 'js/view/skills-fx.js', 'js/view/skill-button.js', 'js/view/input.js'];
+  'js/view/hero-footwork.js', 'js/view/hero-attacks.js', 'js/view/fire-anim.js', 'js/view/weapon-sil-prim.js', 'js/view/weapon-sil.js', 'js/view/weapon-sil-evo.js', 'js/view/weapon-action-fx.js', 'js/view/weapon-tools-fx.js', 'js/view/weapon-contact-fx.js',
+  'js/view/weapon-impacts.js', 'js/view/weapon-tiers.js', 'js/view/skills-fx.js', 'js/view/skill-button.js', 'js/view/input.js'];
 VIEW.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f }));
 const P = globalThis.P;
 if (!P.Enemies || !P.Enemies.frame) P.Enemies = { frame: function () {} };   // E2 stub fallback (test-only)

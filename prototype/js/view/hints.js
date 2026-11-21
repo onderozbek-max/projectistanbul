@@ -70,7 +70,13 @@ P.Hints = (function () {
     ensure();
     if (!s || !P.Render || !P.Render.cam) { active = null; if (H.view) H.view.render(null, null, s); return; }   // paused or not in a run
     var ctx = H.context(s);
+    if (P.SceneFlow && P.SceneFlow.running(s)) { if (H.view) H.view.render(null, ctx, s); return; }
     if (s !== lastSim) { lastSim = s; queue = []; active = null; }
+    if (P.Speech && P.Speech.warningNear(s) ||
+        P.RunGuide && (P.RunGuide.required(s) || P.RunGuide.destination(s) || P.RunGuide.prompt(s))) {
+      if (H.view) H.view.render(null, ctx, s);
+      return;
+    }
     now += dt || 0;
     if (active) { active.t += dt || 0; if (active.t >= C.showS) active = null; }
     var found = P.HintsDetect ? P.HintsDetect.scan(s, ctx) : {}, i, type, f, q;
@@ -82,7 +88,8 @@ P.Hints = (function () {
       if (q) { q.x = f.x; q.y = f.y; q.hud = f.hud || null; }
       else queue.push({ type: type, x: f.x, y: f.y, hud: f.hud || null });
     }
-    if (!active && queue.length && now >= nextAt && !(s.dir && s.dir.tut && s.dir.tut.active)) {
+    var prompt = P.RunGuide ? P.RunGuide.prompt(s) : s.dir && s.dir.tut && s.dir.tut.active;
+    if (!active && queue.length && now >= nextAt && !prompt) {
       i = startable(ctx);
       if (i >= 0) start(queue.splice(i, 1)[0]);
     }

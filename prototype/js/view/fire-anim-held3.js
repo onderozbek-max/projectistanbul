@@ -34,8 +34,10 @@ P.FireAnimHeld = P.FireAnimHeld || {};
 
   // ---------- Blacksmith (Demirci Vuruşu): two-hand overhead hammer; the head glows and drops on the slam ----------
   H.blacksmith = { T: 0.8, slam: 0.5, held: function (F, G, k) {
-    var t = k.t, lift, th, hf, hu, hm, ho, hd, mx, my, dx, dy, L, px, py;
-    lift = t < 0.35 ? M.eo(t / 0.35) : t < H.blacksmith.slam ? 1 - M.ei((t - 0.35) / 0.15) : M.lerp(0, 0.3, M.seg(t, H.blacksmith.slam, 0.8));
+    var t = k.t, impact = k.f.impactAt, windup = k.f.windup || H.blacksmith.slam, raise = windup * 0.70;
+    var lift, th, hf, hu, hm, ho, hd, mx, my, dx, dy, L, px, py;
+    if (impact !== undefined) lift = 0.3 * M.seg(t, impact, k.T);
+    else lift = t < raise ? M.eo(t / raise) : 1 - M.ei(M.seg(t, raise, windup));
     th = M.lerp(-0.4, Math.PI / 2, lift);
     hf = M.lerp(0.22, 0.12, lift); hu = M.lerp(-0.1, 0.12, lift);
     hm = G.pt(0, 0, hf, hu, 0);
@@ -129,11 +131,11 @@ P.FireAnimHeld = P.FireAnimHeld || {};
   // ---------- Twin saw (İkiz Disk): two discs side by side, thrown together, caught back in the hand ----------
   var TW_REL = 0.2, TW_BACK = 0.7, TW_LAT = 0.11;
   H.twinsaw = { T: 0.9, rel: TW_REL, back: TW_BACK, lat: TW_LAT, held: function (F, G, k) {
-    var t = k.t, fwd, lat, up = 0, spin = t * 10, inHand = t < TW_REL || t >= TW_BACK, i, s, d, q;
-    if (t < 0.1) { fwd = M.lerp(0.1, -0.2, M.eo(t / 0.1)); lat = M.lerp(0, -0.22, M.eo(t / 0.1)); }
+    var t = k.t, fwd, lat, up = 0, spin = t * 10, caught = k.f.catchDisc, inHand = caught || t < TW_REL, i, s, q;
+    if (caught) { fwd = M.lerp(0.26, 0.12, k.p); lat = 0.08; spin = 3 - M.eo(k.p) * 2; }
+    else if (t < 0.1) { fwd = M.lerp(0.1, -0.2, M.eo(t / 0.1)); lat = M.lerp(0, -0.22, M.eo(t / 0.1)); }
     else if (t < TW_REL) { q = M.ei((t - 0.1) / 0.1); fwd = M.lerp(-0.2, 0.3, q); lat = M.lerp(-0.22, 0, q); spin = 6; }
-    else if (t < TW_BACK) { fwd = 0.2; lat = 0.12; up = -0.1; }
-    else { q = M.seg(t, TW_BACK, H.twinsaw.T); fwd = M.lerp(0.2, 0.26, q); lat = 0.12 - 0.04 * q; up = M.lerp(-0.1, 0.02, q); spin = (t - TW_BACK) * -6 + 3; }
+    else { fwd = 0.2; lat = 0.12; up = -0.1; }
     arms(F, G, G.pt(0, 0, fwd, up, lat), G.pt(1, 2, 0.1, -0.2, -0.06));
     if (inHand) {
       for (i = -1; i <= 1; i += 2) {

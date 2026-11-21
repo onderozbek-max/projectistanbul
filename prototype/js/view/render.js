@@ -10,7 +10,8 @@ P.Render = (function () {
   // the backing store, so it only happens on a window resize or a tier step.
   R.resize = function (scale) {
     R.dpr = Math.min(window.devicePixelRatio || 1, P.Quality ? P.Quality.dprCap() : 3) * scale;
-    R.canvas.width = Math.round(R.W * R.dpr); R.canvas.height = Math.round(R.H * R.dpr);
+    var w=Math.max(1,Math.round(R.W*R.dpr)),h=Math.max(1,Math.round(R.H*R.dpr));
+    if(R.canvas.width!==w)R.canvas.width=w;if(R.canvas.height!==h)R.canvas.height=h;
   };
   R.X = function (x) { return (x - R.cam.x) * R.ppm; };
   R.Y = function (y) { return -(y - R.cam.y) * R.ppm; };
@@ -45,38 +46,58 @@ P.Render = (function () {
 
   // Invulnerability blink (G5): a 1.5 Hz alpha pulse between 0.6 and 1.0, never a fast toggle. Off under "reduce flashes".
   function blinkAlpha(h, t) {
-    if (!(h.invuln > 0) || (P.Settings && P.Settings.reduceFlash)) return 1;
+    if(P.SceneFlow&&P.SceneFlow.current()&&P.SceneFlow.current().kind!=='entry')return 1;
+    if (!(h.invuln > 0 && isFinite(h.invuln)) || (P.Settings && P.Settings.reduceFlash)) return 1;
     var V = P.CFG.view, mid = (1 + V.blinkMinAlpha) / 2, amp = (1 - V.blinkMinAlpha) / 2;
-    return mid + amp * Math.sin(t / 1000 * Math.PI * 2 * V.blinkHz);
+    return Math.max(.68,mid + amp * Math.sin(t / 1000 * Math.PI * 2 * V.blinkHz));
   }
 
   // Hero contact shadow. It is drawn on the ground layer (frame), before any figure, never over a neighbour.
   function drawHeroShadow(s) {
-    var h = s.hero, V = P.CFG.view;
+    var h = P.ColdOpen && P.ColdOpen.active() ? P.ColdOpen.heroPoint(s) : s.hero, V = P.CFG.view;
     P.Sprites.contact(R.ctx, R.X(h.x), R.Y(h.y - 0.25), V.heroShadow.radius * R.ppm, V.heroShadow.alpha, V.heroShadow.aspect);
   }
 
   function drawHero(s) {
-    var h = s.hero, c = R.ctx, u = R.ppm, t = performance.now(), V = P.CFG.view;
+    var h = P.ColdOpen && P.ColdOpen.active() ? P.ColdOpen.heroPoint(s) : s.hero, c = R.ctx, u = R.ppm, t = performance.now(), V = P.CFG.view;
+    var colors = P.SemanticColors, ringRGB = colors ? colors.ringRGB : '61,220,255';
     heroAnim.walk += Math.hypot(h.x - heroAnim.x, h.y - heroAnim.y); heroAnim.x = h.x; heroAnim.y = h.y;
     var X = R.X(h.x), Y = R.Y(h.y - 0.25), face = h.fx >= 0 ? 1 : -1;
-    c.setLineDash([3, 6]); circle(h.x, h.y, h.pickupRadius, null, 'rgba(61,220,255,0.45)', 1.2); c.setLineDash([]);
+    c.setLineDash([3, 6]); circle(h.x, h.y, h.pickupRadius, null, 'rgba(' + ringRGB + ',0.45)', 1.2); c.setLineDash([]);
     var ring = 0.5 + 0.03 * Math.sin(t / 300);
     c.strokeStyle = '#14151F'; c.lineWidth = 6; c.beginPath(); c.ellipse(X, Y, ring * u, ring * 0.4 * u, 0, 0, Math.PI * 2); c.stroke();
-    c.strokeStyle = '#3DDCFF'; c.lineWidth = 3; c.stroke();
-    if (h.regenOn) { c.strokeStyle = 'rgba(91,209,110,' + (0.5 + 0.3 * Math.sin(t / 150)) + ')'; c.lineWidth = 2; c.beginPath(); c.ellipse(X, Y, (ring + 0.12) * u, (ring + 0.12) * 0.4 * u, 0, 0, Math.PI * 2); c.stroke(); }
+    c.strokeStyle = colors ? colors.ring : '#3DDCFF'; c.lineWidth = 3; c.stroke();
+    if (h.regenOn) { c.strokeStyle = 'rgba(' + (colors ? colors.healRGB : '91,209,110') + ',' + (0.5 + 0.3 * Math.sin(t / 150)) + ')'; c.lineWidth = 2; c.beginPath(); c.ellipse(X, Y, (ring + 0.12) * u, (ring + 0.12) * 0.4 * u, 0, 0, Math.PI * 2); c.stroke(); }
     c.globalAlpha = blinkAlpha(h, t);
-    var so = { u: u * V.spriteScale.hero, back: h.moving && h.fy > 0.4, side: h.moving && Math.abs(h.fx) > 0.6, backHand: P.WFx.heroBackHand(s), face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
+    var so = { u: u * V.spriteScale.hero, back: h.moving && h.fy > 0.4, side: h.moving && Math.abs(h.fx) > 0.6, backHand: P.WFx.heroBackHand(s), weapons: h.weapons, face: face, phase: heroAnim.walk * 5, skin: '#E0AC80', shirt: '#D7263D', pants: '#2B3346', hair: '#1E1712',
       arms: (s.levelIndex > 1 ? !!(h.weapons.knife || h.weapons.cleaver) : P.ColdOpen.hasKnife()) ? 'knife' : 'idle', knifeA: knifeAngle(face), still: !h.moving,
-      flash: P.Fx.heroFlash ? P.Fx.heroFlash() : 0 };   // the white hit flash is gated to 3 per second in fx.js (G3)
+      flash: 0 };   // the hit tint is gated to 3 per second in fx.js (G3)
     if (P.Feel) { var fh = P.Feel.hero(); so.lean = fh.lean; so.spring = { x: fh.x, y: fh.y, r: fh.r, ox: 0 }; }
-    if (P.FireAnim) P.FireAnim.heroOpts(s, so);   // a shot's pose (or the chainsaw rev) draws the arms itself
-    P.Sprites.hero(c, X, Y, so);
+    var work = P.InteractionActing && P.InteractionActing.pose(s, so);
+    var street = !work && P.StreetWeaponFx && P.StreetWeaponFx.pose(s, so);
+    var action = !work && !street && P.MilestoneFx && P.MilestoneFx.action(s, so);
+    if (!work && !street && !action && P.FireAnim) P.FireAnim.heroOpts(s, so);
+    if (P.HeroMotion) P.HeroMotion.apply(s, so);
+    if (P.SceneFlow) P.SceneFlow.hero(s, so);
+    if (P.ColdOpen && P.ColdOpen.active()) P.ColdOpen.heroOpts(s, so);
+    var workAt = work || action && action.p;
+    if (workAt && !(work && work.kind === 'carry')) so.workPoint = { x: R.X(workAt.x), y: R.Y(workAt.y) - .5 * u };
+    if (action && P.WorkControls && P.WorkControls.has(action.kind)) so.workPoint = P.WorkControls.hand(R,s,action);
+    if (!(P.ColdOpen && P.ColdOpen.drawHero(R,h))) P.Sprites.hero(c, X, Y, so);
+    R.heroGrips = so.grips;
+    if (!so.grips) c.globalAlpha = 1;
+    if (work) P.InteractionActing.tool(R, s, work, so.grips);
+    else if (street) P.StreetWeaponFx.held(R, s, so.grips);
+    else if (action) P.MilestoneFx.tool(R, s, action, so.grips);
+    else if (h.hp > 0 && P.FireAnim && !(P.ColdOpen && P.ColdOpen.active()) && !(P.SceneFlow && P.SceneFlow.running(s))) P.FireAnim.drawHeld(R, s, so.grips);
+    R.heroAttack = so.attackId;
+    if (!(P.SceneFlow && P.SceneFlow.running(s))) P.WFx.drawChain(R, s,
+      !work && !street && !action && (!so.attackId || ['chain','cyclone','arcchain'].indexOf(so.attackId)>=0) ? so.grips : null);
     c.globalAlpha = 1;
-    hook(P.FireAnim, 'drawHeld', s);
   }
 
   function drawDrops(s) {
+    if (P.SceneFlow && P.SceneFlow.current() && P.SceneFlow.current().kind !== 'entry') return;
     var c = R.ctx, t = performance.now() / 1000, u = R.ppm, pk = P.CFG.feel2.pickup, hero = s.hero;
     s.drops.forEach(function (d, i) {
       if (P.Consumables && P.Consumables.handles(d.kind)) return;   // heal, power and currency drops: the overlay pass (T4 part 10)
@@ -117,6 +138,7 @@ P.Render = (function () {
   }
 
   function drawZonesAndTelegraphs(s) {
+    if (P.SceneFlow && P.SceneFlow.current() && P.SceneFlow.current().kind!=='entry') return;
     var c = R.ctx, t = performance.now() / 1000;
     s.zones.forEach(function (z) {
       var a = Math.min(1, z.t / 0.3);
@@ -128,14 +150,15 @@ P.Render = (function () {
         }
       } else circle(z.x, z.y, z.r, 'rgba(181,101,29,' + (0.35 * a) + ')');
     });
+    var colors = P.SemanticColors, danger = colors ? colors.dangerRGB : '255,77,46';
     s.dir.telegraphs.forEach(function (tg) {
       var X = R.X(tg.x), Y = R.Y(tg.y), r = tg.r * R.ppm;
       c.save(); c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.clip();
-      c.fillStyle = 'rgba(255,77,46,0.18)'; c.fillRect(X - r, Y - r, 2 * r, 2 * r);
-      c.strokeStyle = 'rgba(255,77,46,0.55)'; c.lineWidth = 3;
+      c.fillStyle = 'rgba(' + danger + ',0.18)'; c.fillRect(X - r, Y - r, 2 * r, 2 * r);
+      c.strokeStyle = 'rgba(' + danger + ',0.55)'; c.lineWidth = 3;
       for (var i = -2 * r; i < 2 * r; i += 8) { c.beginPath(); c.moveTo(X + i, Y - r); c.lineTo(X + i + 2 * r, Y + r); c.stroke(); }
       c.restore();
-      c.setLineDash([10, 6]); c.strokeStyle = '#FF4D2E'; c.lineWidth = 3; c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+      c.setLineDash([10, 6]); c.strokeStyle = colors ? colors.danger : '#FF4D2E'; c.lineWidth = 3; c.beginPath(); c.arc(X, Y, r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
       c.lineWidth = 5; c.beginPath(); c.arc(X, Y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (tg.t / tg.T)); c.stroke();
     });
   }
@@ -174,21 +197,19 @@ P.Render = (function () {
     });
     F.swings.forEach(function (w) {
       var a = Math.atan2(-w.ay, w.ax), half = w.arc * Math.PI / 360, p = 1 - w.t / w.T, X = R.X(w.x), Y = R.Y(w.y);
-      var sweep = Math.min(1, p * 1.7), s0 = a + w.dir * half, s1 = a + w.dir * (half - 2 * half * sweep);
-      var lo = Math.min(s0, s1), hi = Math.max(s0, s1), r = w.range * u, alpha = 1 - Math.max(0, p - 0.45) / 0.55;
+      var sweep = P.FireAnimPrim.eo(Math.min(1, p * 1.7)), s0 = a + w.dir * half, s1 = a + w.dir * (half - 2 * half * sweep);
+      var lo = Math.min(s0, s1), hi = Math.max(s0, s1), r = w.range * u, alpha = 1 - Math.max(0, p - 0.28) / 0.72;
+      var muted = P.Settings && P.Settings.reduceFlash;
       var lead = w.dir > 0 ? Math.min(hi, lo + 1.2) : Math.max(lo, hi - 1.2);
       c.save();
-      c.globalCompositeOperation = 'lighter';
-      for (var k = 0; k < 3; k++) {
-        var rin = r * (0.45 + k * 0.12);
-        c.fillStyle = 'rgba(' + (k === 2 ? '255,255,255' : '190,230,255') + ',' + (alpha * (0.24 + k * 0.2)).toFixed(3) + ')';
-        c.beginPath(); c.arc(X, Y, r * (1 - k * 0.04), lo, hi); c.arc(X, Y, rin, hi, lo, true); c.closePath(); c.fill();
-      }
+      if (muted || w.back) alpha *= 0.58;
+      c.fillStyle = 'rgba(123,213,216,' + (alpha * 0.34).toFixed(3) + ')';
+      c.beginPath(); c.arc(X, Y, r, lo, hi); c.arc(X, Y, r * 0.83, hi, lo, true); c.closePath(); c.fill();
+      c.lineCap = 'round';
+      c.beginPath(); c.arc(X, Y, r, w.dir > 0 ? lo : lead, w.dir > 0 ? lead : hi);
+      c.strokeStyle = 'rgba(20,21,31,' + (0.72 * alpha) + ')'; c.lineWidth = 4; c.stroke();
+      c.strokeStyle = 'rgba(255,243,218,' + alpha + ')'; c.lineWidth = 2; c.stroke();
       c.restore();
-      c.strokeStyle = 'rgba(255,255,255,' + alpha + ')'; c.lineWidth = 5; c.lineCap = 'round';
-      c.beginPath(); c.arc(X, Y, r, w.dir > 0 ? lo : lead, w.dir > 0 ? lead : hi); c.stroke();
-      c.strokeStyle = 'rgba(20,21,31,' + (0.5 * alpha) + ')'; c.lineWidth = 1.5;
-      c.beginPath(); c.arc(X, Y, r + 3, lo, hi); c.stroke();
     });
     F.rings.forEach(function (g) {
       var f = 1 - g.t / g.T;
@@ -197,7 +218,13 @@ P.Render = (function () {
   }
 
   // Optional module hooks (workstreams E/F): obj[fn](R, s) if present.
-  function hook(obj, fn, s) { if (obj && obj[fn]) obj[fn](R, s); }
+  function hook(obj, fn, s) {
+    if(!obj||!obj[fn])return;
+    var friendly=fn!=='heroOpts'&&(obj===P.WFx2||obj===P.FireAnim&&fn==='drawFx'||obj===P.WFx&&fn==='drawParts');
+    if(friendly&&P.CombatClarity)P.CombatClarity.begin(R,s);
+    obj[fn](R,s);
+    if(friendly&&P.CombatClarity)P.CombatClarity.end(R);
+  }
   R.hook = hook;
 
   // Depth queue (rebuilt each frame). R.depth(y, fn, occludes): y = base (south) edge in metres; larger y is farther
@@ -209,8 +236,10 @@ P.Render = (function () {
   function runDepth(list) { for (var i = 0; i < list.length; i++) list[i].fn(); }
 
   R.frame = function (s, extraDraw) {
+    if (!(R.W * R.dpr >= 1 && R.H * R.dpr >= 1)) return false;
     if (P.FinaleApproach && P.FinaleApproach.active && P.FinaleApproach.active()) { P.FinaleApproach.draw(R); return; }
     var c = R.ctx, cam = P.Fx.cam;
+    var humanScene=P.SceneFlow && P.SceneFlow.current() && P.SceneFlow.current().kind!=='entry';
     R.cam = cam;
     R.ppm = R.W / cam.w * cam.zoom;
     c.setTransform(R.dpr, 0, 0, R.dpr, 0, 0);
@@ -224,54 +253,84 @@ P.Render = (function () {
     P.Decor.drawStreet(R, s, y0, y1);
     hook(P.LayoutFx, 'drawGround', s);           // lane B: layout zone floors (plaza, market, bridge), over the street, under decals
     if (P.BridgeProps) P.BridgeProps.drawFishing(R, s, y0, y1);
-    hook(P.EnvFx, 'drawGround', s);              // lane A: floor decals (puddles, glass, debris), after the floor, before shadows
+    if (!humanScene) hook(P.EnvFx, 'drawGround', s);
     hook(P.ArenaEvolve, 'drawGround', s);        // arena evolve: treated ground, rubble, litter and bins (view/arena-evolve-decals.js)
     P.RenderWorld.drawShadows(R, s, y0, y1);      // ground ambient occlusion under carts, canisters and blocks
+    hook(P.BossPuppet,'ground',s);
     drawGround();
     drawZonesAndTelegraphs(s);
-    hook(P.WFx2, 'drawGround', s);
-    hook(P.EnemyFx, 'drawGround', s);
+    if (!humanScene) hook(P.WFx2, 'drawGround', s);
+    if (!humanScene) hook(P.EnemyFx, 'drawGround', s);
     hook(P.EventsFx, 'drawGround', s);
+    hook(P.MilestoneFx, 'drawGround', s);
+    hook(P.EncounterSpaceFx, 'ground', s);
+    hook(P.BridgeBossFx, 'ground', s);
+    hook(P.EminonuBossFx, 'ground', s);
     if (L1 && y1 > 140 && y0 < 165) P.RenderWorld.drawTram(R, s);   // T4 part 11: the idle tram is on the ground, opaque, under the actors
     // Ground layer for actors: contact shadows, base rings and auras sit under every figure, so no shadow lands on a
     // neighbour's legs (G4). Figures then draw through RF, which skips their ground.
     // Actors outside the screen sideways are not drawn (48 px of margin for the shadow, recoil and the knife).
     var hw = (R.W / 2 + Math.abs(cam.ox || 0) + 48) / R.ppm;
-    var actors = s.enemies.filter(function (e) { return Math.abs(e.y - cam.y) < half && Math.abs(e.x - cam.x) < hw; }), RF = Object.create(R);
-    RF.noGround = true;
+    // Scene-projected positions own visibility and depth as well as the body/shadow drawing.
+    var cold = P.ColdOpen && P.ColdOpen.active();
+    var actors = humanScene ? [] : (cold ? s.enemies.map(P.ColdOpen.dinerPoint) : s.enemies)
+      .filter(function (e) { return Math.abs(e.y - cam.y) < half && Math.abs(e.x - cam.x) < hw; }), RF = Object.create(R);
+    RF.noGround = true; RF.simTime = s.t;
     actors.forEach(function (e) { P.Sprites.groundEnemy(R, e); });
+    if (P.CivilianActing) P.CivilianActing.prepare(s.dir.civilians);
     s.dir.civilians.forEach(function (v) { P.Sprites.groundCivilian(R, v); });
     drawHeroShadow(s);
-    drawDrops(s);
+    if (!humanScene) drawDrops(s);
     hook(P.EnemiesFx2, 'drawUnder', s);           // lane C: decals under the crowd
     // Depth pass: props, actors and civilians queue themselves, then flush far to near (see R.depth).
     depthQ.length = 0;
     hook(P.EnvFx, 'drawProps', s);                // lane A: props (call R.depth(y, fn) to sort them with the actors)
+    if (P.ArenaSky && s.geo) P.ArenaSky.draw(R, s, P.RenderWorld.themeOf(s), y0, y1);
     P.RenderWorld.drawProps(R, s);
+    if (P.StreetServiceArt) P.StreetServiceArt.terminals(R, s);
+    hook(P.SirkeciFx, 'props', s);
+    hook(P.CompanionFx, 'depth', s);
     s.dir.civilians.forEach(function (v) { R.depth(v.y, function () { P.Sprites.civilian(RF, v); }, false); });
-    actors.forEach(function (e) { R.depth(e.y, function () { P.Sprites.enemy(RF, e, s.hero); }, false); });
-    var hy = s.hero.y, pre = [], post = [];
+    actors.forEach(function (e) { R.depth(e.y, function () {
+      if (!P.WAttackCues || !P.WAttackCues.drawElectro(RF, e)) P.Sprites.enemy(RF, e, s.hero);
+    }, false); });
+    var hy = cold ? P.ColdOpen.heroPoint(s).y : s.hero.y, pre = [], post = [];
     depthQ.forEach(function (d) { (d.occ && d.y <= hy ? post : pre).push(d); });   // props in front of the hero come after him
     pre.sort(byDepth); post.sort(byDepth);
     depthQ.length = 0;
     runDepth(pre);
     hook(P.EnemiesFx2, 'drawOver', s);            // lane C: decals and marks over the crowd, under the hero
     if (extraDraw) extraDraw(R, s);
-    drawFx();
-    P.WFx.drawParts(R);
+    if (!humanScene) drawFx();
+    if (!humanScene) hook(P.WFx, 'drawParts', s);
+    if (P.SceneFlow) P.SceneFlow.groundBody(R,s);
     hook(P.Feel, 'draw', s);                      // v0.9: arcing blood and gibs, footfall dust
     hook(P.SkillsFx, 'drawUnder', s);
     drawHero(s);
+    if (!humanScene && P.HealthFeedback) P.HealthFeedback.draw(R, s);
     runDepth(post);
-    hook(P.Consumables, 'drawOver', s);            // T4 part 10: consumables above the actors, so no zombie hides one
-    P.WFx.drawChain(R, s);
-    P.WFx.drawProjectiles(R, s);
+    if (P.SceneFlow) P.SceneFlow.air(R, s);
+    if (!humanScene) hook(P.Consumables, 'drawOver', s);
+    if (!humanScene) P.WFx.drawProjectiles(R, s);
     hook(P.FireAnim, 'drawFx', s);
-    hook(P.WFx2, 'drawAir', s);
-    hook(P.EnemyFx, 'drawAir', s);
+    if (!humanScene) hook(P.WFx2, 'drawAir', s);
+    hook(P.WSil, 'drawDoorTosses', s);
+    if (!humanScene) hook(P.EnemyFx, 'drawAir', s);
+    hook(P.GalataFx, 'air', s);
+    hook(P.KarakoyFx, 'air', s);
+    hook(P.KarakoyBossFx, 'air', s);
+    hook(P.BridgeFx, 'air', s);
+    hook(P.BridgeBossFx, 'air', s);
+    hook(P.BossPropContinuity, 'air', s);
+    hook(P.EminonuFx, 'air', s);
+    hook(P.EminonuBossFx, 'air', s);
     hook(P.EventsFx, 'drawAir', s);
     hook(P.Vehicles, 'drawAir', s);
-    hook(P.EnvFx, 'drawAir', s);                  // lane A: airborne env (debris, smoke, gulls) after the crowd
+    if (!humanScene) hook(P.EnvFx, 'drawAir', s);
+    hook(P.StreetWeaponFx, 'air', s);
+    hook(P.StreetImpactFx, 'air', s);
+    hook(P.KaanSupportFx, 'draw', s);
+    hook(P.BossDefeatFx, 'air', s);
     hook(P.SkillsFx, 'drawOver', s);
     if (L1 && y1 > 222) P.RenderWorld.drawScaffold(R, s);
     P.RenderWorld.drawLights(R, s, y0, y1);
@@ -283,7 +342,10 @@ P.Render = (function () {
     c.restore();
     P.RenderOverlay.screen(R, s);
     hook(P.ArenaEvolve, 'screen', s);            // arena evolve: the level's light drift and the boss grade (screen layer)
-    hook(P.ConsumablesZone, 'drawScreen', s);      // T4 part 10: edge arrows for off-screen link terminals
+    hook(P.StreetInvitations, 'draw', s);
+    hook(P.RunGuide, 'mark', s);
+    if (!humanScene) hook(P.ConsumablesZone, 'drawScreen', s);
+    return actors.length;
   };
 
   R.circle = circle;
@@ -309,12 +371,16 @@ P.RenderOverlay = (function () {
       list.push({ id: 'cat:' + i, text: q.text, kind: 'cat', prio: P.Speech.PRIO.cat, ax: a.x, ay: a.y, lift: 30, maxW: 60 });
     });
     list.forEach(function (it) {
+      var visible = it.ax >= 0 && it.ax <= R.W && it.ay >= 0 && it.ay <= R.H;
+      // Ambient cat notices belong to a visible cat. Important offscreen
+      // dialogue may retain its box, but cannot draw a tail across the arena.
+      if (it.kind === 'cat' && !visible) return;
       var m = P.Speech.measurePlain(c, it.text, it.maxW), e = { lines: m.lines, rect: null };
       legacy.push(e);
       P.Speech.offer({ id: it.id, kind: it.kind, prio: it.prio, w: m.w, h: m.h, ax: it.ax, ay: it.ay, lift: it.lift,
         place: function (slot) {
           if (!slot) { e.rect = null; return; }
-          var tt = P.Speech.tailTarget(slot, it.lift);
+          var tt = visible ? P.Speech.tailTarget(slot, it.lift) : {};
           e.rect = { x: slot.x, y: slot.y, w: m.w, h: m.h, tx: tt.tx, ty: tt.ty };
         } });
     });
@@ -338,13 +404,13 @@ P.RenderOverlay = (function () {
   }
 
   O.worldText = function (R, s) {
+    if (P.SceneFlow && P.SceneFlow.running(s)) return;
     var c = R.ctx;
     drawLegacy(R);
     P.Fx.nums.forEach(function (n) {
-      // Pop: the number starts at dmgPop times its size and settles to 1 over dmgPopT seconds of its life (view only).
-      var f = 1 - n.t / n.T, size = n.crit ? 24 : 14, el = n.T - n.t, pT = P.CFG.feel.dmgPopT, sc = el < pT ? 1 + (P.CFG.feel.dmgPop - 1) * (1 - el / pT) : 1;
-      c.font = 'italic 900 ' + Math.round(size * sc) + 'px "CM Bangers", Bangers, Impact, sans-serif';
-      c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = '#14151F';
+      var f = 1 - n.t / n.T, size = n.crit ? 13 : 11;
+      c.font = 'italic 900 ' + size + 'px "CM Bangers", Bangers, Impact, sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 2; c.strokeStyle = '#14151F';
       c.globalAlpha = n.t < 0.2 ? n.t / 0.2 : 1;
       var X = R.X(n.x), Y = R.Y(n.y + 0.5 + P.CFG.feel.dmgNumberRise * f), txt = String(Math.round(n.val));
       c.strokeText(txt, X, Y); c.fillStyle = n.crit ? '#E9A23B' : '#FFFFFF'; c.fillText(txt, X, Y);
@@ -356,7 +422,7 @@ P.RenderOverlay = (function () {
       c.globalAlpha = Math.min(1, l.t / 0.3) * labelAlpha(R, P.Speech ? P.Speech.labelKey(l) : 'letter', l.x, l.y, 150, 44);
       c.strokeText(l.text, R.X(l.x), R.Y(l.y)); c.fillText(l.text, R.X(l.x), R.Y(l.y)); c.globalAlpha = 1;
     });
-    var pr = s.dir.tut.active;
+    var pr = P.RunGuide ? P.RunGuide.prompt(s) : s.dir.tut.active;
     if (pr && pr.target) arrow(R, s.hero, pr.target);
   };
 
@@ -385,20 +451,14 @@ P.RenderOverlay = (function () {
     return LIGHT[LIGHT.length - 1].c;
   }
 
-  // The low-HP heartbeat is one flash per beat; it is counted against the screen flash budget (sprites.js flashForce).
-  var heartN = -1;
-  function countHeartbeat(now) {
-    var n = Math.floor(now / P.Fx.heartPeriod);
-    if (n !== heartN && P.Sprites && P.Sprites.flashForce) { heartN = n; P.Sprites.flashForce(now); }
-  }
   // The edge vignette is the same radial gradient on every frame of a level, so it is rasterised once per colour, alpha and
   // device scale and then drawn as one image. A gradient fill over the whole screen is a per-pixel evaluation each frame.
   var vig = { key: '', cv: null };
   function vignetteImage(R, vc, a) {
-    var key = vc + '|' + a + '|' + R.dpr, W = R.W, H = R.H, g2, g;
-    if (vig.key !== key) {
+    var key = vc + '|' + a + '|' + R.dpr + '|' + R.W + '|' + R.H, W = R.W, H = R.H, g2, g;
+    if (vig.key !== key || !vig.cv || !vig.cv.width || !vig.cv.height) {
       if (!vig.cv) vig.cv = document.createElement('canvas');
-      vig.cv.width = Math.round(W * R.dpr); vig.cv.height = Math.round(H * R.dpr);
+      vig.cv.width = Math.max(1, Math.round(W * R.dpr)); vig.cv.height = Math.max(1, Math.round(H * R.dpr));
       g2 = vig.cv.getContext('2d'); g2.setTransform(R.dpr, 0, 0, R.dpr, 0, 0);
       g = g2.createRadialGradient(W / 2, H * 0.65, 0, W / 2, H * 0.65, H * 0.75);
       g.addColorStop(0.6, 'rgba(' + vc + ',0)'); g.addColorStop(1, 'rgba(' + vc + ',' + a + ')');
@@ -408,19 +468,20 @@ P.RenderOverlay = (function () {
     return vig.cv;
   }
   O.screen = function (R, s) {
+    if (P.SceneFlow && P.SceneFlow.current() && P.SceneFlow.current().kind!=='entry') return;
     var c = R.ctx, W = R.W, H = R.H;
+    if (!(W > 0 && H > 0 && R.dpr > 0)) return;
     var l = (s.levelIndex > 1 && P.RenderWorld.screenLight) ? P.RenderWorld.screenLight(s) : light(s.hero.y);
     // No full-screen flash here (v0.7 removed the level-up and bloater flashes). Light, vignette and the low-HP beat only.
-    c.fillStyle = 'rgba(' + Math.round(l[0]) + ',' + Math.round(l[1]) + ',' + Math.round(l[2]) + ',' + l[3].toFixed(3) + ')';
+    c.fillStyle = 'rgba(' + Math.round(l[0]) + ',' + Math.round(l[1]) + ',' + Math.round(l[2]) + ',' + (l[3]*(s.enemies.some(function(e){return e.boss&&!e.dead;})?.48:1)).toFixed(3) + ')';
     c.fillRect(0, 0, W, H);
     var vg = (s.levelIndex > 1 && P.RenderWorld.vignette) ? P.RenderWorld.vignette(s) : [27, 73, 101, 0.45];
+    if (s.gen && s.gen.frenzy && s.gen.frenzy.phase === 'active') vg = [146, 39, 48, 0.55];
+    else if (P.Skills && P.Skills.frenzyOn(s)) vg = [181, 99, 24, 0.55];
     var vc = Math.round(vg[0]) + ',' + Math.round(vg[1]) + ',' + Math.round(vg[2]);
     c.drawImage(vignetteImage(R, vc, vg[3].toFixed(3)), 0, 0, W, H);   // cached image; the transform here is the device-scale one
     if (s.hero.hp / s.hero.maxHp < P.CFG.feel.lowHpFrac && s.mode === 'play') {
-      // Last stand: a dark red vignette that beats like a heart (two beats per cycle, never a flash).
-      var beat = (P.Settings && P.Settings.reduceFlash) ? 0.5 : (P.Fx.heart ? P.Fx.heart(performance.now() / 1000) : 0.5);
-      if (!(P.Settings && P.Settings.reduceFlash) && P.Fx.heartPeriod) countHeartbeat(performance.now() / 1000);
-      var p = 0.12 + 0.3 * beat;
+      var p = 0.12 + 0.3 * P.Fx.heartbeat(performance.now() / 1000);
       var g2 = c.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.7);
       g2.addColorStop(0, 'rgba(215,38,61,0)'); g2.addColorStop(1, 'rgba(215,38,61,' + p.toFixed(3) + ')');
       c.fillStyle = g2; c.fillRect(0, 0, W, H);
@@ -435,6 +496,7 @@ P.RenderOverlay = (function () {
     if (P.Speech) P.Speech.drawBanners(c, R);
     if (P.EnemyFx && P.EnemyFx.screen) P.EnemyFx.screen(R, s);
     if (P.EventsFx && P.EventsFx.screen) P.EventsFx.screen(R, s);
+    if (P.KaanSupportFx && P.KaanSupportFx.screen) P.KaanSupportFx.screen(R);
     if (P.SkillsFx && P.SkillsFx.screen) P.SkillsFx.screen(R, s);
     if (P.MomentsScreen && P.MomentsScreen.draw) P.MomentsScreen.draw(R, s);   // T4 part 13: signature moments, screen layer
   };

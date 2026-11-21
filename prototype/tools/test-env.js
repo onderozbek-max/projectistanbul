@@ -334,7 +334,7 @@ const alive = list => list.filter(e => !e.dead).length;
     const b = s.geo.blocks.find(b => b.kind === kind);
     check(!!b && Math.abs(b.rc.xMax - b.rc.xMin - w) < 1e-9 &&
       Math.abs(b.rc.yMax - b.rc.yMin - h) < 1e-9, 'Galata footprint: ' + kind);
-    if (kind === 'bollard') { check(b && !b.rec, 'Galata bollard is solid'); return; }
+    if (kind === 'bollard' || kind === 'planter') { check(b && !b.rec, 'Galata ' + kind + ' stays solid'); return; }
     if (!b || !b.rec) { check(false, 'Galata breakable missing: ' + kind); return; }
     P.Env.hitProp(s, b.rec, b.rec.hp, 'sledge');
     check(!s.geo.blocks.includes(b) && s.env.zones.some(z => z.kind === 'debris' && z.rec === b.rec),

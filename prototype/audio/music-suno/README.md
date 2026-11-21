@@ -121,7 +121,7 @@ Use custom mode when you want control. Turn on **Instrumental**. Put the style t
 2. **Checklist for loops.** (a) The first four bars already have the groove or the melody, with no slow build from silence. (b) Loudness is steady from start to end, with no swell or dip in the last two seconds against the first two. (c) No ending: no cadence, no fade, no final cymbal crash, because the tail is blended into the head. (d) No words, no breaths, no vocal sounds (unless you are making a vocal variant). (e) Key and tempo match the table.
 3. **Checklist for stingers.** The first beat is clean, the final chord lands inside the 20 s, and there is nothing after it.
 4. **Making a loop length.** Take the chosen take and use Extend until it runs at least 2 bars past the loop end. Then in a DAW (Audacity is free) cut from the first downbeat so the file is exactly the "export at least" length in the table, with the extra 1.5 s being the bars that follow the loop end. Do not fade the end. The tool keeps the first target seconds and blends the last 1.5 s into the head.
-5. **Run pair.** Make `run_calm` first, then make `run_intense` as a cover or remix of the chosen `run_calm` take if your plan has it, so the chords and tempo stay identical. Check both together in your DAW: they must line up at the start and have the same length. The tool checks the lengths after writing.
+5. **Run tracks.** The street plays `run_calm`. Prepare `run_intense` as an alternate take with the same key, tempo and length.
 6. **Stingers.** Export at least 20 s. The tool cuts at 20.0 s and fades for 0.3 s, so the final chord must sit inside the 20 s.
 
 ## 5. Vocal options (optional)
@@ -135,7 +135,7 @@ Instrumental is the default for every slot. The title and the boss may have a vo
 
 ## 6. District flavour (stretch, not required for the slice)
 
-Optional variants of `run_calm`, one per district, so the walk changes its sound. The game has no per-district music slot yet, and `music.js` plays one run pair per run, so these need a player change later. Each add-on goes into the run_calm custom style field (section 3.2), keeping its 112 BPM and D minor so a later swap stays in time. Save any variant in `district-alt/` (the tool ignores that folder).
+Optional variants of `run_calm`, one per district, so the walk changes its sound. The street uses one track across all districts, so these need a player change later. Each add-on goes into the run_calm custom style field (section 3.2), keeping its 112 BPM and D minor so a later swap stays in time. Save any variant in `district-alt/` (the tool ignores that folder).
 
 | Hood (journey theme) | Add-on to the run_calm style field |
 |---|---|

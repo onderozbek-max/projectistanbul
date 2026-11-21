@@ -31,7 +31,7 @@ are in `journey.js` (`map: [x, y]`).
 | # | ID | Hood | District | km | Walk | Levels | Theme | Boss type | Stage-5 boss (canonical name) |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | `istiklal` | İstiklal | Beyoğlu | 1.0 | 1.0 | L1–5 | istiklal | brute | The Vatman (tram driver) |
-| 2 | `galata` | Galata | Beyoğlu | 1.8 | 0.8 | L6–10 | galata | brute | Tour Guide (Turist Rehberi) |
+| 2 | `galata` | Galata | Beyoğlu | 1.8 | 0.8 | L6–10 | galata | brute | The Tower Keeper (Kule Bekçisi) |
 | 3 | `karakoy` | Karaköy | Beyoğlu | 2.6 | 0.8 | L11–15 | karakoy | brute | The Bride (Gelin) |
 | 4 | `bridge` | Galata Köprüsü | Haliç | 3.3 | 0.7 | L16–20 | bridge | bloater | Big Fisherman (Koca Balıkçı) |
 | 5 | `eminonu` | Eminönü | Fatih | 4.1 | 0.8 | L21–25 | eminonu | taksici | The Captain (Kaptan) |
@@ -55,7 +55,7 @@ Rows 10 and 11 are D-060 (approved 2026-11-12). Their boss types are new tunings
 
 **Boss count:** 20 stage-5 bosses. Boss types are five (brute, bloater, spitter, taksici, kasapBoss; config-bosses.js `bossByHood`), so each
 boss gets its own signature attack on top of the type kit (section 5). D-060 adds two new tunings of the kasapBoss shape for hoods 10 and 11,
-`tourGuide` and `antiquarian`, with no new engine behaviour. Name check, settled 2026-11-13: hood 10 is "The Docent" (TR Müze Rehberi), so "The Tour Guide" stays the hood 2 (Galata) boss only.
+`tourGuide` and `antiquarian`, with no new engine behaviour. The `tourGuide` archetype is the Docent (TR Müze Rehberi) at L50. The authored Galata finale uses the Tower Keeper.
 
 **Geography (v0.8, lane L):** the map check moved two hoods. Kumkapı now comes straight after
 Beyazıt (it used to sit after Aksaray, which is no longer on the walk), which saves about 0.4 km on the walk and fixes the map, where it sat
@@ -228,11 +228,10 @@ livery.
 - **Light:** evening, lanterns. No neon.
 - **Roster:** walker, runner, crawler, spitter. Skins: tourist, musician, student, shopper.
 - **Twist:** spitter acid lobs leave puddles on the stairs (slow, no slip). Stairs are chokepoints (O12).
-- **Stage 3:** the tour group's flag bearers. Kill the bearers before the group's buff spreads.
-- **Stage 4:** a horde comes down the stairs at once (horde modifier).
-- **Boss:** Tour Guide. Brute with a flag. The flag gives tourists within 4 m +20% speed. Megaphone
-  cone blast. Summons tourist groups every 15 s. Kill priority: the flag.
-- **Story beat:** a musician plays his last note on a dead street. The tour guide keeps talking.
+- **Stage 3:** ring the bell to draw the crowd away from the passage.
+- **Stage 4:** deploy the footbridge to cross the gap.
+- **Boss:** the Tower Keeper. Step clear of falling counterweights and close in when the Keeper recovers.
+- **Story beat:** guide the musician through Galata while his music draws attention.
 
 ### H03 · Karaköy (Beyoğlu, km 2.6, L11–15)
 
@@ -668,7 +667,7 @@ hood-stage it falls on. Future items (not in the slice) are in [weapons-skills.m
 | [prd.md](prd.md) §4 | Kaan joins in L30 | Kaan joins at L20 on the bridge (proposed, open item 9.1) |
 | [product.md](product.md) §5 | Chapter = 10 districts × 10 levels, x5 mini-boss, x0 district boss (D-001) | **20 hoods × 5 levels**; stage 5 of every hood is a boss. D-001 amended by D-027. |
 | [game-design.md](game-design.md) §6 | District template: Route, Arena, Route, Arena, Mini-boss, … | **Hood template** (section 3 here). The 10-level district table is superseded. |
-| [content-catalog.md](content-catalog.md) §6–§7 | L5 Kestaneci, L10 Vatman, L15 Tour Guide, L20 Bride, L25 Big Fisherman, L30 Kaan | Bosses sit at stage 5 of their hood: L5 Vatman, L10 Tour Guide, L15 Bride, L20 Big Fisherman (Kaan joins), L25 Captain, L30 Ticket Man. Kestaneci becomes a stage-3 cart charge on H01, not a boss. |
+| [content-catalog.md](content-catalog.md) §6–§7 | L5 Kestaneci, L10 Vatman, L15 Tour Guide, L20 Bride, L25 Big Fisherman, L30 Kaan | Bosses sit at stage 5 of their hood: L5 Vatman, L10 Tower Keeper, L15 Bride, L20 Big Fisherman (Kaan joins), L25 Captain, L30 Ticket Man. Kestaneci becomes a stage-3 cart charge on H01. |
 | [narrative.md](narrative.md) *Chapter 1* | 10 district arcs at levels 1–10, 11–20, … | Same arcs, mapped to hood ranges (narrative.md *Chapter 1* table). Ending unchanged. |
 | [design-system.md](design-system.md) §9.2 | Cliffhanger at L10, L20, L30, L100 | Cliffhanger at hood ends H01 (L5), H04 (L20), H06 (L30) and L100. |
 | [prd.md](prd.md) §4 | Motion comics at L10, L20, L30 | Comic page at the end of each hood (20 pages in Chapter 1). Full 5-panel pages on story hoods. See [story-presentation.md](story-presentation.md). |
@@ -679,7 +678,7 @@ Old arcs are blocks of ten levels. The new blocks are by geography. Each arc kee
 
 | Arc (narrative.md) | Hoods | Levels | Key bosses |
 |---|---|---|---|
-| A. İstiklal & Galata | H01–H02 | L1–10 | Vatman (L5), Tour Guide (L10) |
+| A. İstiklal & Galata | H01–H02 | L1–10 | Vatman (L5), Tower Keeper (L10) |
 | B. Karaköy & the Bridge | H03–H04 | L11–20 | Bride (L15), Big Fisherman (L20), **Kaan joins** |
 | C. Eminönü & Sirkeci | H05–H06 | L21–30 | Captain (L25), Ticket Man (L30, build milestone) |
 | D. Grand Bazaar & Beyazıt | H07–H08 | L31–40 | Carpet Golem (L35), Pigeon Man (L40) |
@@ -697,8 +696,7 @@ Chapter 2 starts at L101 as in narrative.md.
 
 ### 8.4 Dad's letters (collection gates, AUDIT-7 CR-8)
 
-The 100-level walk cannot reach the narrative gates (L190 and L300). The gates below stay inside Chapter 1 and unlock on
-the win of that level (`js/meta/meta-collect.js`, `C.LETTERS`). Canon positions are in narrative.md (Season-Long Mysteries).
+The first letter unlocks on the Chapter 1 finale. Letters two and three unlock in later chapters (`js/meta/meta-collect.js`, `C.LETTERS`). Canon positions are in narrative.md (Season-Long Mysteries).
 
 | Letter | Gate | Stop | Narrative canon | Rule |
 |---|---|---|---|---|
@@ -706,7 +704,6 @@ the win of that level (`js/meta/meta-collect.js`, `C.LETTERS`). Canon positions 
 | #2 | **L190** (Chapter 2) | Chapter 2 | Letter #2, Sarıyer and the drive north | Kept in Chapter 2 (owner canon: Chapter 1 ends with letter #1 at L100). |
 | #3 | **L300** (Chapter 3) | Chapter 3 | Letter #3 (İzmir) | Kept in Chapter 3. |
 
-Open: the walk order puts letter #3 (L95) before letter #1 (L100). Renumbering or moving letter #1 is an owner decision (table 9.14).
 
 ---
 

@@ -218,6 +218,7 @@ P.ComicBusts = (function () {
 
   // Draws a bust bottom-centred at (x, y) with total height h. o: {flip, talk 0..1, alpha}.
   B.draw = function (c, who, mood, x, y, h, o) {
+    if (P.ComicRaster) { P.ComicRaster.bust(c, who, mood, x, y, h, o); return; }
     o = o || {};
     c.save();
     c.globalAlpha = o.alpha == null ? 1 : o.alpha;
@@ -232,7 +233,8 @@ P.ComicBusts = (function () {
     cv.width = Math.round(size * d); cv.height = Math.round(size * d);
     c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0);
     c.fillStyle = PAL[who] || '#888'; c.fillRect(0, 0, size, size);
-    B.draw(c, who, mood || 'neutral', size / 2, size, size * 0.92, {});
+    function paint() { B.draw(c, who, mood || 'neutral', size / 2, size, size * 0.92, {}); }
+    if (P.ComicRaster) P.ComicRaster.whenReady(paint); else paint();
     return cv;
   };
   return B;

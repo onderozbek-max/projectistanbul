@@ -38,14 +38,23 @@ P.FireAnimPrim = (function () {
   M.arm = function (F, sx, sy, hx, hy, bend, sleeve) {
     var U = M.ARM_U, Fo = M.ARM_F, L = U + Fo - 0.004;
     var dx = hx - sx, dy = hy - sy, d = Math.hypot(dx, dy) || 1e-6, dd = Math.min(Math.max(d, 0.06), L);
-    var ux = dx / d, uy = dy / d, a = (U * U - Fo * Fo + dd * dd) / (2 * dd), h = Math.sqrt(Math.max(0, U * U - a * a));
-    var px = -uy * bend, py = ux * bend, bx = sx + ux * dd, by = sy + uy * dd;
-    var ex = sx + ux * a + px * h, ey = sy + uy * a + py * h;
+    var ux = dx / d, uy = dy / d, bx = sx + ux * dd, by = sy + uy * dd;
+    M.hx = bx; M.hy = by;
+    if (F.grip) {
+      if (!F.gripPlaced) {
+        // Keep the weapon’s existing motion about the gripping hand, with the painted wrist as its origin.
+        F.c.translate(F.grip.x - F.R.X(bx), F.grip.y - F.R.Y(by));
+        F.gripPlaced = true;
+      }
+      return;
+    }
+    var a = (U * U - Fo * Fo + dd * dd) / (2 * dd), h = Math.sqrt(Math.max(0, U * U - a * a));
+    var ex = sx + ux * a - uy * bend * h, ey = sy + uy * a + ux * bend * h;
     M.limb(F, sx, sy, ex, ey, sleeve || M.SLEEVE, 0.085);
     M.limb(F, ex, ey, bx, by, sleeve || M.SLEEVE, 0.078);
-    M.hx = bx; M.hy = by;
   };
   M.hand = function (F, x, y) {
+    if (F.grip) return;
     var c = F.c;
     c.beginPath(); c.arc(F.R.X(x), F.R.Y(y), 0.056 * F.m, 0, TAU); c.fillStyle = M.SKIN; c.fill();
     c.strokeStyle = INK; c.lineWidth = 1.5; c.stroke();
@@ -56,6 +65,21 @@ P.FireAnimPrim = (function () {
     c.beginPath();
     for (i = 0; i < 8; i++) { q = (a || 0) + i * Math.PI / 4; rr = i & 1 ? R2 : R1; c.lineTo(X + Math.cos(q) * rr, Y + Math.sin(q) * rr); }
     c.closePath(); c.fillStyle = col; c.fill();
+  };
+
+  M.tongue = function (c, X, Y, w, h, bend) {
+    c.beginPath(); c.moveTo(X - w, Y);
+    c.bezierCurveTo(X - 1.4 * w, Y - 0.45 * h, X + bend + 0.38 * w, Y - 0.55 * h, X + bend, Y - h);
+    c.bezierCurveTo(X + bend + 1.05 * w, Y - 0.68 * h, X + 1.4 * w, Y - 0.18 * h, X + w, Y);
+    c.quadraticCurveTo(X, Y + 0.22 * h, X - w, Y); c.closePath(); c.fill();
+  };
+
+  M.foamSpray = function (F, x, y, angle, count, spread, speed) {
+    for (var i = 0; i < F.count(count); i++) {
+      var a = angle + M.rnd(-spread, spread), v = speed * M.rnd(0.65, 1.25);
+      var p = F.spawn('bubble', x, y, M.rnd(0.18, 0.32), M.rnd(0.035, 0.085), '193,236,248');
+      p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v;
+    }
   };
 
   // Particle drawing. pass 0 = normal blend, pass 1 = additive (kinds flagged add at spawn).
@@ -75,9 +99,15 @@ P.FireAnimPrim = (function () {
           c.beginPath(); c.moveTo(X, Y); c.lineTo(X - p.vx * 0.04 * m, Y + p.vy * 0.04 * m); c.stroke(); break;
         case 'glint':
           M.star(F, p.x, p.y + p.z, p.r * (1 - 0.5 * f), M.rgba(p.col, al), p.a); break;
-        case 'puff': case 'dust':
+        case 'puff':
           r = p.r * m * (1 + 1.2 * f); c.fillStyle = M.rgba(p.col, al * 0.6 * (p.op || 1));
           c.beginPath(); c.arc(X, Y, r, 0, TAU); c.fill(); break;
+        case 'bubble':
+          r = p.r * m * (0.8 + 0.35 * f);
+          c.beginPath(); c.ellipse(X, Y, r * 1.22, r * 0.85, 0, 0, TAU);
+          c.fillStyle = M.rgba('255,255,252', al * 0.74); c.fill();
+          c.strokeStyle = M.rgba(p.col, al * 0.28); c.lineWidth = 0.9; c.stroke();
+          break;
         case 'flame':
           r = p.r * m * (1 - 0.5 * f) * (0.85 + 0.3 * Math.sin(p.a + f * 30));
           c.fillStyle = M.rgba(p.col, al); c.beginPath(); c.arc(X, Y, r, 0, TAU); c.fill(); break;

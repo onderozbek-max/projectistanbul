@@ -46,14 +46,13 @@ P.Meta = P.Meta || {};
     return { level: p.level, opts: opts };
   };
 
-  // Settles a finished Night Shift run into s (the save object). The first run of a day pays the fixed Street Cred and
-  // coins and advances the streak; every run updates the day's and the local best. Returns the results info.
   // Adjective plus noun for the entry card. An adjective listed in ns.name.poss (TR "Gece") takes the possessive noun (p<i>).
   N.seedName = function (name, t) {
     var poss = (',' + t('ns.name.poss') + ',').indexOf(',' + name.a + ',') >= 0;
     return t('ns.name.a' + name.a) + ' ' + t(poss ? 'ns.name.p' + name.n : 'ns.name.n' + name.n);
   };
 
+  // First finished shift of the day pays Jeton and advances the streak. All finished shifts update the score records.
   N.settle = function (s, r, now) {
     var day = M.Daily.dayKey(new Date(now)), n = s.modes.ns, score = Math.max(0, Math.round(num(r.score))), best0 = n.best, pay = null, first;
     if (n.day !== day) { n.day = day; n.dayBest = 0; }

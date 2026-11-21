@@ -10,8 +10,8 @@
 // Audit: P.Speech.audit(seconds) lists the overlaps seen in the last N seconds (bubble vs bubble, bubble vs control).
 P.Speech = (function () {
   var SP = {}, PAD = 6, PF_TOP = 170, BOTTOM = 16, W = 390, H = 844, WIN = 10, MAX_HIST = 2000;
-  var PRIO = { tutorial: 5, pop: 4, banner: 3.5, toast: 3.5, bark: 3, legacy: 3, groan: 2, cat: 2 };
-  var CONTROLS = ['#hud', '#skills', '#subs'];
+  var PRIO = { danger: 8, tutorial: 5, pop: 4, invitation: 2, banner: 3.5, toast: 3.5, bark: 3, legacy: 3, groan: 2, cat: 2 };
+  var CONTROLS = ['#hud', '#skills', '#subs', '.obj-row'];
   var offers = [], providers = [], placed = [], labels = {}, banners = [], hist = [], frames = [];
   var frameN = 0, lid = 0, stats = { placed: 0, waited: 0, dropped: 0 };
   SP.PRIO = PRIO;
@@ -30,6 +30,32 @@ P.Speech = (function () {
   }
   SP.domRect = domRect;
 
+  function warningHits(tg, h) {
+    var x = h.x - tg.x, y = h.y - tg.y, reach;
+    var margin = 0.85;
+    if (tg.kind === 'lane') {
+      var forward = x * tg.dx + y * tg.dy;
+      reach = tg.w / 2 + margin;
+      return forward >= -margin && forward <= tg.len + margin && Math.abs(x * tg.dy - y * tg.dx) <= reach;
+    }
+    reach = tg.r + margin;
+    return x * x + y * y <= reach * reach;
+  }
+  SP.warningNear = function (s) {
+    if (!s || !s.hero) return false;
+    var ring = s.dir && s.dir.telegraphs, enemy = s.enemyTele, h = s.hero;
+    function near(tg) { return warningHits(tg, h); }
+    return !!((ring && ring.some(near)) || (enemy && enemy.some(near)) || bloaterWarnings(s).some(near));
+  };
+
+  function bloaterWarnings(s) {
+    if (!P.Enemies || !P.Enemies.bloaterPressure(s)) return [];
+    var b = P.CFG.enemies.bloater;
+    return s.enemies.filter(function (e) {
+      return e.type === 'bloater' && !e.boss && !e.dead && e.swell > 0;
+    }).map(function (e) { return { x: e.x, y: e.y, r: e.mini ? b.mini.burstR : b.burstR }; });
+  }
+
   function overlap(a, b, gap) {
     return a.x < b.x + b.w + gap && a.x + a.w + gap > b.x && a.y < b.y + b.h + gap && a.y + a.h + gap > b.y;
   }
@@ -38,6 +64,46 @@ P.Speech = (function () {
     for (i = 0; i < list.length; i++) if (overlap(r, list[i], PAD)) return false;
     return true;
   }
+
+  function protectFight(R, s, list) {
+    if (!s || !s.hero || !R.toScreen) return;
+    function add(x, y, w, h, kind) {
+      if (x + w >= 0 && y + h >= 0 && x <= R.W && y <= R.H)
+        list.push({ x: x, y: y, w: w, h: h, id: kind, kind: kind, bubble: false });
+    }
+    function centered(x, y, w, h, kind) { var p = R.toScreen(x, y); add(p.x - w / 2, p.y - h / 2, w, h, kind); }
+    centered(s.hero.x, s.hero.y + .42, 62, 65, 'hero');
+    var work=s.milestone&&s.milestone.work,k=s.companion;
+    if(work&&work.active&&k){centered(k.x,k.y+.6,86,100,'companion-work');
+      centered(s.milestone.pallet.x,s.milestone.pallet.y+.3,86,66,'pallet-work');}
+    var boss = s.dir && s.dir.trialBoss || s.gen && s.gen.boss;
+    if (boss && !boss.dead && (boss.windup || boss.exposed || boss.ai && boss.ai.m !== 'walk')) {
+      var size = (R.ppm || 32.5) * (boss.r + .5);
+      centered(boss.x, boss.y + .8, size * 2.6, size * 2, 'boss');
+    }
+    var goal = P.RunGuide && (P.RunGuide.destination(s) || P.RunGuide.required(s));
+    if (goal) {
+      var p = R.toScreen(goal.x, goal.y);
+      var hud = domRect('#hud'), top = hud ? Math.max(180, hud.y + hud.h + 18) : 180;
+      var x = Math.max(22, Math.min(R.W - 22, p.x)), y = Math.max(top, Math.min(R.H - 72, p.y));
+      add(x - 25, y - 22, 50, 44, 'destination');
+    }
+    var warnings = (s.enemyTele || []).concat(s.dir && s.dir.telegraphs || [], bloaterWarnings(s)), u = R.ppm || 32.5;
+    warnings.forEach(function (tg) {
+      if (tg.kind === 'lane') {
+        var a = R.toScreen(tg.x, tg.y), b = R.toScreen(tg.x + tg.dx * tg.len, tg.y + tg.dy * tg.len);
+        var pad = tg.w * u / 2 + 8;
+        add(Math.min(a.x,b.x) - pad, Math.min(a.y,b.y) - pad, Math.abs(a.x-b.x) + 2*pad, Math.abs(a.y-b.y) + 2*pad, 'warning');
+      } else if (tg.r) {
+        var size = tg.r * u * 2 + 14;
+        centered(tg.x, tg.y, size, size, 'warning');
+      }
+    });
+  }
+
+  SP.clearBox = function (r, action) {
+    return !placed.some(function (p) { return action && p.actionable || overlap(p, r, PAD); });
+  };
 
   // Candidate slots for a movable item: beside its anchor first (above, below, sides, then higher or lower), then
   // a scan of the play band. The item it was in last frame is tried first (no jitter).
@@ -85,24 +151,41 @@ P.Speech = (function () {
 
   // One frame of arbitration. Fixed items keep their place; movable ones are sorted by priority, then age.
   SP.resolve = function (R, s) {
-    var fixed = [], mov = [], i, c, slot;
+    var fixed = [], mov = [], i, c, slot, quiet, actionShown = false;
     frameN++;
     offers = [];
-    providers.forEach(function (fn) { try { fn(R, s); } catch (e) { /* a broken provider must not stop the frame */ } });
+    if (P.SceneFlow && P.SceneFlow.running(s)) { placed=[]; return; }
+    var boss=s.dir&&s.dir.trialBoss||s.gen&&s.gen.boss,combat=!!(boss&&!boss.dead);
+    var work=s.milestone&&s.milestone.work,working=work&&work.finished<s.milestone.delivered;
+    var departure=s.levelIndex===26&&s.loadout&&s.loadout.kaanJoined;
+    providers.forEach(function (fn) { try { fn(R, s); } catch (e) { if (typeof console!=='undefined') console.error('speech_provider',e); } });
     banners.forEach(function (b) { offerBanner(b, R); });
     controls(fixed);
+    protectFight(R, s, fixed);
+    quiet = offers.length && (SP.warningNear(s) || offers.some(function (c) { return c.kind === 'tutorial'; }));
     for (i = 0; i < offers.length; i++) {
       c = offers[i];
+      if(departure&&!c.important&&['banner','toast','pop'].indexOf(c.kind)>=0){if(c.place)c.place(null);continue;}
+      if(combat&&['tutorial','bark','groan','banner','toast','pop'].indexOf(c.kind)>=0){if(c.place)c.place(null);continue;}
+      if(working&&(['bark','groan','banner','toast'].indexOf(c.kind)>=0||c.kind==='pop'&&!c.important)){if(c.place)c.place(null);continue;}
       if (c.fixed) fixed.push({ x: c.rect.x, y: c.rect.y, w: c.rect.w, h: c.rect.h, id: c.id, kind: c.kind, bubble: true, prio: c.prio || 0 });
       else mov.push(c);
     }
     offers = [];
     placed = fixed;
     mov.sort(function (a, b) { return ((b.prio || 0) - (a.prio || 0)) || ((b.age || 0) - (a.age || 0)); });
+    var onCall = s.levelIndex === 1 && s.dir && s.dir.call && s.dir.call.sub;
     for (i = 0; i < mov.length; i++) {
       c = mov[i];
-      slot = findSlot(c, placed);
-      if (slot) { placed.push({ x: slot.x, y: slot.y, w: c.w, h: c.h, id: c.id, kind: c.kind, bubble: true, prio: c.prio || 0 }); stats.placed++; }
+      var aside = ['bark', 'groan', 'cat', 'legacy'].indexOf(c.kind) >= 0;
+      var defer = onCall && aside || quiet && (aside || ['banner', 'toast', 'invitation'].indexOf(c.kind) >= 0);
+      if (quiet && c.kind === 'pop' && !c.important) defer = true;
+      slot = defer || c.actionable && actionShown ? null : findSlot(c, placed);
+      if (slot) {
+        actionShown = actionShown || c.actionable;
+        placed.push({ x: slot.x, y: slot.y, w: c.w, h: c.h, id: c.id, kind: c.kind, bubble: true, prio: c.prio || 0, actionable: c.actionable });
+        stats.placed++;
+      }
       else stats.waited++;
       c.prev = slot ? slot.n : null;
       if (c.place) c.place(slot);

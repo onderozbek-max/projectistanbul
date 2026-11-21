@@ -15,8 +15,8 @@ P.Meta = P.Meta || {};
   function schedule(my, ms, fn) { setTimeout(function () { if (my === session) fn(); }, wait(ms)); }
   function stats() { return M.heroStats(hero); }
   function fmtPct(field, diff) {
-    if (field === 'critPct') return '+' + (diff * 100).toFixed(1);
-    return '+' + Math.round(diff * 100) + '%';
+    var value = (Math.round(diff * 1000) / 10).toLocaleString(P.lang, { maximumFractionDigits: 1 });
+    return '+' + value + (field === 'critPct' ? '' : '%');
   }
   function levelsWith(p, s, v) {
     var out = {}, i;
@@ -24,10 +24,11 @@ P.Meta = P.Meta || {};
     out[s] = v;
     return out;
   }
-  // Preview of one more point on s: the change in that attribute's primary effect.
-  function preview(p, s, v) {
-    var field = C.primary[s], a = P.Stats.effects(levelsWith(p, s, v)), b = P.Stats.effects(levelsWith(p, s, v + 1));
-    return t('fx.' + field, { v: fmtPct(field, (b[field] || 0) - (a[field] || 0)) });
+  function preview(p, s, v, field) {
+    var actual = p.attr[s], a = P.Stats.effects(p.attr), b = P.Stats.effects(levelsWith(p, s, v));
+    var value = fmtPct(field, a[field]);
+    if (v !== actual) value += ' → ' + fmtPct(field, b[field]);
+    return t('fx.' + field, { v: value });
   }
   function draftTotal() { var n = 0, k; for (k in draft) n += draft[k]; return n; }
   function readyTotal(p) { var n = 0, s; for (s in p.ready) n += p.ready[s]; return n; }
@@ -41,25 +42,72 @@ P.Meta = P.Meta || {};
     var row = el('div', 'meta-attr-row', ctx.box), v = p.attr[s] + (draft[s] || 0);
     row.dataset.stat = s;
     el('div', 'meta-attr-name', row).textContent = t('stat.' + s);
+    if (ctx.onPage) { individualRank(ctx, row, p, s); return; }
     var minus = el('button', 'meta-attr-btn', row); minus.textContent = '−';
-    minus.setAttribute('aria-label', t('attr.minus')); minus.disabled = !draft[s];
+    minus.setAttribute('aria-label', t('attr.minus') + ' ' + t('stat.' + s)); minus.disabled = !draft[s];
     minus.addEventListener('click', function () { draft[s]--; sfx('uiTap'); renderAlloc(ctx); });
     el('div', 'meta-attr-lvl', row).textContent = v + '/' + C.max;
     var plus = el('button', 'meta-attr-btn meta-attr-plus', row); plus.textContent = '+';
-    plus.setAttribute('aria-label', t('attr.plus')); plus.disabled = !canPlus(p, s);
+    plus.setAttribute('aria-label', t('attr.plus') + ' ' + t('stat.' + s)); plus.disabled = !canPlus(p, s);
     plus.addEventListener('click', function () { draft[s] = (draft[s] || 0) + 1; sfx('uiTap'); renderAlloc(ctx); });
-    el('div', 'meta-attr-fx', row).textContent = draft[s] ? preview(p, s, v) : (p.ready[s] ? t('attr.readyTag') : '');
+    el('div', 'meta-attr-fx', row).textContent = draft[s] ? preview(p, s, v, C.primary[s]) : (p.ready[s] ? t('attr.readyTag') : '');
+  }
+  function individualRank(ctx, row, p, s) {
+    row.classList.add('growth-individual');
+    var ready = p.ready[s] > 0 && p.attr[s] < C.max;
+    el('div', 'meta-attr-lvl', row).textContent = p.attr[s] + '/' + C.max;
+    if (ready) {
+      var b = el('button', 'growth-path-link growth-apply', row);
+      b.textContent = t('growth.applyOne', { attr: t('stat.' + s) });
+      b.addEventListener('click', function () {
+        if(b.disabled)return;b.disabled=true;var spend = {}; spend[s] = 1;
+        var before=preview(p,s,p.attr[s],C.primary[s]);
+        if (M.allocate(spend, hero)) {ctx.applied={id:s,before:before};sfx('nodeUnlock');renderAlloc(ctx);}else b.disabled=false;
+      });
+    }
+    drawPath(ctx, row, p, s, p.attr[s] + (ready ? 1 : 0));
+    if(ctx.applied&&ctx.applied.id===s)el('p','growth-applied',row).textContent=t('reset.growth.applied',
+      {attr:t('stat.'+s),before:ctx.applied.before,after:preview(p,s,p.attr[s],C.primary[s])});
+  }
+  function drawEffects(ctx, info, p, s, v, field) {
+    var detail = el('details', 'growth-stat-detail', info);
+    detail.open = !!ctx.details[s];
+    detail.addEventListener('toggle', function () { ctx.details[s] = detail.open; });
+    el('summary', null, detail).textContent = t('growth.effects');
+    Object.keys(C.perLevel[s]).filter(function (effect) { return effect !== field; }).forEach(function (effect) {
+      el('div', null, detail).textContent = preview(p, s, v, effect);
+    });
+  }
+  function drawPath(ctx, row, p, s, v) {
+    var info = el('div', 'growth-path', row), actual = p.attr[s], field = C.primary[s];
+    var pct = Math.round(Math.min(1, fracOf(p, s)) * 100);
+    el('span', 'growth-stat-effect', info).textContent = preview(p, s, v, field);
+    var left = p.ready[s] - (draft[s] || 0);
+    if (left > 0) el('span', 'growth-stat-ready', info).textContent = t('growth.attributeReady', { attr: t('stat.' + s), n: left });
+    var track = el('div', 'growth-track', info);
+    track.setAttribute('role', 'progressbar'); track.setAttribute('aria-label', t('stat.' + s)); track.setAttribute('aria-valuenow', pct);
+    el('i', null, track).style.width = pct + '%';
+    el('span', 'growth-training', info).textContent = t('growth.practice.' + s);
+    drawEffects(ctx, info, p, s, v, field);
+    var id = M.TreeUI.nextIn(s);
+    if (!id) { el('span', 'growth-stat-effect', info).textContent = t('growth.pathComplete'); return; }
+    var n = P.Tree.node(id), b = el('button', 'growth-path-link', info);
+    b.textContent = t(actual >= n.gate ? 'growth.pathReady' : 'growth.pathNext', { perk: t('tree.' + id + '.name'), n: n.gate }) +
+      ' · ' + t('growth.perkCost', { n: n.cost });
+    b.addEventListener('click', function () { ctx.onPage('tree', id); });
   }
   function renderAlloc(ctx) {
     var p = stats();
     ctx.box.innerHTML = '';
-    ctx.pool.textContent = t('attr.pool', { r: readyTotal(p), sc: p.sc, left: P.Stats.spendable(p) - draftTotal() });
+    ctx.pool.textContent = ctx.onPage ? t('growth.ready', { n: P.Stats.spendable(p) - draftTotal() }) :
+      t('attr.pool', { r: readyTotal(p), sc: p.sc, left: P.Stats.spendable(p) - draftTotal() });
     C.ids.forEach(function (s) { statRow(ctx, p, s); });
-    if (P.Stats.spendable(p) === 0) el('div', 'meta-attr-none', ctx.box).textContent = t('attr.none');
+    if (!ctx.onPage && P.Stats.spendable(p) === 0) el('div', 'meta-attr-none', ctx.box).textContent = t('attr.none');
     ctx.ok.disabled = draftTotal() === 0;
+    if (ctx.onPage) ctx.ok.hidden = ctx.ok.disabled;
   }
   function makeAllocBox(parent) {
-    var ctx = { box: el('div', 'meta-attr-list', parent), pool: el('div', 'meta-lvl-pool', parent), ok: null };
+    var ctx = { box: el('div', 'meta-attr-list', parent), pool: el('div', 'meta-lvl-pool', parent), ok: null, details: {} };
     return ctx;
   }
   // Confirms the draft. Returns true when the allocation was applied.
@@ -126,11 +174,15 @@ P.Meta = P.Meta || {};
     lvl.ctx.ok.addEventListener('click', function () { if (confirmDraft()) closeSeq(); });
   }
   function closeSeq() {
-    session++;
-    lvl.root.classList.add('meta-hidden');
-    var cb = onDone; onDone = null;
+    var cb = onDone;
+    Attr.cancelSequence();
     if (cb) cb();
   }
+  Attr.cancelSequence = function () {
+    session++;
+    onDone = null;
+    if (lvl) {lvl.root.remove();lvl=null;bars={};}
+  };
   function showStep2(my) {
     if (my !== session) return;
     lvl.root.dataset.step = 'alloc';
@@ -157,34 +209,42 @@ P.Meta = P.Meta || {};
 
   // ---- Karakter panel (map button) ----
   function buildPanel(host, opts) {
-    panel = { root: el('section', 'meta-attr meta-hidden', host) };
-    var head = el('div', 'meta-attr-head', panel.root), back = el('button', 'meta-iconbtn', head);
+    panel = { root: el('section', 'meta-attr growth-page meta-hidden', host) };
+    var top = el('div', 'growth-header', panel.root);
+    var head = el('div', 'meta-attr-head', top), back = el('button', 'meta-iconbtn', head);
     back.textContent = '←'; back.setAttribute('aria-label', t('meta.back'));
     back.addEventListener('click', function () { if (opts && opts.onBack) opts.onBack(); });
-    el('div', 'meta-title', head).textContent = t('attr.title');
-    panel.sum = el('div', 'meta-attr-sum', panel.root);
-    panel.bars = el('div', 'meta-attr-bars', panel.root);
+    el('div', 'meta-title', head).textContent = t('growth.title');
+    M.growthNavigation(top, 'attr', opts.onPage);
+    el('div', 'meta-attr-note growth-explain', panel.root).textContent = t('growth.attrHint');
+    var guide = el('details', 'meta-attr-note growth-explain', panel.root);
+    el('summary', null, guide).textContent = t('growth.guide');
+    el('p', null, guide).textContent = t('growth.reset');
+    el('p', null, guide).textContent = t('growth.persist');
     panel.ctx = makeAllocBox(panel.root);
-    panel.ctx.ok = el('button', 'meta-btn meta-play', panel.root);
+    panel.ctx.onPage = opts.onPage;
+    panel.root.insertBefore(panel.ctx.pool, panel.ctx.box);
+    panel.ctx.ok = el('button', 'meta-btn meta-play growth-save', panel.root);
     panel.ctx.ok.textContent = t('attr.confirm');
     panel.ctx.ok.addEventListener('click', function () { if (confirmDraft()) renderPanel(); });
-    el('div', 'meta-attr-note', panel.root).textContent = t('attr.panelNote');
   }
   function renderPanel() {
-    var p = stats(), fx = P.Stats.effects(p.attr), keys = ['mightPct', 'movePct', 'cooldownPct', 'hackSpeedPct', 'civHelpPct', 'maxHpPct'];
-    panel.sum.innerHTML = '';
-    keys.forEach(function (k) { el('div', 'meta-attr-chip', panel.sum).textContent = t('fx.' + k, { v: fmtPct(k, fx[k]) }); });
-    panel.bars.innerHTML = '';
-    C.ids.forEach(function (s) {
-      var row = el('div', 'meta-attr-bar', panel.bars);
-      el('span', 'meta-attr-name', row).textContent = t('stat.' + s);
-      el('span', 'meta-attr-lvl', row).textContent = P.Stats.effLevel(p, s) + '/' + C.max + ' · ' + t('attr.train', { a: Math.round(fracOf(p, s) * 100) });
-    });
     renderAlloc(panel.ctx);
   }
   Attr.build = function (host, opts) { if (!panel) buildPanel(host, opts); };
-  Attr.show = function () { if (panel) { P.UIMotion.panelShow(panel.root); draft = {}; renderPanel(); } };
-  Attr.hide = function () { if (panel) P.UIMotion.panelHide(panel.root); draft = {}; };   // slides out (ui-motion.js)
+  Attr.show = function (stat, keepDraft) {
+    if (!panel) return;
+    P.UIMotion.panelShow(panel.root);
+    if (!keepDraft) draft = {};
+    renderPanel();
+    var row = stat && panel.ctx.box.querySelector('[data-stat="' + stat + '"]');
+    if (!row) return;
+    row.classList.add('growth-focus');
+    P.UIMotion.revealWithin(panel.root,row,true);
+    var focus = row.querySelector('.meta-attr-plus:not(:disabled),.growth-path-link');
+    if (focus) focus.focus({ preventScroll: true });
+  };
+  Attr.hide = function (keepDraft) { if (panel) P.UIMotion.panelHide(panel.root); if (!keepDraft) draft = {}; };
   Attr.isOpen = function () { return !!panel && P.UIMotion.panelOpen(panel.root); };
   Attr.hero = function () { return hero; };
 })(P.Meta);

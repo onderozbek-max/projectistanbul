@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="css/proto.css">
 <link rel="stylesheet" href="css/meta.css">
 <link rel="stylesheet" href="css/comic.css">
+<link rel="stylesheet" href="css/audit9.css">
 <link rel="stylesheet" href="css/hood.css">
 <link rel="stylesheet" href="css/progress.css">
 <link rel="stylesheet" href="css/modes.css">
@@ -17,7 +18,6 @@
 <main id="stage">
   <div id="phone" role="application" aria-label="Level 1 prototype">
     <canvas id="game" aria-hidden="true"></canvas>
-
     <!-- In-run HUD (design/lofi/04-run-hud.html, DS 5, 13; AUDIT-7 U1). Two rows and an XP line, about 18% of 844 pt:
          row 1 = HP, journey level (BÖLÜM n/100 over the hood, two lines), timer, pause; XP line = Adrenalin (the in-run level,
          a bolt and a number), Street Cred, XP, streak; row 2 = objective (the boss bar replaces it
@@ -39,9 +39,10 @@
         <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
         <div class="streak hidden" id="streak"><span id="streak-label"></span><span class="streak-bar"><i id="streak-fill"></i></span></div>
       </div>
+      <div id="hud-route" class="hud-route hidden"><div><small id="route-badge"></small><span id="route-label" aria-live="polite"></span></div><span id="route-distance"></span></div>
       <div class="hud-sub">
         <div class="obj-slot" id="obj-slot"></div>
-        <div class="boss-bar hidden" id="boss-bar" aria-hidden="true"><span class="boss-name" id="boss-name"></span><span class="boss-track"><i id="boss-fill"></i></span></div>
+        <div class="boss-bar hidden" id="boss-bar"><span class="boss-name" id="boss-name"></span><span class="boss-track" aria-hidden="true"><i id="boss-fill"></i></span><span class="boss-time hidden" id="boss-time"></span></div>
         <span class="call hidden" id="call"><svg class="call-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg><span id="call-label">Anne</span> <span id="call-time">00:00</span>
           <span class="bars" id="bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
       </div>
@@ -52,12 +53,29 @@
     <!-- Level-up banner (T4 part 5): non-blocking, 1.2 s, no taps. Text from ui-progress.js. -->
     <div id="lvl-banner" class="lvl-banner hidden" role="status" aria-live="polite"><b id="lvl-title"></b><span id="lvl-line"></span></div>
     <div id="joy" class="joy hidden" aria-hidden="true"><div class="knob"></div></div>
+    <section id="weapon-lab" class="weapon-lab hidden" aria-labelledby="weapon-lab-title">
+      <h1 id="weapon-lab-title" class="h1" data-i18n="wlab.title"></h1>
+      <select id="weapon-lab-weapon" data-i18n-aria="wlab.pick"></select>
+      <div class="weapon-lab-actions">
+        <div class="weapon-lab-rank-picker">
+          <span id="weapon-lab-rank-label" data-i18n="wlab.rank"></span>
+          <div class="weapon-lab-ranks" role="group" aria-labelledby="weapon-lab-rank-label">
+            <button type="button" id="weapon-lab-one" aria-pressed="true"></button>
+            <button type="button" id="weapon-lab-two" aria-pressed="false"></button>
+            <button type="button" id="weapon-lab-three" aria-pressed="false"></button>
+            <button type="button" id="weapon-lab-four" aria-pressed="false"></button>
+            <button type="button" id="weapon-lab-five" aria-pressed="false"></button>
+          </div>
+        </div>
+        <button type="button" id="weapon-lab-mix" aria-pressed="false" data-i18n="wlab.mix"></button>
+        <button type="button" class="weapon-lab-start" id="weapon-lab-start"></button>
+      </div>
+      <p id="weapon-lab-note" aria-live="polite"></p>
+    </section>
     <div id="skills" class="skills hidden">
-      <div class="dash-chip" id="dash-chip" aria-hidden="true"><span class="dash-fill" id="dash-fill"></span><b data-i18n="ui.hud.dash"></b><small class="dash-sec" id="dash-sec"></small></div>
-      <button class="btn-ult" id="btn-ult" data-i18n-aria="ui.hud.ult"><span class="ult-fill" id="ult-fill"></span><span class="ult-eye"><i></i></span></button>
+      <button type="button" class="dash-chip" id="dash-chip" data-i18n-aria="ui.hud.dash"><span class="dash-fill" id="dash-fill"></span><b data-i18n="ui.hud.dash"></b><small class="dash-sec" id="dash-sec"></small></button>
+      <div class="ult-control"><button class="btn-ult" id="btn-ult" data-i18n-aria="ui.hud.ult"><span class="ult-fill" id="ult-fill"></span><span class="ult-eye"><i></i></span></button><span id="ult-visible-name"></span></div>
     </div>
-
-    <!-- 01 Title -->
     <section id="scr-title" class="screen dark">
       <div class="row between">
         <div class="lang" role="group" aria-label="Language">
@@ -65,17 +83,16 @@
         </div>
         <button class="btn-icon" id="btn-title-settings" data-i18n-aria="ui.title.settings"></button>
       </div>
-      <div class="keyart" aria-hidden="true"><canvas id="keyart"></canvas></div>
+      <div class="keyart" aria-hidden="true"><img id="keyart" data-src="assets/title/arda-istiklal.webp" alt=""></div>
       <div class="logo">
         <div class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
         <h1 class="display" lang="en" data-i18n="ui.title.logo"></h1>
         <div class="title-sub" data-i18n="ui.title.sub"></div>
       </div>
       <button class="btn primary wide" id="btn-start" data-i18n="ui.title.tap"></button>
+      <p class="caption center light hidden" id="title-art-status" role="status"></p>
       <p class="caption center light" data-i18n="ui.title.proto"></p>
     </section>
-
-    <!-- Cold open (LD 4) -->
     <section id="scr-cold" class="cold hidden">
       <div class="lb top"></div><div class="lb bottom"></div>
       <div class="cold-subs" id="cold-subs"><b id="cold-speaker"></b><span id="cold-text"></span></div>
@@ -83,22 +100,21 @@
       <div class="lettering hidden" id="lettering">ŞAK!</div>
       <button class="skip" id="btn-skip"><span class="skip-fill"></span><span data-i18n="ui.skip"></span></button>
     </section>
-
-    <!-- 05 Level up -->
     <section id="scr-cards" class="screen overlay hidden">
-      <div class="center-stack">
+      <div class="center-stack" id="cards-content">
         <h2 class="display light" id="cards-title"></h2>
+        <p class="caption hidden" id="cards-recipe"></p>
         <p class="caption light" id="cards-sub"></p>
         <p class="tut-pill hidden" id="cards-tut" data-i18n="prompt.t_card"></p>
         <div class="cards" id="cards"></div>
-        <div class="row gap">
+        <div class="row gap card-rerolls">
           <button class="btn secondary grow" id="btn-reroll"></button>
-          <button class="btn secondary grow" id="btn-reroll-ad" disabled></button>
+          <button class="btn secondary grow hidden" id="btn-reroll-focus" type="button"></button>
         </div>
         <div class="panel build" id="cards-build"></div>
       </div>
       <!-- Card detail (AUDIT-7 U2): opened by a long press on a card; the full text, every stat row and the recipe. -->
-      <div class="card-info hidden" id="card-info" role="dialog" aria-modal="true">
+      <div class="card-info hidden" id="card-info" role="dialog" aria-modal="true" aria-labelledby="ci-name">
         <div class="panel card-info-panel">
           <p class="caption" id="ci-type"></p>
           <h3 class="h1" id="ci-name"></h3>
@@ -109,7 +125,6 @@
         </div>
       </div>
     </section>
-
     <!-- Mini Chest (CC 8) -->
     <section id="scr-chest" class="screen overlay chest hidden">
       <h2 class="display light" data-i18n="chest.title"></h2>
@@ -119,29 +134,38 @@
         <div class="name" id="chest-name"></div>
         <div class="chest-level" id="chest-level"></div>
         <div class="stats" id="chest-stats"></div>
-        <p class="caption light" data-i18n="chest.tap"></p>
+        <p id="chest-choice-hint" data-i18n="chest.choose" class="hidden"></p>
+        <div id="chest-choices"></div>
+      </div>
+      <div id="chest-actions" class="chest-actions hidden">
+        <button type="button" class="btn primary" id="btn-chest-continue" data-i18n="chest.continue"></button>
       </div>
     </section>
-
     <!-- 07 Pause -->
     <section id="scr-pause" class="screen overlay hidden">
       <div class="center-stack">
         <div class="panel">
           <div class="row between"><h2 class="h1" data-i18n="ui.pause.title"></h2><span class="caption" id="pause-level"></span></div>
+          <p class="caption" id="pause-objective"></p>
+          <p class="caption" id="pause-health"></p>
           <button class="btn primary wide" id="btn-resume" data-i18n="ui.pause.resume"></button>
-          <button class="btn secondary wide" id="btn-pause-settings" data-i18n="ui.pause.settings"></button>
-          <button class="btn secondary wide" id="btn-restart" data-i18n="ui.pause.restart"></button>
-          <button class="btn ghost wide" id="btn-quit" data-i18n="ui.pause.quit"></button>
-          <p class="caption" id="pause-quit-note"></p>
         </div>
         <div class="panel">
-          <p class="caption" data-i18n="ui.pause.build"></p>
+          <p class="caption" data-i18n="pause.run"></p>
+          <p class="caption hidden" id="pause-recipe"></p>
           <div class="slots" id="pause-build"></div>
           <button class="btn ghost wide small-btn hidden" id="btn-export" data-i18n="ui.pause.export"></button>
         </div>
+        <details class="panel" id="pause-options">
+          <summary data-i18n="pause.options"></summary>
+          <button class="btn secondary wide" id="btn-pause-settings" data-i18n="ui.pause.settings"></button>
+          <button class="btn secondary wide" id="btn-restart" data-i18n="ui.pause.restart"></button>
+          <p class="caption" data-i18n="ui.pause.restartNote"></p>
+          <button class="btn ghost wide" id="btn-quit" data-i18n="ui.pause.quit"></button>
+          <p class="caption" id="pause-quit-note"></p>
+        </details>
       </div>
     </section>
-
     <!-- 16 Settings (subset) -->
     <section id="scr-settings" class="screen light-bg hidden">
       <div class="row between"><button class="btn ghost square" id="btn-settings-back" data-i18n-aria="ui.set.back">←</button>
@@ -150,7 +174,6 @@
       <div class="list" id="settings-list"></div>
       <p class="caption light" id="settings-note"></p>
     </section>
-
     <!-- 09 Down / revive -->
     <section id="scr-down" class="screen overlay hidden">
       <div class="center-stack">
@@ -159,18 +182,16 @@
         <p class="body light down-line" id="down-line"></p>
         <div class="panel row gap">
           <div class="icon-box" id="down-icon"></div>
-          <div><p class="caption" data-i18n="ui.down.cause"></p><p class="title" id="down-cause"></p><p class="body" id="down-tip"></p></div>
+          <div><p class="caption" data-i18n="ui.down.cause"></p><p class="title" id="down-cause"></p><p id="down-pressure"></p><p class="body" id="down-tip"></p></div>
         </div>
         <div class="panel" id="down-revive">
           <p class="title" data-i18n="ui.down.keepGoing"></p>
-          <button class="btn primary wide" id="btn-revive-ad"></button>
-          <button class="btn secondary wide" id="btn-revive-gold"></button>
+          <button class="btn primary wide" id="btn-revive"></button>
           <p class="caption" id="down-note"></p>
         </div>
         <button class="btn ghost light wide" id="btn-giveup"></button>
       </div>
     </section>
-
     <!-- Exit title slam (LD 7) -->
     <section id="scr-slam" class="screen slam hidden">
       <div class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -178,7 +199,6 @@
       <div class="title-sub" data-i18n="ui.title.sub"></div>
       <p class="slam-sub" data-i18n="ui.slam.sub"></p>
     </section>
-
     <!-- 08 Results -->
     <section id="scr-results" class="screen light-bg hidden">
       <!-- Head, rewards and recap scroll in .res-body (at 150% text, and with the objective panel); the actions are a footer
@@ -189,29 +209,41 @@
           <h2 class="display" id="res-title"></h2>
           <div class="stars" id="res-stars"></div>
           <p class="caption" id="res-criteria"></p>
+          <p id="res-next-step" class="res-next-step hidden"></p>
           <p class="pw-strip" id="res-power"></p>
         </div>
         <div class="panel" id="res-rewards"></div>
         <div class="panel res-recap" id="res-recap"></div>
-        <!-- Anchor only, never shown: objectives-hud.js inserts its results panel right after this element. The time and walk
-             rows are in the recap now (ui-progress.js). -->
         <div id="res-run" class="hidden"></div>
       </div>
       <div class="res-actions">
-        <button class="btn secondary wide" id="btn-double" disabled></button>
         <button class="btn primary wide" id="btn-next" data-i18n="ui.res.next"></button>
+        <button class="btn secondary wide hidden" id="btn-res-growth" data-i18n="growth.title"></button>
+        <button class="btn ghost light wide hidden" id="btn-res-experiment"></button>
         <div class="row gap">
           <button class="btn secondary grow" id="btn-retry" data-i18n="ui.res.retry"></button>
           <button class="btn ghost light grow" id="btn-to-title" data-i18n="ui.res.title"></button>
         </div>
       </div>
     </section>
+    <section id="bench-panel" class="screen dark center-stack hidden" aria-labelledby="bench-title">
+      <div class="spacer"></div>
+      <div class="panel">
+        <h1 id="bench-title" class="h1" data-i18n="bench.title"></h1>
+        <p id="bench-art" class="caption"></p>
+        <p id="bench-message" role="status"></p>
+        <button class="btn primary wide" id="bench-start" data-i18n="bench.start"></button>
+        <button class="btn secondary wide hidden" id="bench-export" data-i18n="bench.export"></button>
+      </div>
+      <div class="spacer"></div>
+    </section>
+    <p id="bench-countdown" class="chip hidden"></p>
   </div>
 </main>
-
 <script src="js/config.js"></script>
 <script src="js/config-weapons.js"></script>
 <script src="js/config-levels.js"></script>
+<script src="js/config-bench.js"></script>
 <script src="js/config-modes.js"></script>
 <script src="js/config-layouts.js"></script>
 <script src="js/config-enemies3.js"></script>
@@ -227,6 +259,16 @@
 <script src="js/config-perks.js"></script>
 <script src="js/config-power.js"></script>
 <script src="js/config-feel.js"></script>
+<script src="js/config-experience.js"></script>
+<script src="js/config-encounter-space.js"></script>
+  <script src="js/config-drama-space.js"></script>
+<script src="js/config-boss-parts.js"></script>
+<script src="js/config-kaan-parts.js"></script>
+<script src="js/config-boss-controls.js"></script>
+<script src="js/config-boss-torsos.js"></script>
+<script src="js/config-boss-performance.js"></script>
+<script src="js/config-boss-acting.js"></script>
+<script src="js/config-boss-gestures.js"></script>
 <script src="js/config-weapons2.js"></script>
 <script src="js/config-weapons3.js"></script>
 <script src="js/config-weapon-tiers.js"></script>
@@ -255,27 +297,52 @@
 <script src="js/strings-env.js"></script>
 <script src="js/strings-signs.js"></script>
 <script src="js/strings-progress.js"></script>
+<script src="js/strings-slice.js"></script>
+<script src="js/strings-sirkeci.js"></script>
 <script src="js/strings-ui2.js"></script>
 <script src="js/strings-cards.js"></script>
 <script src="js/strings-horde.js"></script>
 <script src="js/strings-progress-ui.js"></script>
+<script src="js/strings-experience.js"></script>
+  <script src="js/strings-drama.js"></script>
+<script src="js/strings-audit9.js"></script>
+<script src="js/strings-reset.js"></script>
 <script src="js/strings-hints.js"></script>
+<script src="js/strings-bench.js"></script>
 <script src="js/sim/rng.js"></script>
 <script src="js/sim/world.js"></script>
+<script src="js/sim/walk-path.js"></script>
+<script src="js/sim/companion.js"></script>
+<script src="js/sim/encounter-space.js"></script>
+  <script src="js/sim/drama-space.js"></script>
 <script src="js/sim/combat.js"></script>
 <script src="js/sim/perks.js"></script>
 <script src="js/sim/weapons.js"></script>
 <script src="js/sim/weapons2.js"></script>
 <script src="js/sim/weapons3.js"></script>
+<script src="js/sim/weapons-cleaver.js"></script>
+<script src="js/sim/weapons-knife.js"></script>
 <script src="js/sim/weapons4.js"></script>
 <script src="js/sim/weapons5.js"></script>
 <script src="js/sim/mastery.js"></script>
 <script src="js/sim/enemies.js"></script>
 <script src="js/sim/enemies2.js"></script>
 <script src="js/sim/skills.js"></script>
+<script src="js/sim/boss-death-state.js"></script>
 <script src="js/sim/bosses.js"></script>
 <script src="js/sim/layouts.js"></script>
 <script src="js/sim/levels.js"></script>
+<script src="js/sim/istiklal-trial.js"></script>
+<script src="js/sim/route-milestones.js"></script>
+<script src="js/sim/galata-trial.js"></script>
+<script src="js/sim/karakoy-trial.js"></script>
+<script src="js/sim/karakoy-boss.js"></script>
+<script src="js/sim/bridge-trial.js"></script>
+<script src="js/sim/bridge-boss.js"></script>
+<script src="js/sim/eminonu-trial.js"></script>
+<script src="js/sim/eminonu-boss.js"></script>
+<script src="js/sim/sirkeci-trial.js"></script>
+<script src="js/sim/sirkeci-boss.js"></script>
 <script src="js/sim/enemies3.js"></script>
 <script src="js/sim/skins.js"></script>
 <script src="js/sim/skins-fisher.js"></script>
@@ -285,6 +352,9 @@
 <script src="js/sim/events.js"></script>
 <script src="js/sim/events-kinds.js"></script>
 <script src="js/sim/env.js"></script>
+<script src="js/sim/street-weapon.js"></script>
+<script src="js/sim/street-placements.js"></script>
+<script src="js/sim/local-choices.js"></script>
 <script src="js/sim/env-kinds.js"></script>
 <script src="js/sim/env-zones.js"></script>
 <script src="js/sim/env-rules.js"></script>
@@ -298,26 +368,59 @@
 <script src="js/sim/weapons6.js"></script>
 <script src="js/sim/horde.js"></script>
 <script src="js/sim/director.js"></script>
+<script src="js/sim/kaan-support.js"></script>
 <script src="js/sim/sim.js"></script>
 <script src="js/sim/modes.js"></script>
 <script src="js/view/settings.js"></script>
 <script src="js/view/icons.js"></script>
 <script src="js/view/icons-evo.js"></script>
 <script src="js/view/sfx-bank.js"></script>
+<script src="js/view/sfx-layers.js"></script>
+<script src="js/view/sfx-ui-cues.js"></script>
 <script src="js/view/sfx-bank2.js"></script>
 <script src="js/view/sfx.js"></script>
 <script src="js/view/sfx-gen.js"></script>
 <script src="js/view/music.js"></script>
 <script src="js/view/telemetry.js"></script>
 <script src="js/view/indoor.js"></script>
+<script src="js/view/kaan-support-fx.js"></script>
+<script src="js/view/companion-fx.js"></script>
+<script src="js/view/run-guide.js"></script>
 <script src="js/view/speech.js"></script>
+<script src="js/view/health-feedback.js"></script>
+<script src="js/view/scene-acting.js"></script>
+<script src="js/view/hero-contact.js"></script>
+<script src="js/view/boss-joints.js"></script>
+<script src="js/view/boss-performance.js"></script>
+<script src="js/view/boss-puppet.js"></script>
+<script src="js/view/kaan-actor.js"></script>
+<script src="js/view/boss-prop-continuity.js"></script>
+<script src="js/view/boss-acting.js"></script>
+<script src="js/view/boss-gestures.js"></script>
+<script src="js/view/scene-flow.js"></script>
+<script src="js/view/interaction-acting.js"></script>
+<script src="js/view/experience-ui.js"></script>
+<script src="js/view/presentation-budget.js"></script>
 <script src="js/view/fx.js"></script>
 <script src="js/view/quality.js"></script>
 <script src="js/view/render.js"></script>
+<script src="js/view/combat-clarity.js"></script>
+<script src="js/view/encounter-space-fx.js"></script>
+<script src="js/view/work-controls.js"></script>
+<script src="js/view/work-stages.js"></script>
+<script src="js/view/route-milestones-fx.js"></script>
+<script src="js/view/galata-milestones-fx.js"></script>
+<script src="js/view/karakoy-milestones-fx.js"></script>
+<script src="js/view/karakoy-boss-fx.js"></script>
+<script src="js/view/bridge-milestones-fx.js"></script>
+<script src="js/view/bridge-boss-fx.js"></script>
+<script src="js/view/eminonu-milestones-fx.js"></script>
+<script src="js/view/eminonu-boss-fx.js"></script>
+<script src="js/view/sirkeci-fx.js"></script>
+<script src="js/view/ticket-acting.js"></script>
 <script src="js/view/death-beat.js"></script>
 <script src="js/view/render-world.js"></script>
 <script src="js/view/restaurant-props.js"></script>
-<script src="js/view/restaurant-art.js"></script>
 <script src="js/view/art-rig.js"></script>
 <script src="js/view/art-characters.js"></script>
 <script src="js/view/art-enemies.js"></script>
@@ -330,6 +433,13 @@
 <script src="js/view/art-enemy-look.js"></script>
 <script src="js/view/art-enemy-bosses.js"></script>
 <script src="js/view/art-raster.js"></script>
+<script src="js/view/street-art.js"></script>
+<script src="js/view/restaurant-art.js"></script>
+<script src="js/view/hero-body.js"></script>
+<script src="js/view/actor-rig.js"></script>
+<script src="js/view/hero-motion.js"></script>
+<script src="js/view/enemy-acting.js"></script>
+<script src="js/view/civilian-acting.js"></script>
 <script src="js/view/art-raster-chars.js"></script>
 <script src="js/view/art-raster-world.js"></script>
 <script src="js/view/art-raster-items.js"></script>
@@ -345,6 +455,7 @@
 <script src="js/view/weapons-fx3.js"></script>
 <script src="js/view/enemies-fx.js"></script>
 <script src="js/view/enemies-fx2.js"></script>
+<script src="js/view/cook-fx.js"></script>
 <script src="js/view/enemies-fx-w1.js"></script>
 <script src="js/view/weapons-fx4.js"></script>
 <script src="js/view/fire-anim-prim.js"></script>
@@ -356,10 +467,16 @@
 <script src="js/view/fire-anim-fx3.js"></script>
 <script src="js/view/fire-anim-held4.js"></script>
 <script src="js/view/fire-anim-fx4.js"></script>
+<script src="js/view/hero-footwork.js"></script>
+<script src="js/view/hero-attacks.js"></script>
 <script src="js/view/fire-anim.js"></script>
 <script src="js/view/weapon-sil-prim.js"></script>
 <script src="js/view/weapon-sil.js"></script>
 <script src="js/view/weapon-sil-evo.js"></script>
+<script src="js/view/weapon-action-fx.js"></script>
+<script src="js/view/weapon-tools-fx.js"></script>
+<script src="js/view/weapon-contact-fx.js"></script>
+<script src="js/view/weapon-impacts.js"></script>
 <script src="js/view/weapon-tiers.js"></script>
 <script src="js/view/events-fx.js"></script>
 <script src="js/view/consumables-icons.js"></script>
@@ -369,8 +486,16 @@
 <script src="js/view/istanbul.js"></script>
 <script src="js/view/istanbul-props.js"></script>
 <script src="js/view/istanbul-props2.js"></script>
+<script src="js/view/istanbul-street-services.js"></script>
+<script src="js/view/street-service-art.js"></script>
+<script src="js/view/street-invitations.js"></script>
+<script src="js/view/street-impact-fx.js"></script>
+<script src="js/view/enemy-death-motion.js"></script>
+<script src="js/view/boss-defeat-profiles.js"></script>
+<script src="js/view/boss-defeat-fx.js"></script>
 <script src="js/view/istanbul-props-env.js"></script>
 <script src="js/view/env-fx.js"></script>
+<script src="js/view/street-weapon-fx.js"></script>
 <script src="js/view/fauna-art.js"></script>
 <script src="js/view/fauna.js"></script>
 <script src="js/view/arena-art-data.js"></script>
@@ -379,10 +504,10 @@
 <script src="js/view/arena-props.js"></script>
 <script src="js/view/galata-props.js"></script>
 <script src="js/view/bridge-props.js"></script>
+<script src="js/view/bridge-water.js"></script>
 <script src="js/view/arena-overhead-data.js"></script>
 <script src="js/view/arena-overhead.js"></script>
 <script src="js/view/saray-props.js"></script>
-<script src="js/view/arena-sky-data.js"></script>
 <script src="js/view/arena-sky.js"></script>
 <script src="js/view/arena-evolve.js"></script>
 <script src="js/view/arena-evolve-decals.js"></script>
@@ -401,7 +526,9 @@
 <script src="js/view/hints-detect.js"></script>
 <script src="js/view/hints-view.js"></script>
 <script src="js/view/screens.js"></script>
+<script src="js/view/build-inspection.js"></script>
 <script src="js/view/coldopen.js"></script>
+<script src="js/view/comic-raster.js"></script>
 <script src="js/view/comic-busts.js"></script>
 <script src="js/view/comic-busts-hair.js"></script>
 <script src="js/view/comic-busts-cast.js"></script>
@@ -409,6 +536,7 @@
 <script src="js/view/comic-text.js"></script>
 <script src="js/view/comic-layout.js"></script>
 <script src="js/view/comic.js"></script>
+<script src="js/view/memory-replay.js"></script>
 <script src="js/view/finale-scenes.js"></script>
 <script src="js/view/finale-approach.js"></script>
 <script src="js/view/finale-credits.js"></script>
@@ -459,9 +587,13 @@
 <script src="js/meta/meta-stats.js"></script>
 <script src="js/meta/meta-bond-ui.js"></script>
 <script src="js/meta/meta-tree.js"></script>
-<script src="js/meta/meta-arsenal.js"></script>
+<script src="js/view/starter-preview.js"></script>
+  <script src="js/meta/meta-arsenal.js"></script>
 <script src="js/meta/meta-hub.js"></script>
 <script src="js/meta/meta-ui.js"></script>
+<script src="js/view/benchmark-scenes.js"></script>
+<script src="js/view/benchmark.js"></script>
+<script src="js/view/weapon-lab.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

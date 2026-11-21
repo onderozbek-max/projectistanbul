@@ -1,4 +1,4 @@
-// Raster ground tiles and facades behind ?art=raster (D-066). View only: the simulation never reads this and it never reads P.Quality.
+// Raster ground tiles and facades (D-066). View only: the simulation never reads this and it never reads P.Quality.
 // The manifest (assets/art/manifest.json, schema 1) holds, per hood, four paving tiles gnd_<hood>_a..d (512 px = a 4 m square), feature
 // tiles gnd_<hood>_<feature> (see FEATURE), and two facade strips per hood fac_<hood>_left|night (512x768 = 8 m x 12 m, roof up).
 // P.ArtRasterWorld.place(R, s, slot, sd) returns a placement {t, x0, x1, ox, sx} that render-world.js fills with its own
@@ -13,6 +13,11 @@
 P.ArtRasterWorld = (function () {
   var W = {}, A = P.ArtRaster, TILE_M = 4, N = 4, FAC_W = 3.4, FAC_H = 5.1, POOL = ['a', 'b', 'c', 'd'], GROUND = 'ground', FACADE = 'facades';
   var MISSING = 'missing', LOADING = 'loading', cur = null, LIFT_C = 'rgb(150,128,100)', LIFT_A = 0.22;
+  // Early hoods use the facade as a wall along the walk. The roof projects outward and up from the plinth.
+  var FRONT_EDGE = 7, FRONT_WIDTH = 3.3, FRONT_RUN = 8;
+  var SIDE_WALL = { depth: 1.45, rise: 0.64 };
+  var STREET_WALLS = { istiklal: P.CFG.view.istiklalWall, galata: SIDE_WALL, karakoy: SIDE_WALL, eminonu: SIDE_WALL,
+    sirkeci: SIDE_WALL, atakoy: { edge: 4.85, depth: 1.45, rise: 0.64 } };
   // Feature tiles per hood. slot: 'road' (the lane), 'walk' (both sidewalks), 'shore' (the sea-side sidewalk, sd > 0), 'grass' (a grass
   // side), 'rails' (the tram strip). align 'sea': the tile's right edge sits on the sea edge (x = 7, the walk's outer edge); 'kerb' (default):
   // the tile's left edge sits on the kerb. stages: 1-based levelInfo stages the feature applies to (absent = all of them).
@@ -110,6 +115,50 @@ P.ArtRasterWorld = (function () {
       cellDraw(g, r, 0, FAC_H, 1, 0, FAC_W, FAC_H, ov);
     });
   }
+  function wallArt(c, r, width, height) {
+    // Use the shopfront and first floor of the original illustration.
+    var crop = Math.floor(r.sh * 0.43);
+    c.drawImage(r.img, r.sx, r.sy + crop, r.sw, r.sh - crop, 0, 0, width, height);
+  }
+  function bakeStreetFront(P1, key, U, r, night, wall) {
+    var width = FRONT_WIDTH, run = FRONT_RUN * 2, depth = wall.depth, rise = wall.rise;
+    return P1.bake(key, U, [0, width, 0, run], function (g) {
+      prep(g);
+      g.fillStyle = night ? '#343543' : '#665B59'; g.fillRect(0, 0, width, run);
+      // Keep the roof in the non-walkable strip, with seams parallel to the footprint.
+      for (var rib = depth + 0.16; rib < width; rib += 0.27) {
+        g.fillStyle = 'rgba(22,23,30,0.19)'; g.fillRect(rib, 0, 0.042, run);
+        g.fillStyle = 'rgba(255,229,193,0.13)'; g.fillRect(rib + 0.042, 0, 0.04, run);
+      }
+      for (var y = 0; y < run; y += FRONT_RUN) {
+        g.fillStyle = '#4B4344'; g.fillRect(depth, y, width - depth, 0.12);
+        g.fillStyle = '#867568'; g.fillRect(depth, y + 0.12, width - depth, 0.06);
+        g.fillStyle = '#3C3536'; g.fillRect(width - 0.88, y + 2.2, 0.49, 0.63);
+        g.fillStyle = '#9B8270'; g.fillRect(width - 0.94, y + 2.12, 0.47, 0.56);
+        g.fillStyle = '#514649'; g.fillRect(width - 0.84, y + 2.22, 0.27, 0.36);
+      }
+      for (var row = -1; row <= 2; row++) {
+        var mirror = row & 1;
+        g.save();
+        // The source's horizontal axis follows the street. Ground contact stays at x=0 on each side.
+        g.transform(0, mirror ? -1 : 1, -1, rise / depth, depth, (row + mirror) * FRONT_RUN - rise);
+        wallArt(g, r, FRONT_RUN, depth);
+        g.restore();
+      }
+      g.fillStyle = '#14151F'; g.fillRect(depth, 0, 0.06, run);
+      g.fillStyle = 'rgba(20,21,31,0.13)'; g.fillRect(0, 0, depth, run);
+    });
+  }
+  // End face nearest the restaurant. The street wall, this face and the roof share their two corner points.
+  W.drawEnd = function (R, front, y) {
+    var c = R.ctx, u = R.ppm, wall = front.wall, width = front.t.w - wall.depth;
+    c.save();
+    c.transform(-front.sx * u, 0, -front.sx * wall.depth * u, wall.rise * u, R.X(front.x1), R.Y(y + wall.rise));
+    wallArt(c, front.art, width, 1);
+    c.fillStyle = 'rgba(31,25,24,0.18)'; c.fillRect(0, 0, width, 1);
+    c.fillStyle = '#796D61'; c.fillRect(0, 0.94, width, 0.06);
+    c.restore();
+  };
   function bakeSingle(P1, key, U, r, nt) {
     var ov = 1 / U;
     return P1.bake(key, U, [0, TILE_M, 0, TILE_M], function (g) { prep(g); cellDraw(g, r, 0, 0, 0, 0, TILE_M, TILE_M, ov); if (nt) lift(g, TILE_M); });
@@ -145,8 +194,14 @@ P.ArtRasterWorld = (function () {
       else { wk = wk || put(bakeGround(P1, pre + 'walk', U, pool, sp.seed + 1000, N, nt), N * TILE_M, N * TILE_M); t = wk; }
       plan.slots.walk[q] = { t: t, x0: x0, x1: x1, ox: ox, sx: sx };
     });
-    fe = put(bakeFacade(P1, pre + 'facade', U, rects[sp.facade]), FAC_W, 2 * FAC_H);
-    [-1, 1].forEach(function (sd, q) { plan.slots.facade[q] = { t: fe, x0: sd * 6.2, x1: sd * 9.6, ox: sd * 6.2, sx: sd }; });
+    var wall = STREET_WALLS[sp.hood], projected = !!wall, edge = projected ? (wall.edge || FRONT_EDGE) : 6.2;
+    var fw = projected ? FRONT_WIDTH : FAC_W, fh = 2 * (projected ? FRONT_RUN : FAC_H), facadeArt = rects[sp.facade];
+    var front = projected ? bakeStreetFront(P1, pre + 'facade', U, facadeArt, nt, wall) : bakeFacade(P1, pre + 'facade', U, facadeArt);
+    fe = put(front, fw, fh);
+    [-1, 1].forEach(function (sd, q) {
+      plan.slots.facade[q] = { t: fe, x0: sd * edge, x1: sd * (edge + fw), ox: sd * edge, sx: sd,
+        projected: projected, wall: wall, art: facadeArt };
+    });
     if (sp.lawn) {
       le = put(bakeSingle(P1, pre + 'lawn', U, rects[sp.lawn.id], nt), TILE_M, TILE_M);
       [-1, 1].forEach(function (sd, q) { plan.slots.lawn[q] = { t: le, x0: sd * 7, x1: sd * 16, ox: sd * 7, sx: sd }; });

@@ -24,11 +24,11 @@
 |---|---|
 | Dimension | **2D**, top-down **3/4 view** (we see the ground plus the lower floors of building facades on the corridor edges) (D-007) |
 | Style | Hand-painted environments with soft texture; characters with **bold ink outlines** (3–4 px at reference) and 2–3 tone cel shading |
-| Pipeline (D-057) | **Backgrounds: authored vector (SVG)**, hand-drawn with `night_ink` outlines, slight wobble, paint grain and cel shading (warm light side, cool shadow side), never generated. **Characters and busts: the procedural engine** (`ComicBusts`, `ComicCast`). Samples and the comparison are in `reviews/media/R1/style-samples/`; sources in `design/style-samples/`. |
+| Pipeline | Use current ImageGen illustrations for scenery, fixtures, vehicles, characters and comic art. The prototype's D-057 SVG and procedural samples record the earlier pipeline. See the [in-game art review](#121-in-game-art-review). |
 | Proportions | Heroes ~ 1 : 4.5 head-to-body (stylized, expressive faces readable at small size); zombies ~ 1 : 5, slumped |
 | Hero size on screen | ~ 1.0 m tall in-world ≈ 90 px at reference (+ ground ring) |
 | Lighting | Painted time of day per level (golden hour → blue hour → night); dynamic 2D lights for night modifier only (Mid/High), baked fallback (Low) |
-| Gore | **No gore close-ups.** Hits produce blood splats (red by default) or dark ink splats (setting, D-024) and comic impact stars; deaths dissolve into ash-grey wisps |
+| Gore | **No gore close-ups.** Hits produce blood splats (red by default) or dark ink splats (setting, D-024). Weapon contacts use effects specific to the strike. In the prototype, defeated enemies collapse and fade (proposed D-081). |
 | Istanbul authenticity | Real landmarks shown respectfully; fictional shop names and brands only; no flags, political banners, or graffiti with real slogans; religious buildings appear only as background architecture and are never damaged |
 
 ## 3. Color Tokens
@@ -147,7 +147,7 @@ Text size setting scales all text by 100 / 125 / 150%; layouts must not clip at 
 | Screen shake | Trauma model (trauma 0–1, shake = trauma², decay 1.5/s); max offset 12 px, max rotation 1°; explosions add 0.3, player hit 0.2, boss slam 0.5 | Big events only |
 | Camera punch | 3% zoom-in pulse over 0.12 s | Ultimates, evolutions, first knife stab |
 | Damage numbers | Pop up 0.6 m, scale 1.2 → 1.0, fade at 0.7 s; crit = bigger + `simit_gold` | Hits |
-| Death | 6–8 frame collapse → ash wisp dissolve 0.3 s; XP pops out in a small arc | Enemies |
+| Death | Short collapse, settle and fade in the prototype (proposed D-081). XP pops out in a small arc. | Enemies |
 | Pickup | XP droplets arc toward the player (0.25 s ease-in) inside `pickup_radius`; soft rising "tink" pitch while collecting in quick succession | XP |
 | Level-up | 0.3 s slow-mo ramp to pause, radial burst, card UI slides up with a stagger | Level-ups |
 | Low HP | Vignette pulse at < 30% HP + heartbeat SFX; **no** full-screen red flashing | Player |
@@ -233,8 +233,8 @@ and select hood ends (H01 at L5, H04 at L20, H06 at L30, and L100; `journey.md` 
 
 1. **Style bible first:** 6–10 approved style frames (hero, zombie, environment, UI, comic panel)
    are the reference for everything else.
-2. **Custom style model:** train on the approved frames (e.g., Scenario). Every generated asset
-   goes through the same model and prompt template.
+2. **ImageGen:** use the approved style frames as references and specify the in-game viewing angle,
+   intended orientation, footprint and expected on-screen size in the prompt.
 3. **Character sheets:** each hero/boss gets a turnaround (front/side/back) + expression sheet
    before rigging.
 4. **Cleanup:** human/AI-assisted cleanup in Aseprite/Krita: consistent outline weight,
@@ -249,6 +249,13 @@ and select hood ends (H01 at L5, H04 at L20, H06 at L30, and L100; `journey.md` 
    `enm_walker_tourist_walk.png`, `ui_card_frame_rare.png`, `vfx_tea_glass_shatter.png`.
 8. **Atlases:** enemies and VFX packed into texture atlases per district; separate HD variants
    for Mid/High delivered on demand (product.md D-003).
+
+### 12.1 In-game art review
+
+- Character identity must follow the actual speaker. Unknown portrait names use a readable neutral composition, never an unrelated named or stranger face. Shared call/contact/popup paths follow the same rule. Neighboring fleeing civilians should use distinct current illustrations; select appearances once per actor so they do not change as the group disperses.
+- Across all Bölüms, use current ImageGen illustrations for scenery, vehicles, landmarks, consumable fixtures and decorative props. Reuse a current illustration where the subject and perspective fit. Once replaced, retire the old art from every player-facing path, including cutscenes, the low graphics tier and retries. Keep old artwork in explicit comparison tools only. If current art fails to load, preserve a fixed, readable collision footprint or interaction marker for required objects. Decorative objects can wait for their art.
+- Match the gameplay camera when drawing objects with height. A strictly overhead vehicle sprite can turn in the ground plane. A side elevation or oblique vehicle needs artwork drawn for its heading. Line a moving vehicle up with its route and a parked one with its curb or tracks. Place a boat on visible water and point its bow along its movement. Align benches and other fixed props with their surroundings and put their bases on their world positions so they stay planted as the camera moves.
+- Verify in the game at portrait size. Check the entrance, route transitions, required interactions and cutscenes, and finale of each Bölüm. Sample distinct generated placements where relevant. Inspect ground contact, heading, occlusion and the boundaries between water, land and walkable deck. Check the first frame, a missing image and the lowest graphics tier for retired art. Record the checked scenes and any open artwork gaps in the review packet before marking the district complete.
 
 ## 13. UI Components
 

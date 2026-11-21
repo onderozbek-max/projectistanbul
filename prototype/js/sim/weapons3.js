@@ -21,16 +21,19 @@ function fireCable(s, dt) {
   var A = P.Mods.act(s, 'cable'), sig = A.sig;
   h.cds.cable = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'cable');
   var dmg = P.Weapons.dmgFor(s, 'cable', lv.dmg) * A.dmg, taken = [], cur = { x: h.x, y: h.y }, target = first;
-  var jumps = sig ? sig.jumps : lv.jumps + M.count, jumpR = sig ? sig.range : cfg.jumpR * M.range;
+  var jumps = sig ? sig.jumps : lv.jumps + M.count, jumpR = sig ? sig.range : cfg.jumpR * M.range * (lv.jumpMul || 1);
+  var branches = lv.branches || 1;
   for (var j = 0; j < jumps && target; j++) {
     taken.push(target);
     var dx = target.x - cur.x, dy = target.y - cur.y, d = Math.hypot(dx, dy) || 1;
-    P.Weapons.state(s).bolts.push({ x0: cur.x, y0: cur.y, x1: target.x, y1: target.y, t: 0, T: cfg.boltLife, seed: s.rng.combat.range(0, 1000) });
-    s.events.push({ type: 'cableArc', x0: cur.x, y0: cur.y, x1: target.x, y1: target.y, n: j, tag: 'electric' });
+    P.Weapons.state(s).bolts.push({ x0: cur.x, y0: cur.y, x1: target.x, y1: target.y, t: 0, T: lv.boltLife || cfg.boltLife, seed: s.rng.combat.range(0, 1000) });
+    s.events.push({ type: 'cableArc', x0: cur.x, y0: cur.y, x1: target.x, y1: target.y, n: j,
+      grade: h.weapons.cable, targetId: target.id, targetR: target.r, tag: 'electric' });
     P.Mods.hit(s, target, dmg, dx / d, dy / d, 0.2 * P.Weapons.kbMult(s), 'cable', A);
     if (!target.dead) P.Status.apply(target, 'stun', lv.stun, 1);
     cur = target;
-    target = P.Weapons2.nearestFree(s, cur.x, cur.y, jumpR, taken);
+    if (branches > 1 && (j + 1) % Math.ceil(jumps / branches) === 0) cur = h;
+    target = P.Weapons2.nearestFree(s, cur.x, cur.y, cur === h ? reach : jumpR, taken);
   }
   s.events.push({ type: 'cableZap', x: h.x, y: h.y, n: taken.length, tag: 'electric' });
   P.Weapons.fired(s, 'cable', Math.atan2(first.y - h.y, first.x - h.x), taken.length);
@@ -47,14 +50,14 @@ function fireSpear(s, dt) {
   if (!t) return;
   var A = P.Mods.act(s, 'speargun'), M = A.M;
   h.cds[id] = cfg.cooldown * lv.cdMult * A.cd * P.Weapons.cdMult(s, 'speargun');
-  var a0 = Math.atan2(t.y - h.y, t.x - h.x), n = A.sig ? 3 : 1 + M.count, spread = A.sig ? 0.2 : 0.14;
+  var a0 = Math.atan2(t.y - h.y, t.x - h.x), n = A.sig ? 3 : (lv.ropes || 1) + M.count, spread = A.sig ? 0.2 : lv.fan || 0.14;
   for (var k = 0; k < n; k++) {
     var a = a0 + (k - (n - 1) / 2) * spread;
     P.Weapons.state(s).spears.push({ px: h.x, py: h.y, x: h.x, y: h.y, dx: Math.cos(a), dy: Math.sin(a), a: a, dist: 0,
       lv: lv, left: lv.pierce + M.pierce, hits: [], last: null, phase: 'fly', t: 0, T: 0.6, A: A,
-      dmg: P.Weapons.dmgFor(s, 'speargun', lv.dmg) * A.dmg, root: lv.root + M.root, primary: k === 0 });
+      dmg: P.Weapons.dmgFor(s, 'speargun', lv.dmg) * A.dmg, root: lv.root + M.root, primary: k === Math.floor((n - 1) / 2) });
   }
-  s.events.push({ type: 'spearFire', x: h.x, y: h.y, a: a0 });
+  s.events.push({ type: 'spearFire', x: h.x, y: h.y, a: a0, grade: id === 'netspear' ? 6 : h.weapons.speargun });
   P.Weapons.fired(s, 'speargun', a0, n, id);
   P.Mods.announce(s, A, h.x, h.y, cfg.range);
 }
@@ -67,7 +70,8 @@ function spearHitCheck(s, sp) {
     if (segDist(e.x, e.y, sp.px, sp.py, sp.x, sp.y) > e.r + cfg.hitR) continue;
     sp.hits.push(e); sp.last = e; sp.left--;
     P.Mods.hit(s, e, sp.dmg, sp.dx, sp.dy, 0.2, 'speargun', sp.A);
-    s.events.push({ type: 'spearHit', x: e.x, y: e.y, n: sp.hits.length, tag: 'blade' });
+    s.events.push({ type: 'spearHit', x: e.x, y: e.y, a: sp.a, grade: sp.lv.netShare ? 6 : s.hero.weapons.speargun,
+      n: sp.hits.length, tag: 'blade' });
   }
 }
 
@@ -75,17 +79,18 @@ function stickSpear(s, sp) {
   var cfg = P.CFG.weapons.speargun, h = s.hero;
   sp.phase = 'stuck'; sp.t = 0; sp.T = sp.root + 0.4;
   sp.hits.forEach(function (e) {
-    if (e !== sp.last && !e.dead) P.Weapons.shove(e, (h.x - e.x) / (Math.hypot(h.x - e.x, h.y - e.y) || 1), (h.y - e.y) / (Math.hypot(h.x - e.x, h.y - e.y) || 1), cfg.pullM);
+    if (e !== sp.last && !e.dead) P.Weapons.shove(e, (h.x - e.x) / (Math.hypot(h.x - e.x, h.y - e.y) || 1), (h.y - e.y) / (Math.hypot(h.x - e.x, h.y - e.y) || 1), cfg.pullM * (sp.lv.pullMul || 1));
   });
   if (!sp.last || sp.last.dead || !sp.primary) return;
   var pin = sp.last;
   P.Status.apply(pin, 'root', sp.root, 1);
   s.enemies.forEach(function (o) {
-    if (o === pin || o.dead || o.state !== 'active' || Math.hypot(o.x - pin.x, o.y - pin.y) > 1.8) return;
+    if (o === pin || o.dead || o.state !== 'active' || Math.hypot(o.x - pin.x, o.y - pin.y) > cfg.pinPull * (sp.lv.pullMul || 1)) return;
     var d = Math.hypot(o.x - pin.x, o.y - pin.y) || 1;
-    P.Weapons.shove(o, (pin.x - o.x) / d, (pin.y - o.y) / d, cfg.pinPullM);
+    P.Weapons.shove(o, (pin.x - o.x) / d, (pin.y - o.y) / d, cfg.pinPullM * (sp.lv.pullMul || 1));
   });
-  s.events.push({ type: 'spearPin', x: pin.x, y: pin.y, id: pin.id, root: sp.root });
+  s.events.push({ type: 'spearPin', x: pin.x, y: pin.y, id: pin.id, root: sp.root, a: sp.a,
+    grade: sp.lv.netShare ? 6 : h.weapons.speargun, r: cfg.pinPull * (sp.lv.pullMul || 1) });
   if (sp.lv.netShare) P.Weapons6.netGroup(s, pin, sp.lv, sp.root);
 }
 
@@ -129,7 +134,7 @@ function spray(s, a, lv, A, range, arc, wait) {
   var slow = { m: Math.max(lv.slow, sl.m), t: Math.max(lv.slowT, sl.t) };
   P.Weapons.state(s).sprays.push({ a: a, lv: lv, A: A, range: range, arc: arc, wait: wait, left: P.CFG.weapons.extinguisher.ticks,
     tickT: 0, t: 0, T: P.CFG.weapons.extinguisher.ticks * P.CFG.weapons.extinguisher.tickGap + 0.2 + wait,
-    push: lv.push * M.push * (A.sig ? A.sig.push : 1), slow: slow, dmg: P.Weapons.dmgFor(s, 'extinguisher', lv.dmg) * A.dmg });
+    stage: lv.spitBlock ? 6 : s.hero.weapons.extinguisher || 1, push: lv.push * M.push * (A.sig ? A.sig.push : 1), slow: slow, dmg: P.Weapons.dmgFor(s, 'extinguisher', lv.dmg) * A.dmg });
 }
 
 function sprayTick(s, sp) {
@@ -146,7 +151,7 @@ function sprayTick(s, sp) {
     P.Status.apply(e, 'foam', cfg.foamT, 1);
   });
   if (sp.A.M.douse) P.Mods.douse(s, h.x + ax * sp.range * 0.5, h.y + ay * sp.range * 0.5, sp.range * 0.5);
-  s.events.push({ type: 'extTick', x: h.x, y: h.y, a: sp.a, range: sp.range, arc: sp.arc, tag: 'water' });
+  s.events.push({ type: 'extTick', x: h.x, y: h.y, a: sp.a, range: sp.range, arc: sp.arc, stage: sp.stage, tag: 'water' });
 }
 
 function updateSprays(s, dt) {
@@ -166,38 +171,10 @@ function updateBolts(s, dt) {
   for (var i = list.length - 1; i >= 0; i--) { list[i].t += dt; if (list[i].t >= list[i].T) list.splice(i, 1); }
 }
 
-// ---------- Usta's Cleaver: a spinning blade sweeps 360 degrees (knife family mods; action per turn) ----------
-function updateCleaver(s, dt) {
-  var h = s.hero, lv = P.Weapons.level(h, 'cleaver'), W = P.Weapons.state(s);
-  if (!lv) return;
-  var cfg = P.CFG.weapons.cleaver, prev = h.cleaA || 0, turn = Math.PI * 2 / lv.spinT;
-  h.cleaA = prev + turn * dt;
-  if (Math.floor(h.cleaA / (Math.PI * 2)) > Math.floor(prev / (Math.PI * 2))) {
-    s.events.push({ type: 'cleaverSpin', x: h.x, y: h.y });
-    P.Weapons.fired(s, 'knife', h.cleaA, 1, 'cleaver');
-    W.cleaverAct = P.Mods.act(s, 'knife');
-    P.Mods.announce(s, W.cleaverAct, h.x, h.y, lv.radius);
-  }
-  var A = W.cleaverAct || (W.cleaverAct = P.Mods.act(s, 'knife'));
-  var tx = h.x + Math.cos(h.cleaA) * lv.radius * A.area, ty = h.y + Math.sin(h.cleaA) * lv.radius * A.area;
-  var kb = 0.4 * P.Weapons.kbMult(s), dmg = P.Weapons.dmgFor(s, 'knife', lv.dmg) * A.dmg;
-  for (var i = 0; i < s.enemies.length; i++) {
-    var e = s.enemies[i];
-    if (e.dead || e.state !== 'active') continue;
-    var d = segDist(e.x, e.y, h.x, h.y, tx, ty);
-    if (d > e.r + 0.3) continue;
-    if (e.cleaT && s.t - e.cleaT < cfg.hitGap) continue;
-    e.cleaT = s.t;
-    var ex = e.x - tx, ey = e.y - ty, el = Math.hypot(ex, ey) || 1;
-    P.Mods.hit(s, e, dmg, ex / el, ey / el, kb, 'cleaver', A);
-    s.events.push({ type: 'cleaverChop', x: e.x, y: e.y, a: Math.atan2(ey, ex), tag: 'blade' });
-  }
-}
-
 // ---------- Chain Cyclone: a wider, faster chain that drags enemies toward the hero (chain family mods) ----------
 function updateCyclone(s, dt) {
   var h = s.hero, lv = P.Weapons.level(h, 'cyclone');
-  if (!lv) return;
+  if (!lv || h.streetHolding) return;
   var cfg = P.CFG.weapons.cyclone, prev = h.cycA || 0, W = P.Weapons.state(s);
   var M = P.Mods.of(s, 'chain'), boost = W.chainBoostT > 0 ? P.CFG.sig.chain.spin : 1;
   h.cycA = prev + lv.speed * (2 - P.Weapons.cdMult(s)) * M.spin * boost * dt;
@@ -224,6 +201,6 @@ P.Weapons3.step = function (s, dt) {
   updateSpears(s, dt);
   updateSprays(s, dt);
   updateBolts(s, dt);
-  updateCleaver(s, dt);
+  P.WeaponsCleaver.step(s, dt);
   updateCyclone(s, dt);
 };

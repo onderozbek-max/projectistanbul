@@ -50,7 +50,7 @@ T.plaza = function (z, out) {
 
 // Market alley: a stall frontage on each side and a centre stall that alternates sides, so the lane zigzags between
 // 1.8 m gaps.
-T.market = function (z, out) {
+T.market = function (z, out, cartAisle) {
   var C = P.CFG.layouts.market, inner = C.frontX - 1.5 * C.unitW, i = 0, y, sd, gap;
   gap = inner - (C.pieceX + C.pieceW / 2);
   for (y = z.y0 + C.inset; y < z.y1 - C.inset; y += C.row, i++) {
@@ -59,8 +59,10 @@ T.market = function (z, out) {
       solid(out, 'lx_stall', f * C.frontX, y, C.unitW, C.unitD);
       solid(out, 'lx_stall', f * (C.frontX - C.unitW), y, C.unitW, C.unitD);
     });
-    solid(out, 'lx_stall', sd * C.pieceX, y, C.pieceW, C.pieceW);
-    choke(out, sd * (C.pieceX + C.pieceW / 2 + gap / 2), y, gap);
+    if (!cartAisle) {
+      solid(out, 'lx_stall', sd * C.pieceX, y, C.pieceW, C.pieceW);
+      choke(out, sd * (C.pieceX + C.pieceW / 2 + gap / 2), y, gap);
+    }
   }
 };
 
@@ -78,8 +80,7 @@ T.chicane = function (z, out) {
   }
 };
 
-// Waterfront: the sea fills the far side; bollards along the quay; a stall row on the land side; two moored boats
-// whose gaps to the bollard line are the chokepoints.
+// Waterfront: bollards and stalls sit on the quay. Authored boats are moored beyond the edge in open water.
 T.waterfront = function (z, out) {
   var C = P.CFG.layouts.waterfront, sea = C.reach - C.seaX, bw = C.bollardX - C.bollardW / 2, bx = C.boatX + C.boatW / 2, y, i;
   run(out, 'lx_sea', C.seaX + sea / 2, sea, z.y0, z.y1, C.seaSeg);
@@ -87,6 +88,7 @@ T.waterfront = function (z, out) {
   for (y = z.y0 + C.kioskEvery / 2, i = 0; y < z.y1; y += C.kioskEvery, i++) solid(out, 'lx_stall', C.kioskX, y, C.kioskW, C.kioskD);
   C.boatAt.forEach(function (f) {
     var yb = z.y0 + z.len * f;
+    if (z.moored) { z.moored.push(yb); return; }
     solid(out, 'lx_boat', C.boatX, yb, C.boatW, C.boatL);
     choke(out, (bx + bw) / 2, yb, bw - bx);
   });
@@ -114,7 +116,7 @@ T.arena = function (z, out, type) {
 };
 
 // ---------- planning ----------
-function zoneFor(geo, kind, rng) {
+function zoneFor(geo, kind, rng, minY) {
   var C = P.CFG.layouts, len, a, b, y0;
   if (kind === 'arena') {
     len = geo.exitY - C.arena.pad - (geo.holdY + C.arena.pad);
@@ -123,6 +125,9 @@ function zoneFor(geo, kind, rng) {
   len = C[kind].len; a = C.routeFrom; b = geo.holdY - C.routeGap - len;
   if (b < a) return null;
   y0 = a + rng.range(0, b - a);
+  var tram = geo.blocks.find(function (obstacle) { return obstacle.kind === 'tram'; });
+  if (tram) y0 = Math.min(b, Math.max(y0, tram.rc.yMax + P.CFG.layouts.centre.zoneGap));
+  if (minY !== undefined) y0 = Math.min(b, Math.max(y0, minY));
   return { kind: kind, y0: y0, y1: y0 + len, len: len };
 }
 
@@ -139,10 +144,24 @@ function clashes(geo, x, y, w, h) {
   return geo.blocks.some(function (b) { return Math.abs(b.x - x) < (b.w + w) / 2 + m && Math.abs(b.y - y) < (b.h + h) / 2 + m; });
 }
 
-function addCentre(geo, L, x, y, hood, rng) {
+P.Layouts.reserved = function (geo, x, y, w, h) {
+  var H = geo.tramCrossing;
+  if (!H) return false;
+  var p = P.Hack.crossingLane(H), gap = P.CFG.hero.radius;
+  return Math.abs(x - H.x) < w / 2 + H.r + gap && Math.abs(y - H.y) < h / 2 + H.r + gap ||
+    x + w / 2 + gap > p.x - p.w / 2 && x - w / 2 - gap < p.x + p.w / 2 &&
+    y + h / 2 + gap > p.y0 && y - h / 2 - gap < p.y1;
+};
+
+function addCentre(geo, L, x, y, hood, rng, strict) {
   var K = P.CFG.layouts.centre, spec = hood.centre || 'tea', kind = 'cm_' + spec.replace(':', '');
-  geo.blocks.push(block(kind, x, y, K.size, K.size));
+  var booth = kind.indexOf('cm_booth') === 0 ? K.booth : null;
+  var w = booth ? booth.w : K.size, h = booth ? booth.h : K.size, side = x < 0 ? -1 : 1;
+  if (booth) x = side * booth.x;
+  if (P.Layouts.reserved(geo, x, y, w, h) || ((booth || strict) && clashes(geo, x, y, w, h))) return false;
+  geo.blocks.push(block(kind, x, y, w, h));
   L.centre.push({ x: x, y: y, kind: kind, recipe: spec, ev: pickEv(rng) });
+  return true;
 }
 
 function inZone(zones, y, gap) {
@@ -156,29 +175,31 @@ function streetCentres(geo, L, hood, rng) {
     if (!rng.chance(K.chance)) continue;
     y = K.from + k * K.every + rng.range(0, K.jitter);
     if (y > lim || inZone(L.zones, y, K.zoneGap)) continue;
-    if (clashes(geo, side * K.offAxis, y, K.size, K.size)) continue;
-    addCentre(geo, L, side * K.offAxis, y, hood, rng);
+    if (!addCentre(geo, L, side * K.offAxis, y, hood, rng, true)) continue;
     side = -side;
   }
 }
 
 // Plan the stage's layout: zone solids and chokepoints go into geo.blocks, centre landmarks too. Runs before the
 // street blocks (layBlocks skips zones and clashes with these). Consumes the level rng in a fixed order.
-P.Layouts.plan = function (s, info, rng, geo) {
-  var hood = info.hood, kind = geo.boss ? 'arena' : (hood.layouts && hood.layouts[info.stage - 1]) || 'street';
+P.Layouts.plan = function (s, info, rng, geo, minY) {
+  var B = P.CFG.levels, hood = info.hood, special = s.routeTrial && (B.bridgeRoutes[s.levelIndex] || B.eminonuRoutes[s.levelIndex] || B.sirkeciRoutes[s.levelIndex]);
+  var kind = geo.boss ? 'arena' : special && special.layout || (hood.layouts && hood.layouts[info.stage - 1]) || 'street';
   var hx = P.CFG.view.geoHeroHalfX, L = { walk: { x0: -hx, x1: hx, y0: 0, y1: geo.exitY }, zones: [], chokes: [], centre: [], slots: [], spawns: [], boss: null };
+  var dedicatedStop = s.routeTrial === 'tram-stop';
   var out = { solids: [], chokes: [], centre: null }, z = null;
-  if (kind !== 'street' && T[kind]) z = zoneFor(geo, kind, rng);
+  if (kind !== 'street' && T[kind]) z = zoneFor(geo, kind, rng, minY);
   if (z) {
     z.stage = info.stage;
-    if (kind === 'arena') T.arena(z, out, hood.boss); else T[kind](z, out);
+    if (kind === 'waterfront' && s.routeTrial && s.levelIndex <= 30) z.moored = [];
+    if (kind === 'arena') T.arena(z, out, hood.boss); else T[kind](z, out, special && special.cartAisle);
     L.zones.push(z);
     out.solids.forEach(function (sd) { geo.blocks.push(block(sd.kind, sd.x, sd.y, sd.w, sd.h)); });
     out.chokes.forEach(function (c) { L.chokes.push({ x: c.x, y: c.y, w: c.w, zone: 0 }); });
-    if (out.centre) addCentre(geo, L, out.centre.x, out.centre.y, hood, rng);
+    if (out.centre && !dedicatedStop) addCentre(geo, L, out.centre.x, out.centre.y, hood, rng);
   }
   if (geo.boss) L.boss = { type: hood.boss, cover: (P.CFG.layouts.arena.cover[hood.boss] || {}).n || 0 };
-  streetCentres(geo, L, hood, rng);
+  if (!dedicatedStop) streetCentres(geo, L, hood, rng);
   geo.zones = L.zones;
   geo.landmarks = L.centre;
   return L;
@@ -219,7 +240,7 @@ function addSpawn(G, L, x, y, sd, kind) {
 
 // Level marks for the centre landmarks (levels.js adds them to s.gen.marks).
 P.Layouts.marks = function (L) {
-  return L.centre.map(function (c) { return { y: c.y, kind: 'landmark', x: c.x, ev: c.ev }; });
+  return L.centre.map(function (c) { return { y: c.y, kind: 'landmark', prop: c.kind, x: c.x, ev: c.ev }; });
 };
 
 // A centre landmark's event, fired when the hero reaches it: an ambush from the side, a loot runner, or a hack terminal
@@ -228,7 +249,8 @@ P.Layouts.trigger = function (s, m) {
   // The terminal kind is one the hood has (journey.js hack); a hood with none of the centre kinds gets the full list.
   var all = P.CFG.layouts.centre.hack, own = s.gen.hood.hack || [], hk = all.filter(function (k) { return own.indexOf(k) >= 0; });
   if (!hk.length) hk = all;
-  if (m.ev === 'hack') P.Hack.place(s, hk[s.rng.spawn.int(0, hk.length - 1)], m.x, m.y);
+  var x = m.prop && m.prop.indexOf('cm_booth') === 0 ? m.x - Math.sign(m.x) * P.CFG.layouts.centre.booth.terminal : m.x;
+  if (m.ev === 'hack') P.Hack.place(s, hk[s.rng.spawn.int(0, hk.length - 1)], x, m.y);
   else if (m.ev === 'ambush') P.Events.start(s, 'ambush', { x: m.x });
   else P.Events.start(s, 'loot', {});
 };
@@ -248,7 +270,12 @@ P.Layouts.botTarget = function (s) {
     if (c.y < h.y - R.passed || c.y > h.y + R.look) continue;
     if (!best || c.y < best.y) best = c;
   }
-  return best ? [best.x, best.y] : null;
+  // Aim through the gap so the bot's stopping distance cannot leave it on the same waypoint.
+  if (best && s.milestone && L.zones[best.zone].kind === 'chicane' && h.y < best.y &&
+      h.y > best.y - R.alignBefore * 2 && Math.abs(h.x - best.x) > best.w / 3) {
+    return [best.x, best.y - R.alignBefore];
+  }
+  return best ? [best.x, best.y + R.passed + R.through] : null;
 };
 
 // Chokepoint check for a route zone: at least minChokes gaps of maxChoke m or less. Returns problem strings.

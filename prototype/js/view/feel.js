@@ -8,8 +8,9 @@
 // The simulation never reads anything here. Numbers: P.CFG.feel2 (config-feel.js).
 P.Feel = (function () {
   var F = {}, HEAVY = { sledge: 1, canister: 1, cluster: 1, cleaver: 1, finale: 1, chainsaw: 1 }, TAU = Math.PI * 2;
-  var hurtMap = {}, hurtN = 0, parts = [], hsLast = -9, ringAt = -9, wispLeft = 0, hero = { x: 0, y: 0, dist: 0, step: 0, v: 0, moving: false, was: false, at: -9, kind: 0, a: 0, mul: 1 };
-  var fxLeft = 0, HS = { x: 1, y: 1, ox: 0, r: 0 }, HERO = { x: 1, y: 1, lean: 0.03, r: 0 }, knifeLast = { a: 0, t: -9 };
+  var hurtMap = {}, hurtN = 0, parts = [], hsLast = -9, ringAt = -9, hero = { x: 0, y: 0, dist: 0, step: 0, v: 0, moving: false, was: false, at: -9, kind: 0, a: 0, mul: 1 };
+  var fxLeft = 0, HS = { x: 1, y: 1, ox: 0, oy: 0, r: 0 }, HERO = { x: 1, y: 1, lean: 0.03, r: 0 }, knifeLast = { a: 0, t: -9 };
+  var contactAt = -9,hsUsage=[];
   var fidgetAt = -9, fidgetNext = -1, fidgetSide = 1;
 
   function C() { return P.CFG.feel2; }
@@ -18,31 +19,38 @@ P.Feel = (function () {
   function rm() { return !!(P.Settings && P.Settings.reduceMotion); }
   function ease(t) { return t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t); }
 
-  F.reset = function () { hurtMap = {}; hurtN = 0; parts.length = 0; hsLast = -9; hero.dist = 0; hero.step = 0; hero.was = false; hero.at = -9; knifeLast.t = -9; fidgetNext = -1; fidgetAt = -9; };
+  F.reset = function () { hurtMap = {}; hurtN = 0; parts.length = 0; hsUsage=[]; hsLast = contactAt = -9; hero.dist = 0; hero.step = 0; hero.was = false; hero.at = -9; knifeLast.t = -9; fidgetNext = -1; fidgetAt = -9; };
 
   // ---------- hit spring ----------
-  function startHurt(ev) {
+  function startHurt(ev, s) {
     var k = C().spring, st = hurtMap[ev.id], amp = ev.boss ? k.boss : 1;
-    if (HEAVY[ev.src]) amp *= k.heavy;
+    var I = P.WeaponImpacts, id = I && I.weapon(s, ev.src), style = id && I.profile(id), pace = 1;
+    if (style && P.WTier && P.WTier.enabled) {
+      amp *= style[4] * (1 + 0.10 * (P.WTier.levelOf(s, id) - 1));
+      pace = style[5];
+    } else if (HEAVY[ev.src]) amp *= k.heavy;
     if (ev.crit) amp *= k.crit;
-    if (!st) { if (hurtN > k.max) { hurtMap = {}; hurtN = 0; } st = hurtMap[ev.id] = { at: 0, amp: 0, dx: 0 }; hurtN++; }
+    if (rm()) amp *= 0.40;
+    if (!st) { if (hurtN > k.max) { hurtMap = {}; hurtN = 0; } st = hurtMap[ev.id] = { at: 0, amp: 0, dx: 0, pace: 1 }; hurtN++; }
     st.amp = Math.max(amp, F.hurtAmp(st) * 0.8);
-    st.at = now(); st.dx = ev.dx || 0;
+    var x = ev.dx || 0, y = ev.dy || 0, mag = Math.hypot(x, y) || 1;
+    st.at = now(); st.dx = x / mag; st.dy = y / mag; st.pace = pace;
   }
   F.hurtAmp = function (st) {
-    var age = now() - st.at, k = C().spring;
+    var age = (now() - st.at) * st.pace, k = C().spring;
     return age > k.life ? 0 : st.amp * Math.exp(-age / k.tau);
   };
   // Transform for an enemy this frame, or null when it is not reacting. The returned object is reused: read it at once.
   F.hurt = function (e) {
     var st = hurtMap[e.id], k = C().spring, age, a, osc;
     if (!st) return null;
-    age = now() - st.at;
+    age = (now() - st.at) * st.pace;
     if (age > k.life) { delete hurtMap[e.id]; hurtN--; return null; }
     a = st.amp; osc = Math.exp(-age / k.tau) * Math.cos(k.omega * age);
     HS.y = 1 - k.squashY * a * osc; HS.x = 1 + k.squashX * a * osc;
-    HS.r = (st.dx >= 0 ? 1 : -1) * k.tiltRad * a * Math.exp(-age / k.tiltTau);
-    HS.ox = (st.dx >= 0 ? 1 : -1) * k.shoveU * a * Math.exp(-age / k.shoveTau);
+    HS.r = st.dx * k.tiltRad * a * Math.exp(-age / k.tiltTau);
+    var shove = k.shoveU * a * Math.exp(-age / k.shoveTau);
+    HS.ox = st.dx * shove; HS.oy = -st.dy * shove * C().contact.depth;
     return HS;
   };
   // True when a walker is not advancing (windup, root, stagger, blocked): it should breathe, not freeze mid-stride.
@@ -52,9 +60,13 @@ P.Feel = (function () {
   // kind: 'heavy' | 'boss' | 'critKill'. One limiter for every source (this and weapons-fx critKill both come through here).
   F.hitStop = function (kind) {
     var k = C().hitStop, t = now();
-    if (t - hsLast < k.minGap) return;
+    if (rm() || t - hsLast < k.minGap) return;
+    hsUsage=hsUsage.filter(function(q){return t-q.at<k.window;});
+    var used=hsUsage.reduce(function(sum,q){return sum+q.T;},0),grant=Math.min(k[kind]||k.heavy,Math.max(0,k.budget-used));
+    if(grant<.01)return;
+    hsUsage.push({at:t,T:grant});
     hsLast = t;
-    P.HitStop = Math.max(P.HitStop || 0, k[kind] || k.heavy);
+    P.HitStop = Math.max(P.HitStop || 0, grant);
   };
   F.kick = function (dx, dy, px) {
     var c = P.Fx.cam, m = Math.hypot(dx, dy) || 1;
@@ -79,11 +91,6 @@ P.Feel = (function () {
             r: big ? rnd(0.05, 0.09) : rnd(0.025, 0.05), t: rnd(0.6, 1) * k.life, T: k.life, bounced: 0 });
     }
   }
-  function wisps(x, y) {
-    var w = C().wisp, i;
-    if (rm() || wispLeft <= 0) return;
-    for (i = 0; i < w.n; i++, wispLeft--) add({ k: 'wisp', x: x + rnd(-0.15, 0.15), y: y, z: 0.15, vx: rnd(-0.2, 0.2), vy: rnd(-0.05, 0.1), vz: w.rise * rnd(0.7, 1.2), r: w.size * rnd(0.8, 1.3), t: w.life * rnd(0.8, 1.1), T: w.life });
-  }
   function dust(x, y, n, size, spread) {
     var d = C().dust, i;
     for (i = 0; i < n; i++) add({ k: 'dust', x: x + rnd(-spread, spread), y: y, z: 0.03, vx: rnd(-0.5, 0.5), vy: rnd(-0.2, 0.3), vz: rnd(0.2, 0.5) * d.rise,
@@ -102,6 +109,17 @@ P.Feel = (function () {
             r: d.r * rnd(0.8, 1.3), t: d.life * rnd(0.7, 1), T: d.life, bounced: 0 });
     }
   }
+
+  function contactKick(ev, s, k) {
+    var heavy = !!HEAVY[ev.src], t = now();
+    if (!heavy && !ev.crit && ev.src !== 'knife') return;
+    if (heavy) F.hitStop(ev.boss ? 'boss' : 'heavy');
+    if (t - contactAt < k.contact.kickGap) return;
+    contactAt = t;
+    var id = P.WeaponImpacts && P.WeaponImpacts.weapon(s, ev.src);
+    var rank = id && P.WTier ? P.WTier.levelOf(s, id) : 1;
+    F.kick(ev.dx || 0, ev.dy || 0, k.kick[heavy ? 'heavy' : 'hit'] * (1 + k.contact.rankKick * (rank - 1)));
+  }
   function land(p) {
     var k = C().drops, F2 = P.Fx;
     if (p.k === 'drop' && Math.random() < k.landSplat && F2.parts.length < P.CFG.feel.partsMax * 0.8) {
@@ -114,15 +132,12 @@ P.Feel = (function () {
     var k = C(), heavy, px;
     switch (ev.type) {
       case 'hit':
-        heavy = !!HEAVY[ev.src] || ev.boss;
-        startHurt(ev);
+        startHurt(ev, s);
         drops(ev.x, ev.y, ev.dx, ev.dy, k.drops.perHit, false);
-        tagFx(ev);
-        if (heavy || ev.crit) { if (heavy) F.hitStop(ev.boss ? 'boss' : 'heavy'); F.kick(ev.dx || 0, ev.dy || 0, heavy ? k.kick.heavy : k.kick.hit * 1.5); }
-        else if (ev.src === 'knife') F.kick(ev.dx || 0, ev.dy || 0, k.kick.hit);
+        if (!(P.WTier && P.WTier.handlesImpact(s, ev.src))) tagFx(ev);
+        contactKick(ev, s, k);
         break;
       case 'kill':
-        wisps(ev.x, ev.y);
         drops(ev.x, ev.y, ev.dx, ev.dy, k.drops.perKill, true);
         break;
       case 'pickup':
@@ -189,7 +204,7 @@ P.Feel = (function () {
 
   F.update = function (dt, s) {
     var h = s.hero, d = C().dust, i, p, dist, phase, step, k = C().drops;
-    fxLeft = C().hitFx.perFrame; wispLeft = C().wisp.perFrame;
+    fxLeft = C().hitFx.perFrame;
     if (dt > 0) {
       dist = Math.hypot(h.x - hero.x, h.y - hero.y);
       if (dist > 2) dist = 0;   // teleport or first frame
@@ -208,7 +223,7 @@ P.Feel = (function () {
       if (p.t <= 0) { if (p.k === 'drop' || p.k === 'gib') land(p); parts.splice(i, 1); continue; }
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
       if (p.k === 'ring') continue;
-      if (p.k === 'dust' || p.k === 'foam' || p.k === 'wisp') { p.vx *= 0.94; p.vy *= 0.94; if (p.k === 'foam') p.vz *= 0.92; continue; }
+      if (p.k === 'dust' || p.k === 'foam') { p.vx *= 0.94; p.vy *= 0.94; if (p.k === 'foam') p.vz *= 0.92; continue; }
       p.vz -= k.gravity * dt;
       if (p.z <= 0) {
         p.z = 0;
@@ -227,11 +242,6 @@ P.Feel = (function () {
       if (p.k === 'dust') {
         c.fillStyle = 'rgba(176,164,146,' + (d.alpha * p.t / p.T).toFixed(3) + ')';
         c.beginPath(); c.ellipse(X, Y, p.r * u * (1.6 - p.t / p.T * 0.6), p.r * u * 0.6 * (1.6 - p.t / p.T * 0.6), 0, 0, TAU); c.fill();
-        continue;
-      }
-      if (p.k === 'wisp') {
-        c.fillStyle = 'rgba(150,146,140,' + (C().wisp.alpha * p.t / p.T).toFixed(3) + ')';
-        c.beginPath(); c.ellipse(X, Y, p.r * u * (1 + (1 - p.t / p.T) * 0.9), p.r * u * 0.8 * (1 + (1 - p.t / p.T) * 0.9), 0, 0, TAU); c.fill();
         continue;
       }
       if (p.k === 'ring') {

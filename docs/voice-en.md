@@ -12,8 +12,37 @@
 
 ## 1. What the voice is
 
-**Shaun of the Dead, in an American mouth.** Dry, funny, sarcastic, deadpan. The world is ending and Arda is worried that Mom will find out he skipped dinner.
-The joke is the **situation**, not the wordplay: a scared kid hiding his fear behind a small sentence.
+### Current owner direction — November 19, 2026 (D-122, proposed)
+
+The English comedy references are **South Park and Rick and Morty**. Use sharp satire,
+absurd reasoning, petty rules that outlive their purpose, and a frightened person exposing
+his own rationalizations. Write original English from the scene's intent. The Turkish
+script has its own Leyla ile Mecnun / Gibi direction; it is not the English joke source.
+
+Arda is a smart, frightened Istanbul student. He can spot a stupid rule without becoming
+an omniscient commentator. Let him try to negotiate with a problem, then discover the
+small embarrassing flaw in his argument. A joke should reveal what he wants or how he
+is coping. Keep the actual observation or instruction immediately understandable.
+
+- **Specific targets:** fictional customer service, workplace rules, fees, entitlement,
+  broken technology and Arda's own shortcuts. Existing guardrails still apply.
+- **A contradiction, not a random reference:** the horror can expose a familiar system's
+  absurdity. It must not invent a transaction, companion, hit or outcome to set up a joke.
+- **Different voices:** Kaan is warm and practical; Mom cares through useful instructions;
+  Dad is terse; Mila is direct. They do not all acquire Arda's sarcasm.
+- **Restraint earns the edge:** clear danger warnings stay clear. Grief is allowed to end
+  without a comeback. Swearing adds emphasis within the existing limits; it is not the joke.
+- **Comic pages move the story:** answer the question just asked, establish knowledge before
+  a reaction, and leave a changed relationship or a specific next question. A signal drop
+  cannot be the only engine of suspense.
+- **Preserve Istanbul:** native American English register, local places and lived details.
+  No copied catchphrases, branded references, portal/science vocabulary without a story basis,
+  or a generic US setting pasted over the city.
+
+The older examples below are historical/proposed register illustrations, not current
+canonical dialogue. Some predate the scooter/map motive, corrected Mila exchange, current
+boss staging and conditional event wording. Current native files and the
+[end-to-end review](../reviews/EN-END-TO-END-AUDIT-2026-11-19.md) take precedence.
 
 1. Arda is scared and covers it with a joke. The joke is his armor, not a lecture.
 2. Plain lines carry the character; jokes are seasoning. **About 25% of the lines in a pool are jokes, never over 30%.**
@@ -65,7 +94,8 @@ Place names use real Turkish spelling (Beyoğlu, Sarıyer). *Kaan calls Arda "ab
 
 ## 3. American, not British
 
-The current English leans British ("Mum", "mate", "colour", "Honourable"). It becomes American. A starter conversion table (the banned list in §7 enforces it):
+The original draft leaned British. The current script uses American English. Retain this
+conversion table for future writing (the banned list in §7 flags these forms):
 
 | British (replace) | American |
 |---|---|
@@ -106,7 +136,7 @@ The current English leans British ("Mum", "mate", "colour", "Honourable"). It be
 
 ### Mom (Leyla Demir) · 46 · nursery-school teacher
 **Register.** Calm, clear, short. Twenty years of three-year-olds: her voice stays level on a bad line. **Love hidden inside instructions.**
-"Honey", "sweetie", **"my lion"** (*aslanım*, used once, early, so it carries). "**Did you eat?**" is her "I love you", in every call.
+"Honey", "sweetie", **"my lion"** (*aslanım*, used once, early, so it carries). "**Did you eat?**" expresses care; it is a recurring motif, not a requirement in every call. Answer an urgent safety question before a chore.
 **Habits.** Hides fear by asking questions. Hides in small chores (jackets, shoes, the carpet). Hums while she cooks.
 **Never.** Crying out of panic, "we're going to die", swearing, long emotional speeches. She never *says* she's scared; the player notices.
 **Good**
@@ -131,9 +161,9 @@ Signs letters with one initial: **"D."** (Turkish signs "Baban.", spelled out: n
 2. "Son, Mum and Dede are in Sarıyer, at Dede's place." → narration; Dad hands over the fact bare.
 
 ### Kaan Aydın · 21 · "the teddy bear with an anchor"
-**Register.** Loud, warm, teasing. Calls Arda "**abi**" (sometimes "man"). Explains everything with **food**. The more scared he is, the louder and faster he gets.
+**Register.** Warm, practical, teasing. Calls Arda "**abi**" (sometimes "man"). Food and boats belong to his life, but every sentence does not need a food comparison. Fear can make him loud; grief can make him brief.
 **Habits.** Hums the ferry horn. Wipes his hands on the towel before saying something sincere. Apologizes to furniture.
-**Never.** Cruelty, even as a joke about Arda's looks. Cold, clipped, Mila-style speech. "Dude" (that's not him).
+**Never.** Cruelty, even as a joke about Arda's looks. Performative sarcasm during another person's loss. "Dude" (that's not him). Short sincere speech is allowed.
 **Good**
 1. "Ah-choo... Still alive. Bless me, then." *(H05p3)*
 2. "Everyone knows, man. Now you've said it out loud." *(CMPc: teasing)*
@@ -304,7 +334,7 @@ Machine-readable list: **[tools/dialogue-banned.json](../prototype/tools/dialogu
 ## 8. Three example rewrites per main character
 
 > Each line is rewritten in English from the **same beat intent** as the Turkish one, but **independently**: jokes differ on purpose. Turkish: [voice-tr.md](voice-tr.md) §8.
-> **Now** = the English line in the game today ("(new)" = the beat doesn't exist yet). **Proposed** = in this bible's voice.
+> **Now** = the old baseline when this example table was written, not the current game. **Proposed** = historical voice examples; recheck the actual scene before reuse.
 > All are **drafts**; only the owner or a native editor can mark a line approved.
 
 ### Arda
@@ -365,3 +395,28 @@ Machine-readable list: **[tools/dialogue-banned.json](../prototype/tools/dialogu
 4. **American English: DECIDED.** "Mom" in the speaker tag and in lines, spellings per §3; the Turkish keeps "Anne".
 5. **Mila and Ada new beats: APPROVED** (refusing help, the scrunchie, the first simit, counting).
 6. **The banned list: APPROVED** (`tools/dialogue-banned.json`).
+
+## 10. November 18 audit: current review draft
+
+The owner's requested tone includes character-led absurdity and dark humor, with
+clear meaning before a punch line. A line must use only knowledge its speaker has
+received. Each phone exchange must answer the question actually asked. Keep Dad's
+approved instructions/signature; do not restore older example wording over the
+current scene without checking its context. Kaan can tease about Mila after Arda
+mentions her; Mila learns the Sarıyer plan before proposing or accepting travel.
+
+Event text must match its trigger: a signal booster restores service, a car alarm
+lures enemies, and a shared sighting/kill pool cannot announce a death. Random lines
+must not invent health values, locations, companions or future plot knowledge.
+
+Current script and complete review: [English audit](../reviews/EN-DIALOGUE-AUDIT-2026-11-18.md).
+
+### Context pass — 2026-11-19 (review candidate)
+
+Read each line at its actual trigger. A first sighting is not proof that an enemy
+has attacked; an event ending may only mean its enemies have spawned. Questions
+and answers belong together: Kaan's bite challenge and Arda's reply now share the
+L18 entry exchange. Let the opening fear establish Arda before optional banter.
+Later zombie remarks are nervous attempts to pass, not social introductions.
+Narration and thoughts do not play voice blips; quiet pages keep their authored motif.
+See the [bilingual context audit](../reviews/NARRATIVE-CONTEXT-AUDIT-2026-11-19.md).

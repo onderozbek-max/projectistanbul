@@ -1,11 +1,18 @@
 // Signature landmarks per hood (workstream F, view only, no collision). Metre-space painters are cached as
 // offscreen canvases per kind, text and device-scale bucket. Across items (arches, overpass) span the corridor;
-// billboards sit on the sidewalk/edge; tram sits on the tracks. L1 (İstiklal) uses fixed beats and segment washes.
+// Billboards sit on the sidewalk. L1 (İstiklal) uses fixed beats and segment washes.
 // API: P.Landmarks.draw(R, s, y0, y1) (ground layer), weather(R, s, y0, y1), card(c, w, h, th, idx), clearCache().
 P.Landmarks = (function () {
   var L = {}, CACHE = {}, CACHE_N = 0, PLAN = {};
   var INK = '#14151F', CREAM = '#F4EBDD', GOLD = '#E9A23B', TAU = Math.PI * 2;
   var FONT = 'italic 900 %Ppx "CM Bangers", Bangers, Impact, sans-serif';
+  var TUNNEL = { w: 9.6, h: 3.2 };
+  var towerArt = typeof Image !== 'undefined' ? new Image() : null;
+  if (towerArt) {
+    towerArt.onload = function () { CACHE = {}; CACHE_N = 0; };
+    var root = document.currentScript && document.currentScript.src || document.baseURI;
+    towerArt.src = new URL('../../assets/galata/galata_tower_landmark.png', root).href;
+  }
 
   function hs(n) { var x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); }
   function isL1(s) { return !s.levelIndex || s.levelIndex === 1; }
@@ -153,13 +160,13 @@ P.Landmarks = (function () {
     }
   };
   function facadeP(c, w, h, st) { (FAC[st] || FAC.stone)(c, w, h); }
+  function drawTowerArt(c, x, y, w, h) {
+    if (!towerArt || !towerArt.naturalWidth) return false;
+    c.drawImage(towerArt, 85, 4, 163, 493, x, y, w, h);
+    return true;
+  }
   function towerP(c, w, h) {
-    c.beginPath(); c.moveTo(w * 0.15, h * 0.3); c.lineTo(w * 0.1, h); c.lineTo(w * 0.9, h); c.lineTo(w * 0.85, h * 0.3); c.closePath();
-    c.fillStyle = '#CFC5B4'; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.05; c.stroke();
-    c.beginPath(); c.moveTo(w * 0.1, h * 0.3); c.lineTo(w / 2, 0); c.lineTo(w * 0.9, h * 0.3); c.closePath();
-    c.fillStyle = '#5A4A3A'; c.fill();
-    for (var y = h * 0.45; y < h * 0.8; y += h * 0.15) R_(c, w * 0.08, y, w * 0.84, 0.12, '#A59A88');
-    for (var x = w * 0.3; x < w * 0.7; x += w * 0.2) R_(c, x, h * 0.55, 0.15, 0.4, '#2A3445');
+    drawTowerArt(c, 0, 0, w, h);
   }
 
   // ---- shopfronts (3.2 x 6): awning, back wall, counter and hanging goods by style ----
@@ -263,10 +270,6 @@ P.Landmarks = (function () {
       for (var y = 0; y < h; y += 0.6) R_(c, 0.4, y, w - 0.8, 0.03, 'rgba(0,0,0,0.25)');
       for (var b = 1; b < h; b += 2.5) { E_(c, 0.25, b, 0.12, 0.12, '#3A3A3A'); E_(c, w - 0.25, b, 0.12, 0.12, '#3A3A3A'); }
     },
-    deck: function (c, w, h) {
-      R_(c, 0, 0, w, h, '#5A4E44'); R_(c, 0.1, 0, 0.08, h, INK); R_(c, w - 0.18, 0, 0.08, h, INK);
-      for (var y = 0.6; y + 1.8 < h; y += 2.4) { R_(c, 0.4, y, w - 0.8, 0.5, y % 2 ? '#C0392B' : CREAM, INK, 0.02); R_(c, 0.4, y + 1.0, w - 0.8, 0.4, '#3A2A1E'); }
-    },
     boat: function (c, w, h, st, t) {
       c.beginPath(); c.moveTo(0.4, h * 0.45); c.lineTo(w - 0.4, h * 0.45); c.lineTo(w - 0.9, h * 0.7); c.lineTo(0.9, h * 0.7); c.closePath();
       c.fillStyle = '#E9E4D8'; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.04; c.stroke();
@@ -334,16 +337,10 @@ P.Landmarks = (function () {
     for (var y = 0.5; y < h; y += 0.5) R_(c, 0, y, w, 0.04, '#4E4838');
     for (var cx = 0; cx < w; cx += 0.6) R_(c, cx, 0, 0.3, 0.4, '#7E7460', INK, 0.03);
   }
-  // T4 part 11: the tram is the same drawing as the level-1 tram (vehicles.js paintBox), not a flat red box.
-  function tramP(c, w, h) {
-    if (P.Vehicles && P.Vehicles.paintBox) { P.Vehicles.paintBox(c, w, h); return; }
-    R_(c, 0, 0, w, h, '#C0392B', INK, 0.06); R_(c, 0.2, 0.5, w - 0.4, h - 1, CREAM, INK, 0.03);
-  }
-
   // Painter families: "family:style" kinds. Kinds without a painter fall back to P.Props (e.g. playground).
-  var FAM = { tram: tramP, arch: archP, overpass: overpassP, facade: facadeP, tower: towerP, stall: stallP, park: parkP,
+  var FAM = { tram: function (c, w, h) { P.Vehicles.paintBox(c, w, h); }, arch: archP, overpass: overpassP, facade: facadeP, tower: towerP, stall: stallP, park: parkP,
     pier: pierP, board: boardP, crane: craneP, dig: digP, minibus: minibusP, steps: stepsP, wall: wallP };
-  var SIZE = { tram: [3.2, 13.2], board: [1.6, 2.4], stall: [3.2, 6], park: [4, 8], pier: [4, 8], tower: [4, 10], crane: [3, 10],
+  var SIZE = { tram: [3.2, 13.2], board: [1.6, 2.4], stall: [3.2, 6], park: [4, 8], pier: [4, 8], tower: [2.55, 7.7], crane: [3, 10],
     dig: [6, 5], steps: [4, 9], wall: [3.2, 9], minibus: [2.2, 5], facade: [3.1, 9], overpass: [14, 3], arch: [14, 3] };
   function paint(c, kind, w, h, t) {
     var f = kind.split(':'), fn = FAM[f[0]];
@@ -360,10 +357,10 @@ P.Landmarks = (function () {
     var fam = kind.split(':')[0], sz = SIZE[fam] || [3.1, 9], it = { kind: kind, t: t, w: sz[0], h: sz[1], y0: y, side: side || 1 };
     it.prop = !FAM[fam];
     if (fam === 'arch' || fam === 'overpass') it.x0 = -7;
-    else if (fam === 'tram') it.x0 = -1.6;   // centred on the tracks (3.2 m image, 2.6 m car)
     else if (fam === 'dig') it.x0 = -3;
     else if (fam === 'minibus') it.x0 = side > 0 ? 0.6 : -2.8;
     else if (fam === 'board') it.x0 = side > 0 ? 4.9 : -6.5;
+    else if (fam === 'tower') it.x0 = 2.2;
     else it.x0 = side > 0 ? 3.4 : -3.4 - it.w;
     return it;
   }
@@ -380,10 +377,14 @@ P.Landmarks = (function () {
   // Generated level plan: start arch (sub name), mid across arch, then billboards every 24 m alternating sides.
   function genPlan(s, sub) {
     var len = Math.max(40, (s.geo && s.geo.length) || 230), across = [], bill = [], seed = (s.levelIndex || 1) * 37, out = [], k, side;
-    sub.lm.forEach(function (kind) { (isAcross(kind) ? across : bill).push(kind); });
-    var startK = across[0] || 'arch:stone', midK = across[1] || across[0] || 'arch:vault';
-    out.push(item(startK, 1, 6, textFor(startK, sub)));
-    out.push(item(midK, 1, len * 0.5, textFor(midK, sub)));
+    sub.lm.forEach(function (kind) {
+      if (kind === 'tower') out.push(item(kind, 1, 28, null));
+      else if (kind !== 'tram') (isAcross(kind) ? across : bill).push(kind === 'stall:music' ? 'music' : kind);
+    });
+    var current = P.StreetArt && P.StreetArt.current();
+    var startK = across[0] || (!current && 'arch:stone'), midK = across[1] || (!current && (across[0] || 'arch:vault'));
+    if (startK) out.push(item(startK, 1, 6, textFor(startK, sub)));
+    if (midK && !(s.milestone && s.milestone.sirkeci)) out.push(item(midK, 1, len * 0.5, textFor(midK, sub)));
     if (!bill.length) return out;
     for (k = 0; 16 + k * 24 < len - 12; k++) {
       var kind = bill[(k + seed) % bill.length];
@@ -394,7 +395,7 @@ P.Landmarks = (function () {
   }
   function planFor(s) {
     var th = P.RenderWorld.themeOf(s), idx = P.Themes.subIndex(s), sub = P.Themes.subOf(th, idx);
-    var key = (s.levelIndex || 0) + ':' + th.id + ':' + idx + ':' + ((s.geo && s.geo.length) || 0);
+    var key = (s.levelIndex || 0) + ':' + th.id + ':' + idx + ':' + ((s.geo && s.geo.length) || 0) + ':' + !!(s.milestone && s.milestone.sirkeci);
     if (!PLAN[key]) { if (Object.keys(PLAN).length > 12) PLAN = {}; PLAN[key] = genPlan(s, sub); }
     return { items: PLAN[key], th: th, sub: sub, idx: idx };
   }
@@ -408,12 +409,37 @@ P.Landmarks = (function () {
     CACHE[key] = cv; CACHE_N++;
     return cv;
   }
+  function tunnel(c, x, y, w, h) {
+    c.save();
+    if (!P.StreetArt.part(c, 'tunnel-arch', x, y, w, h)) {
+      R_(c, x + w * .40, y + h * .19, w * .20, h * .14, '#25392E');
+    }
+    txt(c, P.upper(P.t('world.tunel.name')), x + w / 2, y + h * .26, h * .14, CREAM, w * .16);
+    c.restore();
+  }
   function drawItems(R, items, y0, y1, s) {
-    var c = R.ctx;
+    var c = R.ctx, current = P.StreetArt && P.StreetArt.current();
     items.forEach(function (it) {
       if (it.y0 > y1 + 1 || it.y0 + it.h < y0 - 1) return;
+      if (it.kind === 'arch:tunnel' && current) {
+        tunnel(c, R.X(it.x0 + (it.w - TUNNEL.w) / 2), R.Y(it.y0 + TUNNEL.h), TUNNEL.w * R.ppm, TUNNEL.h * R.ppm);
+        return;
+      }
+      if (it.kind === 'pier:boat' && current) return;
+      if (it.kind.indexOf('facade:') === 0 && P.ArtRasterWorld) {
+        var front = P.ArtRasterWorld.place(R, s, 'facade', it.side);
+        if (current || front && front.projected || it.kind === 'facade:station' && s.milestone && s.milestone.sirkeci) return;
+      }
+      if (P.StreetArt && it.kind.indexOf('park:') === 0) {
+        P.StreetArt.tree(it.kind.slice(5), R, it.side * 5.9, it.y0 + 2.5, 2.9);
+        return;
+      }
+      if (P.StreetArt && it.kind.indexOf('minibus') === 0 && P.StreetArt.vehicle('minibus', R, it.side * 5.2, it.y0 + it.h / 2, it.w, it.h)) return;
+      if (it.kind.indexOf('stall:') === 0 && P.ArtRasterItems && P.ArtRasterItems.streetStall(R, it)) return;
+      if (it.kind === 'tower') {
+        if (drawTowerArt(c, R.X(it.x0), R.Y(it.y0 + it.h), it.w * R.ppm, it.h * R.ppm) || current) return;
+      }
       if (it.prop) { if (P.Props && P.Props.has(it.kind)) P.Props.draw(it.kind, R, it.side * 5.9, it.y0, { k: 0 }); return; }
-      // Opacity (T4 part 11): a tram is never faded (it is not an overhang); the old 35% fade near Arda is gone.
       c.drawImage(image(it, R), R.X(it.x0), R.Y(it.y0 + it.h), it.w * R.ppm, it.h * R.ppm);
     });
   }
@@ -491,6 +517,11 @@ P.Landmarks = (function () {
   // Postcard vignette (hood card): the sub's first landmark, fitted to the w x h canvas context.
   L.card = function (c, w, h, th, idx) {
     var sub = P.Themes.subOf(th, idx || 0), kind = sub.lm[0] || 'arch:stone', fam = kind.split(':')[0];
+    if (kind === 'arch:tunnel' && P.StreetArt && P.StreetArt.current()) {
+      var width = Math.min(w, h * TUNNEL.w / TUNNEL.h) * .9, height = width * TUNNEL.h / TUNNEL.w;
+      tunnel(c, (w - width) / 2, (h - height) / 2, width, height);
+      return;
+    }
     var sz = SIZE[fam] || [3.1, 9], k = Math.min(w / sz[0], h / sz[1]) * 0.9;
     c.save(); c.translate(w / 2 - sz[0] * k / 2, h / 2 - sz[1] * k / 2); c.scale(k, k);
     if (FAM[fam]) paint(c, kind, sz[0], sz[1], textFor(kind, sub));
